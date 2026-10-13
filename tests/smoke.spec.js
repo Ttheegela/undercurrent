@@ -88,3 +88,20 @@ test("every story page loads", async ({ request }) => {
     expect((await request.get(path)).status(), path).toBe(200);
   }
 });
+
+test("a failed list never produces a false 'Not found'", async ({ page }) => {
+  await page.route("**/data/lists/us.json", (r) => r.abort());
+  await page.goto("/");
+  await search(page, "Qzxv Nonexistent Shipping 4242");
+  await expect(page.locator("#results")).toContainText("Couldn't load the United States list");
+  await expect(page.locator(".state", { hasText: "Not found in our research or on the official lists" })).toHaveCount(0);
+});
+
+test("a wrong-shape research file fails alone", async ({ page }) => {
+  await page.route("**/data/research-index.json", (r) =>
+    r.fulfill({ status: 200, contentType: "application/json", body: '{"oops":1}' }));
+  await page.goto("/");
+  await search(page, "TASSOS");
+  await expect(page.locator("#results")).toContainText("Couldn't load our research");
+  await expect(page.locator("table.lists")).toContainText("United Kingdom");
+});

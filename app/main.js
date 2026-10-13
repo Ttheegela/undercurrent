@@ -12,7 +12,9 @@ let dataReady = null;
 
 async function loadResearch() {
   try {
-    state.research = (await loadJson("data/research-index.json")).entries;
+    const doc = await loadJson("data/research-index.json");
+    if (!Array.isArray(doc.entries)) throw new Error("bad research shape");
+    state.research = doc.entries;
     state.researchFailed = false;
   } catch {
     state.researchFailed = true;
@@ -22,7 +24,9 @@ async function loadResearch() {
 async function loadLists(ids) {
   const failed = await Promise.all(ids.map(async (id) => {
     try {
-      state.lists[id] = await loadJson(`data/lists/${id}.json`);
+      const doc = await loadJson(`data/lists/${id}.json`);
+      if (!Array.isArray(doc.records)) throw new Error("bad list shape");
+      state.lists[id] = doc;
       return null;
     } catch {
       return id;
@@ -72,7 +76,7 @@ export async function runSearch(raw) {
   state.shown = new Map(research.map((e) => [e.id, e]));
   out.innerHTML = [
     state.researchFailed ? renderLayerError("research") : renderResearch(research),
-    !research.length && !lists.length && !state.researchFailed ? renderEmpty(q.text) : "",
+    !research.length && !lists.length && !state.researchFailed && !state.listsFailed.length ? renderEmpty(q.text) : "",
     `<div class="layers">${renderLists(lists, state.listsFailed)}<div id="wider">${renderWider({ kind: "loading" }, q.text)}</div></div>`,
     `<p class="caveat">${escapeHtml(CAVEAT)}</p>`,
   ].join("");

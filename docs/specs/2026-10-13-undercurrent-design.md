@@ -1,7 +1,7 @@
 # Undercurrent: design
 
 Date: 2026-10-13
-Status: draft v2, awaiting review
+Status: approved 2026-10-13; amended the same day with facts found while planning (see Amendments)
 
 ## Purpose
 
@@ -104,9 +104,9 @@ One file per list, so one list can fail without touching the others:
 - `data/lists/uk.json`: UK Sanctions List
 - `data/lists/eu.json`: EU Financial Sanctions consolidated list
 - `data/lists/un.json`: UN Security Council consolidated list
-- `data/lists/meta.json`: per list `updated_at`, `source_url`, `record_count`, `status` (`fresh` or `kept-previous`)
+- `data/lists/meta.json`: per list `checked_at`, `updated_at` (last successful download), `source_url`, `record_count`, `status` (`fresh` or `kept-previous`), `error`. List files carry no timestamps, so unchanged data produces no diff.
 
-Built by `scripts/build_official_lists.py`. Each record: `name, normalised name, program, date?, url`. One record per name or alias; only fields the page shows. Each file loads lazily and in parallel on first search.
+Built by `scripts/build_official_lists.py`. Each record: `[name, normalised name, program (plain words), date, ref, imo, url]`. One record per name or alias; only fields the page shows. Each file loads lazily and in parallel on first search.
 
 ### Layer 3: OpenSanctions (live, optional)
 
@@ -121,7 +121,7 @@ Built by `scripts/build_official_lists.py`. Each record: `name, normalised name,
    - reject if empty or more than 20% smaller than the committed file;
    - on rejection, keep yesterday's file for that list, mark it `kept-previous` in `meta.json`, and continue with the other lists.
 
-   After all lists: a smoke check loads every file and confirms known names are found (TASSOS in our research and in US/EU/UK, plus one fixed sample name per list). If the smoke check fails, nothing is committed. Any rejection or failure opens a GitHub issue (title `Nightly lists: <list> failed <date>`, de-duplicated against open issues).
+   After all lists: a smoke check loads every file and confirms a known name in each (TASSOS in our research, US and UK; "Saddam Hussein Al-Tikriti" in EU; "ERIC BADEGE" in UN). If the smoke check fails, nothing is committed. Any rejection or failure opens a GitHub issue (title `Nightly lists: <list> failed <date>`, de-duplicated against open issues).
 4. **Stale data is visible.** If any list's `updated_at` is older than 3 days, or its status is `kept-previous`, the hero date line reads "Some lists may be out of date" with the per-list dates on hover/tap.
 5. **Format changes caught early.** Each list parser is tested against a small saved sample of the real file (`scripts/fixtures/`). An upstream format change fails the test on the next run instead of producing a wrong file.
 6. **Nothing reaches production untested.** `check.yml` runs on every push and pull request:
@@ -138,11 +138,11 @@ Built by `scripts/build_official_lists.py`. Each record: `name, normalised name,
 `.github/workflows/update-lists.yml`:
 1. Runs daily at 04:00 UTC and on manual trigger.
 2. Runs `scripts/build_official_lists.py` (per-list rules above), then the smoke check.
-3. If any list file or `meta.json` changed and the smoke check passed, commits only `data/lists/` as `data: official lists YYYY-MM-DD` with the built-in `GITHUB_TOKEN`.
+3. If any list file or `meta.json` changed and the smoke check passed, commits only `data/lists/` as `data: official lists YYYY-MM-DD`, pushing with a write deploy key (`NIGHTLY_DEPLOY_KEY`) that the `main` ruleset allows to bypass the pull-request rule.
 4. The push to `main` triggers a Vercel production deploy.
 5. On rejection or failure, opens or updates the GitHub issue.
 
-Workflow permissions: `contents: write`, `issues: write`. One-time owner setting: repo Settings, Actions, Workflow permissions, "Read and write".
+Workflow permissions: `contents: read`, `issues: write` (the push goes through the deploy key).
 
 ## Repo layout
 
@@ -215,3 +215,11 @@ Three short parts: Use it (the URL), Run it locally (`npx serve .`; the OpenSanc
 - Official-list file sizes; if a single list passes 2 MB gzipped, trim fields further or shard it by first letter.
 - Vercel Firewall rate-limit rules may need the dashboard rather than config; confirm during hosting setup.
 - Story pages were built under deadline; some may have broken internal links once moved. Each is opened and clicked through during the copy, and the Playwright test checks that each story URL returns 200.
+
+## Amendments (2026-10-13, from checking the live data while planning)
+
+- **EU ship bans are not in the EU financial sanctions file.** TASSOS is in the US and UK files but not the EU file; EU port bans on ships sit in an annex to Regulation 833/2014. Our research layer already carries those EU ship listings. The About page states this limit, and the EU smoke sample is a long-standing entity instead of TASSOS.
+- **US, UK and UN files have no per-record link**, so the table links to the official list page ("List"); EU records link to their regulation ("Record"). The US file often has no listing date (shown as a dash).
+- **Pushing to a protected `main`.** The built-in Actions token cannot push past a pull-request rule, so the nightly job pushes with a write deploy key that the ruleset lets bypass. All other changes go through pull requests that must pass `check`.
+- **Measured sizes** (gzipped): US list 1.24 MB, EU 0.65 MB, UK 0.18 MB, UN 0.06 MB, research index 0.26 MB.
+- **Ship research notes** in the fleet data are internal shorthand and are not shown; company and person notes are.

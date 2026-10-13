@@ -18,17 +18,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           # Deploy key with write access; the main-branch ruleset lets deploy keys bypass the PR rule.
           ssh-key: ${{ secrets.NIGHTLY_DEPLOY_KEY }}
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
 
       - name: Build lists
         id: build
+        timeout-minutes: 20
         continue-on-error: true
         run: python scripts/build_official_lists.py
 

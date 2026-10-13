@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Listing Lag Timeline</title>
+<style>
+:root{
+  --bg:#f7f6f3; --surface:#ffffff; --ink:#1d1d1b; --ink-2:#55534e; --muted:#8a877f; --rule:#e3e0d8;
+  --pre:#a09c93; --post:#2f6fb3; --after:rgba(47,111,179,.08); --thin:rgba(120,116,108,.16); --note-bg:#fbf3e4; --note-rule:#e7cf9f;
+  --sel:#fff7e0;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#161615; --surface:#1f1f1d; --ink:#ecebe7; --ink-2:#b7b4ac; --muted:#8a877f; --rule:#34332f;
+  --pre:#7a776f; --post:#6ea3dc; --after:rgba(110,163,220,.12); --thin:rgba(160,156,148,.16); --note-bg:#2a251b; --note-rule:#5a4a2c;
+  --sel:#2d2a20;
+}}
+:root[data-theme="dark"]{
+  --bg:#161615; --surface:#1f1f1d; --ink:#ecebe7; --ink-2:#b7b4ac; --muted:#8a877f; --rule:#34332f;
+  --pre:#7a776f; --post:#6ea3dc; --after:rgba(110,163,220,.12); --thin:rgba(160,156,148,.16); --note-bg:#2a251b; --note-rule:#5a4a2c;
+  --sel:#2d2a20;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:28px 16px 48px}
+h1{font-size:26px;line-height:1.2;margin:0 0 6px}
+.sub{color:var(--ink-2);margin:0 0 16px;max-width:780px}
+.note{background:var(--note-bg);border:1px solid var(--note-rule);border-radius:8px;padding:10px 14px;margin:0 0 22px;font-size:14px}
+section{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:18px 18px 12px;margin:0 0 18px}
+h2{font-size:17px;margin:0 0 2px}
+.h2sub{color:var(--ink-2);font-size:13.5px;margin:0 0 12px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:var(--ink-2);margin:0 0 10px}
+.legend i{display:inline-block;vertical-align:middle;margin-right:6px}
+.lg-dot{width:10px;height:10px;border-radius:50%}
+.lg-zone{width:18px;height:10px;border-radius:2px}
+.lg-line{width:2px;height:14px}
+.lane{display:grid;grid-template-columns:200px 1fr;gap:14px;align-items:stretch;padding:8px 0;border-top:1px solid var(--rule)}
+.lname{font-weight:600;font-size:14px;line-height:1.3}
+.lname small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px}
+.lname .lag{display:block;font-weight:400;color:var(--ink-2);font-size:12.5px;margin-top:4px;font-variant-numeric:tabular-nums}
+.track{position:relative;height:100px;overflow:hidden}
+.zone{position:absolute;top:0;bottom:0}
+.zone.after{background:var(--after)}
+.zone.thin{background:repeating-linear-gradient(135deg,var(--thin) 0 4px,transparent 4px 8px)}
+.vline{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--ink)}
+.vline.sister{border-left-style:dashed;border-left-color:var(--ink-2)}
+.vline.inv{border-left:1.5px dashed var(--muted)}
+.vline.reg{border-left:2px dotted var(--ink-2);top:58px}
+.tag{position:absolute;transform:translateX(-50%);font-size:11px;line-height:1.2;white-space:nowrap;background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:1px 5px;color:var(--ink);cursor:pointer}
+.tag.sister{color:var(--ink-2);border-style:dashed}
+.tag.reg{color:var(--ink-2)}
+.span{position:absolute;height:2px;top:78px;background:var(--pre);opacity:.55}
+.span.post{background:var(--post)}
+.rbar{position:absolute;height:4px;border-radius:2px;margin-top:-2px}
+.dot{position:absolute;border-radius:50%;transform:translate(-50%,-50%);border:2px solid var(--surface);cursor:pointer;padding:0}
+.dot:focus-visible,.tag:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+.pre{background:var(--pre)} .post{background:var(--post)}
+.ticks{position:relative;height:32px;font-size:11px;color:var(--muted);margin-left:214px}
+.ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.thinlab{font-size:11.5px;color:var(--ink-2);margin:4px 0 0 214px}
+.detail{grid-column:1 / -1;display:none;background:var(--sel);border:1px solid var(--rule);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--ink)}
+.detail.on{display:block}
+.detail a{color:var(--ink-2);overflow-wrap:anywhere}
+.detail code{font-size:12px;overflow-wrap:anywhere}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tw{overflow-x:auto}
+.pill{display:inline-block;font-size:11.5px;border:1px solid var(--rule);border-radius:999px;padding:0 8px;color:var(--ink-2)}
+footer{color:var(--ink-2);font-size:13px;margin-top:18px}
+footer li{margin:2px 0}
+#err{display:none}
+@media (max-width:720px){
+  .lane{grid-template-columns:1fr;gap:4px}
+  .ticks,.thinlab{margin-left:0}
+  h1{font-size:22px}
+  .tag{font-size:10px;padding:0 3px}
+}
+</style>
+</head>
+<body><a href="/" style="position:fixed;top:12px;left:12px;z-index:9999;font:500 13px/1 system-ui,sans-serif;color:#e8eaf0;background:#141821;border:1px solid #2c3240;border-radius:4px;padding:8px 10px;text-decoration:none">&larr; Undercurrent</a>
+<main>
+  <h1>How long before the lists caught up</h1>
+  <p class="sub">For each company in our checked findings: when it first looked suspicious in the records (registered just after the invasion, or first seen trading on a new route), when an official sanctions or export list named it, and whether shipments were still recorded after that.</p>
+  <div class="note"><b>How to read this.</b> Grey dots are shipment records before the company was listed; blue dots are records after. The shaded blue zone is "after listing". Solid vertical lines are official listings, with the list and date. Each row is a <b>lead, not a finding</b>: a record is not proof that any rule was broken. Tap or hover any dot or label to see its source.</div>
+  <p id="err" class="note">Could not load listing_lag.js. Run <code>python extract_listing_lag.py</code> in this folder.</p>
+
+  <section>
+    <h2>Timeline, one row per company</h2>
+    <p class="h2sub">Dots are grouped records (bigger dot = more records on the same day or range). The thin line is the span of the company's own records where we have it.</p>
+    <div class="legend">
+      <span><i class="lg-dot pre"></i>record before listing</span>
+      <span><i class="lg-dot post"></i>record after listing</span>
+      <span><i class="lg-zone" style="background:var(--after);border:1px solid var(--rule)"></i>after listing</span>
+      <span><i class="lg-line" style="background:var(--ink)"></i>official listing</span>
+      <span><i class="lg-line" style="border-left:2px dashed var(--ink-2)"></i>related firm listed (context)</span>
+      <span><i class="lg-line" style="border-left:2px dotted var(--ink-2)"></i>registered</span>
+      <span><i class="lg-zone" style="background:repeating-linear-gradient(135deg,var(--thin) 0 4px,transparent 4px 8px);border:1px solid var(--rule)"></i>data thins out</span>
+    </div>
+    <div id="lanes"></div>
+    <div class="ticks" id="ticks"></div>
+    <p class="thinlab" id="thinlab"></p>
+  </section>
+
+  <section>
+    <h2>Summary: lag and records after listing</h2>
+    <p class="h2sub">Lag = first listing date minus first suspicious date, in whole months, shown as "at least" because activity may have started before our first record.</p>
+    <div class="tw"><table id="tbl"><thead><tr><th>Company</th><th>First suspicious date</th><th>Listed (official)</th><th>Lag, at least</th><th>Records after listing</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <footer>
+    <ul id="caveats"></ul>
+    <p>Sources: Sayari trade and registry data saved 25 Sept 2026 in <code>climate-day/pulls/sayari/</code> (licensed for today; stays on our laptops); official pages from the US Treasury (OFAC), the Federal Register and the UK Sanctions List, saved in <code>climate-day/pulls/tavily/</code>. Status of every row: <span class="pill">lead, not finding</span></p>
+  </footer>
+</main>
+<script src="listing_lag.js"></script>
+<script>
+(function(){
+  const D = window.LISTING_LAG;
+  if(!D){ document.getElementById('err').style.display='block'; return; }
+  const T0 = Date.parse('2021-10-01'), T1 = Date.parse('2025-07-01');
+  const clamp = v => Math.max(0, Math.min(100, v));
+  const pct = d => clamp((Date.parse(d)-T0)/(T1-T0)*100);
+  const pos = d => pct(d).toFixed(2)+'%';
+  const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const nice = d => { if(!d) return 'n/a'; const [y,m,dd]=d.split('-'); return `${+dd} ${MON[+m-1]} ${y}`; };
+  const fmt = n => n==null ? 'n/a' : n.toLocaleString('en-US');
+  const rel = p => p && !/^https?:/.test(p) ? '../../' + p : p;
+  const srcLink = e => {
+    let h = '';
+    if(e.source_url) h += `Official page: <a href="${esc(e.source_url)}" target="_blank" rel="noopener">${esc(e.source_url)}</a><br>`;
+    if(e.source_file) h += `Saved answer: <a href="${esc(rel(e.source_file))}"><code>${esc(e.source_file)}</code></a>`;
+    return h;
+  };
+  const inv = D.reference_dates[0];
+  const tpos = d => { const v = pct(d); return v > 78 ? `left:auto;right:${(100-v).toFixed(2)}%;transform:translateX(1px)` : v < 18 ? `left:${v.toFixed(2)}%;transform:translateX(-1px)` : `left:${v.toFixed(2)}%`; };
+
+  // ticks
+  let th = '';
+  for(let y=2022; y<=2025; y++){ th += `<span style="left:${pos(y+'-01-01')}">${y}</span>`; th += `<span style="left:${pos(y+'-07-01')}">Jul</span>`; }
+  th += `<span style="left:${pos(inv.date)};top:15px;color:var(--ink-2)">Invasion 24 Feb 2022</span>`;
+  document.getElementById('ticks').innerHTML = th.replace(/<span style="left:[^"]*">Jul<\/span>/g, m => m.includes('2025-07') ? '' : m);
+  document.getElementById('thinlab').innerHTML = `Hatched area from ${nice(D.thin_data_from)}: ${esc(D.thin_data_label)}. Dashed grey line: ${nice(inv.date)}, ${esc(inv.label)}.`;
+
+  const lanes = document.getElementById('lanes');
+  D.companies.forEach((c, ci) => {
+    const listed = c.events.filter(e=>e.type==='listed');
+    const own = listed.filter(e=>!e.sister);
+    const firstL = c.first_listing.date;
+    const ships = c.events.filter(e=>e.type==='shipment');
+    const reg = c.events.find(e=>e.type==='registered');
+    const fs = c.events.find(e=>e.type==='first_shipment'), ls = c.events.find(e=>e.type==='last_shipment');
+    const items = []; // for details
+    const reg_ = (html, detail) => { items.push(detail); return html.replace('%ID%', `data-i="${items.length-1}"`); };
+
+    let h = `<div class="zone after" style="left:${pos(firstL)};right:0"></div>`;
+    h += `<div class="zone thin" style="left:${pos(D.thin_data_from)};right:0" title="${esc(D.thin_data_label)}"></div>`;
+    h += `<div class="vline inv" style="left:${pos(inv.date)}" title="${esc(nice(inv.date)+': '+inv.label)}"></div>`;
+
+    // own-record span, split at the first listing
+    if(fs && ls){
+      const a = pct(fs.date), z = pct(ls.date), L = pct(firstL);
+      const tip = `${fs.scope}: first record ${nice(fs.date)}, last ${nice(ls.date)}`;
+      if(a < L) h += `<div class="span" style="left:${a}%;width:${Math.max(0.3,Math.min(z,L)-a)}%" title="${esc(tip)}"></div>`;
+      if(z > L) h += `<div class="span post" style="left:${Math.max(a,L)}%;width:${z-Math.max(a,L)}%" title="${esc(tip)}"></div>`;
+      h += reg_(`<button class="dot pre" %ID% style="left:${a}%;top:78px;width:10px;height:10px" aria-label="first record"></button>`,
+        {title:`First own record: ${nice(fs.date)}`, body:esc(fs.scope), e:fs});
+      h += reg_(`<button class="dot ${ls.date>firstL?'post':'pre'}" %ID% style="left:${z}%;top:78px;width:10px;height:10px" aria-label="last record"></button>`,
+        {title:`Last own record: ${nice(ls.date)}`, body:esc(fs.scope), e:ls});
+    }
+
+    // shipment groups
+    ships.forEach(s => {
+      const after = s.date > firstL, cls = after ? 'post' : 'pre';
+      const sz = Math.round(8 + Math.min(12, Math.sqrt(s.records)*2.2));
+      const y = 78;
+      if(s.date_end && s.date_end !== s.date){
+        h += `<div class="rbar ${cls}" style="left:${pos(s.date)};width:calc(${pos(s.date_end)} - ${pos(s.date)});top:${y}px;opacity:.6"></div>`;
+      }
+      const when = s.date_end && s.date_end!==s.date ? `${nice(s.date)} to ${nice(s.date_end)}` : nice(s.date);
+      h += reg_(`<button class="dot ${cls}" %ID% style="left:${pos(s.date)};top:${y}px;width:${sz}px;height:${sz}px" aria-label="${esc(s.records+' records '+when)}"></button>`,
+        {title:`${fmt(s.records)} record${s.records>1?'s':''}, ${when} (${s.date_kind} date) ${after?'<b>after</b>':'before'} first listing`,
+         body:`${esc(s.from)} to ${esc(s.to)}; ${esc(s.group)}; departure country ${esc(s.departure)}; product code ${esc(s.hs_code)} ${esc(s.product)}`, e:s});
+    });
+
+    // registration
+    if(reg){
+      h += `<div class="vline reg" style="left:${pos(reg.date)}"></div>`;
+      h += reg_(`<button class="tag reg" %ID% style="${tpos(reg.date)};top:58px">Registered ${nice(reg.date)}</button>`,
+        {title:`Registered ${nice(reg.date)}`, body:esc(reg.note), e:reg});
+    }
+    // listings, staggered labels
+    listed.forEach((l, i) => {
+      h += `<div class="vline ${l.sister?'sister':''}" style="left:${pos(l.date)}"></div>`;
+      h += reg_(`<button class="tag ${l.sister?'sister':''}" %ID% style="${tpos(l.date)};top:${2 + (i%3)*19}px">${esc(l.short)} ${nice(l.date)}</button>`,
+        {title:`${esc(l.authority)}: listed ${nice(l.date)}${l.sister?' (related firm, context only)':''}`, body:esc(l.note||'') + (l.verified?' <span class="pill">checked on official page</span>':' <span class="pill">unverified</span>'), e:l});
+    });
+
+    const lag = c.lag_months_at_least==null ? 'no suspicious date before listing in our records' : `lag at least ${c.lag_months_at_least} month${c.lag_months_at_least===1?'':'s'}`;
+    const html = `<div class="lane" id="lane-${c.id}">
+      <div class="lname">${esc(c.name)}<small>${esc(c.place)}. ${esc(c.role)}</small><span class="lag">${lag}; ${fmt(c.post_listing_shipments)} records after listing</span></div>
+      <div class="track">${h}</div>
+      <div class="detail" role="status"></div></div>`;
+    lanes.insertAdjacentHTML('beforeend', html);
+    const lane = lanes.lastElementChild, det = lane.querySelector('.detail');
+    const show = el => {
+      const it = items[+el.dataset.i];
+      det.innerHTML = `<b>${it.title}</b><br>${it.body}<br>${srcLink(it.e)}<br><span class="pill">lead, not finding</span>`;
+      det.classList.add('on');
+    };
+    lane.querySelectorAll('[data-i]').forEach(el => {
+      const it = items[+el.dataset.i];
+      el.title = (it.title + ' | ' + it.body).replace(/<[^>]+>/g,'') + ' | Source: ' + (it.e.source_url || it.e.source_file || '');
+      el.addEventListener('click', () => show(el));
+      el.addEventListener('mouseenter', () => show(el));
+    });
+  });
+
+  // summary table
+  const tb = document.querySelector('#tbl tbody');
+  D.companies.forEach(c => {
+    const ls = c.events.filter(e=>e.type==='listed').map(l => `${esc(l.short)} ${nice(l.date)}`).join('<br>');
+    const by = Object.entries(c.post_listing_by_listing).map(([k,v]) => `${fmt(v)} after ${esc(k.split(' ')[0])}`).join('<br>');
+    tb.insertAdjacentHTML('beforeend', `<tr>
+      <td><b>${esc(c.name)}</b><br><span style="color:var(--muted);font-size:12px">${esc(c.place)}</span></td>
+      <td class="num">${c.first_suspicious.date ? nice(c.first_suspicious.date) : 'n/a'}<br><span style="color:var(--muted);font-size:12px;white-space:normal">${esc(c.first_suspicious.basis)}</span></td>
+      <td class="num">${ls}</td>
+      <td class="num">${c.lag_months_at_least==null ? 'n/a' : c.lag_months_at_least + (c.lag_months_at_least===1?' month':' months')}</td>
+      <td class="num">${by}<br><span style="color:var(--muted);font-size:12px">last record ${nice(c.last_record_seen)}</span></td></tr>`);
+  });
+  const cv = document.getElementById('caveats');
+  D.caveats.forEach(c => cv.insertAdjacentHTML('beforeend', `<li>${esc(c)}</li>`));
+  D.companies.filter(c => c.post_listing_note.includes('row limit')).forEach(c => cv.insertAdjacentHTML('beforeend', `<li>${esc(c.name)}: ${esc(c.post_listing_note)}.</li>`));
+})();
+</script>
+</body>
+</html>

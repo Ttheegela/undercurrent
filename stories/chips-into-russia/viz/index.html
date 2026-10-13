@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chip Routes Into Russia</title>
+<style>
+:root{
+  --bg:#f7f6f3; --surface:#ffffff; --ink:#1d1d1b; --ink-2:#55534e; --muted:#8a877f; --rule:#e3e0d8;
+  --bar:#2f6fb3; --bar-2:#9db8d6; --span:#2f6fb3; --span-2:#b9b5ab; --mark:#b3462f; --note-bg:#fbf3e4; --note-rule:#e7cf9f;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#161615; --surface:#1f1f1d; --ink:#ecebe7; --ink-2:#b7b4ac; --muted:#8a877f; --rule:#34332f;
+  --bar:#6ea3dc; --bar-2:#3d5a7c; --span:#6ea3dc; --span-2:#5c5a54; --mark:#e07a62; --note-bg:#2a251b; --note-rule:#5a4a2c;
+}}
+:root[data-theme="dark"]{
+  --bg:#161615; --surface:#1f1f1d; --ink:#ecebe7; --ink-2:#b7b4ac; --muted:#8a877f; --rule:#34332f;
+  --bar:#6ea3dc; --bar-2:#3d5a7c; --span:#6ea3dc; --span-2:#5c5a54; --mark:#e07a62; --note-bg:#2a251b; --note-rule:#5a4a2c;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1040px;margin:0 auto;padding:28px 16px 48px}
+h1{font-size:26px;line-height:1.2;margin:0 0 6px}
+.sub{color:var(--ink-2);margin:0 0 16px;max-width:760px}
+.note{background:var(--note-bg);border:1px solid var(--note-rule);border-radius:8px;padding:10px 14px;margin:0 0 22px;font-size:14px}
+.note b{font-weight:600}
+section{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:18px 18px 10px;margin:0 0 18px}
+h2{font-size:17px;margin:0 0 2px}
+.h2sub{color:var(--ink-2);font-size:13.5px;margin:0 0 14px}
+.head,.row{display:grid;grid-template-columns:170px minmax(140px,1fr) minmax(220px,1.3fr);gap:14px;align-items:center}
+.head{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding-bottom:6px;border-bottom:1px solid var(--rule)}
+.row{padding:10px 0;border-bottom:1px solid var(--rule)}
+.row:last-child{border-bottom:0}
+.row:hover{background:color-mix(in srgb,var(--bar) 6%,transparent)}
+.name{font-weight:600}
+.name small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.barwrap{position:relative;height:22px}
+.bar{position:absolute;left:0;top:3px;height:16px;background:var(--bar);border-radius:0 4px 4px 0;min-width:2px}
+.late .bar{background:var(--bar)} .early .bar{background:var(--bar-2)}
+.count{font-variant-numeric:tabular-nums;font-size:13.5px;color:var(--ink)}
+.count span{color:var(--muted)}
+.axis{position:relative;height:22px}
+.axis .track{position:absolute;left:0;right:0;top:10px;height:2px;background:var(--rule)}
+.axis .span{position:absolute;top:5px;height:12px;border-radius:6px;background:var(--span);min-width:6px}
+.early .axis .span{background:var(--span-2)}
+.axis .inv{position:absolute;top:0;bottom:0;width:2px;background:var(--mark)}
+.dates{font-size:12.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.meta{grid-column:1 / -1;font-size:12.5px;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:2px}
+.meta a{color:var(--ink-2);overflow-wrap:anywhere}
+.ticks{position:relative;height:16px;font-size:11px;color:var(--muted)}
+.ticks span{position:absolute;transform:translateX(-50%)}
+.ticks .invlab{color:var(--mark);transform:translateX(-50%);white-space:nowrap}
+.pill{display:inline-block;font-size:11.5px;border:1px solid var(--rule);border-radius:999px;padding:0 8px;color:var(--ink-2)}
+footer{color:var(--ink-2);font-size:13px;margin-top:18px}
+footer li{margin:2px 0}
+#err{display:none;color:var(--mark)}
+@media (max-width:720px){
+  .head{display:none}
+  .head.tickrow{display:grid;grid-template-columns:1fr}
+  .head.tickrow::before{content:"Years (red line: 24 Feb 2022, invasion)";text-transform:none;letter-spacing:0}
+  .row{grid-template-columns:1fr;gap:6px}
+  h1{font-size:22px}
+}
+</style>
+</head>
+<body><a href="/" style="position:fixed;top:12px;left:12px;z-index:9999;font:500 13px/1 system-ui,sans-serif;color:#e8eaf0;background:#141821;border:1px solid #2c3240;border-radius:4px;padding:8px 10px;text-decoration:none">&larr; Undercurrent</a>
+<main>
+  <h1>How chips reach Russia: the routes in the trade records</h1>
+  <p class="sub" id="sub">Electronic chips (customs code HS 8542) recorded arriving in Russia, grouped by the country they were shipped from. In these records the middle countries only start appearing after the invasion; the chips themselves were mostly made elsewhere.</p>
+  <div class="note"><b>How to read this.</b> Every number is a count of <b>shipment records</b> in Sayari's trade data, not a value, a volume, or proof that any rule was broken. Each row is a <b>lead, not a finding</b>: it points to where a person should look next. Every row links to the saved sponsor answer it came from.</div>
+  <p id="err">Could not load routes_8542_rus.js. Run <code>python extract_routes.py</code> in this folder.</p>
+  <div id="groups"></div>
+  <footer>
+    <ul id="caveats"></ul>
+    <p>Source: Sayari trade data (search_trade_facets), saved 25 Sept 2026 in <code>climate-day/pulls/sayari/</code>. Sponsor data licensed for today only; stays on our laptops. Status of every row: <span class="pill">lead, not finding</span></p>
+  </footer>
+</main>
+<script src="routes_8542_rus.js"></script>
+<script>
+(function(){
+  const D = window.ROUTES;
+  if(!D){ document.getElementById('err').style.display='block'; return; }
+  const SRC = '../../pulls/sayari/';
+  const fmt = n => n==null ? 'n/a' : n.toLocaleString('en-US');
+  const T0 = Date.parse('2018-01-01'), T1 = Date.parse('2027-01-01');
+  const pos = d => ((Date.parse(d)-T0)/(T1-T0)*100).toFixed(2)+'%';
+  const inv = D.reference_date.date;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  const groups = [
+    {cls:'late', title:'Middle countries: records start after the invasion',
+     sub:'Few of the chips were made in these countries (see "where the chips were made"). Bars share one scale within this box.',
+     rows:D.routes.filter(r=>r.starts_after_invasion)},
+    {cls:'early', title:'Large, long-running senders: records span before and after',
+     sub:'Counts cover every year in the data (2019 to 2024), so they are not an after-invasion figure. Own scale: these counts are 10 to 135 times the largest count above.',
+     rows:D.routes.filter(r=>!r.starts_after_invasion)}
+  ];
+
+  function ticks(){
+    let h='';
+    for(let y=2018;y<=2026;y+=2) h+=`<span style="left:${pos(y+'-01-01')}">${y}</span>`;
+    return `<div class="ticks">${h}</div>`;
+  }
+
+  const root = document.getElementById('groups');
+  groups.forEach(g=>{
+    if(!g.rows.length) return;
+    const max = Math.max(...g.rows.map(r=>r.shipment_records||0));
+    let html = `<section class="${g.cls}"><h2>${g.title}</h2><p class="h2sub">${g.sub}</p>
+      <div class="head"><div>Shipped from</div><div>Shipment records</div><div>First to last record (red line: ${inv}, invasion)</div></div>`;
+    g.rows.forEach(r=>{
+      const w = Math.max(0.4, (r.shipment_records||0)/max*100);
+      const made = r.made_in_top.map(o=>`${esc(o.name)} ${fmt(o.count)}`).join(', ');
+      const tip = `${r.departure_name} to Russia, HS ${r.hs_code}: ${fmt(r.shipment_records)} shipment records, ${r.first_date} to ${r.last_date}. Lead, not finding. Source: ${r.source_file}`;
+      html += `<div class="row" title="${esc(tip)}">
+        <div class="name">${esc(r.departure_name)}<small>to Russia</small></div>
+        <div><div class="barwrap"><div class="bar" style="width:${w}%"></div></div>
+             <div class="count">${fmt(r.shipment_records)} <span>records</span></div></div>
+        <div><div class="axis"><div class="track"></div>
+             <div class="span" style="left:${pos(r.first_date)};width:calc(${pos(r.last_date)} - ${pos(r.first_date)})"></div>
+             <div class="inv" style="left:${pos(inv)}"></div></div>
+             <div class="dates">${r.first_date} to ${r.last_date}</div></div>
+        <div class="meta"><span>Where the chips were made (top, by records): ${made||'not in the answer'}</span>
+             <span>Source: <a href="${SRC+encodeURIComponent(r.source_file)}">${esc(r.source_file)}</a></span>
+             <span class="pill">lead, not finding</span></div>
+      </div>`;
+    });
+    html += `<div class="head tickrow" style="border:0;padding-top:4px"><div></div><div></div><div>${ticks()}</div></div></section>`;
+    root.insertAdjacentHTML('beforeend', html);
+  });
+
+  const cv = document.getElementById('caveats');
+  D.caveats.forEach(c=>cv.insertAdjacentHTML('beforeend', `<li>${esc(c)}</li>`));
+})();
+</script>
+</body>
+</html>

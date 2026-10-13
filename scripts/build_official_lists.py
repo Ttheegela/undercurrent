@@ -35,7 +35,10 @@ def _write_atomic(path: Path, text: str) -> None:
 
 def build_one(list_id: str, fetch_fn, out_dir: Path, now: str, previous_meta: dict) -> dict:
     path = out_dir / f"{list_id}.json"
-    prev_records = json.loads(path.read_text(encoding="utf-8"))["records"] if path.exists() else None
+    try:
+        prev_records = json.loads(path.read_text(encoding="utf-8"))["records"]
+    except (OSError, ValueError, KeyError, TypeError):  # missing or corrupt previous file counts as absent
+        prev_records = None
     base = {"label": LISTS[list_id]["label"], "source_url": LISTS[list_id]["page"], "checked_at": now}
     try:
         records = PARSERS[list_id](fetch_fn(LISTS[list_id]["download"]))
@@ -62,7 +65,10 @@ def main(fetch_fn=fetch, out_dir: Path = OUT_DIR, now: str | None = None) -> int
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     meta_path = out_dir / "meta.json"
-    previous = json.loads(meta_path.read_text(encoding="utf-8"))["lists"] if meta_path.exists() else {}
+    try:
+        previous = json.loads(meta_path.read_text(encoding="utf-8"))["lists"]
+    except (OSError, ValueError, KeyError, TypeError):
+        previous = {}
     lists = {list_id: build_one(list_id, fetch_fn, out_dir, now, previous) for list_id in LISTS}
     _write_atomic(meta_path, json.dumps({"lists": lists}, indent=2) + "\n")
     for list_id, meta in lists.items():

@@ -80,3 +80,10 @@ def test_wrong_shape_with_no_previous_file(tmp_path):
     assert meta["updated_at"] is None
     assert meta["record_count"] == 0
     assert not (tmp_path / "us.json").exists()
+
+
+def test_corrupt_previous_files_are_treated_as_absent(tmp_path):
+    (tmp_path / "un.json").write_text("{not json")
+    (tmp_path / "meta.json").write_text("{not json")
+    assert b.main(fixture_fetch, tmp_path, DAY1) == 0
+    assert {m["status"] for m in read_meta(tmp_path).values()} == {"fresh"}

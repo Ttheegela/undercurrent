@@ -1,4 +1,5 @@
 import { prepareQuery, searchResearch, searchLists, loadJson, LIST_IDS, latestOnly, listStatus } from "./search.js";
+import { setupWalkthrough } from "./walkthrough.js";
 import {
   renderResearch, renderLists, renderWider, renderEmpty, renderHint, renderLoading, renderLayerError,
   citation, formatUpdated, escapeHtml, CAVEAT,
@@ -142,3 +143,4 @@ function wire() {
 }
 
 wire();
+setupWalkthrough({ runSearch });

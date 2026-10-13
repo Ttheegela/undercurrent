@@ -15,7 +15,6 @@ hull number keeps it.
 
 ## Interactive demo: Fleet Control Tracer
 
-Open [`viz/fleet_control_tracer.html`](viz/fleet_control_tracer.html) for a self-contained board that ports the Lukoil Control Tracer UX onto this research (hull map, listing clock, pattern test, leads board).
 
 **Name vs IMO:** Screen by name keeps twin ship names (for example NEW MILOS / VOLANS) as separate records, so some look unflagged. Screen by IMO merges each rename onto one hull and shows the dual-list truth. Matching on IMO merges the rename, so the flag cannot be missed.
 
@@ -25,7 +24,6 @@ Notes and lead statuses stay in the browser (localStorage only). Facts follow FI
 
 | File | What it holds |
 |---|---|
-| [viz/fleet_control_tracer.html](viz/fleet_control_tracer.html) | Interactive tracer: name vs IMO screening, twin hulls, listing clock, pattern test, leads board |
 | [FINDINGS.md](FINDINGS.md) | What the records show: the Russia and Iran overlap, who listed first, renamed hulls, young one-ship managers, two manager case studies, the EU July 2026 act, and the climate link |
 | [METHOD.md](METHOD.md) | How to join lists by IMO number, the filter trap that moves the count from 42 to 54, and why matching by name fails |
 | [network/shadow_fleet_map.html](network/shadow_fleet_map.html) | Full interactive network map of tankers, companies, people and countries |

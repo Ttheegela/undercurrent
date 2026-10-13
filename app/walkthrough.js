@@ -10,6 +10,13 @@ export function availableSteps(steps, doc) {
   return steps.filter((s) => doc.querySelector(s.target));
 }
 
+export function nextAvailable(steps, doc, from, direction) {
+  for (let i = from; i >= 0 && i < steps.length; i += direction) {
+    if (doc.querySelector(steps[i].target)) return i;
+  }
+  return -1;
+}
+
 export function setupWalkthrough({ runSearch, doc = document }) {
   const card = doc.querySelector("#walk");
   const label = doc.querySelector("#walk-step");
@@ -23,9 +30,11 @@ export function setupWalkthrough({ runSearch, doc = document }) {
   const clear = () => doc.querySelectorAll(".spot").forEach((el) => el.classList.remove("spot"));
   const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  function show(i) {
+  function show(i, direction = 1) {
     clear();
-    index = i;
+    const found = nextAvailable(steps, doc, i, direction);
+    if (found === -1) return leave();
+    index = found;
     const step = steps[index];
     const target = doc.querySelector(step.target);
     target.classList.add("spot");
@@ -60,8 +69,8 @@ export function setupWalkthrough({ runSearch, doc = document }) {
 
   doc.querySelector("#start-walk").addEventListener("click", start);
   doc.querySelector("#nav-walk").addEventListener("click", start);
-  next.addEventListener("click", () => (index === steps.length - 1 ? leave() : show(index + 1)));
-  back.addEventListener("click", () => index > 0 && show(index - 1));
+  next.addEventListener("click", () => (index === steps.length - 1 ? leave() : show(index + 1, 1)));
+  back.addEventListener("click", () => index > 0 && show(index - 1, -1));
   doc.querySelector("#walk-exit").addEventListener("click", leave);
   doc.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !card.hidden) leave();

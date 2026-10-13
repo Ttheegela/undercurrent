@@ -4,6 +4,7 @@
  * nav: N9 edge-aligned · footer: Ft2 inline single line · enrichment: Tier A CSS timeline */
 
 :root {
+  --color-shadow:  oklch(5% 0.01 250 / 0.8);
   --color-paper:   oklch(15% 0.012 250);
   --color-paper-2: oklch(19% 0.014 250);
   --color-paper-3: oklch(23% 0.016 250);
@@ -141,7 +142,7 @@ table.lists { width: 100%; border-collapse: collapse; font-size: var(--text-sm);
 .caveat { margin-top: var(--space-2xl); font-size: var(--text-xs); color: var(--color-neutral); max-width: 70ch; }
 
 /* Walkthrough card */
-.walk { position: fixed; z-index: 20; left: var(--page-gutter); bottom: var(--space-lg); width: min(24rem, calc(100vw - 2 * var(--page-gutter))); background: var(--color-paper-3); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-sm); padding: var(--space-md); box-shadow: 0 20px 40px -20px oklch(5% 0.01 250 / 0.8); }
+.walk { position: fixed; z-index: 20; left: var(--page-gutter); bottom: var(--space-lg); width: min(24rem, calc(100vw - 2 * var(--page-gutter))); background: var(--color-paper-3); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-sm); padding: var(--space-md); box-shadow: 0 20px 40px -20px var(--color-shadow); }
 .walk-top { display: flex; justify-content: space-between; align-items: center; }
 .walk-bar { display: flex; gap: 3px; }
 .walk-bar i { width: 1.25rem; height: 3px; background: var(--color-rule); }

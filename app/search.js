@@ -55,7 +55,7 @@ export function searchLists(docs, q) {
   const seen = new Set();
   const out = [];
   for (const { list, r } of scored) {
-    const key = `${list}:${r[4]}`;
+    const key = r[4] ? `${list}:${r[4]}` : `${list}:name:${r[1]}`;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ list, name: r[0], program: r[2], date: r[3], ref: r[4], imo: r[5], url: r[6] });
@@ -76,9 +76,12 @@ export function latestOnly() {
 export function listStatus(meta, now = new Date()) {
   const lists = Object.values(meta?.lists || {});
   if (!lists.length) return { newest: null, stale: true, details: [] };
-  const times = lists.map((l) => l.updated_at).filter(Boolean).map((t) => new Date(t).getTime());
+  const times = lists.map((l) => new Date(l.updated_at).getTime()).filter(Number.isFinite);
   const newest = times.length ? new Date(Math.max(...times)) : null;
-  const stale = lists.some((l) => !l.updated_at || l.status !== "fresh" || now - new Date(l.updated_at) > STALE_MS);
+  const stale = lists.some((l) => {
+    const t = new Date(l.updated_at).getTime();
+    return !Number.isFinite(t) || l.status !== "fresh" || now - t > STALE_MS;
+  });
   const details = lists.map((l) => `${l.label}: ${l.updated_at ? l.updated_at.slice(0, 10) : "never"}${l.status !== "fresh" ? " (kept previous copy)" : ""}`);
   return { newest, stale, details };
 }

@@ -55,6 +55,8 @@ test("searchLists: one row per listed entity, IMO matches, fields mapped", () =>
   const hits = searchLists(docs, prepareQuery("tassos"));
   assert.deepEqual(hits.map((h) => h.list).sort(), ["uk", "us"]);
   assert.deepEqual(searchLists(docs, prepareQuery("9408695")).length, 2);
+  const refless = { uk: { records: [["TASSOS ONE", "TASSOS ONE", "Iran", "", "", "", ""], ["TASSOS TWO", "TASSOS TWO", "Iran", "", "", "", ""]] } };
+  assert.deepEqual(searchLists(refless, prepareQuery("tassos")).map((h) => h.name).sort(), ["TASSOS ONE", "TASSOS TWO"]);
   assert.deepEqual(hits.find((h) => h.list === "uk"), { list: "uk", name: "TASSOS", program: "Russia", date: "2026-02-24", ref: "RUS3483", imo: "9408695", url: "" });
 });
 
@@ -76,6 +78,9 @@ test("listStatus: newest time, stale when old or kept-previous", () => {
   assert.equal(kept.stale, true);
   assert.match(kept.details.join("\n"), /United Kingdom: 2026-10-12 \(kept previous copy\)/);
   assert.deepEqual(listStatus(null, now), { newest: null, stale: true, details: [] });
+  const bad = listStatus({ lists: { us: { label: "United States", status: "fresh", updated_at: "not a date" } } }, now);
+  assert.equal(bad.stale, true);
+  assert.equal(bad.newest, null);
 });
 
 test("loadJson throws on HTTP errors", async () => {

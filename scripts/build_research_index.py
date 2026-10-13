@@ -164,14 +164,14 @@ def fleet_entry(node: dict, out_edges: list, in_edges: list, by_id: dict, countr
         if normalize_name(name) not in keys_for(current, *former):
             former.append(name)
     if node["type"] == "ship" and former:
-        ua = (node.get("sources") or [{}])[0].get("url")
+        ua_pages = [h["source_url"] for h in node.get("history", [])
+                    if h.get("source_url") and urlparse(h["source_url"]).netloc == "war-sanctions.gur.gov.ua"]
+        ua = ua_pages[0] if ua_pages else (node.get("sources") or [{}])[0].get("url")
         facts.append(fact("Has also sailed as " + join_and(former) + ".", [src.ref(ua)], src, FLEET_FINDINGS))
     aliases = [a for a in node.get("aliases", []) if normalize_name(a) not in keys_for(current, *former)]
     names = [{"name": current, "current": True}] + [{"name": n, "current": False} for n in former + aliases]
     names = [n for i, n in enumerate(names) if normalize_name(n["name"]) not in keys_for(*(m["name"] for m in names[:i]))]
 
-    for note in node.get("research_notes", []) if node["type"] != "ship" else []:  # ship notes are internal shorthand
-        facts.append(fact(note["text"], [src.ref(*FLEET_FINDINGS)], src, FLEET_FINDINGS))
     if node["type"] != "ship" and node.get("ship_count"):
         facts.append(fact(f"Linked to {node['ship_count']} ships in our research.", [src.ref(*FLEET_FINDINGS)], src, FLEET_FINDINGS))
     if not facts:
@@ -237,6 +237,23 @@ def chip_entries(doc: dict) -> list[dict]:
     return out
 
 
+LIST_NAMES = {
+    "US OFAC SDN": "US Treasury sanctions list",
+    "US BIS Entity List": "US export-control Entity List",
+    "US NS-CMIC (EO13959)": "US list of Chinese military companies",
+    "UK Sanctions List": "UK sanctions list",
+    "US OFAC Russia programs (EO13662/EO14024)": "US Treasury Russia sanctions",
+    "EU sanctions": "EU sanctions list",
+    "US OFAC SSI (sectoral, EO13662)": "US Treasury sectoral sanctions on Russia",
+    "US-OFAC SSI List (Directive 2)": "US Treasury sectoral sanctions on Russia",
+    "EU/UK sanctions": "EU and UK sanctions lists",
+}
+
+
+def list_name(label: str) -> str:
+    return LIST_NAMES.get(label) or re.sub(r"\s*\([^)]*\)", "", label).strip()
+
+
 def lobby_entries(nodes: list) -> list[dict]:
     out = []
     for n in nodes:
@@ -244,7 +261,7 @@ def lobby_entries(nodes: list) -> list[dict]:
             continue
         src = Sources()
         ref = src.ref(*LOBBY_FINDINGS)
-        listings = [{"by": l["list"], "date": l["date"] if re.match(r"^\d{4}", l.get("date") or "") else "", "program": "", "ref": ref}
+        listings = [{"by": list_name(l["list"]), "date": l["date"] if re.match(r"^\d{4}", l.get("date") or "") else "", "program": "", "ref": ref}
                     for l in n.get("listed", [])]
         if listings:
             facts = [fact(f"On the {l['by']}" + (f" since {fmt_date(l['date'])}" if l["date"] else "") + ".", [ref], src, LOBBY_FINDINGS)

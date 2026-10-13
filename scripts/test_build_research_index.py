@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 import build_research_index as b
@@ -32,6 +34,17 @@ def test_tassos_names_and_history(entries):
     assert "FRONT BALDER" in e["keys"]
     assert any(ev["date"] == "2023-02" and ev["text"].startswith("Sold by Frontline") for ev in e["events"])
     assert [ev["kind"] for ev in e["events"]].count("listing") == 3
+    sailed = next(f for f in e["facts"] if f["text"].startswith("Has also sailed as"))
+    urls = {s["n"]: s["url"] for s in e["sources"]}
+    assert all("/shadow-fleet/485" in urls[n] for n in sailed["refs"])
+
+
+def test_no_program_codes_on_screen(entries):
+    codes = re.compile(r"\bEO\s?\d{4,5}\b|\bSDN\b|NS-CMIC|\bSSI\b")
+    for e in entries.values():
+        texts = [f["text"] for f in e["facts"]] + [ev["text"] for ev in e["events"]] + [l["by"] for l in e["listings"]]
+        for text in texts:
+            assert not codes.search(text), (e["id"], text)
 
 
 def test_every_fact_points_at_a_listed_source(entries):

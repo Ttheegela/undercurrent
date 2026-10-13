@@ -222,4 +222,4 @@ Three short parts: Use it (the URL), Run it locally (`npx serve .`; the OpenSanc
 - **US, UK and UN files have no per-record link**, so the table links to the official list page ("List"); EU records link to their regulation ("Record"). The US file often has no listing date (shown as a dash).
 - **Pushing to a protected `main`.** The built-in Actions token cannot push past a pull-request rule, so the nightly job pushes with a write deploy key that the ruleset lets bypass. All other changes go through pull requests that must pass `check`.
 - **Measured sizes** (gzipped): US list 1.24 MB, EU 0.65 MB, UK 0.18 MB, UN 0.06 MB, research index 0.26 MB.
-- **Ship research notes** in the fleet data are internal shorthand and are not shown; company and person notes are.
+- **Research notes** in the fleet data are internal shorthand with program codes; none are shown. Inferences from our research that remain (chip-route 'first looked suspicious') are labelled 'Lead:'.

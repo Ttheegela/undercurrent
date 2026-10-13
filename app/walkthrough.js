@@ -50,13 +50,17 @@ export function setupWalkthrough({ runSearch, doc = document }) {
     next.textContent = index === steps.length - 1 ? "Finish" : "Next";
   }
 
+  let opener = null;
+
   function leave() {
     clear();
     card.hidden = true;
+    opener?.focus();
   }
 
   async function start(event) {
     event?.preventDefault();
+    opener = event?.currentTarget ?? null;
     const input = doc.querySelector("#q");
     input.value = "TASSOS";
     await runSearch("TASSOS");

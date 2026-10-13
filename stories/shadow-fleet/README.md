@@ -13,13 +13,6 @@ them go by different names on the two lists, and most are run by small, recently
 companies that manage one ship each. Following the name loses the ship; following the
 hull number keeps it.
 
-## Interactive demo: Fleet Control Tracer
-
-
-**Name vs IMO:** Screen by name keeps twin ship names (for example NEW MILOS / VOLANS) as separate records, so some look unflagged. Screen by IMO merges each rename onto one hull and shows the dual-list truth. Matching on IMO merges the rename, so the flag cannot be missed.
-
-Notes and lead statuses stay in the browser (localStorage only). Facts follow FINDINGS.md; leads stay marked as leads.
-
 ## What is in this folder
 
 | File | What it holds |

@@ -48,6 +48,13 @@ _US_PREFIXES = [
     ("SDNTK", "Narcotics"), ("ILLICIT-DRUGS", "Narcotics"), ("TCO", "Organised crime"),
     ("NPWMD", "Weapons proliferation"), ("GLOMAG", "Human rights and corruption"),
     ("CYBER", "Cyber"), ("BALKANS", "Western Balkans"),
+    ("CMIC", "Chinese military companies"), ("SDNT", "Narcotics"), ("IRAQ", "Iraq"),
+    ("LEBANON", "Lebanon"), ("LIBYA", "Libya"), ("SOMALIA", "Somalia"), ("SUDAN", "Sudan"),
+    ("SOUTH SUDAN", "South Sudan"), ("YEMEN", "Yemen"), ("ZIMBABWE", "Zimbabwe"),
+    ("CAR", "Central African Republic"), ("DRCONGO", "DR Congo"), ("NICARAGUA", "Nicaragua"),
+    ("MALI", "Mali"), ("HK-EO13936", "Hong Kong"), ("HRIT", "Human rights"),
+    ("ELECTION", "Election interference"), ("HOSTAGES", "Hostage-taking"),
+    ("ICC", "International Criminal Court"),
 ]
 _EU_CODES = {
     "UKR": "Russia/Ukraine", "RUS": "Russia", "RUSDA": "Russia", "BLR": "Belarus",

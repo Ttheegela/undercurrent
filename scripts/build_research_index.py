@@ -222,8 +222,8 @@ def chip_entries(doc: dict) -> list[dict]:
         facts = [fact((c.get("role") or "Company on a chip route into Russia").rstrip(".") + ".", [story_ref, sayari], src, CHIPS_FINDINGS)]
         events = []
         if first_suspicious.get("date"):
-            facts.append(fact(f"First looked suspicious on {fmt_date(first_suspicious['date'])}: {first_suspicious.get('basis', '')}.", [story_ref], src, CHIPS_FINDINGS))
-            events.append({"date": first_suspicious["date"], "kind": "suspicion", "text": "First looked suspicious"})
+            facts.append(fact(f"Lead: first looked suspicious on {fmt_date(first_suspicious['date'])} ({first_suspicious.get('basis', '')}).", [story_ref], src, CHIPS_FINDINGS))
+            events.append({"date": first_suspicious["date"], "kind": "suspicion", "text": "Lead: first looked suspicious"})
         if first_listing.get("date"):
             lag = f", at least {c['lag_months_at_least']} months later" if c.get("lag_months_at_least") else ""
             facts.append(fact(f"First listed on {fmt_date(first_listing['date'])} by {first_listing['authority']}{lag}.", [story_ref], src, CHIPS_FINDINGS))

@@ -101,3 +101,31 @@ test("a name in another script finds nothing", async () => {
   serve();
   assert.deepEqual(await (await GET(req("Совкомфлот"))).json(), { enabled: true, results: [] });
 });
+
+test("a failed refresh backs off for about ten minutes", async () => {
+  const t0 = Date.now();
+  const H = 3600 * 1000;
+  const ok = async () => { calls++; return new Response(indexBytes(), { status: 200 }); };
+  const bad = async () => { calls++; return new Response("down", { status: 500 }); };
+  await loadIndex(ok, t0);
+  await loadIndex(bad, t0 + 13 * H);
+  assert.equal(calls, 2);
+  await loadIndex(bad, t0 + 13 * H + 60 * 1000);
+  assert.equal(calls, 2);
+  await loadIndex(bad, t0 + 13 * H + 11 * 60 * 1000);
+  assert.equal(calls, 3);
+});
+
+test("concurrent loads share one fetch", async () => {
+  const ok = async () => { calls++; return new Response(indexBytes(), { status: 200 }); };
+  await Promise.all([loadIndex(ok), loadIndex(ok)]);
+  assert.equal(calls, 1);
+});
+
+test("a synchronously throwing fetch does not wedge later loads", async () => {
+  const boom = () => { throw new Error("sync"); };
+  await assert.rejects(loadIndex(boom));
+  const ok = async () => { calls++; return new Response(indexBytes(), { status: 200 }); };
+  assert.equal((await loadIndex(ok)).length, 3);
+  assert.equal(calls, 1);
+});

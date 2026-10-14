@@ -7,6 +7,7 @@ import { normalizeName } from "../app/normalize.js";
 export const INDEX_URL = "https://github.com/Ttheegela/undercurrent/releases/download/data-latest/opensanctions.json.gz";
 const REFRESH_MS = 12 * 60 * 60 * 1000;
 const LOAD_TIMEOUT_MS = 4000;
+const RETRY_MS = 10 * 60 * 1000;
 
 let cached = null; // { loadedAt, entities }
 let pending = null;
@@ -23,25 +24,26 @@ function json(body, { status = 200, cache = false } = {}) {
   });
 }
 
+async function fetchIndex(fetchFn, now) {
+  const res = await fetchFn(INDEX_URL, { signal: AbortSignal.timeout(LOAD_TIMEOUT_MS) });
+  if (!res.ok) throw new Error(`index HTTP ${res.status}`);
+  const doc = JSON.parse(gunzipSync(Buffer.from(await res.arrayBuffer())).toString("utf8"));
+  if (!Array.isArray(doc.entities)) throw new Error("index has no entities");
+  const entities = doc.entities.map(([id, schema, imo, by, names]) => ({ id, schema, imo, by, names, keys: names.map(normalizeName) }));
+  cached = { loadedAt: now, entities };
+  return entities;
+}
+
 export async function loadIndex(fetchFn = fetch, now = Date.now()) {
   if (cached && now - cached.loadedAt < REFRESH_MS) return cached.entities;
-  pending ??= (async () => {
-    try {
-      const res = await fetchFn(INDEX_URL, { signal: AbortSignal.timeout(LOAD_TIMEOUT_MS) });
-      if (!res.ok) throw new Error(`index HTTP ${res.status}`);
-      const doc = JSON.parse(gunzipSync(Buffer.from(await res.arrayBuffer())).toString("utf8"));
-      if (!Array.isArray(doc.entities)) throw new Error("index has no entities");
-      const entities = doc.entities.map(([id, schema, imo, by, names]) => ({ id, schema, imo, by, names, keys: names.map(normalizeName) }));
-      cached = { loadedAt: now, entities };
-      return entities;
-    } finally {
-      pending = null;
-    }
-  })();
+  if (!pending) pending = fetchIndex(fetchFn, now).finally(() => { pending = null; });
   try {
     return await pending;
   } catch (err) {
-    if (cached) return cached.entities; // a failed refresh keeps serving the last good index
+    if (cached) {
+      cached.loadedAt = now - REFRESH_MS + RETRY_MS; // a failed refresh keeps the last good index; retry in ~10 minutes
+      return cached.entities;
+    }
     throw err;
   }
 }

@@ -44,6 +44,8 @@ jobs:
         run: python scripts/build_opensanctions.py
 
       - name: Upload OpenSanctions index
+        id: osupload
+        continue-on-error: true
         if: steps.osbuild.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -65,17 +67,18 @@ jobs:
           fi
 
       - name: Open or update the failure issue
-        if: steps.build.outcome == 'failure' || steps.osbuild.outcome == 'failure' || failure()
+        if: steps.build.outcome == 'failure' || steps.osbuild.outcome == 'failure' || steps.osupload.outcome == 'failure' || failure()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          up=""; [ "${{ steps.osupload.outcome }}" = "failure" ] && up=", opensanctions upload"
           failed=$(python -c "import json;m=json.load(open('data/lists/meta.json'))['lists'];f=[k for k,v in m.items() if v['status']!='fresh']
           try:
             o=json.load(open('data/opensanctions-meta.json'))
             f+=['opensanctions'] if o['status']!='fresh' else []
           except Exception: f.append('opensanctions')
           print(', '.join(f) or 'smoke check')" || echo "build crashed")
-          title="Nightly lists: ${failed} failed $(date -u +%F)"
+          title="Nightly lists: ${failed}${up} failed $(date -u +%F)"
           body="Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. The site keeps serving the previous copy. Details in data/lists/meta.json and data/opensanctions-meta.json."
           existing=$(gh issue list --state open --search "Nightly lists in:title" --json number --jq '.[0].number')
           if [ -n "$existing" ]; then

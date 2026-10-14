@@ -1,7 +1,7 @@
 # Connections: live ownership and lobbying links in every result
 
 Date: 2026-10-14
-Status: draft, awaiting review
+Status: approved 2026-10-14; built per docs/plans/2026-10-14-connections.md
 Builds on: `docs/specs/2026-10-13-undercurrent-design.md` (and its 2026-10-14 OpenSanctions amendment)
 
 ## Purpose
@@ -41,6 +41,8 @@ Measured on 2026-10-14:
 - OpenSanctions `sanctions/entities.ftm.json`: 373 MB with 12,278 relationship records: Ownership 6,491, UnknownLink 3,601, Representation 1,536, Directorship 437, Family 154, Membership 59. They touch 12,726 entities, and 2,080 involve a ship.
 - TASSOS → "Property in the interest of" → Zulu Ships Management (US OFAC, UK FCDO). Zulu → 11 ships, plus "Providing support to" Hossein Shamkhani (US OFAC).
 - `lda.gov/api/v1/filings/?client_name=Nord Stream 2` → 60 filings.
+
+Plan note: the client list is stored as separate "queries" and "clients" arrays (one company can need several queries), and lobbied/lobbied_on edges carry their client so one firm's work for two clients is not mixed.
 
 ## Design
 

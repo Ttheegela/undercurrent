@@ -24,6 +24,7 @@ Then open http://localhost:3000 (or the address serve prints). Everything works 
 - A list that fails to download, changes shape, or shrinks by more than 20% keeps yesterday's copy; the others still update. The page then says "Some lists may be out of date", and a GitHub issue is opened.
 - **Our research** is a fixed snapshot from 25 September 2026. Rebuild the index with `python3 scripts/build_research_index.py`.
 - **OpenSanctions** (95 sources, CC BY-NC 4.0): the same nightly job downloads OpenSanctions' free bulk sanctions data, builds a compact index and attaches it to the `data-latest` GitHub release; `api/search.js` searches it in memory. No API key is needed.
+- **Connections** (sanctions links and US lobbying): the nightly job also builds `connections.json.gz` from OpenSanctions' relationship data and `lobbying.json.gz` from lda.gov filings for the companies in `data/lobbying-clients.json` (add a company there), and attaches both to the `data-latest` release; `api/connections.js` serves them.
 
 ## Tests
 

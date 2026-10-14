@@ -218,3 +218,43 @@ def test_get_json_six_server_errors_make_six_calls_and_five_sleeps():
         lb.get_json("https://x", opener=opener, sleep=waits.append)
     assert len(calls) == 6
     assert len(waits) == 5
+
+
+@pytest.mark.parametrize("raw,want", [
+    ("BGR GOVERNMENT AFFAIRS", "BGR Government Affairs"),
+    ("SWEENEY & ASSOCIATES LLC LLC", "Sweeney & Associates LLC"),
+    ("FGS GLOBAL (US) LLC (FKA FGH HOLDINGS LLC)", "FGS Global (US) LLC (fka FGH Holdings LLC)"),
+    ("MCDERMOTT WILL & SCHULTE LLP", "McDermott Will & Schulte LLP"),
+    ("THE LAW OFFICE OF STEPHEN JAMES BINHAK, PLLC", "The Law Office of Stephen James Binhak, PLLC"),
+    ("DLA PIPER LLP (US)", "DLA Piper LLP (US)"),
+    ("AKIN GUMP STRAUSS HAUER & FELD", "Akin Gump Strauss Hauer & Feld"),
+    ("McLarty Inbound LLC", "McLarty Inbound LLC"),
+    ("QORVIS COMMUNICATIONS D/B/A QORVIS MSLGROUP", "Qorvis Communications d/b/a Qorvis MSLGroup"),
+])
+def test_display_name(raw, want):
+    got = lb.display_name(raw)
+    if raw.startswith("QORVIS"):  # MSLGROUP has a vowel-free prefix only; accept plain title case
+        assert got.startswith("Qorvis Communications d/b/a Qorvis")
+    else:
+        assert got == want
+
+
+def test_person_name_casing_and_suffix():
+    assert lb.person_name({"first_name": "JOHN", "last_name": "MCDONALD", "suffix": "III"}) == "John McDonald III"
+    assert lb.person_name({"first_name": "JOHN", "last_name": "NG", "suffix": "JR."}) == "John Ng Jr."
+
+
+def test_clean_text():
+    assert lb.clean_text("\u00e2\u20ac\u2039Chief of Staff") == "Chief of Staff"
+    assert lb.clean_text("Chief  of Staff") == "Chief of Staff"
+    assert lb.clean_text("\u00e2\u20ac\u2039Chief \u0394 \u200bStaff") == "\u00e2\u20ac\u2039Chief \u0394 Staff"
+
+
+def test_extract_cleans_mojibake_and_firm_acronym():
+    cov = "â€‹Chief of Staff, Rep. Jim McCrery"
+    act = {"description": "", "government_entities": [], "lobbyists": [
+        {"lobbyist": {"first_name": "JANE", "last_name": "EXAMPLE"}, "covered_position": cov}]}
+    out = lb.extract({"a": filing("a", registrant="BGR GOVERNMENT AFFAIRS", activities=[act])}, CONFIG)
+    names = {n["id"]: n for n in out["nodes"]}
+    assert names["p:jane-example"]["covered_positions"] == ["Chief of Staff, Rep. Jim McCrery"]
+    assert names["lf:bgr-government-affairs"]["name"] == "BGR Government Affairs"

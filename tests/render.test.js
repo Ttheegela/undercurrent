@@ -104,3 +104,8 @@ test("wider check states", () => {
   assert.match(results, /&lt;x&gt;/);
   assert.match(results, /CC BY-NC 4.0/);
 });
+
+test("wider check shows every listing authority", () => {
+  const html = renderWider({ kind: "results", results: [{ name: "TASSOS", schema: "Vessel", datasets: ["Canada", "EU", "UK", "Switzerland", "US"], url: "https://www.opensanctions.org/entities/NK-k837moN9ssPZedvkRUrexG/" }] }, "TASSOS");
+  assert.match(html, /Vessel · Canada, EU, UK, Switzerland, US/);
+});

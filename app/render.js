@@ -154,7 +154,7 @@ export function renderWider(state, query) {
   if (state.kind === "loading") {
     body = `<p>Checking OpenSanctions…</p>`;
   } else if (state.kind === "results" && state.results.length) {
-    body = `<ul class="wider-list">${state.results.map((r) => `<li><a href="${escapeHtml(safeUrl(r.url))}" rel="noopener">${escapeHtml(r.name)}</a> <span>${escapeHtml([r.schema, (r.datasets || []).slice(0, 3).join(", ")].filter(Boolean).join(" · "))}</span></li>`).join("")}</ul><p class="tl-note">Results from OpenSanctions, CC BY-NC 4.0.</p>${link}`;
+    body = `<ul class="wider-list">${state.results.map((r) => `<li><a href="${escapeHtml(safeUrl(r.url))}" rel="noopener">${escapeHtml(r.name)}</a> <span>${escapeHtml([r.schema, (r.datasets || []).join(", ")].filter(Boolean).join(" · "))}</span></li>`).join("")}</ul><p class="tl-note">Results from OpenSanctions, CC BY-NC 4.0.</p>${link}`;
   } else if (state.kind === "results") {
     body = `<p>No OpenSanctions match.</p>${link}`;
   } else {

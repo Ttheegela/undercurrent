@@ -197,3 +197,34 @@ table.lists { width: 100%; border-collapse: collapse; font-size: var(--text-sm);
 .walk[hidden], #results[hidden] { display: none; }
 /* Without this the hero's implicit grid column grows to its content and is clipped at 375 px. */
 .hero { grid-template-columns: minmax(0, 1fr); }
+
+/* Connections panel */
+.connections { margin-top: var(--space-2xl); }
+.conn { border-top: 2px solid var(--color-ink); padding-top: var(--space-sm); }
+.conn-graph { display: block; max-width: 760px; margin: var(--space-sm) 0 var(--space-lg); }
+.conn-edge { stroke: var(--color-rule); stroke-width: 1.5; fill: none; }
+.conn-arrow { fill: var(--color-rule); }
+.conn-edge-label { font-family: var(--font-mono); font-size: 10px; fill: var(--color-neutral); }
+.conn-node rect { fill: var(--color-paper-3); stroke: var(--color-rule); }
+.conn-node.is-focus rect { fill: var(--color-accent-dim); stroke: var(--color-accent); }
+.conn-node.is-firm rect { stroke-dasharray: 4 3; }
+.conn-kind { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.06em; fill: var(--color-neutral); }
+.conn-label { font-family: var(--font-display); font-size: 14px; font-weight: 700; fill: var(--color-ink); }
+.conn-block + .conn-block { margin-top: var(--space-xl); }
+.conn-block h3 { font-size: var(--text-sm); font-weight: 700; margin: 0 0 var(--space-xs); }
+.conn-block h4 { font-size: var(--text-xs); font-weight: 700; margin: var(--space-md) 0 var(--space-xs); color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.conn-lede { margin: 0 0 var(--space-sm); color: var(--color-muted); font-family: var(--font-serif); font-size: var(--text-sm); }
+.conn-list { list-style: none; margin: 0; padding: 0; }
+.conn-list li { padding: var(--space-xs) 0; border-top: var(--rule-hair) solid var(--color-rule); font-size: var(--text-sm); }
+.conn-rel { display: block; font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.04em; color: var(--color-neutral); margin-bottom: 2px; overflow-wrap: anywhere; }
+.conn-name { font: inherit; color: var(--color-ink); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; text-align: left; overflow-wrap: anywhere; }
+.conn-name:hover { text-decoration-thickness: 2px; }
+.conn-group { margin-top: var(--space-xs); }
+.conn-chips { display: flex; flex-wrap: wrap; gap: var(--space-2xs) var(--space-xs); }
+.conn-chips .conn-name { font-size: var(--text-xs); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-sm); padding: 1px 7px; text-decoration: none; color: var(--color-muted); }
+.conn-more, .conn-meta { color: var(--color-neutral); font-size: var(--text-xs); }
+.conn-meta { display: inline; margin-left: var(--space-xs); }
+.conn-person { display: block; }
+.conn-empty { color: var(--color-muted); font-size: var(--text-sm); margin: 0; }
+.conn-note { color: var(--color-neutral); font-size: var(--text-xs); margin: var(--space-md) 0 0; max-width: 70ch; }
+@media (max-width: 47.99rem) { .conn-graph { display: none; } }

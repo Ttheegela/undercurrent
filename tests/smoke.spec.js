@@ -4,7 +4,7 @@ function watchErrors(page) {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => {
-    if (m.type() === "error" && !m.location().url.includes("/api/search")) errors.push(m.text());
+    if (m.type() === "error" && !m.location().url.includes("/api/")) errors.push(m.text());
   });
   return errors;
 }
@@ -104,4 +104,70 @@ test("a wrong-shape research file fails alone", async ({ page }) => {
   await search(page, "TASSOS");
   await expect(page.locator("#results")).toContainText("Couldn't load our research");
   await expect(page.locator("table.lists")).toContainText("United Kingdom");
+});
+
+const CONNECTIONS = {
+  TASSOS: {
+    sanctions: { available: true, matched: true, others: 0, linksMore: 0,
+      focus: { name: "TASSOS", schema: "Vessel", imo: "9408695", authorities: ["US", "UK"] },
+      links: [{ name: "Zulu Ships Management", schema: "Organization", role: "Property in the interest of", direction: "out", authorities: ["US", "UK"],
+        groups: [{ schema: "Vessel", items: ["TAGOR", "NEMRUT", "MANASLU", "BRIONT"].map((n) => ({ name: n, schema: "Vessel", role: "Property in the interest of", direction: "in", authorities: ["US", "UK"] })), more: 6 }] }] },
+    lobbying: { available: true, matched: false, checked_no_filings: false },
+    attribution: "Sanctions links: official sanctions lists compiled by OpenSanctions (CC BY-NC 4.0).",
+  },
+  NS2: {
+    sanctions: { available: true, matched: false },
+    lobbying: { available: true, matched: true, client: "Nord Stream 2 AG", as_of: "2026-10-14", checked_no_filings: false,
+      firms: [{ name: "Capitol Counsel LLC", filings: 12, fees_usd: 1230000, sub_fees_usd: null, subcontract: false, years: [2017, 2022], url: "https://lda.gov/filings/public/filing/u1/print/" }],
+      lobbyists: [], lobbyists_more: 0, revolving_door: [], bodies: [{ name: "US Senate", filings: 9 }], bills: [], parents: [], bridges: [] },
+    attribution: "Lobbying: US Lobbying Disclosure Act filings (lda.gov).",
+  },
+  SOV: {
+    sanctions: { available: true, matched: true, others: 2, linksMore: 0, focus: { name: "SOVCOMFLOT", schema: "Company", imo: "", authorities: ["US"] },
+      links: [{ name: "Government of Russia", schema: "Organization", role: "Owned by", direction: "out", authorities: ["US"], groups: [] }] },
+    lobbying: { available: true, matched: false, checked_no_filings: true },
+    attribution: "",
+  },
+};
+
+async function stubConnections(page) {
+  await page.route("**/api/connections**", (route) => {
+    const url = new URL(route.request().url());
+    const key = url.searchParams.get("imo") === "9408695" ? "TASSOS" : /nord stream/i.test(url.searchParams.get("name") || "") ? "NS2" : "SOV";
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(CONNECTIONS[key]) });
+  });
+}
+
+test("connections: TASSOS shows Zulu and its ships, names are searchable", async ({ page }) => {
+  await stubConnections(page);
+  await page.goto("/");
+  await search(page, "TASSOS");
+  const panel = page.locator(".dossier-entry").first().locator(".conn");
+  await expect(panel).toContainText("Zulu Ships Management");
+  await expect(panel).toContainText("+6 more");
+  await expect(panel.locator(".conn-graph")).toBeVisible();
+  await panel.locator('[data-search="TAGOR"]').click();
+  await expect(page.locator("#q")).toHaveValue("TAGOR");
+});
+
+test("connections: Nord Stream 2 shows its lobbying firm", async ({ page }) => {
+  await stubConnections(page);
+  await page.goto("/");
+  await search(page, "Nord Stream 2 AG");
+  const panel = page.locator(".dossier-entry").first().locator(".conn");
+  await expect(panel).toContainText("Lobbying in Washington");
+  await expect(panel).toContainText("Capitol Counsel LLC");
+});
+
+test("connections: Sovcomflot says no lobbying found; phone hides the graph without clipping", async ({ page }) => {
+  await stubConnections(page);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+  await search(page, "Sovcomflot");
+  const panel = page.locator(".dossier-entry").first().locator(".conn");
+  await expect(panel).toContainText("No US lobbying filings found (checked nightly)");
+  await expect(panel.locator(".conn-graph")).toBeHidden();
+  const clipped = await page.evaluate(() => [...document.querySelectorAll("body *")]
+    .filter((el) => el.getBoundingClientRect().right > window.innerWidth + 1).map((el) => `${el.tagName}.${el.className}`));
+  expect(clipped).toEqual([]);
 });

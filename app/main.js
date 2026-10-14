@@ -1,5 +1,6 @@
 import { prepareQuery, searchResearch, searchLists, loadJson, LIST_IDS, latestOnly, listStatus } from "./search.js";
 import { setupWalkthrough } from "./walkthrough.js";
+import { connectionsQuery, renderConnections, renderConnectionsLoading } from "./connections.js";
 import {
   renderResearch, renderLists, renderWider, renderEmpty, renderHint, renderLoading, renderLayerError,
   citation, formatUpdated, escapeHtml, CAVEAT,
@@ -53,6 +54,21 @@ async function checkWider(text, isLatest) {
   if (isLatest() && slot) slot.innerHTML = renderWider(next, text);
 }
 
+async function loadConnections(entry, isLatest) {
+  const slot = [...document.querySelectorAll("[data-connections]")].find((el) => el.dataset.connections === entry.id);
+  if (!slot) return;
+  slot.innerHTML = renderConnectionsLoading();
+  let data;
+  try {
+    const res = await fetch(`/api/connections?${connectionsQuery(entry)}`, { signal: AbortSignal.timeout(8000) });
+    data = await res.json();
+    if (!data || typeof data !== "object" || !("sanctions" in data)) throw new Error("bad connections answer");
+  } catch {
+    data = { sanctions: { available: false }, lobbying: { available: false }, attribution: "" };
+  }
+  if (isLatest()) slot.innerHTML = renderConnections(data);
+}
+
 export async function runSearch(raw) {
   const isLatest = nextTicket();
   const q = prepareQuery(raw);
@@ -81,6 +97,7 @@ export async function runSearch(raw) {
     `<p class="caveat">${escapeHtml(CAVEAT)}</p>`,
   ].join("");
   checkWider(q.text, isLatest);
+  if (research[0]) loadConnections(research[0], isLatest);
 }
 
 async function showListDate() {
@@ -135,14 +152,34 @@ function wire() {
     }
   });
   $("#results").addEventListener("click", async (event) => {
+    const named = event.target.closest("[data-search]");
+    if (named) {
+      input.value = named.dataset.search;
+      runSearch(input.value);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     const cite = event.target.closest("[data-cite]");
     if (cite) return copyCitation(cite);
     const retry = event.target.closest("[data-retry]");
     if (!retry) return;
+    if (retry.dataset.retry === "connections") {
+      const id = retry.closest("[data-connections]")?.dataset.connections;
+      const entry = id && state.shown.get(id);
+      if (entry) loadConnections(entry, () => true);
+      return;
+    }
     if (retry.dataset.retry === "research") await loadResearch();
     else await loadLists(state.listsFailed.length ? state.listsFailed : LIST_IDS);
     runSearch(input.value);
   });
+  $("#results").addEventListener("toggle", (event) => {
+    const details = event.target;
+    if (!(details instanceof HTMLDetailsElement) || !details.open) return;
+    const id = details.querySelector("[data-connections]")?.dataset.connections;
+    const entry = id && state.shown.get(id);
+    if (entry && !details.querySelector(".conn")) loadConnections(entry, () => true);
+  }, true);
   showListDate();
 }
 

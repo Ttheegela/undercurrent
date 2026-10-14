@@ -126,6 +126,7 @@ export function renderDossier(e) {
       </div>
       <div>${names}${sources}</div>
     </div>
+    <div class="connections" data-connections="${escapeHtml(e.id)}"></div>
   </article>`;
 }
 

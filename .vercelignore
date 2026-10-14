@@ -7,3 +7,7 @@ playwright-report
 playwright.config.js
 requirements-dev.txt
 .github
+.env*
+.vercel
+.venv
+.superpowers

@@ -121,8 +121,12 @@ const firmEdge = (e) => e.type === "hired" || e.type === "lobbied_in_house";
 
 export function lobbyingFor(lob, ...names) {
   const keys = names.filter(Boolean).map(normalizeName).filter(Boolean);
-  const ids = new Set(keys.flatMap((k) => [...(lob.byName.get(k) || [])]));
   const hiredCount = (id) => (lob.from.get(id) || []).filter(firmEdge).length;
+  // lobbyists are people, not clients: skip excluded names and people who never hired a firm
+  const ids = new Set(keys.flatMap((k) => [...(lob.byName.get(k) || [])]).filter((id) => {
+    const n = lob.nodes.get(id);
+    return !lob.excluded.has(normalizeName(n.name)) && !(n.type === "person" && hiredCount(id) === 0);
+  }));
   const clientId = [...ids].sort((a, b) => hiredCount(b) - hiredCount(a) || a.localeCompare(b))[0];
   const checked = keys.some((k) => lob.noLobbying.has(k));
   if (!clientId) return { available: true, matched: false, checked_no_filings: checked };
@@ -191,8 +195,12 @@ export async function GET(request) {
   const name = (params.get("name") || "").trim();
   if ((rawImo && !imo) || (!imo && !name) || name.length > 200) return json({ error: "bad query" }, { status: 400 });
   const [graph, lobby] = await Promise.allSettled([graphAsset.load(), lobbyAsset.load()]);
-  const sanctions = graph.status === "fulfilled" ? sanctionsFor(graph.value, { imo, name }) : { available: false };
-  const lobbying = lobby.status === "fulfilled" ? lobbyingFor(lobby.value, name, sanctions.focus?.name) : { available: false };
+  const safe = (settled, fn) => {
+    if (settled.status !== "fulfilled") return { available: false };
+    try { return fn(settled.value); } catch { return { available: false }; }
+  };
+  const sanctions = safe(graph, (g) => sanctionsFor(g, { imo, name }));
+  const lobbying = safe(lobby, (l) => lobbyingFor(l, name, sanctions.focus?.name));
   const complete = sanctions.available && lobbying.available;
   return json({ query: imo || name, sanctions, lobbying, attribution: ATTRIBUTION }, { cache: complete });
 }

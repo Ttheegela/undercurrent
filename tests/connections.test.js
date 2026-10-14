@@ -162,3 +162,30 @@ test("GET: each asset fails alone, and a full answer is cached", async () => {
   body = await res.json();
   assert.match(body.attribution, /OpenSanctions/);
 });
+
+test("lobbyists and excluded names are never lobbying clients", () => {
+  const lob = buildLobby(lobbyDoc);
+  for (const n of ["Jane Example", "Hidden Person"]) assert.deepEqual(lobbyingFor(lob, n), { available: true, matched: false, checked_no_filings: false });
+});
+
+test("the link cap keeps people and companies ahead of ships", () => {
+  const many = Array.from({ length: 25 }, (_, i) => [`V${i}`, "Vessel", [`V ${i}`], "", ["US"]]);
+  const doc = {
+    updated_at: "x",
+    entities: [["F", "Vessel", ["FOCUS"], "9408695", ["US"]], ...many, ["P", "Person", ["Late Person"], "", ["US"]]],
+    links: [...many.map(([id]) => ["F", id, "Ownership", "Owner of", ["US"]]), ["F", "P", "UnknownLink", "Run by", ["US"]]],
+  };
+  const s = sanctionsFor(buildGraph(doc), { imo: "9408695" });
+  assert.equal(s.links.length, 20);
+  assert.equal(s.links[0].name, "Late Person");
+  assert.equal(s.linksMore, 6);
+});
+
+test("GET: a throw while reading a loaded asset degrades that section only", async () => {
+  serve({ graph: { ...graphDoc, links: [...graphDoc.links, [T, "MISSING", "Ownership", "Owner of", ["US"]]] } });
+  const res = await get("imo=9408695");
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.deepEqual(body.sanctions, { available: false });
+  assert.equal(res.headers.get("cache-control"), "no-store");
+});

@@ -1,20 +1,17 @@
 // Searches a nightly compact OpenSanctions index (CC BY-NC 4.0) held in memory.
 // Never returns an error page: on any failure the page falls back to an outbound link.
-import { gunzipSync } from "node:zlib";
 import { prepareQuery, scoreName, LIMIT } from "../app/search.js";
 import { normalizeName } from "../app/normalize.js";
+import { createAssetLoader } from "./_asset.js";
 
 export const INDEX_URL = "https://github.com/Ttheegela/undercurrent/releases/download/data-latest/opensanctions.json.gz";
-const REFRESH_MS = 12 * 60 * 60 * 1000;
-const LOAD_TIMEOUT_MS = 4000;
-const RETRY_MS = 10 * 60 * 1000;
-
-let cached = null; // { loadedAt, entities }
-let pending = null;
+const index = createAssetLoader(INDEX_URL, (doc) => {
+  if (!Array.isArray(doc.entities)) throw new Error("index has no entities");
+  return doc.entities.map(([id, schema, imo, by, names]) => ({ id, schema, imo, by, names, keys: names.map(normalizeName) }));
+});
 
 export function resetIndexCache() {
-  cached = null;
-  pending = null;
+  index.reset();
 }
 
 function json(body, { status = 200, cache = false } = {}) {
@@ -24,28 +21,8 @@ function json(body, { status = 200, cache = false } = {}) {
   });
 }
 
-async function fetchIndex(fetchFn, now) {
-  const res = await fetchFn(INDEX_URL, { signal: AbortSignal.timeout(LOAD_TIMEOUT_MS) });
-  if (!res.ok) throw new Error(`index HTTP ${res.status}`);
-  const doc = JSON.parse(gunzipSync(Buffer.from(await res.arrayBuffer())).toString("utf8"));
-  if (!Array.isArray(doc.entities)) throw new Error("index has no entities");
-  const entities = doc.entities.map(([id, schema, imo, by, names]) => ({ id, schema, imo, by, names, keys: names.map(normalizeName) }));
-  cached = { loadedAt: now, entities };
-  return entities;
-}
-
-export async function loadIndex(fetchFn = fetch, now = Date.now()) {
-  if (cached && now - cached.loadedAt < REFRESH_MS) return cached.entities;
-  if (!pending) pending = fetchIndex(fetchFn, now).finally(() => { pending = null; });
-  try {
-    return await pending;
-  } catch (err) {
-    if (cached) {
-      cached.loadedAt = now - REFRESH_MS + RETRY_MS; // a failed refresh keeps the last good index; retry in ~10 minutes
-      return cached.entities;
-    }
-    throw err;
-  }
+export function loadIndex(fetchFn = fetch, now = Date.now()) {
+  return index.load(fetchFn, now);
 }
 
 export function searchIndex(entities, raw) {

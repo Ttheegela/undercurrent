@@ -119,7 +119,7 @@ def fetch_filings(queries, get=get_json, sleep=time.sleep, base: str = BASE) -> 
 
 ZERO_WIDTH = re.compile("[\u200b\u200c\u200d\ufeff]")
 WORD_MAP = {w.lower(): w for w in ("LLC", "LLP", "LP", "PLLC", "US", "USA", "DLA", "APCO", "ACG", "II", "III", "IV")}
-WORD_MAP.update({"fka": "fka", "jr": "Jr", "sr": "Sr", "of": "of", "and": "and", "the": "the", "for": "for"})
+WORD_MAP.update({"fka": "fka", "jr": "Jr", "sr": "Sr", "mr": "Mr", "mrs": "Mrs", "ms": "Ms", "dr": "Dr", "of": "of", "and": "and", "the": "the", "for": "for"})
 
 
 def clean_text(s: str) -> str:
@@ -130,7 +130,7 @@ def clean_text(s: str) -> str:
             s = s.encode("cp1252").decode("utf-8")
         except (UnicodeError, ValueError):
             pass
-    return re.sub(r"\s+", " ", ZERO_WIDTH.sub("", s)).strip()
+    return re.sub(r"\s+", " ", ZERO_WIDTH.sub("", s).replace("\u037e", ";")).strip()
 
 
 def _word(w: str, first: bool, acronyms: bool) -> str:
@@ -168,7 +168,8 @@ def slug(s: str) -> str:
 
 def person_name(p: dict) -> str:
     parts = [p.get("first_name") or "", p.get("middle_name") or "", p.get("last_name") or "", p.get("suffix") or ""]
-    return " ".join(display_name(x, acronyms=False) for x in parts if x and x.strip())
+    name = " ".join(display_name(x, acronyms=False) for x in parts if x and x.strip())
+    return re.sub(r"\b(jr|sr|ii|iii|iv)\b", lambda m: WORD_MAP[m.group().lower()], name, flags=re.I)
 
 
 def money(r: dict) -> float:

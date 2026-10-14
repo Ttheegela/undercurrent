@@ -258,3 +258,17 @@ def test_extract_cleans_mojibake_and_firm_acronym():
     names = {n["id"]: n for n in out["nodes"]}
     assert names["p:jane-example"]["covered_positions"] == ["Chief of Staff, Rep. Jim McCrery"]
     assert names["lf:bgr-government-affairs"]["name"] == "BGR Government Affairs"
+
+
+def test_person_suffix_normalised_whatever_raw_casing():
+    assert lb.person_name({"first_name": "Bob", "middle_name": "R", "last_name": "Brooks", "suffix": "jr"}) == "Bob R Brooks Jr"
+    assert lb.person_name({"first_name": "Robert", "last_name": "Smith", "suffix": "ii"}) == "Robert Smith II"
+
+
+def test_honorific_in_display_name():
+    assert lb.display_name("MR. DOYCE BOESCH") == "Mr. Doyce Boesch"
+    assert lb.display_name("DR. JANE ROE") == "Dr. Jane Roe"
+
+
+def test_clean_text_greek_question_mark():
+    assert lb.clean_text("Leg Dir\u037e Sen") == "Leg Dir; Sen"

@@ -85,15 +85,21 @@ def get_json(url: str, opener=urllib.request.urlopen, sleep=time.sleep) -> dict:
             with opener(request, timeout=60) as response:
                 return json.loads(response.read())
         except urllib.error.HTTPError as exc:
-            if exc.code == 429:
-                sleep(int(exc.headers.get("Retry-After") or 20 * (attempt + 1)))
-                continue
-            if exc.code >= 500:
+            if exc.code != 429 and exc.code < 500:
+                raise
+            if attempt < 5:
+                if exc.code == 429:
+                    try:
+                        wait = int(exc.headers.get("Retry-After"))
+                    except (TypeError, ValueError):
+                        wait = 20 * (attempt + 1)
+                    sleep(wait)
+                else:
+                    sleep(5 * (attempt + 1))
+        except (OSError, ValueError):
+            # URLError, timeouts and truncated JSON are transient.
+            if attempt < 5:
                 sleep(5 * (attempt + 1))
-                continue
-            raise
-        except urllib.error.URLError:
-            sleep(5 * (attempt + 1))
     raise RuntimeError("giving up on " + url)
 
 
@@ -258,7 +264,8 @@ def extract(filings, config: dict) -> dict:
                 if not p:
                     continue
                 pn = person_name(p)
-                if not pn or normalize_name(pn) in excluded:
+                short = " ".join(x.strip() for x in (p.get("first_name"), p.get("last_name")) if x and x.strip())
+                if not pn or {normalize_name(n) for n in (pn, short)} & excluded:
                     continue
                 pid = "p:" + slug(pn)
                 cov = (entry.get("covered_position") or "").strip()

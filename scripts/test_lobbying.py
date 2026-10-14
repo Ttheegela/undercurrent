@@ -149,3 +149,72 @@ def test_get_json_raises_on_client_error():
 
     with pytest.raises(urllib.error.HTTPError):
         lb.get_json("https://x", opener=opener, sleep=lambda s: None)
+
+
+def lobbyist_act(first, last, middle="", suffix=""):
+    p = {"first_name": first, "last_name": last, "middle_name": middle, "suffix": suffix}
+    return {"description": "", "government_entities": [], "lobbyists": [{"lobbyist": p, "covered_position": ""}]}
+
+
+def test_excluded_lobbyist_with_middle_name_dropped():
+    cfg = {**CONFIG, "exclude_lobbyists": ["JANE EXAMPLE"]}
+    out = lb.extract({"a": filing("a", activities=[lobbyist_act("Jane", "Example", middle="Q")])}, cfg)
+    assert not any(n["type"] == "person" for n in out["nodes"])
+
+
+def test_excluded_lobbyist_with_suffix_dropped():
+    cfg = {**CONFIG, "exclude_lobbyists": ["JANE EXAMPLE"]}
+    out = lb.extract({"a": filing("a", activities=[lobbyist_act("Jane", "Example", suffix="Jr.")])}, cfg)
+    assert not any(n["type"] == "person" for n in out["nodes"])
+
+
+def test_get_json_non_integer_retry_after_uses_backoff():
+    waits, calls = [], []
+
+    def opener(req, timeout):
+        calls.append(1)
+        if len(calls) == 1:
+            raise http_error(429, "Wed, 21 Oct 2015 07:28:00 GMT")
+        return FakeResponse(b'{"ok": true}')
+
+    assert lb.get_json("https://x", opener=opener, sleep=waits.append) == {"ok": True}
+    assert waits == [20]
+
+
+def test_get_json_retries_timeout_then_succeeds():
+    waits, calls = [], []
+
+    def opener(req, timeout):
+        calls.append(1)
+        if len(calls) == 1:
+            raise TimeoutError("read timed out")
+        return FakeResponse(b'{"ok": true}')
+
+    assert lb.get_json("https://x", opener=opener, sleep=waits.append) == {"ok": True}
+    assert waits == [5]
+
+
+def test_get_json_retries_truncated_json_then_succeeds():
+    waits, calls = [], []
+
+    def opener(req, timeout):
+        calls.append(1)
+        if len(calls) == 1:
+            return FakeResponse(b'{"ok":')
+        return FakeResponse(b'{"ok": true}')
+
+    assert lb.get_json("https://x", opener=opener, sleep=waits.append) == {"ok": True}
+    assert waits == [5]
+
+
+def test_get_json_six_server_errors_make_six_calls_and_five_sleeps():
+    calls, waits = [], []
+
+    def opener(req, timeout):
+        calls.append(1)
+        raise http_error(503)
+
+    with pytest.raises(RuntimeError, match="giving up"):
+        lb.get_json("https://x", opener=opener, sleep=waits.append)
+    assert len(calls) == 6
+    assert len(waits) == 5

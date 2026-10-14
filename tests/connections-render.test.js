@@ -86,6 +86,7 @@ test("unavailable sections offer retry; untracked lobbying shows a coverage note
   assert.match(html, /Connections are unavailable right now/);
   assert.match(html, /data-retry="connections"/);
   assert.match(html, /Lobbying is tracked for a list of companies/);
+  assert.match(html, /this one is not on it\. No filing found is not proof of no influence\./);
   assert.match(renderConnectionsLoading(), /Loading connections/);
 });
 
@@ -99,4 +100,47 @@ test("hostile names are escaped everywhere, long names truncated in boxes", () =
   assert.ok(!/data-search="[^"]*"[^ >]*"/.test(html));
   const g = layoutGraph(data);
   assert.ok(g.boxes.every((b) => b.label.length <= 26));
+});
+
+const grp = (n) => ({ schema: "Vessel", items: Array.from({ length: n }, (_, i) => ({ name: `V${n}-${i}`, schema: "Vessel", role: "Property in the interest of", direction: "in", authorities: ["US"] })), more: 0 });
+const link = (name, groups) => ({ name, schema: "Organization", role: "Property in the interest of", direction: "out", authorities: ["US"], groups });
+
+test("at most 8 sanctions boxes even when rows run out of room", () => {
+  const data = { ...tassos, sanctions: { ...tassos.sanctions, links: [link("A", [grp(1), grp(1)]), link("B", [grp(1), grp(1)]), link("C", []), link("D", [grp(1), grp(1)])] } };
+  const g = layoutGraph(data);
+  assert.ok(g.boxes.filter((b) => !b.focus && b.kind !== "firm").length <= 8);
+});
+
+test("edge labels are placed at distinct positions above their target boxes", () => {
+  const firm = (i) => ({ name: `Firm ${i}`, filings: 1, fees_usd: 0, sub_fees_usd: null, subcontract: false, years: [2020, 2020], url: "https://lda.gov/x" });
+  const g = layoutGraph({ ...ns2, sanctions: { available: true, matched: false }, lobbying: { ...ns2.lobbying, firms: [1, 2, 3, 4].map(firm) } });
+  assert.equal(g.lines.length, 4);
+  assert.equal(new Set(g.lines.map((ln) => `${ln.lx},${ln.ly}`)).size, 4);
+  for (const ln of g.lines) assert.ok(ln.label.length <= 30);
+  for (const b of g.boxes) assert.ok(b.y >= 0);
+  assert.ok(g.height >= Math.max(...g.boxes.map((b) => b.y + b.h)));
+});
+
+test("numbers from data are escaped and singular filings read correctly", () => {
+  const hostile = JSON.parse(JSON.stringify(ns2));
+  hostile.lobbying.bodies[0].filings = "<i>x";
+  hostile.lobbying.firms[0].filings = 1;
+  hostile.lobbying.bills[0].filings = 1;
+  const html = renderConnections(hostile);
+  assert.ok(!html.includes("<i>x"));
+  assert.match(html, /1 filing · /);
+  assert.ok(!/1 filings/.test(html));
+  assert.match(renderConnections(hostile), /HIRED/);
+});
+
+test("matched client with no filings still shows parents and bridges", () => {
+  const html = renderConnections({ sanctions: { available: true, matched: false }, lobbying: { ...ns2.lobbying, checked_no_filings: true, firms: [], lobbyists: [], bodies: [], bills: [] }, attribution: "" });
+  assert.match(html, /No US lobbying filings found for Nord Stream 2 AG/);
+  assert.match(html, /Gazprom/);
+  assert.match(html, /home\.treasury\.gov/);
+});
+
+test("sentence keeps acronym roles and lower-cases ordinary ones", () => {
+  assert.equal(sentence("X", { name: "Y", role: "OFAC designated", direction: "out" }), "X OFAC designated Y");
+  assert.equal(sentence("X", { name: "Y", role: "Property in the interest of", direction: "out" }), "X property in the interest of Y");
 });

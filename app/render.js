@@ -158,7 +158,7 @@ export function renderWider(state, query) {
   } else if (state.kind === "results") {
     body = `<p>No OpenSanctions match.</p>${link}`;
   } else {
-    body = `<p>Other countries' lists, politically exposed people and related companies, from OpenSanctions.${state.kind === "error" ? " The live check is unavailable right now." : ""}</p>${link}`;
+    body = `<p>Sanctions lists from 95 sources worldwide, compiled by OpenSanctions.${state.kind === "error" ? " The live check is unavailable right now." : ""}</p>${link}`;
   }
   return `<div class="block wider"><h3>Wider check</h3>${body}</div>`;
 }

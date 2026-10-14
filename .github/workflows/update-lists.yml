@@ -16,7 +16,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -53,12 +53,40 @@ jobs:
           gh release view data-latest >/dev/null 2>&1 || gh release create data-latest --title "Nightly data" --notes "Compact OpenSanctions index read by api/search.js; replaced every night. Data: OpenSanctions (opensanctions.org), CC BY-NC 4.0." --latest=false
           gh release upload data-latest build/opensanctions.json.gz --clobber
 
+      - name: Build connections
+        id: cxbuild
+        timeout-minutes: 20
+        continue-on-error: true
+        run: python scripts/build_connections.py
+
+      - name: Upload connections
+        id: cxupload
+        if: steps.cxbuild.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload data-latest build/connections.json.gz --clobber
+
+      - name: Build lobbying
+        id: lobbuild
+        timeout-minutes: 20
+        continue-on-error: true
+        run: python scripts/build_lobbying.py
+
+      - name: Upload lobbying
+        id: lobupload
+        if: steps.lobbuild.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload data-latest build/lobbying.json.gz --clobber
+
       - name: Commit changes
         if: steps.smoke.outcome == 'success'
         run: |
           git config user.name "undercurrent-nightly"
           git config user.email "undercurrent-nightly@users.noreply.github.com"
-          git add data/lists data/opensanctions-meta.json
+          git add data/lists data/opensanctions-meta.json data/connections-meta.json data/lobbying-meta.json
           if git diff --cached --quiet; then
             echo "No changes."
           else
@@ -67,11 +95,16 @@ jobs:
           fi
 
       - name: Open or update the failure issue
-        if: steps.build.outcome == 'failure' || steps.osbuild.outcome == 'failure' || steps.osupload.outcome == 'failure' || failure()
+        if: steps.build.outcome == 'failure' || steps.osbuild.outcome == 'failure' || steps.osupload.outcome == 'failure' || steps.cxbuild.outcome == 'failure' || steps.cxupload.outcome == 'failure' || steps.lobbuild.outcome == 'failure' || steps.lobupload.outcome == 'failure' || failure()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          up=""; [ "${{ steps.osupload.outcome }}" = "failure" ] && up=", opensanctions upload"
+          up=""
+          [ "${{ steps.osupload.outcome }}" = "failure" ] && up="${up}, opensanctions upload"
+          [ "${{ steps.cxbuild.outcome }}" = "failure" ] && up="${up}, connections"
+          [ "${{ steps.cxupload.outcome }}" = "failure" ] && up="${up}, connections upload"
+          [ "${{ steps.lobbuild.outcome }}" = "failure" ] && up="${up}, lobbying"
+          [ "${{ steps.lobupload.outcome }}" = "failure" ] && up="${up}, lobbying upload"
           failed=$(python -c "import json;m=json.load(open('data/lists/meta.json'))['lists'];f=[k for k,v in m.items() if v['status']!='fresh']
           try:
             o=json.load(open('data/opensanctions-meta.json'))
@@ -79,7 +112,7 @@ jobs:
           except Exception: f.append('opensanctions')
           print(', '.join(f) or 'smoke check')" || echo "build crashed")
           title="Nightly lists: ${failed}${up} failed $(date -u +%F)"
-          body="Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. The site keeps serving the previous copy. Details in data/lists/meta.json and data/opensanctions-meta.json."
+          body="Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. The site keeps serving the previous copy. Details in data/lists/meta.json, data/opensanctions-meta.json, data/connections-meta.json and data/lobbying-meta.json."
           existing=$(gh issue list --state open --search "Nightly lists in:title" --json number --jq '.[0].number')
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --body "$title. $body"

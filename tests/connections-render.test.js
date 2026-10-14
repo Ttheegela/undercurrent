@@ -25,6 +25,7 @@ const ns2 = {
     firms: [{ name: "Capitol Counsel LLC", filings: 12, fees_usd: 1230000, sub_fees_usd: null, subcontract: false, years: [2017, 2022], url: "https://lda.gov/filings/public/filing/u1/print/" }],
     lobbyists: [{ name: "Jane Example", firm: "Capitol Counsel LLC", former_posts: ["Legislative Assistant, Sen. Smith"], former_bodies: ["US Senate"] },
                 { name: "John Sample", firm: "Capitol Counsel LLC", former_posts: [], former_bodies: [] }],
+    lobbyists_more: 3, revolving_door: [{ body: "US Senate", count: 1 }],
     bodies: [{ name: "US Senate", filings: 9 }],
     bills: [{ label: "S.722", title: "S.722 Countering Iran's Destabilizing Activities Act (2017)", filings: 5 }],
     parents: [{ name: "Gazprom", note: "50% of NS2 operating budget", ownership_pct: "50", url: "https://lda.gov/y" }],
@@ -75,6 +76,7 @@ test("Nord Stream 2 panel: firms, lobbyists with former posts, revolving door, b
   assert.match(html, /Jane Example/);
   assert.match(html, /Legislative Assistant, Sen\. Smith/);
   assert.match(html, /1 lobbyist previously served at the US Senate/);
+  assert.match(html, /\+3 more lobbyists in the filings\./);
   assert.match(html, /S\.722/);
   assert.match(html, /Gazprom/);
   assert.match(html, /home\.treasury\.gov/);
@@ -143,4 +145,41 @@ test("matched client with no filings still shows parents and bridges", () => {
 test("sentence keeps acronym roles and lower-cases ordinary ones", () => {
   assert.equal(sentence("X", { name: "Y", role: "OFAC designated", direction: "out" }), "X OFAC designated Y");
   assert.equal(sentence("X", { name: "Y", role: "Property in the interest of", direction: "out" }), "X property in the interest of Y");
+});
+
+test("edges carry direction: arrowhead points at the object of the sentence", () => {
+  const dirs = layoutGraph(tassos).lines.map((l) => l.dir);
+  assert.deepEqual(dirs, ["out", "in", "out"]); // focus -> Zulu; ships -> Zulu; Zulu -> person
+  const mixedGroup = JSON.parse(JSON.stringify(tassos));
+  mixedGroup.sanctions.links[0].groups[0].items[1].direction = "out";
+  assert.equal(layoutGraph(mixedGroup).lines[1].dir, null);
+  assert.ok(!/data-dir="" marker/.test(renderConnections(mixedGroup)));
+  const inOnly = JSON.parse(JSON.stringify(tassos));
+  inOnly.sanctions.links[0].direction = "in";
+  inOnly.sanctions.links[0].groups.pop();
+  const g = layoutGraph(inOnly);
+  assert.deepEqual(g.lines.map((l) => l.dir), ["in", "in"]);
+  const svg = renderConnections(inOnly);
+  assert.match(svg, /<path class="conn-edge" data-dir="in" marker-start="url\(#conn-arrow\)"/);
+  assert.ok(!/data-dir="in" marker-end/.test(svg));
+  assert.match(renderConnections(tassos), /data-dir="out" marker-end="url\(#conn-arrow\)"/);
+  assert.match(renderConnections(tassos), /<marker id="conn-arrow"/);
+  const firm = layoutGraph(ns2).lines;
+  assert.equal(firm[0].dir, "out");
+});
+
+test("group role printed only when every item shares it; singular labels; chip titles", () => {
+  const mixed = JSON.parse(JSON.stringify(tassos));
+  mixed.sanctions.links[0].groups[0].items[1].role = "Owned by";
+  const html = renderConnections(mixed);
+  assert.match(html, /10 SHIPS LINKED TO ZULU SHIPS MANAGEMENT<\/span>/);
+  assert.match(html, /1 PERSON LINKED TO ZULU SHIPS MANAGEMENT · PROVIDING SUPPORT TO<\/span>/);
+  assert.match(html, /title="Providing support to · US"/);
+  const same = JSON.parse(JSON.stringify(tassos));
+  same.sanctions.links[0].groups.pop();
+  assert.match(renderConnections(same), /10 SHIPS LINKED TO ZULU SHIPS MANAGEMENT · PROPERTY IN THE INTEREST OF/);
+  const one = JSON.parse(JSON.stringify(same));
+  one.sanctions.links[0].groups[0] = { ...one.sanctions.links[0].groups[0], items: [one.sanctions.links[0].groups[0].items[0]], more: 0 };
+  assert.match(renderConnections(one), /1 SHIP LINKED TO/);
+  assert.ok(layoutGraph(one).lines.some((l) => l.label === "1 SHIP"));
 });

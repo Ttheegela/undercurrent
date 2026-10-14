@@ -130,6 +130,8 @@ test("lobbying view for Nord Stream 2", () => {
   assert.equal(l.client, "Nord Stream 2 AG");
   assert.deepEqual(l.firms, [{ name: "Capitol Counsel LLC", filings: 12, fees_usd: 1230000, sub_fees_usd: null, subcontract: false, years: [2017, 2022], url: "https://lda.gov/filings/public/filing/u1/print/" }]);
   assert.deepEqual(l.lobbyists, [{ name: "Jane Example", firm: "Capitol Counsel LLC", former_posts: ["Legislative Assistant, Sen. Smith"], former_bodies: ["US Senate"] }]);
+  assert.deepEqual(l.revolving_door, [{ body: "US Senate", count: 1 }]);
+  assert.equal(l.lobbyists_more, 0);
   assert.deepEqual(l.bodies, [{ name: "US Senate", filings: 9 }]);
   assert.deepEqual(l.bills.map((b) => b.label), ["S.722"]);
   assert.deepEqual(l.parents, [{ name: "Gazprom", note: "50% of NS2 operating budget", ownership_pct: "50", url: "https://lda.gov/y" }]);

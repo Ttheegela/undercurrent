@@ -139,11 +139,10 @@ export function lobbyingFor(lob, ...names) {
     subcontract: Boolean(e.subcontract), years: e.years || [], url: e.source_url,
   }));
   const firmIds = new Set(out.filter(firmEdge).map((e) => e.target));
-  const lobbyists = inc
+  const allLobbyists = inc
     .filter((e) => e.type === "lobbied_for")
     .map((e) => node(e.source))
     .filter((p) => !lob.excluded.has(normalizeName(p.name)))
-    .slice(0, LOBBYIST_CAP)
     .map((p) => {
       const pOut = lob.from.get(p.id) || [];
       const firm = pOut.find((e) => e.type === "lobbyist_at" && firmIds.has(e.target));
@@ -154,6 +153,11 @@ export function lobbyingFor(lob, ...names) {
         former_bodies: pOut.filter((e) => e.type === "formerly_served_in").map((e) => node(e.target).name),
       };
     });
+  const lobbyists = allLobbyists.slice(0, LOBBYIST_CAP);
+  // counted over every lobbyist, not just the ones shown
+  const doors = new Map();
+  for (const p of allLobbyists) for (const body of new Set(p.former_bodies)) doors.set(body, (doors.get(body) || 0) + 1);
+  const revolving_door = [...doors].map(([body, count]) => ({ body, count })).sort((a, b) => b.count - a.count || a.body.localeCompare(b.body));
   const scoped = (type) => [...firmIds].flatMap((f) => (lob.from.get(f) || []).filter((e) => e.type === type && e.client === clientId));
   const bodies = scoped("lobbied").map((e) => ({ name: node(e.target).name, filings: e.n_filings })).sort((a, b) => b.filings - a.filings);
   const bills = scoped("lobbied_on").map((e) => ({ label: node(e.target).name, title: node(e.target).title || "", filings: e.n_filings })).sort((a, b) => b.filings - a.filings);
@@ -169,7 +173,7 @@ export function lobbyingFor(lob, ...names) {
   return {
     available: true, matched: true, client: node(clientId).name, as_of: lob.asOf,
     checked_no_filings: firms.length === 0,
-    firms, lobbyists, bodies, bills, parents, bridges,
+    firms, lobbyists, lobbyists_more: allLobbyists.length - lobbyists.length, revolving_door, bodies, bills, parents, bridges,
   };
 }
 
@@ -197,7 +201,7 @@ export async function GET(request) {
   const [graph, lobby] = await Promise.allSettled([graphAsset.load(), lobbyAsset.load()]);
   const safe = (settled, fn) => {
     if (settled.status !== "fulfilled") return { available: false };
-    try { return fn(settled.value); } catch { return { available: false }; }
+    try { return fn(settled.value); } catch (err) { console.error("connections: section failed", err); return { available: false }; }
   };
   const sanctions = safe(graph, (g) => sanctionsFor(g, { imo, name }));
   const lobbying = safe(lobby, (l) => lobbyingFor(l, name, sanctions.focus?.name));

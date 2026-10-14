@@ -119,7 +119,7 @@ const CONNECTIONS = {
     sanctions: { available: true, matched: false },
     lobbying: { available: true, matched: true, client: "Nord Stream 2 AG", as_of: "2026-10-14", checked_no_filings: false,
       firms: [{ name: "Capitol Counsel LLC", filings: 12, fees_usd: 1230000, sub_fees_usd: null, subcontract: false, years: [2017, 2022], url: "https://lda.gov/filings/public/filing/u1/print/" }],
-      lobbyists: [], bodies: [{ name: "US Senate", filings: 9 }], bills: [], parents: [], bridges: [] },
+      lobbyists: [], lobbyists_more: 0, revolving_door: [], bodies: [{ name: "US Senate", filings: 9 }], bills: [], parents: [], bridges: [] },
     attribution: "Lobbying: US Lobbying Disclosure Act filings (lda.gov).",
   },
   SOV: {

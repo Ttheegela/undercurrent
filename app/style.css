@@ -203,6 +203,7 @@ table.lists { width: 100%; border-collapse: collapse; font-size: var(--text-sm);
 .conn { border-top: 2px solid var(--color-ink); padding-top: var(--space-sm); }
 .conn-graph { display: block; max-width: 760px; margin: var(--space-sm) 0 var(--space-lg); }
 .conn-edge { stroke: var(--color-rule); stroke-width: 1.5; fill: none; }
+.conn-arrow { fill: var(--color-rule); }
 .conn-edge-label { font-family: var(--font-mono); font-size: 10px; fill: var(--color-neutral); }
 .conn-node rect { fill: var(--color-paper-3); stroke: var(--color-rule); }
 .conn-node.is-focus rect { fill: var(--color-accent-dim); stroke: var(--color-accent); }

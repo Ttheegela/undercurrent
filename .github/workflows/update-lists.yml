@@ -110,8 +110,10 @@ jobs:
             o=json.load(open('data/opensanctions-meta.json'))
             f+=['opensanctions'] if o['status']!='fresh' else []
           except Exception: f.append('opensanctions')
-          print(', '.join(f) or 'smoke check')" || echo "build crashed")
-          title="Nightly lists: ${failed}${up} failed $(date -u +%F)"
+          print(', '.join(f))" || echo "build crashed")
+          what="${failed}${up}"
+          what="${what#, }"
+          title="Nightly lists: ${what:-smoke check} failed $(date -u +%F)"
           body="Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. The site keeps serving the previous copy. Details in data/lists/meta.json, data/opensanctions-meta.json, data/connections-meta.json and data/lobbying-meta.json."
           existing=$(gh issue list --state open --search "Nightly lists in:title" --json number --jq '.[0].number')
           if [ -n "$existing" ]; then

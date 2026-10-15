@@ -19,19 +19,23 @@ from normalize import normalize_name
 ROOT = Path(__file__).resolve().parent.parent
 FLEET_DIR = ROOT / "stories" / "shadow-fleet" / "network"
 CHIPS_FILE = ROOT / "stories" / "chips-into-russia" / "official_listings.json"
+LAG_FILE = ROOT / "stories" / "chips-into-russia" / "data" / "listing_lag.json"
 LOBBY_FILE = ROOT / "stories" / "who-lobbies" / "clean-names-graph" / "nodes.json"
 OUT = ROOT / "data" / "research-index.json"
 
 FLEET_STORY = {"label": "Open on the shadow-fleet map", "url": "stories/shadow-fleet/network/shadow_fleet_map.html"}
-CHIPS_STORY = {"label": "Open the chips-into-Russia page", "url": "stories/chips-into-russia/viz/river.html"}
+CHIPS_STORY = {"label": "Open the chips-into-Russia story", "url": "stories/chips-into-russia/viz/index.html"}
+CHIPS_LAG_STORY = {"label": "Open the time-to-list page", "url": "stories/chips-into-russia/viz/listing_lag.html"}
 LOBBY_STORY = {"label": "Open the lobbying network", "url": "stories/who-lobbies/clean-names-graph/index.html"}
 FLEET_FINDINGS = ("stories/shadow-fleet/FINDINGS.md", "VeilTrace shadow-fleet findings")
-CHIPS_FINDINGS = ("stories/chips-into-russia/FINDINGS.md", "VeilTrace chip-route findings")
+CHIPS_LAG_PAGE = ("stories/chips-into-russia/viz/listing_lag.html", "Chips into Russia: time to list (official dates)")
+CSL_PAGE = ("https://www.trade.gov/consolidated-screening-list", "US Consolidated Screening List (Entity List)")
 LOBBY_FINDINGS = ("stories/who-lobbies/FINDINGS.md", "VeilTrace lobbying findings")
 
 GOVERNMENTS = {"gov:us": "United States", "gov:eu": "European Union", "gov:uk": "United Kingdom"}
 SOURCE_LABELS = {
     "sanctionslist.ofac.treas.gov": "US Treasury OFAC sanctions list",
+    "ofac.treasury.gov": "US Treasury OFAC recent actions",
     "www.trade.gov": "US Consolidated Screening List",
     "home.treasury.gov": "US Treasury press release",
     "eur-lex.europa.eu": "EU Official Journal (EUR-Lex)",
@@ -209,24 +213,40 @@ def fleet_entries(nodes: list, edges: list) -> list[dict]:
             for n in nodes if n["type"] in SHIP_KINDS]
 
 
-def chip_entries(doc: dict) -> list[dict]:
-    """Official facts only: the company's first official listing."""
+def chip_official_source(first_listing: dict) -> tuple[str, str] | None:
+    """The official page for a first listing: OFAC recent actions for that date, or the Entity List page."""
+    authority, date = first_listing.get("authority", ""), first_listing.get("date", "")
+    if "OFAC" in authority and date:
+        return (f"https://ofac.treasury.gov/recent-actions/{date.replace('-', '')}", None)
+    if "BIS" in authority:
+        return CSL_PAGE
+    return None
+
+
+def chip_entries(doc: dict, lag_ids: set[str] = frozenset()) -> list[dict]:
+    """Official facts only: the company's first official listing. A firm with an `ofac_id` that is in the
+    time-to-list data also links that page; the others cite the official source alone."""
     out = []
     for c in doc["companies"]:
         src = Sources()
-        story_ref = src.ref(*CHIPS_FINDINGS)
         first_listing = c.get("first_listing") or {}
+        on_lag_page = c.get("ofac_id") in lag_ids
+        official = chip_official_source(first_listing)
+        refs = [src.ref(*official)] if official else []
+        if on_lag_page:
+            refs.append(src.ref(*CHIPS_LAG_PAGE))
         listings, facts, events = [], [], []
         if first_listing.get("authority"):
-            listings.append({"by": first_listing["authority"], "date": first_listing.get("date") or "", "program": "Russia", "ref": story_ref})
+            listings.append({"by": first_listing["authority"], "date": first_listing.get("date") or "", "program": "Russia", "ref": refs[0] if refs else None})
         if first_listing.get("date"):
-            facts.append(fact(f"First listed on {fmt_date(first_listing['date'])} by {first_listing['authority']}.", [story_ref], src, CHIPS_FINDINGS))
+            facts.append({"text": f"First listed on {fmt_date(first_listing['date'])} by {first_listing['authority']}.", "refs": sorted(refs)})
             events.append({"date": first_listing["date"], "kind": "listing", "text": f"{first_listing['authority']} lists it"})
         out.append({
             "id": f"chip:{c['id']}", "kind": "Company", "name": c["name"], "keys": keys_for(c["name"]),
             "imo": None, "flag": None, "manager": None, "country": c.get("place"), "role": "Listed company in our chip research",
             "listings": listings, "events": sorted(events, key=lambda ev: ev["date"]), "facts": facts,
-            "names": [{"name": c["name"], "current": True}], "flags": [], "story": CHIPS_STORY, "sources": src.items,
+            "names": [{"name": c["name"], "current": True}], "flags": [],
+            "story": CHIPS_LAG_STORY if on_lag_page else CHIPS_STORY, "sources": src.items,
         })
     return out
 
@@ -278,7 +298,8 @@ def build() -> list[dict]:
     nodes = json.loads((FLEET_DIR / "nodes.json").read_text(encoding="utf-8"))
     edges = json.loads((FLEET_DIR / "edges.json").read_text(encoding="utf-8"))
     entries = fleet_entries(nodes, edges)
-    entries += chip_entries(json.loads(CHIPS_FILE.read_text(encoding="utf-8")))
+    lag_ids = {x["ofac_id"] for x in json.loads(LAG_FILE.read_text(encoding="utf-8"))["firms"]}
+    entries += chip_entries(json.loads(CHIPS_FILE.read_text(encoding="utf-8")), lag_ids)
     entries += lobby_entries(json.loads(LOBBY_FILE.read_text(encoding="utf-8")))
     return [e for e in entries if e["keys"]]
 

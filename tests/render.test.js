@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   escapeHtml, safeUrl, formatDate, formatUpdated, timelinePositions, citation,
-  renderDossier, renderResearch, renderLists, renderWider, renderEmpty, renderHint,
+  renderDossier, renderResearch, renderLists, renderWider, renderEmpty, renderHint, medianMonths,
 } from "../app/render.js";
 
 const TASSOS = {
@@ -108,4 +108,10 @@ test("wider check states", () => {
 test("wider check shows every listing authority", () => {
   const html = renderWider({ kind: "results", results: [{ name: "TASSOS", schema: "Vessel", datasets: ["Canada", "EU", "UK", "Switzerland", "US"], url: "https://www.opensanctions.org/entities/NK-k837moN9ssPZedvkRUrexG/" }] }, "TASSOS");
   assert.match(html, /Vessel · Canada, EU, UK, Switzerland, US/);
+});
+
+test("medianMonths rounds to whole months and rejects bad input", () => {
+  assert.equal(medianMonths({ median_months: 20.3, n: 25 }), 20);
+  assert.equal(medianMonths({ median_months: 20.6 }), 21);
+  for (const bad of [null, {}, { median_months: "20" }, { median_months: NaN }, { median_months: 0 }]) assert.equal(medianMonths(bad), null);
 });

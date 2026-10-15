@@ -87,3 +87,17 @@ def test_chip_entries_carry_official_listings_only(entries):
     assert chips
     for e in chips:
         assert e["listings"] and all(f["text"].startswith("First listed on ") for f in e["facts"]), e["id"]
+
+
+def test_chip_sources_are_official_and_page_link_only_for_firms_on_it(entries):
+    rm, elem = entries["chip:rm"], entries["chip:elem"]
+    assert rm["story"]["url"] == "stories/chips-into-russia/viz/listing_lag.html"
+    assert [s["url"] for s in rm["sources"]] == [
+        "https://ofac.treasury.gov/recent-actions/20230720", "stories/chips-into-russia/viz/listing_lag.html"]
+    assert rm["facts"][0]["refs"] == [1, 2]
+    assert elem["story"]["url"] == "stories/chips-into-russia/viz/index.html"
+    assert [s["url"] for s in elem["sources"]] == ["https://www.trade.gov/consolidated-screening-list"]
+    for e in entries.values():
+        if e["id"].startswith("chip:"):
+            assert all("FINDINGS.md" not in s["url"] for s in e["sources"])
+            assert all(r <= len(e["sources"]) for f in e["facts"] for r in f["refs"])

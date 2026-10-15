@@ -3,7 +3,7 @@ import { setupWalkthrough } from "./walkthrough.js";
 import { connectionsQuery, renderConnections, renderConnectionsLoading } from "./connections.js";
 import {
   renderResearch, renderLists, renderWider, renderEmpty, renderHint, renderLoading, renderLayerError,
-  citation, formatUpdated, escapeHtml, CAVEAT,
+  citation, formatUpdated, medianMonths, escapeHtml, CAVEAT,
 } from "./render.js";
 
 const $ = (selector) => document.querySelector(selector);
@@ -117,6 +117,13 @@ async function showListDate() {
   }
 }
 
+async function showChipsMonths() {
+  try {
+    const months = medianMonths(await loadJson("stories/chips-into-russia/data/summary.json"));
+    if (months) $("#chips-months").textContent = months;
+  } catch {} // keep the static number in index.html
+}
+
 async function copyCitation(button) {
   const entry = state.shown.get(button.dataset.cite);
   if (!entry) return;
@@ -183,6 +190,7 @@ function wire() {
     if (entry && !details.querySelector(".conn")) loadConnections(entry, () => true);
   }, true);
   showListDate();
+  showChipsMonths();
 }
 
 wire();

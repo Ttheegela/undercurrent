@@ -92,7 +92,7 @@ export function renderDossier(e) {
       <p class="tl-note">Spacing is approximate. Red marks a government listing.</p>
     </div>` : "";
 
-  const sup = (refs) => refs.map((n) => `<sup><a href="#src-${sid}-${n}">${n}</a></sup>`).join("");
+  const sup = (refs) => refs.map((n) => `<sup><a href="#src-${sid}-${Number(n)}">${Number(n)}</a></sup>`).join("");
   const facts = e.facts.map((f) => `<p>${escapeHtml(f.text)}${sup(f.refs)}</p>`).join("");
 
   const nameTag = (n) => (n.current ? "CURRENT" : e.imo ? "FORMER" : "ALSO KNOWN AS");
@@ -106,7 +106,7 @@ export function renderDossier(e) {
   const sources = `
     <div class="block" data-walk="sources">
       <h3>Sources</h3>
-      <ol class="src">${e.sources.map((s) => `<li value="${s.n}" id="src-${sid}-${s.n}">${escapeHtml(s.label)}. <a href="${escapeHtml(safeUrl(s.url))}" rel="noopener">${escapeHtml(hostOf(s.url))}</a></li>`).join("")}</ol>
+      <ol class="src">${e.sources.map((s) => `<li value="${Number(s.n)}" id="src-${sid}-${Number(s.n)}">${escapeHtml(s.label)}. <a href="${escapeHtml(safeUrl(s.url))}" rel="noopener">${escapeHtml(hostOf(s.url))}</a></li>`).join("")}</ol>
     </div>`;
 
   return `

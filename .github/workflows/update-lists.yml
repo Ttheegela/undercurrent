@@ -81,12 +81,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload data-latest build/lobbying.json.gz --clobber
 
+      - name: Build chips
+        id: chipsbuild
+        timeout-minutes: 20
+        continue-on-error: true
+        run: python scripts/build_chips.py
+
       - name: Commit changes
         if: steps.smoke.outcome == 'success'
         run: |
           git config user.name "undercurrent-nightly"
           git config user.email "undercurrent-nightly@users.noreply.github.com"
-          git add data/lists data/opensanctions-meta.json data/connections-meta.json data/lobbying-meta.json
+          git add data/lists data/opensanctions-meta.json data/connections-meta.json data/lobbying-meta.json stories/chips-into-russia/data/routes.json stories/chips-into-russia/data/coverage.json stories/chips-into-russia/data/listing_lag.json stories/chips-into-russia/data/chips-meta.json
           if git diff --cached --quiet; then
             echo "No changes."
           else
@@ -95,7 +101,7 @@ jobs:
           fi
 
       - name: Open or update the failure issue
-        if: steps.build.outcome == 'failure' || steps.osbuild.outcome == 'failure' || steps.osupload.outcome == 'failure' || steps.cxbuild.outcome == 'failure' || steps.cxupload.outcome == 'failure' || steps.lobbuild.outcome == 'failure' || steps.lobupload.outcome == 'failure' || failure()
+        if: steps.build.outcome == 'failure' || steps.osbuild.outcome == 'failure' || steps.osupload.outcome == 'failure' || steps.cxbuild.outcome == 'failure' || steps.cxupload.outcome == 'failure' || steps.lobbuild.outcome == 'failure' || steps.lobupload.outcome == 'failure' || steps.chipsbuild.outcome == 'failure' || failure()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -105,6 +111,10 @@ jobs:
           [ "${{ steps.cxupload.outcome }}" = "failure" ] && up="${up}, connections upload"
           [ "${{ steps.lobbuild.outcome }}" = "failure" ] && up="${up}, lobbying"
           [ "${{ steps.lobupload.outcome }}" = "failure" ] && up="${up}, lobbying upload"
+          if [ "${{ steps.chipsbuild.outcome }}" = "failure" ]; then
+            src=$(python -c "import json;m=json.load(open('stories/chips-into-russia/data/chips-meta.json'))['outputs'];n={'routes':'UN Comtrade/Eurostat','coverage':'UN Comtrade','listing_lag':'OFAC'};print(' + '.join(sorted({n[k] for k,v in m.items() if v['status']!='fresh'})))" 2>/dev/null || echo "build crashed")
+            up="${up}, chips (${src:-build crashed})"
+          fi
           failed=$(python -c "import json;m=json.load(open('data/lists/meta.json'))['lists'];f=[k for k,v in m.items() if v['status']!='fresh']
           try:
             o=json.load(open('data/opensanctions-meta.json'))
@@ -114,7 +124,7 @@ jobs:
           what="${failed}${up}"
           what="${what#, }"
           title="Nightly lists: ${what:-smoke check} failed $(date -u +%F)"
-          body="Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. The site keeps serving the previous copy. Details in data/lists/meta.json, data/opensanctions-meta.json, data/connections-meta.json and data/lobbying-meta.json."
+          body="Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. The site keeps serving the previous copy. Details in data/lists/meta.json, data/opensanctions-meta.json, data/connections-meta.json, data/lobbying-meta.json and stories/chips-into-russia/data/chips-meta.json."
           existing=$(gh issue list --state open --search "Nightly lists in:title" --json number --jq '.[0].number')
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --body "$title. $body"

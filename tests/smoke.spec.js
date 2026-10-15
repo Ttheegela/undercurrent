@@ -30,7 +30,7 @@ test("TASSOS: dossier, three listing chips, timeline, official lists, wider link
 });
 
 for (const width of [1280, 375]) {
-  test(`TASSOS timeline shows every label in full, without overlaps, at ${width}px`, async ({ page }) => {
+  test(`TASSOS timeline shows every label in full, in one colour, without overlaps, at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
     await search(page, "TASSOS");
@@ -42,11 +42,12 @@ for (const width of [1280, 375]) {
       const r = el.getBoundingClientRect();
       const t = el.parentElement.getBoundingClientRect();
       return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, trackBottom: t.bottom,
-        clipped: what.scrollHeight > what.clientHeight + 1 };
+        clipped: what.scrollHeight > what.clientHeight + 1, color: getComputedStyle(what).color, weight: getComputedStyle(what).fontWeight };
     }));
     for (const b of boxes) {
       expect(b.clipped).toBe(false);
       expect(b.bottom).toBeLessThanOrEqual(b.trackBottom + 1);
+      expect([b.color, b.weight]).toEqual([boxes[0].color, boxes[0].weight]);
     }
     for (let i = 1; i < boxes.length; i++) {
       const sideBySide = boxes[i].left >= boxes[i - 1].right - 1;

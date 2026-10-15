@@ -29,6 +29,34 @@ test("TASSOS: dossier, three listing chips, timeline, official lists, wider link
   expect(errors).toEqual([]);
 });
 
+for (const width of [1280, 375]) {
+  test(`TASSOS timeline shows every label in full, without overlaps, at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    await search(page, "TASSOS");
+    const evs = page.locator(".dossier-entry").first().locator(".tl-ev");
+    await expect(evs.first()).toBeVisible();
+    await expect(page.locator(".tl-ev .what", { hasText: "Liberia)" }).first()).toBeVisible();
+    const boxes = await evs.evaluateAll((els) => els.map((el) => {
+      const what = el.querySelector(".what");
+      const r = el.getBoundingClientRect();
+      const t = el.parentElement.getBoundingClientRect();
+      return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, trackBottom: t.bottom,
+        clipped: what.scrollHeight > what.clientHeight + 1 };
+    }));
+    for (const b of boxes) {
+      expect(b.clipped).toBe(false);
+      expect(b.bottom).toBeLessThanOrEqual(b.trackBottom + 1);
+    }
+    for (let i = 1; i < boxes.length; i++) {
+      const sideBySide = boxes[i].left >= boxes[i - 1].right - 1;
+      const stacked = boxes[i].top >= boxes[i - 1].bottom - 1;
+      expect(sideBySide || stacked).toBe(true);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+}
+
 test("IMO number finds the same ship", async ({ page }) => {
   await page.goto("/");
   await search(page, "IMO 9408695");

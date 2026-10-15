@@ -63,6 +63,13 @@ test("timelinePositions: ordered, start at 0, end at most 86, no overlaps", () =
   for (let i = 1; i < pos.length; i++) assert.ok(pos[i].pct - pos[i - 1].pct >= 13.9, `gap before ${i}`);
 });
 
+test("timeline prints every event label in full", () => {
+  const long = "Owned by an unlisted United Arab Emirates ship owner c/o the Zulu Ships Management & Operation - Sole Proprietorship LLC";
+  const html = renderDossier({ ...TASSOS, events: [...TASSOS.events, { date: "2024-10-10", kind: "ownership", text: long }] });
+  assert.ok(html.includes(`<span class="what">${long.replace("&", "&amp;")}</span>`));
+  assert.ok(!html.includes("…"));
+});
+
 test("citation text", () => {
   assert.equal(
     citation(TASSOS, "https://undercurrent.vercel.app/", new Date("2026-10-13T10:00:00Z")),

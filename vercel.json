@@ -54,32 +54,5 @@
         }
       ]
     }
-  ],
-  "redirects": [
-    {
-      "source": "/stories/chips-into-russia/viz",
-      "destination": "/stories/chips-into-russia/viz/river.html",
-      "permanent": true
-    },
-    {
-      "source": "/stories/chips-into-russia/viz/",
-      "destination": "/stories/chips-into-russia/viz/river.html",
-      "permanent": true
-    },
-    {
-      "source": "/stories/chips-into-russia/viz/index.html",
-      "destination": "/stories/chips-into-russia/viz/river.html",
-      "permanent": true
-    },
-    {
-      "source": "/stories/chips-into-russia/viz/coverage.html",
-      "destination": "/stories/chips-into-russia/viz/river.html",
-      "permanent": true
-    },
-    {
-      "source": "/stories/chips-into-russia/viz/listing_lag.html",
-      "destination": "/stories/chips-into-russia/viz/river.html",
-      "permanent": true
-    }
   ]
 }

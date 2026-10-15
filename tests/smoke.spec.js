@@ -80,6 +80,9 @@ test("every story page loads", async ({ request }) => {
   for (const path of [
     "/stories/how-sanctions-work/index.html",
     "/stories/shadow-fleet/network/shadow_fleet_map.html",
+    "/stories/chips-into-russia/viz/index.html",
+    "/stories/chips-into-russia/viz/coverage.html",
+    "/stories/chips-into-russia/viz/listing_lag.html",
     "/stories/chips-into-russia/viz/river.html",
     "/stories/who-lobbies/influence-network/index.html",
     "/stories/who-lobbies/clean-names-graph/index.html",

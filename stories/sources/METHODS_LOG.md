@@ -11,11 +11,9 @@ Rating: **works** · **works with care** · **weak** · **failed**. Findings the
 | # | Method | How (tools / recipe) | What it found | Rating | Lessons |
 |---|---|---|---|---|---|
 | A2 | **Mirror statistics (countries' own reports)** | UN Comtrade free preview API, reporter -> Russia, by HS code and year | Kyrgyzstan ~$0 -> $13.5M (2023) chips; Kazakhstan -> $18.3M (2022); Armenia -> $13.1M (2022) | works with care | Filter to aggregate rows only (isAggregate, motCode 0, partner2Code 0), or totals double. Pre-2014 rows are flagged differently. Rate-limited: 3.5 s between calls. Declared values; latest year may be partial. |
-| A5 | **Follow listed firms' trading partners** | Tradeverifyd `entity_trade_relationships` / `annotated_relationship_paths` | Starting from a listed buyer (Testkomplekt) turned up 7 listed suppliers in one look-up | works | Match by tax / registration numbers, not names. Tradeverifyd links have no dates or volumes. |
 | A13 | **Sibling finder** | Normalised address on the official lists; weight 1/log(tenants) | Back-test: 240 Russia-programme address pairs on the US list, listed ~167 days apart | works with care | Strict address key is sound; loose matcher false-merges (plot buildings, same street in different cities). Registered-agent addresses (Monrovia) are noise. |
 | A14 | **Listing lag** | First suspicious date vs official listing date (OFAC recent-actions, Federal Register, UK list) | RM Design and Development: established 17 Mar 2022 per its own OFAC entry, listed 20 Jul 2023 | works | Official pages only; show lags as "at least". |
 | A15 | **Web corroboration** | Tavily `corroborate`: official domains first (treasury, OFAC, BIS, gov.uk, EU), then investigative outlets | 10 of 12 leads confirmed; caught ITIC listed, Sinno's real date | works | Advanced depth; general topic (news topic missed official pages). Never cite the AI summary: it invented a paragraph once. |
-| A17 | **Tradeverifyd risk paths** | `annotated_relationship_paths` from a known company | Xinjiang polysilicon cluster; cobalt chain Glencore Commodities -> Huayou -> CATL | works with care | Flags often belong to neighbours; score is higher = safer; place search and country filter don't work. |
 
 ## B. Verification methods (how we check)
 
@@ -33,11 +31,9 @@ Rating: **works** · **works with care** · **weak** · **failed**. Findings the
 | Trap | Where | Fix / workaround |
 |---|---|---|
 | Summing all Comtrade rows | our 10:00 figures ($52M Armenia) | Aggregate rows only (corrected 10:19) |
-| Tradeverifyd place search, country filter | timed out / ignored | Seed from lists |
 | OpenSanctions `first_seen` as a listing date | Sinno | Official pages; 2023-04-20 = dataset start |
 | Exact-string list search | missed ITIC | Normalised + fuzzy checker |
 | Checker blind to short/transliterated names | Hoshine, Katrade, GTME | Contained multi-word and rare single-word rules added; GTME still open |
-| Our intake tool with unfamiliar tool names | Tradeverifyd | Small direct caller with its own read-only allowlist |
 | Save files named to the second | two raw answers overwritten | Microseconds + process id in names |
 | Parallel agents sharing scratch scripts | nearly posted as wrong agent | Per-agent folders |
 | Screening only against asset-freeze lists | Shisan Ltd and Rama Group are on EU Annex IV (export restrictions, 2026-07-24), invisible to our checker | Add EU Annex IV and other export-control lists to the checker |

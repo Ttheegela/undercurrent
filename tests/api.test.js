@@ -97,9 +97,9 @@ test("loads once, refreshes after 12 hours, keeps the old index when a refresh f
   assert.equal(again.length, first.length);
 });
 
-test("a name in another script finds nothing", async () => {
+test("a name in another script normalizes to nothing and is rejected", async () => {
   serve();
-  assert.deepEqual(await (await GET(req("Совкомфлот"))).json(), { enabled: true, results: [] });
+  assert.equal((await GET(req("Совкомфлот"))).status, 400);
 });
 
 test("a failed refresh backs off for about ten minutes", async () => {
@@ -128,4 +128,15 @@ test("a synchronously throwing fetch does not wedge later loads", async () => {
   const ok = async () => { calls++; return new Response(indexBytes(), { status: 200 }); };
   assert.equal((await loadIndex(ok)).length, 3);
   assert.equal(calls, 1);
+});
+
+test("a one-character query is rejected without fetching", async () => {
+  serve();
+  for (const q of ["a", " a ", "A.", "---"]) assert.equal((await GET(req(q))).status, 400);
+  assert.equal(calls, 0);
+});
+
+test("an IMO query still passes the length rule", async () => {
+  serve();
+  assert.equal((await GET(req("9408695"))).status, 200);
 });

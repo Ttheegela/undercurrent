@@ -197,7 +197,7 @@ export async function GET(request) {
   const rawImo = (params.get("imo") || "").trim();
   const imo = rawImo ? parseImo(rawImo) : null;
   const name = (params.get("name") || "").trim();
-  if ((rawImo && !imo) || (!imo && !name) || name.length > 200) return json({ error: "bad query" }, { status: 400 });
+  if ((rawImo && !imo) || (!imo && normalizeName(name).length < 2) || name.length > 200) return json({ error: "bad query" }, { status: 400 });
   const [graph, lobby] = await Promise.allSettled([graphAsset.load(), lobbyAsset.load()]);
   const safe = (settled, fn) => {
     if (settled.status !== "fulfilled") return { available: false };

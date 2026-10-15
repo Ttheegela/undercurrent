@@ -11,3 +11,4 @@ requirements-dev.txt
 .vercel
 .venv
 .superpowers
+build

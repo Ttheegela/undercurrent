@@ -88,7 +88,7 @@ test("asset loader: shared fetch, refresh, stale on failure with backoff", async
 
 test("bad queries are rejected without loading data", async () => {
   serve();
-  for (const qs of ["", "name=", "imo=123", "name=" + "x".repeat(201)]) assert.equal((await get(qs)).status, 400);
+  for (const qs of ["", "name=", "name=a", "name=%20A.%20", "imo=123", "name=" + "x".repeat(201)]) assert.equal((await get(qs)).status, 400);
   assert.equal(calls.length, 0);
 });
 

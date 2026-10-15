@@ -44,7 +44,7 @@ export function searchIndex(entities, raw) {
 
 export async function GET(request) {
   const q = (new URL(request.url).searchParams.get("q") || "").trim();
-  if (!q || q.length > 200) return json({ error: "bad query" }, { status: 400 });
+  if (normalizeName(q).length < 2 || q.length > 200) return json({ error: "bad query" }, { status: 400 });
   let entities;
   try {
     entities = await loadIndex();

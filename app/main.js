@@ -44,6 +44,8 @@ function loadData() {
 async function checkWider(text, isLatest) {
   let next;
   try {
+    const q = prepareQuery(text);
+    if (!q.imo && q.norm.length < 2) throw new Error("too short for the API"); // the API rejects it with a 400
     const res = await fetch(`/api/search?q=${encodeURIComponent(text)}`, { signal: AbortSignal.timeout(5000) });
     const body = await res.json();
     next = body.enabled === false ? { kind: "link" } : body.error ? { kind: "error" } : { kind: "results", results: body.results || [] };

@@ -27,6 +27,8 @@ from normalize import normalize_name
 BASE = "https://lda.gov/api/v1/filings/"
 FILING_URL = "https://lda.gov/filings/public/filing/%s/print/"
 DELAY = 1.2
+MAX_PAGES = 400  # per query
+MAX_RETRY_WAIT = 120  # seconds
 USER_AGENT = "Undercurrent/1.0 (+https://github.com/Ttheegela/undercurrent)"
 
 SUBCONTRACT = re.compile(r"ON BEHALF OF|\bTHROUGH\b|\(FOR ", re.I)
@@ -93,7 +95,7 @@ def get_json(url: str, opener=urllib.request.urlopen, sleep=time.sleep) -> dict:
                         wait = int(exc.headers.get("Retry-After"))
                     except (TypeError, ValueError):
                         wait = 20 * (attempt + 1)
-                    sleep(wait)
+                    sleep(min(wait, MAX_RETRY_WAIT))
                 else:
                     sleep(5 * (attempt + 1))
         except (OSError, ValueError):
@@ -107,13 +109,19 @@ def fetch_filings(queries, get=get_json, sleep=time.sleep, base: str = BASE) -> 
     filings: dict[str, dict] = {}
     for param, value in queries:
         url = base + "?" + urllib.parse.urlencode({param: value, "page_size": 25})
-        while url:
+        for _ in range(MAX_PAGES):
             data = get(url)
             for r in data.get("results") or []:
                 if isinstance(r, dict) and r.get("filing_uuid") and isinstance(r.get("client"), dict):
                     filings[r["filing_uuid"]] = r
             url = data.get("next")
+            if url and not url.startswith(base):
+                raise ValueError(f"unexpected next URL: {url}")
             sleep(DELAY)
+            if not url:
+                break
+        else:
+            raise RuntimeError(f"more than {MAX_PAGES} pages for {param}={value}")
     return filings
 
 

@@ -5,6 +5,7 @@ import { gunzipSync } from "node:zlib";
 const REFRESH_MS = 12 * 60 * 60 * 1000;
 const RETRY_MS = 10 * 60 * 1000;
 const LOAD_TIMEOUT_MS = 4000;
+export const MAX_UNZIPPED_BYTES = 64 * 1024 * 1024;
 
 export function createAssetLoader(url, transform) {
   let cached = null; // { loadedAt, value }
@@ -13,7 +14,7 @@ export function createAssetLoader(url, transform) {
   async function fetchAsset(fetchFn, now) {
     const res = await fetchFn(url, { signal: AbortSignal.timeout(LOAD_TIMEOUT_MS) });
     if (!res.ok) throw new Error(`asset HTTP ${res.status}`);
-    const doc = JSON.parse(gunzipSync(Buffer.from(await res.arrayBuffer())).toString("utf8"));
+    const doc = JSON.parse(gunzipSync(Buffer.from(await res.arrayBuffer()), { maxOutputLength: MAX_UNZIPPED_BYTES }).toString("utf8"));
     const value = transform(doc);
     cached = { loadedAt: now, value };
     return value;

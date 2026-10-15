@@ -272,3 +272,47 @@ def test_honorific_in_display_name():
 
 def test_clean_text_greek_question_mark():
     assert lb.clean_text("Leg Dir\u037e Sen") == "Leg Dir; Sen"
+
+
+def test_fetch_rejects_next_url_outside_base():
+    for bad in ("file:///etc/passwd", "https://evil.example/p2", "ftp://x/p2"):
+        pages = {"https://x/?client_name=A&page_size=25": {"results": [], "next": bad}}
+        with pytest.raises(ValueError, match="unexpected next"):
+            lb.fetch_filings([["client_name", "A"]], get=pages.__getitem__, sleep=lambda s: None, base="https://x/")
+
+
+def test_fetch_caps_pages_per_query():
+    calls = []
+
+    def endless(url):
+        calls.append(url)
+        return {"results": [], "next": "https://x/more"}
+
+    with pytest.raises(RuntimeError, match="pages"):
+        lb.fetch_filings([["client_name", "A"]], get=endless, sleep=lambda s: None, base="https://x/")
+    assert len(calls) == lb.MAX_PAGES
+
+
+def test_fetch_allows_exactly_max_pages():
+    n = 0
+
+    def get(url):
+        nonlocal n
+        n += 1
+        return {"results": [], "next": "https://x/more" if n < lb.MAX_PAGES else None}
+
+    lb.fetch_filings([["client_name", "A"]], get=get, sleep=lambda s: None, base="https://x/")
+    assert n == lb.MAX_PAGES
+
+
+def test_get_json_caps_retry_after():
+    waits, calls = [], []
+
+    def opener(req, timeout):
+        calls.append(1)
+        if len(calls) == 1:
+            raise http_error(429, "99999")
+        return FakeResponse(b'{"ok": true}')
+
+    lb.get_json("https://x", opener=opener, sleep=waits.append)
+    assert waits == [lb.MAX_RETRY_WAIT]

@@ -48,7 +48,7 @@ Rating: **works** · **works with care** · **weak** · **failed**. Findings the
 | D3 | Big-picture thinkers alongside investigators | works | Produced the "need, not the name" and "method is the product" framings |
 | D4 | Lead reviews every build before commit (tests, secrets scan, known positives) | works | Caught checker misses |
 | D5 | One running findings log + questions log + this methods log | works | Corrections written in place with CORRECTED |
-| D6 | Unlisted companies agency-only; nothing licensed in git | works | Raw third-party data files are not published |
+| D6 | Unlisted companies agency-only | works | Findings name only listed entities |
 
 ## E. Open method questions
 

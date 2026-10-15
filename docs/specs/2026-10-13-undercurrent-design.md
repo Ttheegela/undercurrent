@@ -27,7 +27,7 @@ Journalists and researchers covering sanctions and evasion. Comfortable on the w
 - Legal or compliance verdicts. Every match is a "possible match, check the source".
 - User accounts, saved searches, alerts.
 - A light theme (dark only for v1).
-- Re-running the original research pipelines (they depended on a licensed data source that is no longer used).
+- Re-running the original research pipelines.
 - The Lukoil Control Tracer (unmerged `lukoil` branch) and the hackathon demo deck.
 
 ## Visual design

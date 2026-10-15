@@ -9,6 +9,12 @@ export const LIST_PAGES = {
 const GOVERNMENTS = new Set(Object.values(LIST_LABELS));
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+/** Whole months from the nightly summary.json, or null when it is missing or malformed. */
+export function medianMonths(doc) {
+  const m = doc?.median_months;
+  return typeof m === "number" && Number.isFinite(m) && m > 0 ? Math.round(m) : null;
+}
+
 export function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }

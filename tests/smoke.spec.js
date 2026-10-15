@@ -174,3 +174,25 @@ test("connections: Sovcomflot says no lobbying found; phone hides the graph with
     .filter((el) => el.getBoundingClientRect().right > window.innerWidth + 1).map((el) => `${el.tagName}.${el.className}`));
   expect(clipped).toEqual([]);
 });
+
+test("home chips card reads the median from data, keeps 20 when the file is missing", async ({ page }) => {
+  await page.route("**/chips-into-russia/data/summary.json", (r) =>
+    r.fulfill({ status: 200, contentType: "application/json", body: '{"median_months":22.4,"n":30}' }));
+  await page.goto("/");
+  await expect(page.locator("#chips-months")).toHaveText("22");
+  await page.unroute("**/chips-into-russia/data/summary.json");
+  await page.route("**/chips-into-russia/data/summary.json", (r) => r.fulfill({ status: 404, body: "" }));
+  await page.goto("/");
+  await expect(page.locator("#lists-date")).toContainText(/Official lists|out of date|unavailable/);
+  await expect(page.locator("#chips-months")).toHaveText("20");
+});
+
+test("chip dossiers: RM Design links the time-to-list page, ELEM GROUP does not", async ({ page }) => {
+  await page.goto("/");
+  await search(page, "RM Design and Development");
+  await expect(page.locator('.dossier-entry a[href$="viz/listing_lag.html"]').first()).toBeVisible();
+  await search(page, "ELEM GROUP");
+  const elem = page.locator(".dossier-entry", { hasText: "ELEM GROUP" }).first();
+  await expect(elem.locator('a[href$="viz/index.html"]')).toBeVisible();
+  await expect(elem.locator('a[href$="listing_lag.html"]')).toHaveCount(0);
+});

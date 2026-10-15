@@ -92,7 +92,7 @@ jobs:
         run: |
           git config user.name "undercurrent-nightly"
           git config user.email "undercurrent-nightly@users.noreply.github.com"
-          git add data/lists data/opensanctions-meta.json data/connections-meta.json data/lobbying-meta.json stories/chips-into-russia/data/routes.json stories/chips-into-russia/data/coverage.json stories/chips-into-russia/data/listing_lag.json stories/chips-into-russia/data/chips-meta.json
+          git add data/lists data/opensanctions-meta.json data/connections-meta.json data/lobbying-meta.json stories/chips-into-russia/data/routes.json stories/chips-into-russia/data/coverage.json stories/chips-into-russia/data/listing_lag.json stories/chips-into-russia/data/summary.json stories/chips-into-russia/data/chips-meta.json
           if git diff --cached --quiet; then
             echo "No changes."
           else

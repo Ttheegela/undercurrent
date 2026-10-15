@@ -124,6 +124,7 @@ def test_fresh_build(tmp_path):
     assert (rm["founded"], rm["listed"], rm["months"], rm["countries"]) == ("2022-03-17", "2023-07-20", 16.1, ["KG"])
     innovio = next(f for f in lag["firms"] if f["ofac_id"] == "50775")
     assert innovio["months"] is None and innovio["bis"]["date"] == "2023-10-06"
+    assert read("summary") == {"median_months": 16.1, "n": 1}
     s = lag["summary"]
     assert s["curated_new"] == {"n": 1, "median_months": 16.1, "p25_months": 16.1, "p75_months": 16.1}
     assert s["curated_without_founding_date"] == 1

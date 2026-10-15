@@ -421,6 +421,9 @@ def main(get=None, open_xml=None, out_dir: Path = OUT_DIR, us_list: Path = US_LI
         err = exc
     meta.update(_publish(out_dir, {"listing_lag": lag}, now, previous_meta, lag_sources, err))
 
+    s = (lag.get("summary") or {}).get("curated_new")
+    if s:  # tiny file for the home card, so it needn't fetch the whole lag file
+        _write_atomic(out_dir / "summary.json", json.dumps({"median_months": s["median_months"], "n": s["n"]}) + "\n")
     _write_atomic(meta_path, json.dumps({"outputs": meta}, indent=2) + "\n")
     for kind, m in meta.items():
         print(f"{kind}: {m['status']} ({m['row_count']} rows)" + (f" - {m['error']}" if m.get("error") else ""))

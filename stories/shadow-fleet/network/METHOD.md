@@ -49,7 +49,7 @@ Every line carries its type, date where known, one or more sources (link and sav
    caught: two wrong IMO numbers dropped; a strike date corrected from 9 to 8 September 2026; the EU act number question settled (2026/1843 regulation and 2026/1845 decision are one listing).
 6. **Merge** (`merge.py`) de-duplicates lines, keeps every source on a line, and applies the naming policy below.
 
-## Naming policy (Alex's ruling, 25 Sep 2026, 13:35)
+## Naming policy (set 25 Sep 2026)
 
 - Documented conduct is stated plainly and attributed ("Treasury says ..."). Conduct words, not legal conclusions, unless
   a court or agency used them.
@@ -104,5 +104,5 @@ python build_viewer.py      # -> out/shadow_fleet_map.html (single file)
 python release_check.py     # keys, local paths, hidden names, people sources
 ```
 
-Visual style after God's Eye View by Bilawal Sidhu (MIT licence). Suggestions in this file that Alex has not ruled on are
-Claude's suggestions.
+Map layout originally after God's Eye View by Bilawal Sidhu (MIT licence). Suggestions in this file that are not part of the naming policy are
+proposals.

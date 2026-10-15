@@ -25,14 +25,14 @@ A sanctions list only works when someone recognises the name. After Russia's ful
 
 | Source | What it gives | Access today | Watch out for |
 |---|---|---|---|
-| **Tradeverifyd** (sponsor) | Company-to-company trade links, risk paths, supply-chain flags | MCP `https://platform.tradeverifyd.com/api/mcp`, event key (ask Alex) | Links have no dates or volumes; score is higher = safer; place search and country filter don't work; read-only tools only |
+| **Tradeverifyd** | Company-to-company trade links, risk paths, supply-chain flags | MCP `https://platform.tradeverifyd.com/api/mcp`, event key (held privately) | Links have no dates or volumes; score is higher = safer; place search and country filter don't work; read-only tools only |
 | **UN Comtrade** | What each country **says** it exported, by product and year (a second, independent source) | Free preview API, [comtradeplus.un.org](https://comtradeplus.un.org/) | Use only aggregate rows (isAggregate true, motCode 0, partner2Code 0) or totals double; 500-row cap; wait 3.5 s between calls |
-| **OpenSanctions** | US, EU and Ukraine lists as CSV | Downloaded to Alex's laptop | `first_seen` 2023-04-20 is when the dataset started, **not** a listing date |
+| **OpenSanctions** | US, EU and Ukraine lists as CSV | Downloaded locally | `first_seen` 2023-04-20 is when the dataset started, **not** a listing date |
 | **Official lists** | US (OFAC SDN, BIS Entity List), UK, EU, UN | Official pages below | The EU asset-freeze list does **not** include EU Annex IV export restrictions; check both |
 | **Ukraine's War & Sanctions site** (GUR) | Foreign parts found in Russian weapons | [war-sanctions.gur.gov.ua](https://war-sanctions.gur.gov.ua/en/components/2090) | GUR is a party to the war; cite it as such |
-| **Tavily** (web search) | Finds official pages and reporting to confirm a lead | API key (ask Alex) | Cite the page, never Tavily's AI summary (it invented a paragraph once) |
+| **Tavily** (web search) | Finds official pages and reporting to confirm a lead | API key (held privately) | Cite the page, never Tavily's AI summary (it invented a paragraph once) |
 
-**Licence rule:** raw sponsor answers were licensed for the day and are not published.
+**Licence rule:** raw Tradeverifyd answers were licensed for the day and are not published.
 
 ## 4. Official references (check listing dates here, nowhere else)
 

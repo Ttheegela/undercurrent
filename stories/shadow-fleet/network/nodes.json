@@ -31856,10 +31856,6 @@
     "text": "UK-listed 2026-02-24 as BRIONT; US-first-seen 2025-07-30 under A_iran_programme."
    },
    {
-    "angle": "manifests",
-    "text": "US+UK sanctioned tanker managed by Zulu Ships Management; a 2025-06-09 Indian customs export record names a supplier 'MT BRIONT' shipping waste oils to [unlisted company], India; vessel named as a party in a customs record; not linked by IMO."
-   },
-   {
     "angle": "ship-histories",
     "text": "Confirmed; IMO 9252955 named directly in text, tied to Fractal Marine/Zulu network."
    }
@@ -42176,10 +42172,6 @@
     "text": "UK-listed 2026-02-24 as TAGOR; US-first-seen 2025-07-30 under A_iran_programme."
    },
    {
-    "angle": "manifests",
-    "text": "US+UK+EU sanctioned tanker managed by Zulu Ships Management; a 2026-02-21 Indian customs record shows [unlisted company] supplying goods to 'MASTER OF MT TAGOR/ MT CAUVERI/ MT...' (ship-stores/agency record, product text names Fleet Tanqo's ops email, India to Egypt); vessel named as a party in a customs record; not linked by IMO."
-   },
-   {
     "angle": "ship-histories",
     "text": "Confirmed on its own page; IMO 9282481 shown directly."
    }
@@ -46523,10 +46515,6 @@
    {
     "angle": "company-anatomy",
     "text": "UK-listed 2026-06-16 as IMO 9291262 ('SILVAR'); US-first-seen 2026-04-15 under A_iran_programme."
-   },
-   {
-    "angle": "manifests",
-    "text": "US+UK+EU sanctioned tanker managed by Fleet Tanqo. A candidate Indian customs record was found ('MT SILVAR GERTRUDE') but was DROPPED on verification: 'GERTRUDE' does not appear in any of SILVAR's known names/aliases (SILVAR, Matterhorn Spirit, Rowan, Themis 1, per ship_profiles.json), so the record cannot be confidently tied to this ship's hull. No manifest claim retained for this ship."
    },
    {
     "angle": "ship-histories",
@@ -98944,7 +98932,7 @@
    },
    {
     "angle": "manifests",
-    "text": "Indian ship manager for SILVAR, DAPHNE V, ANAYA, VERSA, HORAE; found in Tradeverifyd (3 annotations, US OFAC) with zero recorded trade relationships. A US OFAC SDN vessel record (sanctionssearch.ofac.treas.gov id 56955) is remarked 'Linked To: FLEET TANQO PRIVATE LIMITED'."
+    "text": "A US OFAC SDN vessel record (sanctionssearch.ofac.treas.gov id 56955) is remarked 'Linked To: FLEET TANQO PRIVATE LIMITED'."
    }
   ],
   "aliases": [
@@ -116263,10 +116251,6 @@
    {
     "angle": "eu-acts",
     "text": "Entry 955. Abu Dhabi. EU: manages 8 oil tankers subject to EU restrictive measures, at least one carrying Russian-origin crude with irregular/high-risk practices. Also OFAC-designated 12 Aug 2025 (E.O. 13902, Federal Register 2025-15240) as an Iran-sanctions ship manager."
-   },
-   {
-    "angle": "manifests",
-    "text": "UAE ship manager for BRIONT, TAGOR and several other 'both'-listed tankers; found in Tradeverifyd as a sanctioned entity (13 annotations) with zero recorded trade relationships (it is not itself a buyer/seller in HS-coded trade data)."
    },
    {
     "angle": "ship-histories",

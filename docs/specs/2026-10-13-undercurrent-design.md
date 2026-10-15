@@ -27,7 +27,7 @@ Journalists and researchers covering sanctions and evasion. Comfortable on the w
 - Legal or compliance verdicts. Every match is a "possible match, check the source".
 - User accounts, saved searches, alerts.
 - A light theme (dark only for v1).
-- Re-running the hackathon data pipelines (they need Tradeverifyd access we no longer have).
+- Re-running the original research pipelines.
 - The Lukoil Control Tracer (unmerged `lukoil` branch) and the hackathon demo deck.
 
 ## Visual design
@@ -185,7 +185,7 @@ Story pages are copied with their folders intact so their relative links keep wo
 
 Copied: shadow-fleet network data and map, FINDINGS and METHOD files; russia-ukraine viz pages and FINDINGS; knowledge-graph pages and data; lobbying clean-names graph and FINDINGS; sanctions-explained page and fonts; RESEARCH_AND_SOURCES and METHODS_LOG (merged); normalisation logic.
 
-Not copied: hackathon landing page and hero video, demo deck and script, pitch diagrams, sponsor setup guides, sponsor lookup tool, fleet/detect pipelines, Python extract scripts, SOCIAL and planning notes.
+Not copied: hackathon landing page and hero video, demo deck and script, pitch diagrams, fleet/detect pipelines, Python extract scripts, SOCIAL and planning notes.
 
 The old repo is read only; nothing there is modified.
 

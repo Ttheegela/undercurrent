@@ -2,7 +2,6 @@
 
 *Trace the Unseen build day, Fri 25 Sept 2026, Sanctions & evasion track. Written for teammates. Updated 15:08; trimmed for this site in Oct 2026.*
 
-**About this version.** At the hackathon we also used a commercial company-data vendor (Sayari) for shipment and company records. That data, and every number, date and claim derived from it, has been removed from this site. What is left stands on official lists, government releases, UN Comtrade, published studies and the Tradeverifyd company-link tool.
 *Documented conduct is stated plainly with its source; our own inferences are called **leads**. People are named only when an official list or government release names them.*
 
 ## 1. The idea in one paragraph
@@ -88,8 +87,7 @@ A sanctions list only works when someone recognises the name. After Russia's ful
 
 ## 8. Numbers that remain and where they come from
 
-The hackathon demo's number-by-number table drew mostly on vendor shipment records, which have been removed. These
-are the items that stand on official or public sources. "Check" says how it was verified: *verified* = re-derived by
+These are the items that stand on official or public sources. "Check" says how it was verified: *verified* = re-derived by
 our skeptic from the saved raw answer; *official* = from a government page.
 
 | Claim | Value | Source | Check |

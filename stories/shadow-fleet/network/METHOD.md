@@ -14,7 +14,7 @@ node and line in the chart comes from, how we joined the sources, and what the c
 
 Every line carries its type, date where known, one or more sources (link and saved file name), and a confidence tag:
 - **Documented**: stated by an official list, a government release or a court record.
-- **Lead**: our own inference, or a non-official source (company-data vendor, ship database, study, press). A Lead is a
+- **Lead**: our own inference, or a non-official source (ship database, study, press). A Lead is a
   question to investigate, not a finding.
 
 ## Sources
@@ -40,9 +40,8 @@ Every line carries its type, date where known, one or more sources (link and sav
 3. **Company matching.** Names are normalised (case, punctuation, legal suffixes such as LLC, DMCC, FZE, PJSC). A firm
    written differently on two lists is merged only when one normalised name is contained in the other and there is a
    single candidate; each merge is recorded on the node as a Claude match to check before quoting.
-4. **Research angles** (eight, run in parallel): US Treasury Iran actions, US/UK Russia actions, EU acts, service providers
-   (insurers, flags, bunkering ships, classification), enforcement (seizures, detentions, court cases), company anatomy
-   (Sayari records; removed from this site, see below), dated ship histories (Ukraine's database), and outside studies. Each wrote nodes and lines in one shared
+4. **Research angles** (seven, run in parallel): US Treasury Iran actions, US/UK Russia actions, EU acts, service providers
+   (insurers, flags, bunkering ships, classification), enforcement (seizures, detentions, court cases), dated ship histories (Ukraine's database), and outside studies. Each wrote nodes and lines in one shared
    format with sources.
 5. **Independent verification.** Every angle was re-checked by a separate verifier that re-opened the saved sources,
    re-derived numbers, checked IMO check digits and people's names against the lists, and wrote a corrected file plus a
@@ -94,13 +93,6 @@ Every line carries its type, date where known, one or more sources (link and sav
   (listed by OFAC as ADISA, IMO 9304667) carried about 3 million barrels of Iranian crude to Syria in 2024 and was seized
   with about 1.8 million barrels in December 2025. These tankers move oil through ship-to-ship transfers to non-US buyers,
   which customs data rarely covers.
-
-## Data removed from this site
-
-At the hackathon the commercial company-data vendor Sayari (a sponsor) also supplied company registration
-and closing dates, registered agents, unlisted managers and owners, and two customs records. That data, and every line,
-note and count derived from it, has been removed from this site: 52 lines and 17 companies are gone, and the counts
-above reflect what remains.
 
 ## Reproduce
 

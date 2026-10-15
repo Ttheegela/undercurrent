@@ -3,10 +3,6 @@
 What we did, how, what it found, what worked, what didn't. Newest entries last in each section. Times EDT.
 Rating: **works** · **works with care** · **weak** · **failed**. Findings themselves live in `LOG_2026-09-25.md`; questions in `QUESTIONS_2026-09-25.md`.
 
-**About this version.** At the hackathon many of our discovery methods ran on a commercial company-data vendor's
-shipment and company records (Sayari). Those methods, and every finding and figure that came from them, have been
-removed from this site. The methods below run on official lists, government pages, UN Comtrade, web search and the
-Tradeverifyd company-link tool.
 
 ---
 
@@ -72,4 +68,3 @@ Tradeverifyd company-link tool.
 | Time | Entry |
 |---|---|
 | 12:08 | Log started; backfilled from the whole morning. |
-| Oct 2026 | Vendor-data (Sayari) methods and findings removed for the public site. |

@@ -7,10 +7,6 @@ penalties) and countries' own trade statistics. Where something is our own infer
 We describe conduct; we don't make legal findings. A part type found in a weapon does not prove that any
 particular shipment reached one.
 
-**About this version.** At the hackathon this story also used company-level shipment and registry records from a
-commercial data vendor (Sayari). That data, and every count, date and claim derived from it, has been removed from
-this site. What remains stands on official lists, government releases, countries' own trade statistics, published
-studies and, where marked, the Tradeverifyd company-link tool.
 
 **How to read the labels**
 

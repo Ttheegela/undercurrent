@@ -129,5 +129,4 @@ Treasury says these ships carried "more than 20 cargoes of Russian petroleum pro
 
 - No cargo, AIS tracking or insurance-policy data.
 - No dated registry histories.
-- Company-registry records from a commercial data vendor (Sayari) were used at the hackathon; that data and every figure derived from it have been removed from this site.
 - Only the July 2026 EU ship annex, not the full EU ship list.

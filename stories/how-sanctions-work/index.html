@@ -235,9 +235,9 @@
   <p>In the US, any company owned <strong>50% or more in total</strong> by listed parties is blocked automatically, even through a chain of other companies. Stakes from different listed owners are added together.<sup><a href="#s3">3</a>,<a href="#s4">4</a></sup> The EU's test is slightly different: <strong>more than 50%</strong>, or "control", such as the power to appoint most of the board.<sup><a href="#s10">10</a></sup> The line is sharp, so where a company sits relative to it matters a lot.</p>
 
   <figure>
-    <svg viewBox="0 0 480 470" role="img" aria-labelledby="d2t d2d">
+    <svg viewBox="0 0 480 376" role="img" aria-labelledby="d2t d2d">
       <title id="d2t">Diagram 2: ownership and the 50% line</title>
-      <desc id="d2d">Example A: two listed owners hold 25% each of Company C, which adds to 50% so C is blocked. Example B: Gazprom Neft holds 44.85% of NIS in Serbia, under the line, so NIS had to be listed by name. Example C: 30% known plus an unknown stake of 0 to 25% gives a range of 30 to 55%, which cannot be cleared.</desc>
+      <desc id="d2d">Example A: two listed owners hold 25% each of Company C, which adds to 50% so C is blocked. Example B: 30% known plus an unknown stake of 0 to 25% gives a range of 30 to 55%, which cannot be cleared.</desc>
       <defs>
         <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="ah"/></marker>
         <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" class="hatch-ln"/></pattern>
@@ -262,20 +262,13 @@
       <text x="0" y="228" class="t">25% + 25% = 50%: <tspan class="t-dan" style="font-size:15px">blocked</tspan>, though C is never named</text>
 
       <!-- B -->
-      <text x="0" y="268" class="t-b">B. NIS (Serbia): Gazprom Neft holds 44.85%</text>
+      <text x="0" y="268" class="t-b">B. Unknown stakes: show a range (illustration)</text>
       <rect x="40" y="280" width="400" height="18" rx="3" class="f-track"/>
-      <rect x="40" y="280" width="179.4" height="18" rx="3" class="f-dan"/>
+      <rect x="40" y="280" width="120" height="18" rx="3" class="f-dan"/>
+      <rect x="160" y="280" width="100" height="18" class="f-hatch"/>
       <line x1="240" y1="276" x2="240" y2="302" class="ln-acc"/>
-      <text x="0" y="322" class="t">Under the line: the US had to list NIS by name</text>
-
-      <!-- C -->
-      <text x="0" y="362" class="t-b">C. Unknown stakes: show a range (illustration)</text>
-      <rect x="40" y="374" width="400" height="18" rx="3" class="f-track"/>
-      <rect x="40" y="374" width="120" height="18" rx="3" class="f-dan"/>
-      <rect x="160" y="374" width="100" height="18" class="f-hatch"/>
-      <line x1="240" y1="370" x2="240" y2="396" class="ln-acc"/>
-      <text x="0" y="416" class="t">30% known + 0 to 25% unknown = 30% to 55%</text>
-      <text x="0" y="440" class="t-acc">Can't clear it: escalate, don't guess</text>
+      <text x="0" y="322" class="t">30% known + 0 to 25% unknown = 30% to 55%</text>
+      <text x="0" y="346" class="t-acc">Can't clear it: escalate, don't guess</text>
     </svg>
     <figcaption><b>Diagram 2.</b> Stakes add up toward a hard line. Solid bars are known stakes; the hatched bar is a stake we can only bound.</figcaption>
   </figure>
@@ -350,17 +343,16 @@
     <li>
       <h4>3. Stay just under 50%, or hide a company in the middle</h4>
       <p>A stake under the line is not blocked automatically, and an unnamed subsidiary does not show up in a name search.</p>
-      <p class="ours"><b>Public example:</b> Gazprom Neft's 44.85% stake in NIS sits under the US line, which is why NIS had to be listed by name (Diagram 2).</p>
     </li>
     <li>
       <h4>4. Relabel the goods</h4>
       <p>Describe a controlled item as something harmless, or file it under a different product code.</p>
-      <p class="ours"><b>Official example:</b> in April 2026 the US Treasury described a broker shipping fentanyl ingredients labelled as "safe chemicals".<sup><a href="#s19">19</a></sup></p>
+      <p class="ours"><b>Official example:</b> in April 2026 the US Treasury described a broker shipping fentanyl ingredients labelled as "safe chemicals".<sup><a href="#s16">16</a></sup></p>
     </li>
     <li>
       <h4>5. Transfer at sea and fly a false flag</h4>
       <p>Oil is pumped from ship to ship out at sea, and tankers register under flags they are not entitled to.</p>
-      <p class="ours"><b>Official and research examples:</b> 113 tankers under false flags carried €4.7bn of Russian oil in the first nine months of 2025.<sup><a href="#s20">20</a></sup> One tanker in our data changed its name five times.</p>
+      <p class="ours"><b>Official and research examples:</b> 113 tankers under false flags carried €4.7bn of Russian oil in the first nine months of 2025.<sup><a href="#s17">17</a></sup> One tanker in our data changed its name five times.</p>
     </li>
     <li>
       <h4>6. Trade before the list catches up</h4>
@@ -386,7 +378,7 @@
     <li><strong>Alias and ID cross-checks.</strong> Match tax numbers and registration IDs, not just names: a name check alone misses transliterated and shortened names.</li>
     <li><strong>Sibling finder.</strong> Look for unlisted firms sharing an address and a trading partner with a listed one. On the US list we found 240 pairs of Russia-programme companies at the same address that were listed in separate waves, a median of about 5.5 months apart. Busy addresses (registration agents, business towers) count for less.</li>
     <li><strong>Listing-lag monitoring.</strong> Start a clock at a firm's first suspicious sign (registration, first shipment) and watch who is still trading with it after it is listed.</li>
-    <li><strong>Weapon-part tracing.</strong> Ukraine's military intelligence (GUR) publishes parts found in Russian weapons. It lists an STM32F765VIT6 microcontroller in the Shahed-136 attack drone.<sup><a href="#s17">17</a></sup> Searching trade records for the full part number, not the maker's name, leads from a weapon to the firms that ship that exact part. <em>A part found in a weapon never proves that a particular shipment reached one.</em></li>
+    <li><strong>Weapon-part tracing.</strong> Ukraine's military intelligence (GUR) publishes parts found in Russian weapons. It lists an STM32F765VIT6 microcontroller in the Shahed-136 attack drone.<sup><a href="#s15">15</a></sup> Searching trade records for the full part number, not the maker's name, leads from a weapon to the firms that ship that exact part. <em>A part found in a weapon never proves that a particular shipment reached one.</em></li>
     <li><strong>A built-in skeptic.</strong> A separate checker re-derives every number from the saved raw data before it is shown. It caught doubled totals (an Armenia figure of $52M that was really $13.1M) and a database start date posing as a listing date.</li>
   </ol>
 
@@ -412,7 +404,7 @@
   <p>A path in the data is a reason to look, not proof of wrongdoing. We only say a company is sanctioned when an official list says so. Unlisted companies our tools surface go to investigators privately, never onto a slide.</p>
 
   <h3>Precision, not panic</h3>
-  <p>When gatekeepers are unsure, the cheap answer is to refuse everyone in a region. That falls on families. After US sanctions on Iran returned in 2018, medicine exports to Iran (as partner countries report them) fell by about 35%, from $1.30bn in 2017 to $0.84bn in 2023, even though medicine is meant to be exempt. Medicine exports to Russia stayed flat, about $12bn a year.<sup><a href="#s12">12</a></sup> In 2015 a US bank closed the accounts that carried money home to Somalia, where such transfers are 25% to 45% of the economy.<sup><a href="#s23">23</a></sup> Good targeting means naming the few firms that matter, not cutting off a country.</p>
+  <p>When gatekeepers are unsure, the cheap answer is to refuse everyone in a region. That falls on families. After US sanctions on Iran returned in 2018, medicine exports to Iran (as partner countries report them) fell by about 35%, from $1.30bn in 2017 to $0.84bn in 2023, even though medicine is meant to be exempt. Medicine exports to Russia stayed flat, about $12bn a year.<sup><a href="#s12">12</a></sup> In 2015 a US bank closed the accounts that carried money home to Somalia, where such transfers are 25% to 45% of the economy.<sup><a href="#s18">18</a></sup> Good targeting means naming the few firms that matter, not cutting off a country.</p>
 
   <h3>Who pays if a flag is wrong</h3>
   <p>A false match lands on a real business: big office towers hold hundreds of companies, a few of them listed. Sharing a building is not evidence. So every lead needs two independent signals, shows its evidence rather than a score, and says what the data could not check.</p>
@@ -437,15 +429,10 @@
     <li id="s12"><a href="https://comtradeplus.un.org/">UN Comtrade: chip (HS 8542) and medicine (HS 30) trade as reported by countries; team queries, 25 Sep 2026</a></li>
     <li id="s13"><a href="https://ofac.treasury.gov/recent-actions/20240223">OFAC recent actions, 23 Feb 2024 (ELEM GROUP)</a></li>
     <li id="s14"><a href="https://www.federalregister.gov/documents/2023/08/08/2023-16934/notice-of-ofac-sanctions-action">Federal Register 2023-16934: OFAC action of 20 Jul 2023 (RM Design and Development, "Established 17 Mar 2022"; Onelek)</a></li>
-    <li id="s15"><a href="https://home.treasury.gov/news/press-releases/jy1494">US Treasury press release jy1494, 19 May 2023 (Testkomplekt)</a></li>
-    <li id="s16"><a href="https://ofac.treasury.gov/recent-actions/20240612">OFAC recent actions, 12 Jun 2024 (ITIC)</a>; <a href="https://home.treasury.gov/news/press-releases/jy2700">Treasury jy2700 (Testkomplekt's suppliers)</a></li>
-    <li id="s17"><a href="https://war-sanctions.gur.gov.ua/en/components/2090">Ukraine GUR, War and Sanctions: component 2090 (STM32F765VIT6)</a></li>
-    <li id="s18"><a href="https://www.gov.uk/government/publications/the-uk-sanctions-list">UK Sanctions List</a></li>
-    <li id="s19"><a href="https://home.treasury.gov/news/press-releases/sb0468">US Treasury press release sb0468 (April 2026)</a></li>
-    <li id="s20"><a href="https://energyandcleanair.org/publication/flags-of-inconvenience-113-vessels-flying-a-false-flag-transported-eur-4-7-bn-russian-oil-in-first-three-quarters-of-2025/">CREA: 113 false-flag tankers, Q1 to Q3 2025</a></li>
-    <li id="s21"><a href="https://ofac.treasury.gov/recent-actions/20241030">OFAC recent actions, 30 Oct 2024 (ACE ELECTRONIC)</a>; <a href="https://www.federalregister.gov/documents/2023/10/19/2023-23048/entity-list-additions">BIS Entity List additions, Oct 2023</a></li>
-    <li id="s22"><a href="https://ofac.treasury.gov/recent-actions/20240501">OFAC recent actions, 1 May 2024 (Jinmingsheng Technology)</a>; <a href="https://ofac.treasury.gov/recent-actions/20230720">OFAC recent actions, 20 Jul 2023 (Onelek)</a></li>
-    <li id="s23"><a href="https://www.oxfamamerica.org/explore/research-publications/hanging-by-a-thread-the-ongoing-threat-to-somalias-remittance-lifeline/">Oxfam: Somalia's remittance lifeline</a></li>
+    <li id="s15"><a href="https://war-sanctions.gur.gov.ua/en/components/2090">Ukraine GUR, War and Sanctions: component 2090 (STM32F765VIT6)</a></li>
+    <li id="s16"><a href="https://home.treasury.gov/news/press-releases/sb0468">US Treasury press release sb0468 (April 2026)</a></li>
+    <li id="s17"><a href="https://energyandcleanair.org/publication/flags-of-inconvenience-113-vessels-flying-a-false-flag-transported-eur-4-7-bn-russian-oil-in-first-three-quarters-of-2025/">CREA: 113 false-flag tankers, Q1 to Q3 2025</a></li>
+    <li id="s18"><a href="https://www.oxfamamerica.org/explore/research-publications/hanging-by-a-thread-the-ongoing-threat-to-somalias-remittance-lifeline/">Oxfam: Somalia's remittance lifeline</a></li>
   </ol>
   <p class="note">Unnumbered figures (address pairs) come from the team's analysis of the US sanctions list on 25 Sep 2026, re-checked by an independent verifier. At the hackathon we also used a commercial data vendor's company and shipment records; that data, and every figure derived from it, has been removed from this site.</p>
 </section>

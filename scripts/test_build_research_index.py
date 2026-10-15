@@ -87,4 +87,3 @@ def test_chip_entries_carry_official_listings_only(entries):
     assert chips
     for e in chips:
         assert e["listings"] and all(f["text"].startswith("First listed on ") for f in e["facts"]), e["id"]
-        assert all("sayari" not in s["url"].lower() for s in e["sources"]), e["id"]

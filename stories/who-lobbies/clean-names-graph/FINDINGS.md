@@ -20,8 +20,8 @@ Lobbying is legal. Being listed is a legal status; nothing here says any lobbyin
 
 ## By the numbers
 
-- **63 organisations:** 17 listed companies, 1 listed person, 13 clean intermediaries, 6 trade associations or coalitions, 20 lobbying or law firms, 6 governments or lawmakers.
-- **63 links: 51 Documented** (an official record shows the link) and **12 Leads** (plausible, not yet proven, drawn dashed).
+- **61 organisations:** 17 listed companies, 12 clean intermediaries, 6 trade associations or coalitions, 20 lobbying or law firms, 6 governments or lawmakers.
+- **60 links: 48 Documented** (an official record shows the link) and **12 Leads** (plausible, not yet proven, drawn dashed).
 - **228 lobbying filings** with foreign entities from Russia, Belarus, Iran, China, Hong Kong, the UAE, Turkey or Kazakhstan were scanned, and 616 names checked against the lists. Most pre-2022 hits (Alfa-Bank, Gazprom, VEB) came **years before** those firms were listed, so they show the channel, not lobbying while listed.
 
 ## Strongest cases

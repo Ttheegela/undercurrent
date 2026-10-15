@@ -82,7 +82,9 @@ def test_tidy(value, expected):
     assert b.tidy(value) == expected
 
 
-def test_chip_inferences_are_labelled_lead(entries):
+def test_chip_entries_carry_official_listings_only(entries):
     chips = [e for i, e in entries.items() if i.startswith("chip:")]
-    sus = [f for e in chips for f in e["facts"] if "suspicious" in f["text"]]
-    assert sus and all(f["text"].startswith("Lead: ") for f in sus)
+    assert chips
+    for e in chips:
+        assert e["listings"] and all(f["text"].startswith("First listed on ") for f in e["facts"]), e["id"]
+        assert all("sayari" not in s["url"].lower() for s in e["sources"]), e["id"]

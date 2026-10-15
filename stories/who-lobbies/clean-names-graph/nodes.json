@@ -36,7 +36,7 @@
    "Hangzhou Hikvision Digital Technology",
    "Hangzhou Hikvision Digital Technology Co."
   ],
-  "note": "[lda-foreign-entities] BIS Entity List (84 FR 54002; 85 FR 44159); also CMIC-EO13959 [fara-principals] CMIC/EO13959 designation NOT confirmed in this pass; date corrected from 'n/a' [ownership-bridges] Sayari entity CF2ca8pzwEMGmKrENIifNA",
+  "note": "[lda-foreign-entities] BIS Entity List (84 FR 54002; 85 FR 44159); also CMIC-EO13959 [fara-principals] CMIC/EO13959 designation NOT confirmed in this pass; date corrected from 'n/a'",
   "angles": [
    "fara-principals",
    "lda-foreign-entities",
@@ -620,7 +620,7 @@
   "aliases": [
    "United Company Rusal"
   ],
-  "note": "[ownership-bridges] Zero LDA filings under its own name (confirmed, climate-day/ideas/lobbying/rusal-en-plus-delisting.md); UK 2023 relisting and Sayari's current sanctioned:true flag not independently reconciled this pass",
+  "note": "[ownership-bridges] Zero LDA filings under its own name (confirmed, climate-day/ideas/lobbying/rusal-en-plus-delisting.md); UK 2023 relisting not independently reconciled this pass",
   "angles": [
    "lda-known-listed",
    "ownership-bridges"
@@ -703,7 +703,7 @@
   "aliases": [
    "Lukoil"
   ],
-  "note": "[ownership-bridges] Sayari entity eF5hsZhDO7_rfEX9aELqIg (get_entity_summary); find_beneficial_owners traces from Litasco/Neftochim resolve to a related record i1jXEu0dxP424IovVTxgaw, likely a duplicate Sayari entry for the same company, not independently reconciled this pass. Exact SDN listing date not confirmed in raw pull.",
+  "note": "",
   "angles": [
    "lda-known-listed",
    "ownership-bridges"
@@ -815,49 +815,13 @@
   ]
  },
  {
-  "id": "person:oleg_deripaska",
-  "label": "Oleg Deripaska",
-  "type": "person",
-  "country": "RU",
-  "listed": [
-   {
-    "list": "US OFAC SDN",
-    "date": "2018-04",
-    "dates_reported": [
-     "2018-04"
-    ],
-    "angles": [
-     "ownership-bridges"
-    ],
-    "note": ""
-   }
-  ],
-  "aliases": [],
-  "note": "[ownership-bridges] Direct (path_length 1) beneficial owner of En+ per Sayari find_beneficial_owners",
-  "angles": [
-   "ownership-bridges"
-  ]
- },
- {
-  "id": "org:litasco",
-  "label": "Litasco SA",
-  "type": "intermediary",
-  "country": "CH",
-  "listed": [],
-  "aliases": [],
-  "note": "[ownership-bridges] Lukoil trading subsidiary; zero LDA filings found",
-  "angles": [
-   "ownership-bridges"
-  ]
- },
- {
   "id": "org:neftochim_burgas",
   "label": "LUKOIL Neftohim Burgas",
   "type": "intermediary",
   "country": "BG",
   "listed": [],
   "aliases": [],
-  "note": "[ownership-bridges] Sayari entity wGLU1TlXmkx7iZX1fScGFQ; refinery beneficiary of EU sanctions derogation",
+  "note": "[ownership-bridges] Refinery beneficiary of EU sanctions derogation",
   "angles": [
    "ownership-bridges"
   ]
@@ -881,7 +845,7 @@
    }
   ],
   "aliases": [],
-  "note": "[ownership-bridges] Sayari entity wHmvb1g8SCDyl5NYw5tBfw shows sanctioned:true and formerly_sanctioned flags together; exact list/date not broken out in this pull",
+  "note": "",
   "angles": [
    "ownership-bridges"
   ]
@@ -905,7 +869,7 @@
    }
   ],
   "aliases": [],
-  "note": "[ownership-bridges] Reported ~49% Nayara stake; NOT found in Sayari find_beneficial_owners pull for Nayara (top result was an unrelated Indian individual)",
+  "note": "[ownership-bridges] Reported ~49% Nayara stake (public reporting)",
   "angles": [
    "ownership-bridges"
   ]

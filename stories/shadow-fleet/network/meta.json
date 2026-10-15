@@ -28,12 +28,12 @@
  ],
  "counts": {
   "ships": 1724,
-  "companies": 1024,
+  "companies": 1007,
   "people": 25,
   "countries": 74,
-  "edges": 7752,
-  "documented_edges": 7674,
-  "lead_edges": 78,
+  "edges": 7700,
+  "documented_edges": 7665,
+  "lead_edges": 35,
   "ships_russia_and_iran": 54
  },
  "findings": [
@@ -152,10 +152,6 @@
   {
    "angle": "service-providers",
    "text": "The EU's point (h) category (Reg 2026/1848, in force 24 Jul 2026) names five 'service ships' used for ship-to-ship transfers/refuelling of already-listed vessels: KUMANA (IMO 9809538), BILAL BEY (IMO 8984848), BEBEK-E (IMO 7808401), LADY JASMINE (IMO 1031537) and OCEAN FORTUNE 18 (IMO 1064493). None of the five appears on the UK, US or EU-entity lists we hold by name; their IMO numbers and identifying data come from Ukraine's war-sanctions database (a database, not itself a sanctions list)."
-  },
-  {
-   "angle": "service-providers",
-   "text": "Sayari's corporate-graph data (Lead confidence, not an official filing) links the five EU point (h) ships to managers in Sri Lanka, Turkey, Lebanon and Singapore. None of these managers is itself on an official sanctions list we checked; all seven stay Lead-confidence and unlisted by name in the chart's public framing, as instructed."
   },
   {
    "angle": "service-providers",
@@ -326,7 +322,7 @@
   {
    "id": "shells",
    "title": "One ship, one company",
-   "text": "Many owners and managers run a single tanker and are named after it. Of 25 US-listed manager firms with a set-up date, 13 were set up in 2024 or 2025, most 9 to 18 months before their ship was listed. One-ship companies are also normal in legal shipping, so on its own this is a pattern, not proof.",
+   "text": "Many owners and managers run a single tanker and are named after it. Of 18 manager firms with a set-up date in the US list file, 10 were set up in 2024 or 2025, most 9 to 19 months before their ship was listed. One-ship companies are also normal in legal shipping, so on its own this is a pattern, not proof.",
    "examples": [
     "IMO9282792",
     "IMO9388027"
@@ -335,7 +331,7 @@
   {
    "id": "managers",
    "title": "Managers shuffle after a listing",
-   "text": "Treasury says the Shamkhani network's firms \"regularly shuffle in and out of management and operator roles\". The UK list named Clyde Chartering as manager of CLYDE NOBLE in May 2025; that company closed the next month, and the US later listed the same hull as AQUA LIVE. The EU listed three of Zulu Ships Management's tankers about 9 months before it froze Zulu itself.",
+   "text": "Treasury says the Shamkhani network's firms \"regularly shuffle in and out of management and operator roles\". The UK list named Clyde Chartering as manager of CLYDE NOBLE in May 2025; the US later listed the same hull as AQUA LIVE. The EU listed three of Zulu Ships Management's tankers about 9 months before it froze Zulu itself.",
    "examples": [
     "co:zulu-ships-management-and-operation-l-l-c",
     "IMO9282792"
@@ -366,5 +362,5 @@
   "No line between two points does not mean no relationship. Our sources cover listed ships and firms, and the companies named next to them.",
   "Documented = stated by an official list, government release or court record. Lead = our own inference or a non-official source; treat as a question, not a finding."
  ],
- "credits": "Visual style after God's Eye View by Bilawal Sidhu (MIT licence). Data: UK FCDO/OFSI, US Treasury OFAC, US trade.gov, EU, OpenSanctions exports, Ukraine GUR War and Sanctions database, Sayari (sponsor), studies as cited."
+ "credits": "Visual style after God's Eye View by Bilawal Sidhu (MIT licence). Data: UK FCDO/OFSI, US Treasury OFAC, US trade.gov, EU, OpenSanctions exports, Ukraine GUR War and Sanctions database, studies as cited."
 }

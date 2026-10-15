@@ -28,7 +28,6 @@ Every line carries its type, date where known, one or more sources (link and sav
 | EU financial-sanctions file (OpenSanctions export) | EU-listed firms and people with act and date | `eu_fsf.csv` |
 | Ukraine War and Sanctions database (run by Ukraine's military intelligence, GUR) | former names, flag countries, dated owner and manager records. A government database, **not a sanctions list** | `ua_war_sanctions.csv` + saved pages |
 | Official releases: US Treasury, US Justice Department, EUR-Lex / EU Council, gov.uk, CENTCOM, Finnish government | named people and firms, roles, quotes | saved under `pulls/tavily/` |
-| Sayari (sponsor) | company registration, closing dates, registered agents, "linked to" firms | saved under `pulls/sayari/`, cited by file and entity id |
 | Studies: KSE Institute, CREA, S&P Global, Windward, RUSI, OCCRP, Atlantic Council, Lloyd's List | fleet-wide counts for the legend | saved under `pulls/tavily/` |
 
 ## How the graph was built
@@ -43,13 +42,12 @@ Every line carries its type, date where known, one or more sources (link and sav
    single candidate; each merge is recorded on the node as a Claude match to check before quoting.
 4. **Research angles** (eight, run in parallel): US Treasury Iran actions, US/UK Russia actions, EU acts, service providers
    (insurers, flags, bunkering ships, classification), enforcement (seizures, detentions, court cases), company anatomy
-   (Sayari), dated ship histories (Ukraine's database), and outside studies. Each wrote nodes and lines in one shared
+   (Sayari records; removed from this site, see below), dated ship histories (Ukraine's database), and outside studies. Each wrote nodes and lines in one shared
    format with sources.
 5. **Independent verification.** Every angle was re-checked by a separate verifier that re-opened the saved sources,
    re-derived numbers, checked IMO check digits and people's names against the lists, and wrote a corrected file plus a
    claim-by-claim table. The research and verification files stay with the team's working files and are not published, because they name unlisted firms. Only the corrected files feed the chart. Examples of what verifiers
-   caught: two wrong IMO numbers dropped; a strike date corrected from 9 to 8 September 2026; 13 registered-agent links
-   downgraded to Lead; the EU act number question settled (2026/1843 regulation and 2026/1845 decision are one listing).
+   caught: two wrong IMO numbers dropped; a strike date corrected from 9 to 8 September 2026; the EU act number question settled (2026/1843 regulation and 2026/1845 decision are one listing).
 6. **Merge** (`merge.py`) de-duplicates lines, keeps every source on a line, and applies the naming policy below.
 
 ## Naming policy (Alex's ruling, 25 Sep 2026, 13:35)
@@ -58,7 +56,7 @@ Every line carries its type, date where known, one or more sources (link and sav
   a court or agency used them.
 - **People** appear only when an official record names them, in that role. Anyone else is "an individual".
 - **Firms not on a sanctions list** keep their name only when an official record names them in that role (for example,
-  the UK list names them as operator of a ship it sanctions). Firms known only from Sayari, Ukraine's database or studies
+  the UK list names them as operator of a ship it sanctions). Firms known only from Ukraine's database or studies
   are shown by description, such as "unlisted UAE ship manager". Their names are removed from the published data
   files, including quoted text (`release_check.py` enforces this).
 
@@ -73,7 +71,7 @@ Every line carries its type, date where known, one or more sources (link and sav
 ## What the chart cannot show
 
 - No line does not mean no relationship. Our sources cover listed ships and firms and the firms named next to them.
-- Sayari's "linked to" and "former" relationships carry no dates. Ukraine's database dates can be database refresh dates:
+- Ukraine's database dates can be database refresh dates:
   of 6 ships with a record dated within 30 days after a listing, 4 share one date (30 Jul 2025, the US listing day) and a
   fifth falls on its own listing day. Only CLYDE NOBLE (28 days after its UK listing) looks like a real change, and it
   stays a Lead.
@@ -92,12 +90,17 @@ Every line carries its type, date where known, one or more sources (link and sav
   13 listed ships trace that far (Gazprom Neft and Lukoil tankers). For Sovcomflot, Zulu, Fleet Tanqo, Rosneft, Lukoil,
   Litasco and Nayara, no US lobbying filing was found under their own names in our search. State operators such as IRISL,
   PDVSA and GTLK were not checked. Lobbying is legal; nothing here says any lobbying was unlawful.
-- **Cargo and manifests.** Neither sponsor tool searches shipments by ship name or IMO number. 0 of the 54 Russia and Iran
-  overlap ships have a manifest we can see; two (BRIONT, TAGOR) appear as a named party in an Indian customs record for
-  ship supplies, a Lead not tied to the hull by IMO. The one official cargo record is the Justice Department's: SKIPPER
+- **Cargo and manifests.** We hold no shipment manifests for these ships. The one official cargo record is the Justice Department's: SKIPPER
   (listed by OFAC as ADISA, IMO 9304667) carried about 3 million barrels of Iranian crude to Syria in 2024 and was seized
   with about 1.8 million barrels in December 2025. These tankers move oil through ship-to-ship transfers to non-US buyers,
   which customs data rarely covers.
+
+## Data removed from this site
+
+At the hackathon the commercial company-data vendor Sayari (a sponsor) also supplied company registration
+and closing dates, registered agents, unlisted managers and owners, and two customs records. That data, and every line,
+note and count derived from it, has been removed from this site: 52 lines and 17 companies are gone, and the counts
+above reflect what remains.
 
 ## Reproduce
 

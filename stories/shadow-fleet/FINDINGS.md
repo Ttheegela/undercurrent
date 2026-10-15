@@ -33,7 +33,7 @@ No ship that the US listed only under its Russia programmes is inside the strict
 - The US listed NEW MILOS on 20 March 2025; the UK listed the same IMO number as VOLANS 50 days later.
 - JUNIA (UK) is BENEDICT (US); FIORA is GOLDEN EAGLE.
 - The UK listed LILY on 21 July 2025; the US listed the same hull as DANYA on 29 July 2026.
-- **One hull, three identities (IMO 9282792).** The UK listed CLYDE NOBLE on 9 May 2025 under an unlisted manager that closed on 19 June 2025. Vicens Marine, a Marshall Islands company set up on 5 May 2025, is itself US-listed (6 February 2026, E.O. 13846). OFAC listed the hull as AQUA LIVE on 6 February 2026. The UK entry still shows the old names. (Company dates: Sayari records and the US list file.)
+- **One hull, three identities (IMO 9282792).** The UK listed CLYDE NOBLE on 9 May 2025 under an unlisted manager. Vicens Marine, a Marshall Islands company, is itself US-listed (6 February 2026, E.O. 13846). OFAC listed the hull as AQUA LIVE on 6 February 2026. The UK entry still shows the old names. (US and UK list files.)
 
 Across all sources, each hull had a median of 4 names (range 2 to 7). Ukraine's war-sanctions ship database is not a sanctions list. It shows different current names for 7 of the 42 but gives no dates, so "renamed after listing" is not shown. FIORA, UK-listed 9 May 2025, appears there under a newer name (Low).
 
@@ -42,15 +42,10 @@ Across all sources, each hull had a median of 4 names (range 2 to 7). Ukraine's 
 **Fact for the counts; Lead for the "shell company" reading, which is not established.**
 - No manager of the 42 is UK-listed as a company; the UK lists the ships only. Zulu Ships Management is the only one on the EU list.
 - About **28 companies and one individual** are linked to the 42 in the US files (about 37 companies with UK-only managers).
-- Of **25** linked companies with a set-up date, **13** were set up in 2024 or 2025, 0 to 23 months before their ship's first listing (most 9 to 18 months). Several are named after their ship or one of its former names.
+- Of **18** linked companies with a set-up date in the US list file, **10** were set up in 2024 or 2025, 4 to 23 months before their ship's first listing (most 9 to 19 months). Several are named after their ship or one of its former names.
 - Zulu Ships Management is linked to **10 of the 42** (8 via the UK manager column, 2 via OFAC links). Fleet Tanqo runs 3. Shanghai Legendary Ship Management (US, 3 December 2024) runs 2 (MIN HANG, VESNA).
 - **17 more one-ship managers are US Iran-listed**, usually the same day as their ship, for example Nissho Lines (8 May 2025), Fleet Tanqo (15 April 2026) and Confident Apex (29 July 2026).
 - **8 UK-named managers are on no list we hold**; we do not name them. 7 ships have a blank manager field.
-
-Timing leads (Medium, Sayari records, links undated):
-- An unlisted manager of EVALI closed on 30 July 2025, the day OFAC listed the ship.
-- An unlisted Dubai company was registered on 14 March 2025, 18 days after OFAC listed PHOENIX I (FENGHUANG on the UK list), and became its UK-named manager.
-- In 5 of 10 sampled ships, a one-ship owner company is named after the ship's current or former name ("linked to" is not a verified stake).
 
 Listing-day changes (Medium, one source): Ukraine's database dates owner and manager entries for 10 ships. On 4 IMO-confirmed pages (KAVIZ, HORAE, BRIONT, TAGOR), an entry changed on the US listing day; APATE could not be matched by IMO. For TAGOR the change was to Zulu as owner. Innocent explanation: the database may have updated its record that day.
 
@@ -71,7 +66,6 @@ Treasury's release on Zulu (sb0215, 30 July 2025) says the network's firms "regu
 - The EU listed Zulu's hulls about 9 months before freezing the company.
 - The UK has not listed Zulu as a company.
 - MISHELL is on the US list only.
-- Sayari shows newer radio IDs but keeps old ones alongside with no dates, so no flag change is confirmed (Low).
 
 ### Fleet Tanqo (India)
 
@@ -131,12 +125,9 @@ Treasury says these ships carried "more than 20 cargoes of Russian petroleum pro
   - about 1,500 (Clarksons, as cited by the Financial Times)
 - **The buyer stays (High).** KSE names Shandong Yulong Petrochemical among the top three buyers of Russian crude for February to April 2026. The UK listed it on 15 October 2025 and the EU on 23 October 2025 (Reg. 2025/2035).
 
-## 8. Correction carried from the wider project
-
-An outside review, confirmed on the US Consolidated Screening List, found that ELEM GROUP's **first** restriction was the US Commerce Department's Entity List on **7 December 2023** (88 FR 85097), not OFAC on 23 February 2024. Its lag becomes at least 20 months, and the chip-route lag range becomes **15 to 20 months** (not 15 to 23). The ship gaps in section 2 compare two governments' lists, not trade against listing, so they are unaffected.
-
 ## What we could not see
 
 - No cargo, AIS tracking or insurance-policy data.
 - No dated registry histories.
+- Company-registry records from a commercial data vendor (Sayari) were used at the hackathon; that data and every figure derived from it have been removed from this site.
 - Only the July 2026 EU ship annex, not the full EU ship list.

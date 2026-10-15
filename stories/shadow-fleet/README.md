@@ -29,8 +29,8 @@ hull number keeps it.
   of those lists are described in general terms ("an unlisted UAE firm"). No private
   individuals are named.
 - **Ships are named** because every ship named here is on at least one official list.
-- **No raw sponsor data is published.** Where we used Sayari records we give derived counts
-  and dates and name the source.
+- **No vendor data.** The hackathon also used a commercial company-data vendor (Sayari); its
+  data, and every figure derived from it, has been removed from this site.
 - **Dates:** UK dates are the "Date Designated" field of the UK Sanctions List. US dates are
   the "first seen" dates in the OpenSanctions export of the US list. These matched the
   Treasury press releases on the two action days we checked (30 July 2025 and 15 April

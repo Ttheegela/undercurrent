@@ -1,8 +1,9 @@
 """Build data/research-index.json from the research data under stories/.
 
 One entry per ship, company and person in the shadow-fleet network, per
-chip-route company, and per listed company or intermediary in the lobbying
-graph. Every fact carries numbered source references.
+officially listed company from the chip research, and per listed company or
+intermediary in the lobbying graph. Every fact carries numbered source
+references.
 """
 from __future__ import annotations
 
@@ -17,12 +18,12 @@ from normalize import normalize_name
 
 ROOT = Path(__file__).resolve().parent.parent
 FLEET_DIR = ROOT / "stories" / "shadow-fleet" / "network"
-CHIPS_FILE = ROOT / "stories" / "chips-into-russia" / "viz" / "listing_lag.json"
+CHIPS_FILE = ROOT / "stories" / "chips-into-russia" / "official_listings.json"
 LOBBY_FILE = ROOT / "stories" / "who-lobbies" / "clean-names-graph" / "nodes.json"
 OUT = ROOT / "data" / "research-index.json"
 
 FLEET_STORY = {"label": "Open on the shadow-fleet map", "url": "stories/shadow-fleet/network/shadow_fleet_map.html"}
-CHIPS_STORY = {"label": "Open the chip-routes timeline", "url": "stories/chips-into-russia/viz/listing_lag.html"}
+CHIPS_STORY = {"label": "Open the chips-into-Russia page", "url": "stories/chips-into-russia/viz/river.html"}
 LOBBY_STORY = {"label": "Open the lobbying network", "url": "stories/who-lobbies/clean-names-graph/index.html"}
 FLEET_FINDINGS = ("stories/shadow-fleet/FINDINGS.md", "VeilTrace shadow-fleet findings")
 CHIPS_FINDINGS = ("stories/chips-into-russia/FINDINGS.md", "VeilTrace chip-route findings")
@@ -209,28 +210,21 @@ def fleet_entries(nodes: list, edges: list) -> list[dict]:
 
 
 def chip_entries(doc: dict) -> list[dict]:
+    """Official facts only: the company's first official listing."""
     out = []
     for c in doc["companies"]:
         src = Sources()
         story_ref = src.ref(*CHIPS_FINDINGS)
-        sayari = src.ref(c.get("sayari_entity_url"), "Sayari entity record (account required)")
         first_listing = c.get("first_listing") or {}
-        first_suspicious = c.get("first_suspicious") or {}
-        listings = []
+        listings, facts, events = [], [], []
         if first_listing.get("authority"):
             listings.append({"by": first_listing["authority"], "date": first_listing.get("date") or "", "program": "Russia", "ref": story_ref})
-        facts = [fact((c.get("role") or "Company on a chip route into Russia").rstrip(".") + ".", [story_ref, sayari], src, CHIPS_FINDINGS)]
-        events = []
-        if first_suspicious.get("date"):
-            facts.append(fact(f"Lead: first looked suspicious on {fmt_date(first_suspicious['date'])} ({first_suspicious.get('basis', '')}).", [story_ref], src, CHIPS_FINDINGS))
-            events.append({"date": first_suspicious["date"], "kind": "suspicion", "text": "Lead: first looked suspicious"})
         if first_listing.get("date"):
-            lag = f", at least {c['lag_months_at_least']} months later" if c.get("lag_months_at_least") else ""
-            facts.append(fact(f"First listed on {fmt_date(first_listing['date'])} by {first_listing['authority']}{lag}.", [story_ref], src, CHIPS_FINDINGS))
+            facts.append(fact(f"First listed on {fmt_date(first_listing['date'])} by {first_listing['authority']}.", [story_ref], src, CHIPS_FINDINGS))
             events.append({"date": first_listing["date"], "kind": "listing", "text": f"{first_listing['authority']} lists it"})
         out.append({
             "id": f"chip:{c['id']}", "kind": "Company", "name": c["name"], "keys": keys_for(c["name"]),
-            "imo": None, "flag": None, "manager": None, "country": c.get("place"), "role": "Chip-route company",
+            "imo": None, "flag": None, "manager": None, "country": c.get("place"), "role": "Listed company in our chip research",
             "listings": listings, "events": sorted(events, key=lambda ev: ev["date"]), "facts": facts,
             "names": [{"name": c["name"], "current": True}], "flags": [], "story": CHIPS_STORY, "sources": src.items,
         })

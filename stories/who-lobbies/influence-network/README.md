@@ -10,7 +10,7 @@ they disclose) and marks the ships seen live on our God's Eye globe. Every line 
 | | |
 |---|---|
 | **Open** | [`index.html`](index.html), the map · [`methods.html`](methods.html), methods and sources in plain language |
-| **Scale** | 3,205 nodes · 3,754 links · 1,552 sanctioned ships · 1,513 US lobbying reports · 421 lobbyists |
+| **Scale** | 3,183 nodes · 3,708 links · 1,547 sanctioned ships · 1,513 US lobbying reports · 421 lobbyists |
 | **Data as of** | 25 September 2026 |
 | **Built at** | Trace the Unseen: Climate Intelligence Build Day, Microsoft Garage NYC (sanctions and evasion track) |
 
@@ -80,11 +80,11 @@ Full detail, in plain language: [`methods.html`](methods.html).
 
 ## Confidence and naming
 
-- **Documented** (3,679 links): an official record states it directly. **Reported** (1): an official filing seen in
-  summary only. **Lead** (74): our inference, drawn dotted, hideable with the Leads filter.
+- **Documented** (3,676 links): an official record states it directly. **Reported** (1): an official filing seen in
+  summary only. **Lead** (31): our inference, drawn dotted, hideable with the Leads filter.
 - We describe documented conduct with its source and make no legal findings; "charged" is never "convicted".
 - People are named only where an official list or release names them, or in their own lobbying disclosure, in that
-  role. Unlisted firms known only from non-official sources appear as a description (27).
+  role. Unlisted firms known only from non-official sources appear as a description (12).
 
 ## Limitations
 

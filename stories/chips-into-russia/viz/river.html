@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Same River, New Boats</title>
+<title>Chip Exports to Russia</title>
 <style>
 :root{
   --bg:#f7f6f3; --surface:#ffffff; --ink:#1d1d1b; --ink-2:#55534e; --muted:#8a877f; --rule:#e3e0d8;
@@ -71,36 +71,34 @@ footer a{color:var(--ink-2);overflow-wrap:anywhere}
 </head>
 <body><a href="/" style="position:fixed;top:12px;left:12px;z-index:9999;font:500 13px/1 system-ui,sans-serif;color:#e8eaf0;background:#141821;border:1px solid #2c3240;border-radius:4px;padding:8px 10px;text-decoration:none">&larr; Undercurrent</a>
 <main>
-  <h1>Same river, new boats</h1>
-  <p class="take">Names change in weeks. The flow, the buyer and the part stay for years.</p>
-  <p class="sub">Computer chips (product code HS 8542) kept reaching Russia through Kyrgyzstan and Kazakhstan while the companies carrying them came and went. By the time an official list named a company, the flow had usually moved to another one. The Russian buyer and the need stayed the same.</p>
-  <div class="note"><b>How to read this.</b> Each coloured band is one shipping company; band height is the number of shipment records per month. Black pins are official listings (solid = checked on the official page; dashed = approximate date from a public sanctions dataset). The hatched grey zone is where Russia's customs data stops, not necessarily the trade. Hover or tap anything to see its source file. Every item here is a <b>lead, not a finding</b>. Listing bodies: US Treasury's sanctions office (OFAC), US Commerce export blacklist (BIS Entity List), UK and EU sanctions lists.</div>
-  <p id="err" class="note">Could not load river.js. Run <code>python extract_river.py</code> in this folder.</p>
-
-  <section id="p1">
-    <h2>1. Same river, new boats</h2>
-    <p class="h2sub">Chip shipment records into Russia by month, coloured by the company that shipped them. The colours change; the band keeps flowing; the pins land after the colour has gone.</p>
-    <div id="routes"></div>
-  </section>
-
-  <section id="p2">
-    <h2>2. The buyer stays</h2>
-    <p class="h2sub" id="p2sub"></p>
-    <div class="legend" id="lg2"></div>
-    <div class="chart" id="buyer"></div>
-    <details><summary>Table view</summary><div class="tw"><table id="tb2"><thead><tr><th>Supplier</th><th>Rows</th><th>First</th><th>Last</th><th>Listed</th></tr></thead><tbody></tbody></table></div></details>
-  </section>
+  <h1>Chips into Russia: what the middle countries reported</h1>
+  <p class="take">Kyrgyzstan and Kazakhstan reported almost no chip exports to Russia before the invasion. In 2022 and 2023 they reported millions of dollars a year.</p>
+  <p class="sub">Computer chips (customs code HS 8542, "electronic integrated circuits"), as each country itself declared its exports to Russia to the UN. Armenia shows the same jump: about $0 a year before 2022, then $13.1M in 2022 and $15.7M in 2023. Turkey, the UAE, China and Hong Kong also kept exporting chips to Russia after 2022 (see the findings).</p>
+  <div class="note"><b>How to read this.</b> Declared export values in US dollars, from each country's own report to UN Comtrade (summary rows only, so nothing is counted twice). This is what the paperwork declares, not a traced physical route, and the latest year may be incomplete. Hover or tap a point for its value.</div>
+  <p id="err" class="note">Could not load river.js.</p>
 
   <section id="p3">
-    <h2>3. The need</h2>
-    <p class="h2sub">What each country itself reported exporting to Russia in chips (HS 8542), per year: declared values, USD million. Both jump in 2022 and 2023, the years the routes in panel 1 were active, then fall back.</p>
+    <h2>Chip exports to Russia, as each country reported them</h2>
+    <p class="h2sub">Declared values, USD million per year. Both countries jump in 2022 and 2023, then fall back.</p>
     <div class="chart" id="need"></div>
   </section>
 
+  <section>
+    <h2>Official listings in the same two countries</h2>
+    <p class="h2sub">US lists later named companies based in Kyrgyzstan and Kazakhstan under Russia-related programmes. Two examples, with dates from official pages:</p>
+    <ul>
+      <li><b>RM Design and Development</b> (Bishkek, Kyrgyzstan): listed by the US Treasury (OFAC) on 20 July 2023. The US Treasury's own entry gives the company's founding date as 17 March 2022, three weeks after the invasion, so the listing came about 16 months after it was set up. <a href="https://www.federalregister.gov/documents/2023/08/08/2023-16934/notice-of-ofac-sanctions-action">Federal Register 2023-16934</a></li>
+      <li><b>ELEM GROUP</b> (Almaty, Kazakhstan): added to the US Commerce Department's Entity List on 7 December 2023 (88 FR 85097), then listed by the US Treasury on 23 February 2024. <a href="https://ofac.treasury.gov/recent-actions/20240223">OFAC recent actions, 23 Feb 2024</a></li>
+    </ul>
+  </section>
+
   <footer>
-    <p class="foot1">Leads, not findings. Counts are shipment records from Russia's import records, not values. Unlisted companies are not named.</p>
-    <p>Sources (hover any mark for the file behind it):</p>
-    <ul id="sources"></ul>
+    <p class="foot1">Official statistics and official lists only.</p>
+    <ul>
+      <li><a href="https://comtradeplus.un.org/">UN Comtrade</a>: countries' own reported chip exports to Russia, aggregate rows, queried 25 Sep 2026.</li>
+      <li>Listing dates: US Treasury (OFAC) recent actions and the Federal Register.</li>
+      <li>Full write-up: <a href="../FINDINGS.md">FINDINGS.md</a></li>
+    </ul>
   </footer>
 </main>
 <script src="river.js"></script>
@@ -109,198 +107,15 @@ footer a{color:var(--ink-2);overflow-wrap:anywhere}
   const D = window.RIVER;
   if(!D){ document.getElementById('err').style.display='block'; return; }
   const NS = 'http://www.w3.org/2000/svg';
-  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const nice = d => { const [y,m,dd] = d.split('-'); return dd ? `${+dd} ${MON[+m-1]} ${y}` : `${MON[+m-1]} ${y}`; };
-  const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const T = d => Date.parse(d.length === 7 ? d + '-15' : d);
-  const col = s => s == null ? 'var(--other)' : `var(--s${s})`;
-  const rel = p => '../../' + p;
   function el(parent, tag, attrs, text){
     const e = document.createElementNS(NS, tag);
-    for(const k in attrs) e.setAttribute(k, attrs[k]);
+    for(const k in attrs) if(attrs[k] != null) e.setAttribute(k, attrs[k]);
     if(text != null) e.textContent = text;
     if(parent) parent.appendChild(e);
     return e;
   }
   const title = (e, t) => { el(e, 'title', {}, t); return e; };
-  function tipFor(box){
-    let t = box.querySelector('.tip');
-    if(!t){ t = document.createElement('div'); t.className = 'tip'; box.appendChild(t); }
-    return {
-      show(html, x, y){ t.innerHTML = html; t.style.display = 'block';
-        const w = t.offsetWidth, W = box.clientWidth;
-        t.style.left = Math.max(0, Math.min(W - w, x + 12)) + 'px'; t.style.top = (y + 12) + 'px'; },
-      hide(){ t.style.display = 'none'; }
-    };
-  }
-
-  // ---------- Panel 1: routes ----------
-  const X0 = T('2022-01-01'), X1 = T('2025-07-01');
-  const ymax = Math.max(...D.routes.map(r => Math.max(...r.total)));
-  const routesBox = document.getElementById('routes');
-  D.routes.forEach(r => {
-    const wrap = document.createElement('div');
-    const half = r.id === 'KGZ'
-      ? 'Firms per half-year 1, 4, 12, 6 while 186, 279, 569 and 113 records flowed. Median firm active 40 days; 6 of 14 appear on one day only.'
-      : 'A relay: one firm at a time, each replaced whole. ELEM GROUP carried 666 of 715 records (93%) in 118 days, then the route passed to another firm.';
-    wrap.innerHTML = `<h3>${esc(r.title)}: ${r.records.toLocaleString('en-US')} records, ${r.firms} firms, ${nice(r.first)} to ${nice(r.last)}</h3>
-      <p class="stats">${esc(half)}</p>
-      <div class="legend"></div><div class="chart"></div><ol class="pins"></ol>
-      <details><summary>Table view: every firm on this route</summary><div class="tw"><table><thead><tr><th>Firm</th><th>Records</th><th>First</th><th>Last</th></tr></thead><tbody>${
-        r.firm_table.map(f => `<tr><td>${esc(f.label)}</td><td class="num">${f.n}</td><td class="num">${f.first}</td><td class="num">${f.last}</td></tr>`).join('')
-      }</tbody></table></div></details>`;
-    routesBox.appendChild(wrap);
-    wrap.querySelector('.legend').innerHTML = r.series.map(s =>
-      `<span title="Source: ${esc(r.source_file)}"><i style="background:${col(s.slot)}"></i>${esc(s.label)} (${s.n})</span>`).join('') +
-      `<span title="Last record in Russia's import data: ${nice(r.last)}. Source: ${esc(r.source_file)}"><i class="hatch"></i>Russia-side data ends</span>` +
-      `<span><i class="line"></i>listed (checked)</span><span><i class="dline"></i>listed (approx. date)</span>`;
-    wrap.querySelector('.pins').innerHTML = r.pins.map((p, i) =>
-      `<li title="Source: ${esc(p.source)}"><b>${esc(p.firm)}</b>: ${esc(p.authority)}, ${nice(p.date)}${p.approx ? ' (approximate date)' : ''}. Last record ${nice(p.last)}: <b>${esc(p.note)}</b>.${p.in_other ? ' (1 record; inside the grey "other firms" band.)' : ''}</li>`).join('');
-    r._chart = wrap.querySelector('.chart');
-  });
-
-  function drawRoute(r){
-    const box = r._chart; box.innerHTML = '';
-    const W = box.clientWidth, narrow = W < 620;
-    const rowH = 17, pinRows = r.pins.length, top = 10 + pinRows * rowH + 6;
-    const H = narrow ? 150 : 190, ml = 34, mr = 8, B = top + H;
-    const svg = el(box, 'svg', {width: W, height: B + 24, role: 'img', 'aria-label': `${r.title} chip shipment records by month and firm`});
-    const x = t => ml + (t - X0) / (X1 - X0) * (W - ml - mr);
-    const y = v => B - v / ymax * H;
-    // hatch pattern
-    const defs = el(svg, 'defs', {});
-    const pat = el(defs, 'pattern', {id: 'h' + r.id, width: 8, height: 8, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)'});
-    el(pat, 'rect', {width: 4, height: 8, fill: 'var(--thin)'});
-    // grid + y ticks
-    const step = ymax > 150 ? 100 : 50;
-    for(let v = 0; v <= ymax; v += step){ el(svg, 'line', {class: 'grid', x1: ml, x2: W - mr, y1: y(v), y2: y(v)}); el(svg, 'text', {class: 'ax', x: ml - 4, y: y(v) + 4, 'text-anchor': 'end'}, v); }
-    el(svg, 'text', {class: 'ax', x: ml, y: top - 4 - (pinRows ? 0 : 0), 'text-anchor': 'start', opacity: pinRows ? 0 : 1}, 'records per month');
-    // x ticks
-    for(let yr = 2022; yr <= 2025; yr++){
-      const xx = x(T(yr + '-01-01'));
-      el(svg, 'line', {class: 'grid', x1: xx, x2: xx, y1: top, y2: B});
-      el(svg, 'text', {class: 'ax', x: xx + 3, y: B + 15}, yr);
-    }
-    // hatched "data ends" zone
-    const hx = x(T(r.last));
-    title(el(svg, 'rect', {x: hx, y: top, width: W - mr - hx, height: H, fill: `url(#h${r.id})`}),
-      `Russia-side customs data ends here (last record ${nice(r.last)}): the trade may not have. Source: ${r.source_file}`);
-    if(!narrow) el(svg, 'text', {x: hx + 6, y: B - 8}, "Russia-side customs data ends here: the trade may not have");
-    else el(svg, 'text', {x: hx + 4, y: B - 8}, 'customs data ends');
-    // stacked areas (month midpoints, zero at both ends)
-    const n = r.months.length, cum = new Array(n).fill(0);
-    const xs = r.months.map(m => x(T(m)));
-    const xStart = x(T(r.months[0] + '-01')), xEnd = x(T('2024-01-01'));
-    r.series.forEach(s => {
-      const lo = cum.slice(), hi = cum.map((c, i) => c + s.counts[i]);
-      let d = `M${xStart},${y(lo[0])} ` + xs.map((xx, i) => `L${xx},${y(hi[i])}`).join(' ') + ` L${xEnd},${y(lo[n-1])} `;
-      for(let i = n - 1; i >= 0; i--) d += `L${xs[i]},${y(lo[i])} `;
-      d += 'Z';
-      title(el(svg, 'path', {d, fill: col(s.slot), stroke: 'var(--surface)', 'stroke-width': 1.2, 'stroke-linejoin': 'round'}),
-        `${s.label}: ${s.n} records, ${nice(s.first)} to ${nice(s.last)}. Source: ${r.source_file}`);
-      s._lo = lo; s._hi = hi;
-      hi.forEach((v, i) => cum[i] = v);
-    });
-    // direct labels on the thick bands
-    r.series.forEach(s => {
-      let bi = 0; s.counts.forEach((c, i) => { if(c > s.counts[bi]) bi = i; });
-      const th = y(s._lo[bi]) - y(s._hi[bi]);
-      if(th < 18) return;
-      const name = s.label.replace(/ \(listed as.*\)/, '').replace(' and Development', '');
-      const tx = el(svg, 'text', {class: 'lab', x: xs[bi], y: (y(s._lo[bi]) + y(s._hi[bi])) / 2 + 4, 'text-anchor': xs[bi] > W * .6 ? 'end' : 'middle'}, name);
-      title(tx, `${s.label}. Source: ${r.source_file}`);
-    });
-    // invasion line
-    const ix = x(T('2022-02-24'));
-    title(el(svg, 'line', {x1: ix, x2: ix, y1: top, y2: B, stroke: 'var(--muted)', 'stroke-dasharray': '3 3'}), '24 Feb 2022: full-scale invasion of Ukraine');
-    // pins: head row per pin, connector from last record to listing
-    r.pins.forEach((p, i) => {
-      const py = 10 + i * rowH + 6, px = x(T(p.date)), lx = x(T(p.last));
-      const g = el(svg, 'g', {});
-      title(g, `${p.firm}: ${p.authority}, listed ${nice(p.date)}${p.approx ? ' (approximate: OpenSanctions first-seen date)' : ' (checked on official page)'}; last record ${nice(p.last)}; ${p.note}. Source: ${p.source}`);
-      el(g, 'line', {x1: px, x2: px, y1: py, y2: B, stroke: 'var(--ink)', 'stroke-width': 1.5, 'stroke-dasharray': p.approx ? '4 3' : null});
-      el(g, 'line', {x1: Math.min(lx, px), x2: Math.max(lx, px), y1: py, y2: py, stroke: 'var(--ink-2)', 'stroke-width': 1, 'stroke-dasharray': '1 3'});
-      el(g, 'circle', {cx: lx, cy: py, r: 3, fill: 'var(--ink-2)'});
-      el(g, 'circle', {cx: px, cy: py, r: 5, fill: p.approx ? 'var(--surface)' : 'var(--ink)', stroke: 'var(--ink)', 'stroke-width': 1.5});
-      const short = p.firm.replace(/ \(listed as.*\)/, '').replace(' and Development', '');
-      const lab = narrow ? `${short}: ${p.gap_days > 0 ? p.gap_days + ' days' : '+' + (-p.gap_days) + ' days'}` :
-        `${short}, ${p.short} ${nice(p.date)}${p.approx ? ' (approx.)' : ''}: ${p.note}`;
-      const right = px > W * 0.55;
-      const pt = el(g, 'text', {class: 'pin', x: right ? Math.min(lx, px) - 7 : px + 8, y: py + 4, 'text-anchor': right ? 'end' : 'start'}, lab);
-      const bb = pt.getBBox();
-      if(bb.x < 2){ pt.setAttribute('text-anchor', 'start'); pt.setAttribute('x', 2); }
-      else if(bb.x + bb.width > W - 2){ pt.setAttribute('text-anchor', 'end'); pt.setAttribute('x', W - 2); }
-      // invisible wide hit target
-      el(g, 'rect', {x: Math.min(lx, px) - 6, y: py - 7, width: Math.abs(px - lx) + 12, height: 14, fill: 'transparent'});
-    });
-    // hover crosshair over the plot
-    const cross = el(svg, 'line', {x1: 0, x2: 0, y1: top, y2: B, stroke: 'var(--ink-2)', 'stroke-width': 1, opacity: 0});
-    const hit = el(svg, 'rect', {x: ml, y: top, width: xEnd - ml, height: H, fill: 'transparent'});
-    const tip = tipFor(box);
-    const move = ev => {
-      const rc = svg.getBoundingClientRect(), mx = ev.clientX - rc.left;
-      let bi = 0; xs.forEach((xx, i) => { if(Math.abs(xx - mx) < Math.abs(xs[bi] - mx)) bi = i; });
-      cross.setAttribute('x1', xs[bi]); cross.setAttribute('x2', xs[bi]); cross.setAttribute('opacity', 1);
-      const rows = r.series.filter(s => s.counts[bi]).slice().reverse()
-        .map(s => `<span class="sw" style="background:${col(s.slot)}"></span>${esc(s.label)}: <b>${s.counts[bi]}</b>`).join('<br>');
-      tip.show(`<b>${nice(r.months[bi])}</b>: ${r.total[bi]} records<br>${rows || 'no records'}<small>Source: ${esc(r.source_file)} (firm merges: ${esc(r.merge_rule)})</small>`, mx, ev.clientY - rc.top);
-    };
-    hit.addEventListener('mousemove', move); hit.addEventListener('click', move);
-    hit.addEventListener('mouseleave', () => { tip.hide(); cross.setAttribute('opacity', 0); });
-  }
-
-  // ---------- Panel 2: buyer swimlane ----------
-  const Bd = D.buyer;
-  document.getElementById('p2sub').textContent =
-    `One Russian buyer, Testkomplekt: one record, ${Bd.buyer_rows.toLocaleString('en-US')} import rows from ${nice(Bd.buyer_first)} to ${nice(Bd.buyer_last)}. Its suppliers changed three times; it kept receiving 22 months after its own US listing.`;
-  document.getElementById('lg2').innerHTML =
-    `<span><i style="background:var(--pre)"></i>Western distributors (stopped by Mar 2022)</span>` +
-    `<span><i style="background:var(--unl)"></i>unlisted supplier (not named)</span>` +
-    `<span><i style="background:var(--s0)"></i>supplier later listed</span>` +
-    `<span><i class="line"></i>buyer listed</span><span>&#9670; supplier listed (hollow = approx. date)</span>`;
-  document.querySelector('#tb2 tbody').innerHTML = Bd.lanes.map(l =>
-    `<tr><td>${esc(l.label)}</td><td class="num">${l.rows}</td><td class="num">${l.first}</td><td class="num">${l.last}</td><td>${l.listings.map(s => esc(s.list + ' ' + s.date + (s.approx ? ' (approx.)' : ''))).join('; ') || 'not listed'}</td></tr>`).join('');
-  function drawBuyer(){
-    const box = document.getElementById('buyer'); box.innerHTML = '';
-    const W = box.clientWidth, narrow = W < 620;
-    const Y0 = T('2019-01-01'), Y1 = T('2025-07-01');
-    const ml = 4, mr = 8, top = narrow ? 58 : 40, laneH = 30;
-    const lanes = [{label: `Testkomplekt (the buyer): ${Bd.buyer_rows.toLocaleString('en-US')} rows`, first: Bd.buyer_first, last: Bd.buyer_last, kind: 'buyer', listings: [], source: 'agents/b17 TRC-29 result (LOG 10:51)', note: 'One buyer record for six years.'}].concat(Bd.lanes);
-    const H = lanes.length * laneH, B = top + H;
-    const svg = el(box, 'svg', {width: W, height: B + 22, role: 'img', 'aria-label': 'Testkomplekt supplier lanes 2019 to 2025'});
-    const x = t => ml + (t - Y0) / (Y1 - Y0) * (W - ml - mr);
-    for(let yr = 2019; yr <= 2025; yr++){
-      const xx = x(T(yr + '-01-01'));
-      el(svg, 'line', {class: 'grid', x1: xx, x2: xx, y1: top, y2: B});
-      el(svg, 'text', {class: 'ax', x: xx + 3, y: B + 15}, narrow ? "'" + String(yr).slice(2) : yr);
-    }
-    const ix = x(T('2022-02-24'));
-    title(el(svg, 'line', {x1: ix, x2: ix, y1: top, y2: B, stroke: 'var(--muted)', 'stroke-dasharray': '3 3'}), '24 Feb 2022: full-scale invasion of Ukraine');
-    // buyer listings
-    Bd.buyer_listings.forEach((l, i) => {
-      const lx = x(T(l.date)), g = el(svg, 'g', {});
-      title(g, `Testkomplekt listed: ${l.list}, ${nice(l.date)}${l.approx ? ' (approximate / not rechecked)' : ' (checked on official page)'}. Source: ${l.source}`);
-      el(g, 'line', {x1: lx, x2: lx, y1: 8 + i * 16, y2: B, stroke: 'var(--ink)', 'stroke-width': 1.5, 'stroke-dasharray': l.approx ? '4 3' : null});
-      el(g, 'text', {class: 'pin', x: lx - 4, y: 12 + i * 16, 'text-anchor': 'end'}, `Buyer listed: ${l.list} ${narrow ? l.date.slice(0,7) : nice(l.date)}${l.approx ? ' (approx.)' : ''}`);
-    });
-    lanes.forEach((l, i) => {
-      const ly = top + i * laneH, a = x(T(l.first)), z = Math.max(x(T(l.last)), a + 3);
-      const fill = l.kind === 'buyer' ? 'var(--ink-2)' : l.kind === 'west' ? 'var(--pre)' : l.kind === 'unlisted' ? 'var(--unl)' : 'var(--s0)';
-      const g = el(svg, 'g', {});
-      title(g, `${l.label}: ${l.rows ? l.rows + ' rows, ' : ''}${nice(l.first)} to ${nice(l.last)}. ${l.note || ''} Source: ${l.source}`);
-      el(g, 'rect', {x: 0, y: ly, width: W, height: laneH, fill: 'transparent'});
-      el(g, 'rect', {x: a, y: ly + 17, width: z - a, height: 8, rx: 3, fill});
-      const txt = l.kind === 'buyer' ? l.label : `${l.label}${l.rows ? ' (' + l.rows + ')' : ''}`;
-      const right = a > W * 0.55;
-      el(g, 'text', {class: 'lab', x: right ? z : a, y: ly + 13, 'text-anchor': right ? 'end' : 'start', style: 'font-weight:500;font-size:11.5px'}, txt);
-      (l.listings || []).forEach(s => {
-        const sx = x(T(s.date)), sy = ly + 21;
-        el(g, 'path', {d: `M${sx},${sy-6} L${sx+6},${sy} L${sx},${sy+6} L${sx-6},${sy} Z`, fill: s.approx ? 'var(--surface)' : 'var(--ink)', stroke: 'var(--ink)', 'stroke-width': 1.5});
-      });
-    });
-  }
-
-  // ---------- Panel 3: need ----------
+  // ---------- chart ----------
   function drawNeed(){
     const N = D.need, box = document.getElementById('need'); box.innerHTML = '';
     const W = Math.min(box.clientWidth, 640), H = 150, ml = 34, mr = 90, top = 10, B = top + H;
@@ -328,26 +143,8 @@ footer a{color:var(--ink-2);overflow-wrap:anywhere}
     el(svg, 'text', {class: 'ax', x: ml, y: B + 15 + 0, 'text-anchor': 'start', opacity: 0}, '');
   }
 
-  // ---------- sources ----------
-  const S = [
-    [D.routes[0].source_file, 'Kyrgyzstan route shipment rows (Sayari, from Russia\'s import records, Jan 2022 on)'],
-    [D.routes[1].source_file, 'Kazakhstan route shipment rows (same source)'],
-    [D.routes[0].merge_rule, 'how spelling variants of one firm were merged'],
-    ['agents/b16/churn_summary.json', 'firms per half-year, firm lifetimes'],
-    ['build/viz/listing_lag.js', 'official listing dates checked on official pages (OFAC, Federal Register, UK list)'],
-    [D.log_file, 'team log: verified rows 10:35 and 10:51, and all corrections'],
-    [Bd.source_file, 'Testkomplekt supplier windows; each row names its raw Sayari file'],
-    [Bd.receipt.split(' ')[0], 'US Treasury press release jy2700 naming Testkomplekt as customer'],
-    [D.need.source_file, 'UN Comtrade, countries\' own reported chip exports to Russia (aggregate rows only)'],
-  ];
-  document.getElementById('sources').innerHTML = S.map(([f, w]) => `<li><a href="${esc(rel(f))}"><code>${esc(f)}</code></a>: ${esc(w)}</li>`).join('') +
-    '<li>Approximate dates (dashed pins, hollow diamonds): OpenSanctions "first seen" dates or dates not rechecked on an official page. GTME\'s listing date and Transit Service Bishkek\'s are approximate.</li>' +
-    '<li>Records after late 2023 thin out because Russia\'s customs data ends; row windows in panel 2 are "at least" (100-row pages).</li>' +
-    '<li>Generated by <code>build/viz/extract_river.py</code> into <code>river.js</code>. Status of every item: <span class="pill">lead, not finding</span></li>';
-
-  function drawAll(){ D.routes.forEach(drawRoute); drawBuyer(); drawNeed(); }
-  drawAll();
-  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  drawNeed();
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawNeed, 120); });
 })();
 </script>
 </body>

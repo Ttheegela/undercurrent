@@ -1356,13 +1356,12 @@ def chip_entries(doc: dict) -> list[dict]:
     for c in doc["companies"]:
         src = Sources()
         story_ref = src.ref(*CHIPS_FINDINGS)
-        sayari = src.ref(c.get("sayari_entity_url"), "Sayari entity record (account required)")
         first_listing = c.get("first_listing") or {}
         first_suspicious = c.get("first_suspicious") or {}
         listings = []
         if first_listing.get("authority"):
             listings.append({"by": first_listing["authority"], "date": first_listing.get("date") or "", "program": "Russia", "ref": story_ref})
-        facts = [fact((c.get("role") or "Company on a chip route into Russia").rstrip(".") + ".", [story_ref, sayari], src, CHIPS_FINDINGS)]
+        facts = [fact((c.get("role") or "Company on a chip route into Russia").rstrip(".") + ".", [story_ref], src, CHIPS_FINDINGS)]
         events = []
         if first_suspicious.get("date"):
             facts.append(fact(f"First looked suspicious on {fmt_date(first_suspicious['date'])}: {first_suspicious.get('basis', '')}.", [story_ref], src, CHIPS_FINDINGS))

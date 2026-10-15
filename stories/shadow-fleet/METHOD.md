@@ -77,12 +77,9 @@ same files before we found this.
 
 - **US dates** are OpenSanctions "first seen" dates. Entries dated 20 or 21 April 2023 are
   the start of that dataset, not listing dates.
-- **Sayari** ownership and manager links carry a "former" flag but **no dates**, and "linked
-  to" is not a verified stake. For "when did the manager change" questions, we used the dated
-  ship pages of Ukraine's war-sanctions database, which is not a sanctions list, and treated
-  those as single-source leads.
-- **Radio IDs (MMSI)** can hint at a flag change when the country prefix changes, but Sayari
-  keeps old and new IDs side by side, so it does not show which one is current.
+- **Manager changes:** for "when did the manager change" questions, we used the dated ship
+  pages of Ukraine's war-sanctions database, which is not a sanctions list, and treated those
+  as single-source leads.
 - **EU act numbers:** the July 2026 ship act is Regulation 2026/1848. The act that froze the
   shipping firms is cited as Implementing Regulation 2026/1843 on the EUR-Lex page we read
   and as 2026/1845 in the OpenSanctions EU export. We have not resolved which is right.

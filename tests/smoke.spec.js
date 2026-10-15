@@ -29,6 +29,68 @@ test("TASSOS: dossier, three listing chips, timeline, official lists, wider link
   expect(errors).toEqual([]);
 });
 
+async function timelineBoxes(page) {
+  return page.locator(".dossier-entry").first().locator(".tl-ev").evaluateAll((els) => els.map((el) => {
+    const what = el.querySelector(".what");
+    const r = el.getBoundingClientRect();
+    const t = el.parentElement.getBoundingClientRect();
+    return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, trackBottom: t.bottom,
+      clipped: what.scrollHeight > what.clientHeight + 1, color: getComputedStyle(what).color, weight: getComputedStyle(what).fontWeight };
+  }));
+}
+
+function expectFullAndApart(boxes) {
+  for (const b of boxes) {
+    expect(b.clipped).toBe(false);
+    expect(b.bottom).toBeLessThanOrEqual(b.trackBottom + 1);
+  }
+  for (let i = 1; i < boxes.length; i++) {
+    const sideBySide = boxes[i].left >= boxes[i - 1].right - 1;
+    const stacked = boxes[i].top >= boxes[i - 1].bottom - 1;
+    expect(sideBySide || stacked).toBe(true);
+  }
+}
+
+test("TASSOS timeline at 1280px: compact by default, toggle shows every label in full", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+  await search(page, "TASSOS");
+  const tl = page.locator(".dossier-entry").first().locator(".timeline");
+  const more = tl.locator(".tl-more");
+  await expect(more).toBeVisible();
+  await expect(more).toHaveAttribute("aria-expanded", "false");
+  let boxes = await timelineBoxes(page);
+  expect(boxes.some((b) => b.clipped)).toBe(true);
+  for (const b of boxes) expect([b.color, b.weight]).toEqual([boxes[0].color, boxes[0].weight]);
+
+  await more.focus();
+  await page.keyboard.press("Enter");
+  await expect(more).toHaveAttribute("aria-expanded", "true");
+  await expect(more).toHaveText("Show less");
+  await expect(tl.locator(".what", { hasText: "John Fredriksen) to an unlisted ship manager (Liberia)" })).toBeVisible();
+  expectFullAndApart(await timelineBoxes(page));
+
+  await more.click();
+  await expect(more).toHaveAttribute("aria-expanded", "false");
+  await expect(more).toHaveText("Show full text");
+  boxes = await timelineBoxes(page);
+  expect(boxes.some((b) => b.clipped)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("TASSOS timeline at 375px: stacked, full text, same colour, no toggle", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto("/");
+  await search(page, "TASSOS");
+  const tl = page.locator(".dossier-entry").first().locator(".timeline");
+  await expect(tl.locator(".tl-ev").first()).toBeVisible();
+  await expect(tl.locator(".tl-more")).toBeHidden();
+  const boxes = await timelineBoxes(page);
+  expectFullAndApart(boxes);
+  for (const b of boxes) expect([b.color, b.weight]).toEqual([boxes[0].color, boxes[0].weight]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
 test("IMO number finds the same ship", async ({ page }) => {
   await page.goto("/");
   await search(page, "IMO 9408695");

@@ -98,8 +98,18 @@ export async function runSearch(raw) {
     `<div class="layers">${renderLists(lists, state.listsFailed)}<div id="wider">${renderWider({ kind: "loading" }, q.text)}</div></div>`,
     `<p class="caveat">${escapeHtml(CAVEAT)}</p>`,
   ].join("");
+  syncTimelineToggles(out);
   checkWider(q.text, isLatest);
   if (research[0]) loadConnections(research[0], isLatest);
+}
+
+/** Offer "Show full text" only where a collapsed timeline actually cuts a label (never on the stacked phone layout). */
+function syncTimelineToggles(root) {
+  root.querySelectorAll(".timeline").forEach((tl) => {
+    const button = tl.querySelector(".tl-more");
+    if (!button || tl.classList.contains("tl-open")) return;
+    button.hidden = ![...tl.querySelectorAll(".what")].some((w) => w.scrollHeight > w.clientHeight + 1);
+  });
 }
 
 async function showListDate() {
@@ -168,6 +178,13 @@ function wire() {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+    const more = event.target.closest(".tl-more");
+    if (more) {
+      const open = more.closest(".timeline").classList.toggle("tl-open");
+      more.setAttribute("aria-expanded", String(open));
+      more.textContent = open ? "Show less" : "Show full text";
+      return;
+    }
     const cite = event.target.closest("[data-cite]");
     if (cite) return copyCitation(cite);
     const retry = event.target.closest("[data-retry]");
@@ -182,8 +199,10 @@ function wire() {
     else await loadLists(state.listsFailed.length ? state.listsFailed : LIST_IDS);
     runSearch(input.value);
   });
+  window.addEventListener("resize", () => syncTimelineToggles($("#results")));
   $("#results").addEventListener("toggle", (event) => {
     const details = event.target;
+    if (details instanceof HTMLDetailsElement && details.open) syncTimelineToggles(details);
     if (!(details instanceof HTMLDetailsElement) || !details.open) return;
     const id = details.querySelector("[data-connections]")?.dataset.connections;
     const entry = id && state.shown.get(id);

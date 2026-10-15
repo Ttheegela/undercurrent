@@ -95,6 +95,7 @@ export function renderDossier(e) {
       <div class="tl-track"><div class="tl-line"></div>${tl.map((x) => `
         <div class="tl-ev${x.kind === "listing" ? " hit" : ""}" style="left:${x.pct.toFixed(1)}%"><span class="when">${escapeHtml(formatDate(x.date).toUpperCase())}</span><span class="dot"></span><span class="what">${escapeHtml(x.text)}</span></div>`).join("")}
       </div>
+      <button type="button" class="tl-more" aria-expanded="false" hidden>Show full text</button>
       <p class="tl-note">Spacing is approximate. Red marks a government listing.</p>
     </div>` : "";
 
@@ -144,8 +145,19 @@ export function renderResearch(entries) {
   return `<p class="label">In our research · ${entries.length} ${entries.length === 1 ? "match" : "matches"}</p>${renderDossier(first)}${rest.length ? `<div class="more-list"><h3 class="more-head">Other matches in our research</h3>${more}</div>` : ""}`;
 }
 
+/** The most specific official page for a list hit: OFAC and UK entries by id, the EU act that listed it, else the list home. */
+export function recordLink(h) {
+  if (h.url) return { url: h.url, text: "Legal act" };
+  if (h.list === "us" && /^\d+$/.test(h.ref || "")) return { url: `https://sanctionssearch.ofac.treas.gov/Details.aspx?id=${h.ref}`, text: "Record" };
+  if (h.list === "uk" && /^[A-Z]{3}\d{4}$/.test(h.ref || "")) return { url: `https://search-uk-sanctions-list.service.gov.uk/?searchValue=${h.ref}`, text: "Record" };
+  return { url: LIST_PAGES[h.list], text: "List home" };
+}
+
 export function renderLists(hits, failedIds = []) {
-  const rows = hits.map((h) => `<tr><td>${escapeHtml(LIST_LABELS[h.list])}</td><td>${escapeHtml(h.name)}</td><td>${escapeHtml(h.program)}</td><td class="mono">${escapeHtml(h.date || "—")}</td><td><a href="${escapeHtml(safeUrl(h.url || LIST_PAGES[h.list]))}" rel="noopener">${h.url ? "Record" : "List"}</a></td></tr>`).join("");
+  const rows = hits.map((h) => {
+    const link = recordLink(h);
+    return `<tr><td>${escapeHtml(LIST_LABELS[h.list])}</td><td>${escapeHtml(h.name)}</td><td>${escapeHtml(h.program)}</td><td class="mono">${escapeHtml(h.date || "—")}</td><td><a href="${escapeHtml(safeUrl(link.url))}" rel="noopener">${link.text}</a></td></tr>`;
+  }).join("");
   const table = hits.length
     ? `<table class="lists"><thead><tr><th scope="col">List</th><th scope="col">Listed as</th><th scope="col">Program</th><th scope="col">Date</th><th scope="col"><span class="visually-hidden">Link</span></th></tr></thead><tbody>${rows}</tbody></table>`
     : `<p class="muted">No match on the official lists${failedIds.length ? " that loaded" : ""}.</p>`;

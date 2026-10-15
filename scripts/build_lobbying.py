@@ -20,7 +20,7 @@ CONFIG = ROOT / "data" / "lobbying-clients.json"
 BRIDGES = ROOT / "data" / "lobbying-bridges.json"
 ASSET = ROOT / "build" / "lobbying.json.gz"
 META = ROOT / "data" / "lobbying-meta.json"
-PAGE_URL = "https://lda.gov/"
+PAGE_URL = "https://lda.gov/api/redoc/v1/"  # the API the filings come from
 SAMPLE = "Nord Stream 2 AG has a lobbying firm"
 
 

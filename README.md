@@ -6,7 +6,7 @@ Built for journalists and researchers covering how Russia, Iran and others get a
 
 ## Use it
 
-https://undercurrent-jet-nine.vercel.app
+https://undercurrent-research.vercel.app
 
 Type a ship name, a seven-digit IMO number, a company or a person. New here? Press **Follow one tanker** for a five-step tour.
 

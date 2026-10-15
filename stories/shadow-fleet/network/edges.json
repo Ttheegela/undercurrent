@@ -172361,28 +172361,6 @@
  },
  {
   "source": "co:kylo-shipping",
-  "target": "co:trust-company-of-the-marshall-islands",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari get_entity_profile (has_registered_agent)",
-  "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari get_entity_profile (has_registered_agent)",
-    "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7205"
- },
- {
-  "source": "co:kylo-shipping",
   "target": "IMO9189146",
   "type": "manages",
   "date": "2025-06-17",
@@ -172402,50 +172380,6 @@
    }
   ],
   "id": "e7206"
- },
- {
-  "source": "co:elite-marine-shipmanagement",
-  "target": "cc:hk",
-  "type": "registered_in",
-  "date": "2024-07-24",
-  "source_url": "",
-  "source_file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-  "quote": "Organization Established Date 2024-07-24",
-  "confidence": "Documented",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-    "quote": "Organization Established Date 2024-07-24",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Documented"
-   }
-  ],
-  "id": "e7207"
- },
- {
-  "source": "co:elite-marine-shipmanagement",
-  "target": "IMO9208069",
-  "type": "manages",
-  "date": "2025-07-21",
-  "source_url": "",
-  "source_file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-  "quote": "Sayari current owner/manager link, unlisted firm",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-    "quote": "Sayari current owner/manager link, unlisted firm",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7208"
  },
  {
   "source": "co:skadi",
@@ -172468,28 +172402,6 @@
    }
   ],
   "id": "e7209"
- },
- {
-  "source": "co:skadi",
-  "target": "co:trust-company-of-the-marshall-islands",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari get_entity_profile (has_registered_agent)",
-  "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari get_entity_profile (has_registered_agent)",
-    "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7210"
  },
  {
   "source": "co:skadi",
@@ -172558,50 +172470,6 @@
   "id": "e7213"
  },
  {
-  "source": "co:triviality-shipping",
-  "target": "cc:ae",
-  "type": "registered_in",
-  "date": "2025-03-14",
-  "source_url": "",
-  "source_file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-  "quote": "Organization Established Date 2025-03-14",
-  "confidence": "Documented",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-    "quote": "Organization Established Date 2025-03-14",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Documented"
-   }
-  ],
-  "id": "e7214"
- },
- {
-  "source": "co:triviality-shipping",
-  "target": "IMO9236248",
-  "type": "manages",
-  "date": "2026-02-24",
-  "source_url": "",
-  "source_file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-  "quote": "Sayari current owner/manager link, unlisted firm",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-    "quote": "Sayari current owner/manager link, unlisted firm",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7215"
- },
- {
   "source": "co:nissho-lines-incorporated",
   "target": "cc:mh",
   "type": "registered_in",
@@ -172622,28 +172490,6 @@
    }
   ],
   "id": "e7216"
- },
- {
-  "source": "co:nissho-lines-incorporated",
-  "target": "co:trust-company-of-the-marshall-islands",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari get_entity_profile (has_registered_agent)",
-  "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari get_entity_profile (has_registered_agent)",
-    "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7217"
  },
  {
   "source": "co:nissho-lines-incorporated",
@@ -172712,50 +172558,6 @@
   "id": "e7220"
  },
  {
-  "source": "co:hongkong-eastern-shipping",
-  "target": "cc:hk",
-  "type": "registered_in",
-  "date": "2021-11-04",
-  "source_url": "",
-  "source_file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-  "quote": "Organization Established Date 2021-11-04",
-  "confidence": "Documented",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-    "quote": "Organization Established Date 2021-11-04",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Documented"
-   }
-  ],
-  "id": "e7221"
- },
- {
-  "source": "co:hongkong-eastern-shipping",
-  "target": "IMO9240885",
-  "type": "manages",
-  "date": "2025-05-09",
-  "source_url": "",
-  "source_file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-  "quote": "Sayari current owner/manager link, unlisted firm",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-    "quote": "Sayari current owner/manager link, unlisted firm",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7222"
- },
- {
   "source": "co:meuse-shipping",
   "target": "cc:mh",
   "type": "registered_in",
@@ -172779,28 +172581,6 @@
  },
  {
   "source": "co:meuse-shipping",
-  "target": "co:trust-company-of-the-marshall-islands",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari get_entity_profile (has_registered_agent)",
-  "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari get_entity_profile (has_registered_agent)",
-    "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7224"
- },
- {
-  "source": "co:meuse-shipping",
   "target": "IMO9247778",
   "type": "manages",
   "date": "2026-02-24",
@@ -172820,28 +172600,6 @@
    }
   ],
   "id": "e7225"
- },
- {
-  "source": "co:simona-marine-services",
-  "target": "IMO9251810",
-  "type": "manages",
-  "date": "2026-02-24",
-  "source_url": "",
-  "source_file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-  "quote": "Sayari current owner/manager link, unlisted firm",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-    "quote": "Sayari current owner/manager link, unlisted firm",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7226"
  },
  {
   "source": "co:zulu-ships-management-and-operation-l-l-c",
@@ -173196,72 +172954,6 @@
   "id": "e7242"
  },
  {
-  "source": "co:omi-lines",
-  "target": "cc:mh",
-  "type": "registered_in",
-  "date": "2024-05-24",
-  "source_url": "",
-  "source_file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-  "quote": "Organization Established Date 2024-05-24",
-  "confidence": "Documented",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-    "quote": "Organization Established Date 2024-05-24",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Documented"
-   }
-  ],
-  "id": "e7243"
- },
- {
-  "source": "co:omi-lines",
-  "target": "co:trust-company-of-the-marshall-islands",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari get_entity_profile (has_registered_agent)",
-  "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari get_entity_profile (has_registered_agent)",
-    "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7244"
- },
- {
-  "source": "co:omi-lines",
-  "target": "IMO9400980",
-  "type": "manages",
-  "date": "2026-02-24",
-  "source_url": "",
-  "source_file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-  "quote": "Sayari current owner/manager link, unlisted firm",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-    "quote": "Sayari current owner/manager link, unlisted firm",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7245"
- },
- {
   "source": "co:silver-tetra-marine",
   "target": "cc:mh",
   "type": "registered_in",
@@ -173282,28 +172974,6 @@
    }
   ],
   "id": "e7246"
- },
- {
-  "source": "co:silver-tetra-marine",
-  "target": "co:trust-company-of-the-marshall-islands",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari get_entity_profile (has_registered_agent)",
-  "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari get_entity_profile (has_registered_agent)",
-    "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7247"
  },
  {
   "source": "co:silver-tetra-marine",
@@ -173328,112 +172998,16 @@
   "id": "e7248"
  },
  {
-  "source": "co:grannus-shipholding",
-  "target": "cc:sc",
-  "type": "registered_in",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-  "quote": "registration country on file",
-  "confidence": "Documented",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-    "quote": "registration country on file",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Documented"
-   }
-  ],
-  "id": "e7249"
- },
- {
-  "source": "co:grannus-shipholding",
-  "target": "IMO9304356",
-  "type": "manages",
-  "date": "2025-06-17",
-  "source_url": "",
-  "source_file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-  "quote": "Sayari current owner/manager link, unlisted firm",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-    "quote": "Sayari current owner/manager link, unlisted firm",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7250"
- },
- {
-  "source": "co:vaigai-lines",
-  "target": "cc:mh",
-  "type": "registered_in",
-  "date": "2022-07-18",
-  "source_url": "",
-  "source_file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-  "quote": "Organization Established Date 2022-07-18",
-  "confidence": "Documented",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-    "quote": "Organization Established Date 2022-07-18",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Documented"
-   }
-  ],
-  "id": "e7251"
- },
- {
-  "source": "co:vaigai-lines",
-  "target": "co:trust-company-of-the-marshall-islands",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari get_entity_profile (has_registered_agent)",
-  "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari get_entity_profile (has_registered_agent)",
-    "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7252"
- },
- {
   "source": "co:vaigai-lines",
   "target": "IMO9308065",
   "type": "manages",
   "date": "2025-07-21",
-  "source_url": "",
-  "source_file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-  "quote": "Sayari current owner/manager link, unlisted firm",
+  "source_url": "https://www.gov.uk/government/publications/financial-sanctions-consolidated-list-of-targets",
+  "source_file": "hackathon-prep\\research\\R66_climate_data_pack\\data\\uk_sanctions_list\\UK-Sanctions-List.csv#RUS2786",
+  "quote": "IMO9308065, Vaigai Lines Inc (current owner/operator)",
   "confidence": "Documented",
-  "angle": "company-anatomy",
+  "angle": "enforcement",
   "sources": [
-   {
-    "url": "",
-    "file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-    "quote": "Sayari current owner/manager link, unlisted firm",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   },
    {
     "url": "https://www.gov.uk/government/publications/financial-sanctions-consolidated-list-of-targets",
     "file": "hackathon-prep\\research\\R66_climate_data_pack\\data\\uk_sanctions_list\\UK-Sanctions-List.csv#RUS2786",
@@ -173444,72 +173018,6 @@
    }
   ],
   "id": "e7253"
- },
- {
-  "source": "co:clyde-chartering",
-  "target": "cc:mh",
-  "type": "registered_in",
-  "date": "2020-11-19",
-  "source_url": "",
-  "source_file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-  "quote": "Organization Established Date 2020-11-19",
-  "confidence": "Documented",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari (Marshall Islands / HK Companies Registries, via Sayari)",
-    "quote": "Organization Established Date 2020-11-19",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Documented"
-   }
-  ],
-  "id": "e7254"
- },
- {
-  "source": "co:clyde-chartering",
-  "target": "co:trust-company-of-the-marshall-islands",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari get_entity_profile (has_registered_agent)",
-  "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari get_entity_profile (has_registered_agent)",
-    "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7255"
- },
- {
-  "source": "co:clyde-chartering",
-  "target": "IMO9282792",
-  "type": "manages",
-  "date": "2025-05-09",
-  "source_url": "",
-  "source_file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-  "quote": "Sayari current owner/manager link, unlisted firm",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "uk_sanctions_list/UK-Sanctions-List.csv; us_csl/consolidated.csv",
-    "quote": "Sayari current owner/manager link, unlisted firm",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7256"
  },
  {
   "source": "co:jetee",
@@ -173576,28 +173084,6 @@
    }
   ],
   "id": "e7259"
- },
- {
-  "source": "co:themis-mai",
-  "target": "co:trust-company-of-the-marshall-islands",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari get_entity_profile (has_registered_agent)",
-  "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari get_entity_profile (has_registered_agent)",
-    "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7260"
  },
  {
   "source": "co:themis-mai",
@@ -173843,28 +173329,6 @@
  },
  {
   "source": "co:zale-shipping",
-  "target": "co:trust-company-of-the-marshall-islands",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari get_entity_profile (has_registered_agent)",
-  "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari get_entity_profile (has_registered_agent)",
-    "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7272"
- },
- {
-  "source": "co:zale-shipping",
   "target": "IMO9321718",
   "type": "manages",
   "date": "2026-02-24",
@@ -173906,28 +173370,6 @@
    }
   ],
   "id": "e7274"
- },
- {
-  "source": "co:anika-lines",
-  "target": "co:trust-company-of-the-marshall-islands",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari get_entity_profile (has_registered_agent)",
-  "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari get_entity_profile (has_registered_agent)",
-    "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7275"
  },
  {
   "source": "co:anika-lines",
@@ -173975,28 +173417,6 @@
  },
  {
   "source": "co:neo-shipping",
-  "target": "co:trust-company-of-the-marshall-islands",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari get_entity_profile (has_registered_agent)",
-  "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari get_entity_profile (has_registered_agent)",
-    "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7278"
- },
- {
-  "source": "co:neo-shipping",
   "target": "IMO9282041",
   "type": "manages",
   "date": "2026-06-16",
@@ -174038,28 +173458,6 @@
    }
   ],
   "id": "e7280"
- },
- {
-  "source": "co:longevity-shipping",
-  "target": "co:trust-company-of-the-marshall-islands",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "pulls/sayari get_entity_profile (has_registered_agent)",
-  "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls/sayari get_entity_profile (has_registered_agent)",
-    "quote": "has_registered_agent: THE TRUST COMPANY OF THE MARSHALL ISLANDS, INC.",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7281"
  },
  {
   "source": "co:longevity-shipping",
@@ -174324,314 +173722,6 @@
    }
   ],
   "id": "e7293"
- },
- {
-  "source": "co:unlisted-018",
-  "target": "IMO9282481",
-  "type": "manages",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-  "quote": "[unlisted ship manager] | Manager",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-    "quote": "[unlisted ship manager] | Manager",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7294"
- },
- {
-  "source": "co:unlisted-018",
-  "target": "co:zulu-ships-management-and-operation-l-l-c",
-  "type": "sister_shell_of",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-  "quote": "current unlisted manager on a hull whose manager-of-record is Zulu Ships Management",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-    "quote": "current unlisted manager on a hull whose manager-of-record is Zulu Ships Management",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7295"
- },
- {
-  "source": "co:unlisted-007",
-  "target": "IMO9439541",
-  "type": "manages",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-  "quote": "[unlisted ship manager] | Manager",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-    "quote": "[unlisted ship manager] | Manager",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7296"
- },
- {
-  "source": "co:unlisted-007",
-  "target": "co:zulu-ships-management-and-operation-l-l-c",
-  "type": "sister_shell_of",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-  "quote": "current unlisted manager on a hull whose manager-of-record is Zulu Ships Management",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-    "quote": "current unlisted manager on a hull whose manager-of-record is Zulu Ships Management",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7297"
- },
- {
-  "source": "co:unlisted-006",
-  "target": "IMO9408695",
-  "type": "manages",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-  "quote": "[unlisted ship manager] | Manager",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-    "quote": "[unlisted ship manager] | Manager",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7298"
- },
- {
-  "source": "co:unlisted-006",
-  "target": "co:zulu-ships-management-and-operation-l-l-c",
-  "type": "sister_shell_of",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-  "quote": "current unlisted manager on a hull whose manager-of-record is Zulu Ships Management",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-    "quote": "current unlisted manager on a hull whose manager-of-record is Zulu Ships Management",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7299"
- },
- {
-  "source": "co:unlisted-016",
-  "target": "IMO9387279",
-  "type": "owns",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-  "quote": "[unlisted ship owner] | Owner",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-    "quote": "[unlisted ship owner] | Owner",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7300"
- },
- {
-  "source": "co:unlisted-016",
-  "target": "co:zulu-ships-management-and-operation-l-l-c",
-  "type": "sister_shell_of",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-  "quote": "current unlisted manager on a hull whose manager-of-record is Zulu Ships Management",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-    "quote": "current unlisted manager on a hull whose manager-of-record is Zulu Ships Management",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7301"
- },
- {
-  "source": "co:unlisted-014",
-  "target": "IMO9413004",
-  "type": "owns",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-  "quote": "[unlisted ship owner] | Owner",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-    "quote": "[unlisted ship owner] | Owner",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7302"
- },
- {
-  "source": "co:unlisted-014",
-  "target": "co:fleet-tanqo",
-  "type": "sister_shell_of",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-  "quote": "current unlisted manager on a hull whose manager-of-record is Fleet Tanqo Pvt Ltd",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-    "quote": "current unlisted manager on a hull whose manager-of-record is Fleet Tanqo Pvt Ltd",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7303"
- },
- {
-  "source": "co:unlisted-022",
-  "target": "IMO9291262",
-  "type": "manages",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-  "quote": "[unlisted ship manager] | Manager",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-    "quote": "[unlisted ship manager] | Manager",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7304"
- },
- {
-  "source": "co:unlisted-022",
-  "target": "co:fleet-tanqo",
-  "type": "sister_shell_of",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-  "quote": "current unlisted manager on a hull whose manager-of-record is Fleet Tanqo Pvt Ltd",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-    "quote": "current unlisted manager on a hull whose manager-of-record is Fleet Tanqo Pvt Ltd",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7305"
- },
- {
-  "source": "co:unlisted-017",
-  "target": "IMO9252955",
-  "type": "owns",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-  "quote": "[unlisted ship owner] | Owner",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt (Sayari has_owner)",
-    "quote": "[unlisted ship owner] | Owner",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7306"
- },
- {
-  "source": "co:unlisted-017",
-  "target": "co:zulu-ships-management-and-operation-l-l-c",
-  "type": "sister_shell_of",
-  "date": "",
-  "source_url": "",
-  "source_file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-  "quote": "current unlisted manager on a hull whose manager-of-record is Zulu Ships Management",
-  "confidence": "Lead",
-  "angle": "company-anatomy",
-  "sources": [
-   {
-    "url": "",
-    "file": "agents/fleet/zulu_tanqo/ship_summary.txt",
-    "quote": "current unlisted manager on a hull whose manager-of-record is Zulu Ships Management",
-    "record": "",
-    "angle": "company-anatomy",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7307"
  },
  {
   "source": "co:algae-ship-charter",
@@ -176726,14 +175816,14 @@
   "type": "owns",
   "date": "2019",
   "source_url": "",
-  "source_file": "[lda-known-listed] prior team research: rusal-en-plus-delisting.md | [ownership-bridges] public reporting (En+ Group annual report/prospectus); no Sayari find_beneficial_owners pull for Rusal exists in this session's raw files (sonnet-graph/), so not confirmed via an official record this pass",
+  "source_file": "[lda-known-listed] prior team research: rusal-en-plus-delisting.md | [ownership-bridges] public reporting (En+ Group annual report/prospectus); not confirmed via an official record this pass",
   "quote": "issue: aluminum tariffs/trade; amount: reported ~48%-57% stake (varies by year/source); period: 2019-2025",
   "confidence": "Lead",
   "angle": "lobbying",
   "sources": [
    {
     "url": "",
-    "file": "[lda-known-listed] prior team research: rusal-en-plus-delisting.md | [ownership-bridges] public reporting (En+ Group annual report/prospectus); no Sayari find_beneficial_owners pull for Rusal exists in this session's raw files (sonnet-graph/), so not confirmed via an official record this pass",
+    "file": "[lda-known-listed] prior team research: rusal-en-plus-delisting.md | [ownership-bridges] public reporting (En+ Group annual report/prospectus); not confirmed via an official record this pass",
     "quote": "issue: aluminum tariffs/trade; amount: reported ~48%-57% stake (varies by year/source); period: 2019-2025",
     "record": "",
     "angle": "lobbying",
@@ -177069,7 +176159,7 @@
   "type": "linked_to",
   "date": "2018",
   "source_url": "https://efile.fara.gov",
-  "source_file": "[fara-principals] C:/Projects/climate-day/ideas/lobbying/chinese-entity-list-firms.md; team's own research note, not an official corporate/regulatory record verified this pass | [ownership-bridges] Sayari entity dNBSaGUNeHKjDIMsiDeFTA / CF2ca8pzwEMGmKrENIifNA, find_beneficial_owners path (bo_hikvisi",
+  "source_file": "[fara-principals] C:/Projects/climate-day/ideas/lobbying/chinese-entity-list-firms.md; team's own research note, not an official corporate/regulatory record verified this pass",
   "quote": "period: 2018-2025",
   "confidence": "Lead",
   "angle": "lobbying",
@@ -177077,7 +176167,7 @@
   "sources": [
    {
     "url": "https://efile.fara.gov",
-    "file": "[fara-principals] C:/Projects/climate-day/ideas/lobbying/chinese-entity-list-firms.md; team's own research note, not an official corporate/regulatory record verified this pass | [ownership-bridges] Sayari entity dNBSaGUNeHKjDIMsiDeFTA / CF2ca8pzwEMGmKrENIifNA, find_beneficial_owners path (bo_hikvisi",
+    "file": "[fara-principals] C:/Projects/climate-day/ideas/lobbying/chinese-entity-list-firms.md; team's own research note, not an official corporate/regulatory record verified this pass",
     "quote": "period: 2018-2025",
     "record": "",
     "angle": "lobbying",
@@ -177085,68 +176175,6 @@
    }
   ],
   "id": "e7416"
- },
- {
-  "source": "lob:litasco",
-  "target": "lob:lukoil",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "[ownership-bridges] Sayari find_beneficial_owners on entity rBQ7x2ur5iqFMcwQAzOqLQ (Litasco SA), result entity i1jXEu0dxP424IovVTxgaw \"PAO LUKOIL\", path_length=2 (bo_litasco.json)",
-  "quote": "",
-  "confidence": "Documented",
-  "angle": "lobbying",
-  "type_raw": "subsidiary_of",
-  "sources": [
-   {
-    "url": "",
-    "file": "[ownership-bridges] Sayari find_beneficial_owners on entity rBQ7x2ur5iqFMcwQAzOqLQ (Litasco SA), result entity i1jXEu0dxP424IovVTxgaw \"PAO LUKOIL\", path_length=2 (bo_litasco.json)",
-    "quote": "",
-    "record": "",
-    "angle": "lobbying",
-    "confidence": "Documented"
-   },
-   {
-    "url": "https://sayari.com",
-    "file": "Sayari find_beneficial_owners, bo_litasco.json",
-    "quote": "Sayari find_beneficial_owners on entity rBQ7x2ur5iqFMcwQAzOqLQ (Litasco SA), result entity i1jXEu0dxP424IovVTxgaw \"PAO LUKOIL\", path_length=2",
-    "record": "",
-    "angle": "parent-groups",
-    "confidence": "Documented"
-   }
-  ],
-  "id": "e7418"
- },
- {
-  "source": "lob:neftochim_burgas",
-  "target": "lob:lukoil",
-  "type": "linked_to",
-  "date": "",
-  "source_url": "",
-  "source_file": "[ownership-bridges] Sayari find_beneficial_owners on entity wGLU1TlXmkx7iZX1fScGFQ (LUKOIL Neftohim Burgas), via LUKOIL Europe Holdings B.V. (entity ywE2N_zWjtI2M9YX6ZU9cg, path_length=1) to PAO LUKOIL (entity i1jXEu0dxP424IovVTxgaw, path_length=2); corrected from original report, which mislabeled t",
-  "quote": "",
-  "confidence": "Documented",
-  "angle": "lobbying",
-  "type_raw": "subsidiary_of",
-  "sources": [
-   {
-    "url": "",
-    "file": "[ownership-bridges] Sayari find_beneficial_owners on entity wGLU1TlXmkx7iZX1fScGFQ (LUKOIL Neftohim Burgas), via LUKOIL Europe Holdings B.V. (entity ywE2N_zWjtI2M9YX6ZU9cg, path_length=1) to PAO LUKOIL (entity i1jXEu0dxP424IovVTxgaw, path_length=2); corrected from original report, which mislabeled t",
-    "quote": "",
-    "record": "",
-    "angle": "lobbying",
-    "confidence": "Documented"
-   },
-   {
-    "url": "https://sayari.com",
-    "file": "Sayari find_beneficial_owners, bo_neftochim.json",
-    "quote": "via LUKOIL Europe Holdings B.V. (path_length=1) to PAO LUKOIL (path_length=2)",
-    "record": "",
-    "angle": "parent-groups",
-    "confidence": "Documented"
-   }
-  ],
-  "id": "e7419"
  },
  {
   "source": "lob:bulgaria",
@@ -177177,7 +176205,7 @@
   "type": "linked_to",
   "date": "",
   "source_url": "",
-  "source_file": "[ownership-bridges] public reporting; not confirmed in Sayari find_beneficial_owners pull (entity wHmvb1g8SCDyl5NYw5tBfw / bo_nayara.json); top result was Ashok Kumar Damani, an Indian shareholder",
+  "source_file": "[ownership-bridges] public reporting",
   "quote": "amount: ~49% reported stake",
   "confidence": "Lead",
   "angle": "lobbying",
@@ -177185,18 +176213,10 @@
   "sources": [
    {
     "url": "",
-    "file": "[ownership-bridges] public reporting; not confirmed in Sayari find_beneficial_owners pull (entity wHmvb1g8SCDyl5NYw5tBfw / bo_nayara.json); top result was Ashok Kumar Damani, an Indian shareholder",
+    "file": "[ownership-bridges] public reporting",
     "quote": "amount: ~49% reported stake",
     "record": "",
     "angle": "lobbying",
-    "confidence": "Lead"
-   },
-   {
-    "url": "https://lda.senate.gov / Sayari",
-    "file": "bo_nayara.json",
-    "quote": "~49% reported stake -- public reporting; not confirmed in Sayari find_beneficial_owners pull (top result was Ashok Kumar Damani, an Indian shareholder)",
-    "record": "",
-    "angle": "parent-groups",
     "confidence": "Lead"
    }
   ],
@@ -177554,52 +176574,6 @@
    }
   ],
   "id": "e7436"
- },
- {
-  "source": "IMO9252955",
-  "target": "co:unlisted-021",
-  "type": "carried_cargo_for",
-  "date": "2025-06-09",
-  "source_url": "",
-  "source_file": "pulls\\sayari\\20260925T193702305176Z_17328_search_shipments.json",
-  "quote": "supplier MT BRIONT; Waste Oils of petroleum; arrival country IND",
-  "confidence": "Lead",
-  "notes": "vessel named as a party in a customs record; not linked by IMO",
-  "angle": "manifests",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls\\sayari\\20260925T193702305176Z_17328_search_shipments.json",
-    "quote": "supplier MT BRIONT; Waste Oils of petroleum; arrival country IND",
-    "record": "",
-    "angle": "manifests",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7437"
- },
- {
-  "source": "co:unlisted-020",
-  "target": "IMO9282481",
-  "type": "transferred_cargo_with",
-  "date": "2026-02-21",
-  "source_url": "",
-  "source_file": "pulls\\sayari\\20260925T193511869793Z_12556_search_shipments.json",
-  "quote": "buyer MASTER OF MT TAGOR/ MT CAUVERI/ MT...; product description names FLEET TANQO PRIVATE LIMITED ops email",
-  "confidence": "Lead",
-  "notes": "vessel named as a party in a customs record; not linked by IMO",
-  "angle": "manifests",
-  "sources": [
-   {
-    "url": "",
-    "file": "pulls\\sayari\\20260925T193511869793Z_12556_search_shipments.json",
-    "quote": "buyer MASTER OF MT TAGOR/ MT CAUVERI/ MT...; product description names FLEET TANQO PRIVATE LIMITED ops email",
-    "record": "",
-    "angle": "manifests",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7438"
  },
  {
   "source": "co:zulu-ships-management-and-operation-l-l-c",
@@ -179294,160 +178268,6 @@
    }
   ],
   "id": "e7514"
- },
- {
-  "source": "co:unlisted-023",
-  "target": "IMO9809538",
-  "type": "manages",
-  "date": "",
-  "source_url": "https://graph.sayari.com/",
-  "source_file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-  "quote": "Sayari relationship: position 'ISM Manager'",
-  "confidence": "Lead",
-  "angle": "service-providers",
-  "sources": [
-   {
-    "url": "https://graph.sayari.com/",
-    "file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-    "quote": "Sayari relationship: position 'ISM Manager'",
-    "record": "",
-    "angle": "service-providers",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7515"
- },
- {
-  "source": "co:unlisted-012",
-  "target": "IMO9809538",
-  "type": "owns",
-  "date": "",
-  "source_url": "https://graph.sayari.com/",
-  "source_file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-  "quote": "Sayari relationship: position 'owner (via port authority)'",
-  "confidence": "Lead",
-  "angle": "service-providers",
-  "sources": [
-   {
-    "url": "https://graph.sayari.com/",
-    "file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-    "quote": "Sayari relationship: position 'owner (via port authority)'",
-    "record": "",
-    "angle": "service-providers",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7516"
- },
- {
-  "source": "co:unlisted-008",
-  "target": "IMO8984848",
-  "type": "manages",
-  "date": "",
-  "source_url": "https://graph.sayari.com/",
-  "source_file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-  "quote": "Sayari relationship: position 'Manager'",
-  "confidence": "Lead",
-  "angle": "service-providers",
-  "sources": [
-   {
-    "url": "https://graph.sayari.com/",
-    "file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-    "quote": "Sayari relationship: position 'Manager'",
-    "record": "",
-    "angle": "service-providers",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7517"
- },
- {
-  "source": "co:unlisted-001",
-  "target": "IMO7808401",
-  "type": "manages",
-  "date": "",
-  "source_url": "https://graph.sayari.com/",
-  "source_file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-  "quote": "Sayari relationship: position 'Manager / Beneficial Owner'",
-  "confidence": "Lead",
-  "angle": "service-providers",
-  "sources": [
-   {
-    "url": "https://graph.sayari.com/",
-    "file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-    "quote": "Sayari relationship: position 'Manager / Beneficial Owner'",
-    "record": "",
-    "angle": "service-providers",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7518"
- },
- {
-  "source": "co:unlisted-000",
-  "target": "IMO1031537",
-  "type": "manages",
-  "date": "",
-  "source_url": "https://graph.sayari.com/",
-  "source_file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-  "quote": "Sayari relationship: position 'Manager (current)'",
-  "confidence": "Lead",
-  "angle": "service-providers",
-  "sources": [
-   {
-    "url": "https://graph.sayari.com/",
-    "file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-    "quote": "Sayari relationship: position 'Manager (current)'",
-    "record": "",
-    "angle": "service-providers",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7519"
- },
- {
-  "source": "co:unlisted-005",
-  "target": "IMO1031537",
-  "type": "manages",
-  "date": "",
-  "source_url": "https://graph.sayari.com/",
-  "source_file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-  "quote": "Sayari relationship: position 'Manager (former)'",
-  "confidence": "Lead",
-  "angle": "service-providers",
-  "sources": [
-   {
-    "url": "https://graph.sayari.com/",
-    "file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-    "quote": "Sayari relationship: position 'Manager (former)'",
-    "record": "",
-    "angle": "service-providers",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7520"
- },
- {
-  "source": "co:unlisted-026",
-  "target": "IMO1064493",
-  "type": "manages",
-  "date": "",
-  "source_url": "https://graph.sayari.com/",
-  "source_file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-  "quote": "Sayari relationship: position 'ISM Manager'",
-  "confidence": "Lead",
-  "angle": "service-providers",
-  "sources": [
-   {
-    "url": "https://graph.sayari.com/",
-    "file": "pulls\\sayari\\20260925T1822*_get_entity_profile.json",
-    "quote": "Sayari relationship: position 'ISM Manager'",
-    "record": "",
-    "angle": "service-providers",
-    "confidence": "Lead"
-   }
-  ],
-  "id": "e7521"
  },
  {
   "source": "IMO9208069",

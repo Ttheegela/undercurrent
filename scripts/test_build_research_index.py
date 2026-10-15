@@ -82,7 +82,8 @@ def test_tidy(value, expected):
     assert b.tidy(value) == expected
 
 
-def test_chip_inferences_are_labelled_lead(entries):
+def test_no_sayari_records_in_dossiers(entries):
+    for e in entries.values():
+        assert "sayari" not in str(e).lower(), e["id"]
     chips = [e for i, e in entries.items() if i.startswith("chip:")]
-    sus = [f for e in chips for f in e["facts"] if "suspicious" in f["text"]]
-    assert sus and all(f["text"].startswith("Lead: ") for f in sus)
+    assert chips and not any("suspicious" in f["text"] for e in chips for f in e["facts"])

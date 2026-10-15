@@ -57,8 +57,8 @@ code{font:13px var(--mono);background:var(--surface);border:1px solid var(--rule
 <p class="lede">This map joins two worlds that are usually studied apart: the tankers and shipping companies that move sanctioned oil, and the money that companies tied to them spend on lobbying in Washington. This page explains, in plain terms, where every piece came from, how we joined them, and how sure we are.</p>
 
 <div class="stats">
-  <div class="stat"><b>1,552</b><span>sanctioned ships, each identified by its permanent hull number</span></div>
-  <div class="stat"><b>977</b><span>companies that own, run or are named beside them</span></div>
+  <div class="stat"><b>1,547</b><span>sanctioned ships, each identified by its permanent hull number</span></div>
+  <div class="stat"><b>960</b><span>companies that own, run or are named beside them</span></div>
   <div class="stat"><b>1,513</b><span>US lobbying reports read, out of 3,232 scanned</span></div>
   <div class="stat"><b>421</b><span>lobbyists, named in their own public reports</span></div>
   <div class="stat"><b>14</b><span>records that join the lobbying side to the fleet</span></div>
@@ -69,7 +69,7 @@ code{font:13px var(--mono);background:var(--surface);border:1px solid var(--rule
 <ul>
   <li>Every ship, company and person on the map comes from a <b>government list or a public filing</b>. We did not add anyone from news stories or guesswork.</li>
   <li>Every line on the map has a <b>source you can open</b>: click any dot, and each connection shows the record it came from.</li>
-  <li>Lines we inferred ourselves are <b>drawn dotted</b> and labelled "lead". There are 74 of them out of 3,754 lines, and you can switch them off.</li>
+  <li>Lines we inferred ourselves are <b>drawn dotted</b> and labelled "lead". There are 31 of them out of 3,708 lines, and you can switch them off.</li>
   <li>The main finding is also a limit: <b>the front companies that run the ships never appear in US lobbying records</b>. Their parent companies, banks and state owners do. Only 14 records connect the two.</li>
 </ul>
 
@@ -91,7 +91,7 @@ code{font:13px var(--mono);background:var(--surface);border:1px solid var(--rule
 <h2>How we built it</h2>
 <ol class="steps">
   <li><b>Start with the ships.</b> A ship's name can change with paperwork, but its hull number, issued by the International Maritime Organization (the "IMO number"), stays with it for life. We join every list by that number, so one ship with five names is still one dot.</li>
-  <li><b>Attach the companies.</b> The lists say who owns, manages or operates each ship. Those become the lines between ships and companies. 172 listed ships have no owner or operator named on any list, so they are not drawn.</li>
+  <li><b>Attach the companies.</b> The lists say who owns, manages or operates each ship. Those become the lines between ships and companies. 177 listed ships have no owner or operator named on any list, so they are not drawn.</li>
   <li><b>Choose the lobbying clients.</b> We picked the companies in our story: Russian banks and energy firms such as Sberbank, VTB, Gazprombank, Gazprom, Nord Stream 2, Novatek and Arctic LNG 2; Chinese firms on US blacklists such as Huawei, ZTE, SMIC, Hikvision and DJI; and the US chip industry's trade group and Nvidia. We also searched for the shipping companies themselves.</li>
   <li><b>Read every report.</b> We pulled all pages of lobbying reports for those names (3,232 reports) and kept the 1,513 whose client really is one of them. Name searches catch look-alikes, such as "ZTEK Corp" for ZTE or turkey farmers for Turkey, so every client is matched against an exact list.</li>
   <li><b>Count the money once.</b> Lobbying firms often correct a quarter's report, and the corrected version repeats the same fee. We count each firm, client and quarter once, using the latest version that states an amount. When a firm hires a subcontractor, the subcontractor also reports that money; we show that link but do not add it to the client's total, because it is already inside the main firm's fee. We checked one total by hand: Nord Stream 2 paid its Washington firms <b>$13.87 million</b> from 2016 to 2022. Before this cleanup the same data added up to $18.9 million.</li>

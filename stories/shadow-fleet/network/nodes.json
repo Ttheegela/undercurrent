@@ -110,10 +110,6 @@
    {
     "angle": "eu-acts",
     "text": "Listed under Article 3s(2) point (h): provides services (bunkering, tug services) to vessels designated under points (a)-(g). Entries 676-680, Annex XXV to Reg 833/2014, added by Reg 2026/1848, in force 24.7.2026."
-   },
-   {
-    "angle": "service-providers",
-    "text": "EU-listed (point h, service ship). Current manager per Sayari: [unlisted ship manager] (Lebanon); former manager [unlisted ship manager] (Turkey); owner links to Items Sal Offshore and Pinnacle Trading Ltd (both Lebanon)."
    }
   ],
   "first_listed": "2026-07-23",
@@ -172,10 +168,6 @@
    {
     "angle": "eu-acts",
     "text": "Listed under Article 3s(2) point (h): provides services (bunkering, tug services) to vessels designated under points (a)-(g). Entries 676-680, Annex XXV to Reg 833/2014, added by Reg 2026/1848, in force 24.7.2026."
-   },
-   {
-    "angle": "service-providers",
-    "text": "EU-listed (point h, service ship). ISM manager per Sayari: [unlisted ship manager] (Singapore); former owner Tankship Holdings Pte Ltd."
    }
   ],
   "first_listed": "2026-07-23",
@@ -675,10 +667,6 @@
    {
     "angle": "eu-acts",
     "text": "Listed under Article 3s(2) point (h): provides services (bunkering, tug services) to vessels designated under points (a)-(g). Entries 676-680, Annex XXV to Reg 833/2014, added by Reg 2026/1848, in force 24.7.2026."
-   },
-   {
-    "angle": "service-providers",
-    "text": "EU-listed (point h, service ship). Manager/beneficial owner per Sayari: [unlisted ship manager] (Turkey)."
    }
   ],
   "country": "TR",
@@ -7555,10 +7543,6 @@
    {
     "angle": "eu-acts",
     "text": "Listed under Article 3s(2) point (h): provides services (bunkering, tug services) to vessels designated under points (a)-(g). Entries 676-680, Annex XXV to Reg 833/2014, added by Reg 2026/1848, in force 24.7.2026."
-   },
-   {
-    "angle": "service-providers",
-    "text": "EU-listed (point h, service ship). Manager per Sayari: [unlisted ship manager] (Turkey; 'Gemi Ikmal' = ship-supply/bunkering business) - Sayari-sourced, unverified against an official filing."
    }
   ],
   "country": "TR",
@@ -94672,7 +94656,7 @@
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "Covered only by the list files, not by this angle's Sayari anatomy pulls (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2025-04-28; manages 1 hull(s)."
+    "text": "Covered only by the list files, not by this angle's company-registry research (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2025-04-28; manages 1 hull(s)."
    }
   ],
   "aliases": [],
@@ -96209,7 +96193,7 @@
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "Covered only by the list files, not by this angle's Sayari anatomy pulls (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2024-10-17; manages 1 hull(s)."
+    "text": "Covered only by the list files, not by this angle's company-registry research (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2024-10-17; manages 1 hull(s)."
    }
   ],
   "aliases": [],
@@ -96469,11 +96453,10 @@
    "lists",
    "company-anatomy"
   ],
-  "country": "MH",
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "set up 2020-11-19; closed 2025-06-19; shares the Trust Company Complex, Majuro address with 144-145 SDN-listed firms (registered agent, not a cluster); unlisted (not itself on a government sanctions list). Closed 2025-06-19, six weeks after the UK listed the hull as CLYDE NOBLE (09/05/2025) under Clyde's own name. Vicens Marine Co was set up 2025-05-05, four days before the UK listing, and OFAC la"
+    "text": "unlisted (not itself on a government sanctions list). The UK listed the hull as CLYDE NOBLE (09/05/2025) under Clyde's own name; OFAC later listed it as AQUA LIVE (2026-02-06)."
    }
   ],
   "programs": [],
@@ -97740,7 +97723,7 @@
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "Covered only by the list files, not by this angle's Sayari anatomy pulls (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2024-10-17; manages 1 hull(s)."
+    "text": "Covered only by the list files, not by this angle's company-registry research (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2024-10-17; manages 1 hull(s)."
    }
   ],
   "aliases": [],
@@ -98002,7 +97985,7 @@
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "set up 2024-07-24; unlisted (not itself on a government sanctions list). UK names 'Elite Marine Ship Management' as STELLAR BEVERLY's operator; OFAC's own Linked-To company for the same hull is YEGUA TRADING LIMITED (Hong Kong, reg. 2021-06-16) -- two different Hong Kong shell layers on one ship."
+    "text": "unlisted (not itself on a government sanctions list). UK names 'Elite Marine Ship Management' as STELLAR BEVERLY's operator; OFAC's own Linked-To company for the same hull is YEGUA TRADING LIMITED (Hong Kong, reg. 2021-06-16) -- two different Hong Kong shell layers on one ship."
    },
    {
     "angle": "ship-histories",
@@ -100223,11 +100206,10 @@
    "lists",
    "company-anatomy"
   ],
-  "country": "SC",
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "address: Suite 10, 3rd Floor, La Ciotat, Mont Fleuri, Mahe Island, Seychelles.; shares the La Ciotat/Mont Fleuri, Mahe, Seychelles suite with 16 SDN rows across mixed programmes (agent address, weak signal); unlisted (not itself on a government sanctions list). Same Seychelles suite address as the listed Erst Group and Elysian Horizon -- a third firm at that address, still under the 16-row 'agent "
+    "text": "unlisted (not itself on a government sanctions list)."
    }
   ],
   "programs": [],
@@ -101203,11 +101185,10 @@
    "lists",
    "company-anatomy"
   ],
-  "country": "HK",
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "set up 2021-11-04; unlisted (not itself on a government sanctions list). LONGEVITY SHIPPING LIMITED (Marshall Islands, Trust Company Complex, reg. 2025-01-16) is the OFAC Linked-To entity for the same hull (US name LONGEVITY 7) -- another case of a Marshall Islands shell layered under a Hong Kong-named UK manager."
+    "text": "unlisted (not itself on a government sanctions list). LONGEVITY SHIPPING LIMITED (Marshall Islands, Trust Company Complex, reg. 2025-01-16) is the OFAC Linked-To entity for the same hull (US name LONGEVITY 7) -- another case of a Marshall Islands shell layered under a Hong Kong-named UK manager."
    }
   ],
   "programs": [],
@@ -104596,7 +104577,7 @@
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "Covered only by the list files, not by this angle's Sayari anatomy pulls (time/budget-boxed to the 42-hull A-tier core). No US/UK/EU list hit found for the company name itself; manages 1 hull(s) on both the UK Russia list and a US Iran-authority-cited or SDGT list. unlisted"
+    "text": "Covered only by the list files, not by this angle's company-registry research (time/budget-boxed to the 42-hull A-tier core). No US/UK/EU list hit found for the company name itself; manages 1 hull(s) on both the UK Russia list and a US Iran-authority-cited or SDGT list. unlisted"
    }
   ],
   "programs": [],
@@ -106815,7 +106796,7 @@
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "Covered only by the list files, not by this angle's Sayari anatomy pulls (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2025-02-06; manages 1 hull(s)."
+    "text": "Covered only by the list files, not by this angle's company-registry research (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2025-02-06; manages 1 hull(s)."
    }
   ],
   "aliases": [],
@@ -107233,7 +107214,7 @@
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "Covered only by the list files, not by this angle's Sayari anatomy pulls (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2024-04-04; manages 1 hull(s)."
+    "text": "Covered only by the list files, not by this angle's company-registry research (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2024-04-04; manages 1 hull(s)."
    }
   ],
   "aliases": [],
@@ -107405,11 +107386,10 @@
    "lists",
    "company-anatomy"
   ],
-  "country": "MH",
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "set up 2024-05-24; closed 2025-07-30; shares the Trust Company Complex, Majuro address with 144-145 SDN-listed firms (registered agent, not a cluster); unlisted (not itself on a government sanctions list). Closed the same day OFAC listed the hull as EVALI/ABHA/OMNI (2025-07-30) -- the UK still names the now-closed Omi Lines as manager."
+    "text": "unlisted (not itself on a government sanctions list). The UK names Omi Lines as manager; OFAC listed the hull as EVALI/ABHA/OMNI on 2025-07-30."
    }
   ],
   "programs": [],
@@ -109941,7 +109921,7 @@
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "Covered only by the list files, not by this angle's Sayari anatomy pulls (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2025-01-10; manages 2 hull(s)."
+    "text": "Covered only by the list files, not by this angle's company-registry research (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2025-01-10; manages 2 hull(s)."
    },
    {
     "angle": "ship-histories",
@@ -111239,7 +111219,7 @@
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "unlisted (not itself on a government sanctions list). Sayari's own record for Simona Marine Services Ltd carries no country or address field -- unusually thin even for a shell. Its predecessor on this hull per manager-churn.md was Coraline Ship Management (India), 36 days before the UK listing."
+    "text": "unlisted (not itself on a government sanctions list)."
    },
    {
     "angle": "ship-histories",
@@ -111796,7 +111776,7 @@
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "Covered only by the list files, not by this angle's Sayari anatomy pulls (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2024-09-25; manages 1 hull(s)."
+    "text": "Covered only by the list files, not by this angle's company-registry research (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2024-09-25; manages 1 hull(s)."
    }
   ],
   "aliases": [],
@@ -113513,11 +113493,10 @@
    "lists",
    "company-anatomy"
   ],
-  "country": "AE",
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "set up 2025-03-14; address: Dubai, ARE (per Sayari/Cedar Rose; commercial register 2555450); unlisted (not itself on a government sanctions list). Registered 2025-03-14, 18 days before OFAC listed the hull as PHOENIX I (2025-02-24) -- Triviality actually postdates the listing by ~2.5 weeks; it became the UK-named manager only when the UK listed the ship a year later (24/02/2026)."
+    "text": "unlisted (not itself on a government sanctions list). It became the UK-named manager when the UK listed the ship (24/02/2026); OFAC had listed the hull as PHOENIX I on 2025-02-24."
    }
   ],
   "programs": [],
@@ -113572,30 +113551,6 @@
   "name_policy": "show",
   "generic_name": "unlisted Vietnam company linked to listed ships",
   "program_group": "iran"
- },
- {
-  "id": "co:trust-company-of-the-marshall-islands",
-  "type": "company",
-  "name": "The Trust Company of the Marshall Islands, Inc.",
-  "angle": [
-   "company-anatomy"
-  ],
-  "country": "MH",
-  "role": "formation/registered agent",
-  "research_notes": [
-   {
-    "angle": "company-anatomy",
-    "text": "Registered agent for the Trust Company Complex, Ajeltake Road, Majuro address, which carries 144-145 SDN rows overall; treated as a registered agent, not a cluster (brief's >15-firm rule)."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "show",
-  "generic_name": "unlisted company",
-  "program_group": "other",
-  "ship_count": 0
  },
  {
   "id": "co:tunasan-shipping",
@@ -113782,7 +113737,7 @@
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "Covered only by the list files, not by this angle's Sayari anatomy pulls (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2025-01-10; manages 1 hull(s)."
+    "text": "Covered only by the list files, not by this angle's company-registry research (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2025-01-10; manages 1 hull(s)."
    }
   ],
   "aliases": [],
@@ -113949,54 +113904,6 @@
   "program_group": "russia"
  },
  {
-  "id": "co:unlisted-000",
-  "type": "company",
-  "name": "unlisted ship manager",
-  "angle": [
-   "service-providers"
-  ],
-  "country": "LB",
-  "role": "manager",
-  "research_notes": [
-   {
-    "angle": "service-providers",
-    "text": "Sayari-sourced manager/owner link (Lead) for LADY JASMINE; no official sanctions list names this firm. Left unlisted/agency-only per verifier instruction - stays Lead."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted ship manager",
-  "program_group": "russia",
-  "ship_count": 1
- },
- {
-  "id": "co:unlisted-001",
-  "type": "company",
-  "name": "unlisted ship manager",
-  "angle": [
-   "service-providers"
-  ],
-  "country": "TR",
-  "role": "manager / beneficial owner",
-  "research_notes": [
-   {
-    "angle": "service-providers",
-    "text": "Sayari-sourced manager/owner link (Lead) for BEBEK-E; no official sanctions list names this firm. Left unlisted/agency-only per verifier instruction - stays Lead."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted ship manager",
-  "program_group": "russia",
-  "ship_count": 1
- },
- {
   "id": "co:unlisted-002",
   "type": "company",
   "name": "unlisted ship owner",
@@ -114068,30 +113975,6 @@
   "ship_count": 1
  },
  {
-  "id": "co:unlisted-005",
-  "type": "company",
-  "name": "unlisted ship manager",
-  "angle": [
-   "service-providers"
-  ],
-  "country": "TR",
-  "role": "former manager",
-  "research_notes": [
-   {
-    "angle": "service-providers",
-    "text": "Sayari-sourced manager/owner link (Lead), former manager of LADY JASMINE; no official sanctions list names this firm. Left unlisted/agency-only per verifier instruction - stays Lead."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted ship manager",
-  "program_group": "russia",
-  "ship_count": 1
- },
- {
   "id": "co:unlisted-006",
   "type": "company",
   "name": "unlisted ship manager",
@@ -114102,10 +113985,6 @@
   "country": "LR",
   "role": "manager",
   "research_notes": [
-   {
-    "angle": "company-anatomy",
-    "text": "unlisted; Sayari current manager link on this hull, whose US/UK manager-of-record is Zulu Ships Management. One-ship company named similarly to shipping-line convention (not necessarily after this ship's own name)."
-   },
    {
     "angle": "ship-histories",
     "text": "unlisted (team sanctions checker found no confident list entry)"
@@ -114118,54 +113997,6 @@
   "name_policy": "generic",
   "generic_name": "unlisted ship manager",
   "program_group": "both",
-  "ship_count": 1
- },
- {
-  "id": "co:unlisted-007",
-  "type": "company",
-  "name": "unlisted ship manager",
-  "angle": [
-   "company-anatomy"
-  ],
-  "country": "LR",
-  "role": "manager",
-  "research_notes": [
-   {
-    "angle": "company-anatomy",
-    "text": "unlisted; Sayari current manager link on this hull, whose US/UK manager-of-record is Zulu Ships Management. One-ship company named similarly to shipping-line convention (not necessarily after this ship's own name)."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted ship manager",
-  "program_group": "both",
-  "ship_count": 1
- },
- {
-  "id": "co:unlisted-008",
-  "type": "company",
-  "name": "unlisted ship manager",
-  "angle": [
-   "service-providers"
-  ],
-  "country": "TR",
-  "role": "ship supply / manager",
-  "research_notes": [
-   {
-    "angle": "service-providers",
-    "text": "Sayari-sourced manager/owner link (Lead) for BILAL BEY; no official sanctions list names this firm. Left unlisted/agency-only per verifier instruction - stays Lead."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted ship manager",
-  "program_group": "russia",
   "ship_count": 1
  },
  {
@@ -114241,30 +114072,6 @@
   "ship_count": 1
  },
  {
-  "id": "co:unlisted-012",
-  "type": "company",
-  "name": "unlisted ship owner",
-  "angle": [
-   "service-providers"
-  ],
-  "country": "LK",
-  "role": "port authority / owner link",
-  "research_notes": [
-   {
-    "angle": "service-providers",
-    "text": "Sayari-sourced manager/owner link (Lead) for KUMANA; no official sanctions list names this firm. Left unlisted/agency-only per verifier instruction - stays Lead."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted ship owner",
-  "program_group": "russia",
-  "ship_count": 1
- },
- {
   "id": "co:unlisted-013",
   "type": "company",
   "name": "unlisted India ship owner",
@@ -114285,30 +114092,6 @@
   "listed": false,
   "name_policy": "generic",
   "generic_name": "unlisted India ship owner",
-  "program_group": "both",
-  "ship_count": 1
- },
- {
-  "id": "co:unlisted-014",
-  "type": "company",
-  "name": "unlisted ship owner",
-  "angle": [
-   "company-anatomy"
-  ],
-  "country": "AE",
-  "role": "owner",
-  "research_notes": [
-   {
-    "angle": "company-anatomy",
-    "text": "unlisted; Sayari current owner link on this hull, whose US/UK manager-of-record is Fleet Tanqo Pvt Ltd. One-ship company named similarly to shipping-line convention (not necessarily after this ship's own name)."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted ship owner",
   "program_group": "both",
   "ship_count": 1
  },
@@ -114337,78 +114120,6 @@
   "ship_count": 1
  },
  {
-  "id": "co:unlisted-016",
-  "type": "company",
-  "name": "unlisted ship owner",
-  "angle": [
-   "company-anatomy"
-  ],
-  "country": "AE",
-  "role": "owner",
-  "research_notes": [
-   {
-    "angle": "company-anatomy",
-    "text": "unlisted; Sayari current owner link on this hull, whose US/UK manager-of-record is Zulu Ships Management. One-ship company named similarly to shipping-line convention (not necessarily after this ship's own name)."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted ship owner",
-  "program_group": "both",
-  "ship_count": 1
- },
- {
-  "id": "co:unlisted-017",
-  "type": "company",
-  "name": "unlisted ship owner",
-  "angle": [
-   "company-anatomy"
-  ],
-  "country": "AE",
-  "role": "owner",
-  "research_notes": [
-   {
-    "angle": "company-anatomy",
-    "text": "unlisted; Sayari current owner link on this hull, whose US/UK manager-of-record is Zulu Ships Management. One-ship company named similarly to shipping-line convention (not necessarily after this ship's own name)."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted ship owner",
-  "program_group": "both",
-  "ship_count": 1
- },
- {
-  "id": "co:unlisted-018",
-  "type": "company",
-  "name": "unlisted ship manager",
-  "angle": [
-   "company-anatomy"
-  ],
-  "country": "MH",
-  "role": "manager",
-  "research_notes": [
-   {
-    "angle": "company-anatomy",
-    "text": "unlisted; Sayari current manager link on this hull, whose US/UK manager-of-record is Zulu Ships Management. One-ship company named similarly to shipping-line convention (not necessarily after this ship's own name)."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted ship manager",
-  "program_group": "both",
-  "ship_count": 1
- },
- {
   "id": "co:unlisted-019",
   "type": "company",
   "name": "unlisted Hong Kong ship manager",
@@ -114430,102 +114141,6 @@
   "name_policy": "generic",
   "generic_name": "unlisted Hong Kong ship manager",
   "program_group": "both",
-  "ship_count": 1
- },
- {
-  "id": "co:unlisted-020",
-  "type": "company",
-  "name": "unlisted company",
-  "angle": [
-   "manifests"
-  ],
-  "country": "IN",
-  "role": "ship agent / supplier",
-  "research_notes": [
-   {
-    "angle": "manifests",
-    "text": "Unlisted supplier/seller: Indian supplier in the trade-data record whose consignee field reads 'MASTER OF MT TAGOR/ MT CAUVERI/ MT...'; product description carries Fleet Tanqo's operations email, so this looks like a ship-stores/agency shipment rather than a cargo of oil; not itself sanctioned in the lists we hold."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted company",
-  "program_group": "other",
-  "ship_count": 0
- },
- {
-  "id": "co:unlisted-021",
-  "type": "company",
-  "name": "unlisted company",
-  "angle": [
-   "manifests"
-  ],
-  "country": "IN",
-  "role": "waste-oil buyer (India)",
-  "research_notes": [
-   {
-    "angle": "manifests",
-    "text": "Unlisted buyer: buyer of record in the BRIONT Indian trade-data shipment; not itself sanctioned in the lists we hold; a plain commercial counterparty as far as we could check."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted company",
-  "program_group": "other",
-  "ship_count": 0
- },
- {
-  "id": "co:unlisted-022",
-  "type": "company",
-  "name": "unlisted ship manager",
-  "angle": [
-   "company-anatomy"
-  ],
-  "country": "IN",
-  "role": "manager",
-  "research_notes": [
-   {
-    "angle": "company-anatomy",
-    "text": "unlisted; Sayari current manager link on this hull, whose US/UK manager-of-record is Fleet Tanqo Pvt Ltd. One-ship company named similarly to shipping-line convention (not necessarily after this ship's own name)."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted ship manager",
-  "program_group": "both",
-  "ship_count": 1
- },
- {
-  "id": "co:unlisted-023",
-  "type": "company",
-  "name": "unlisted ship manager",
-  "angle": [
-   "service-providers"
-  ],
-  "country": "LK",
-  "role": "ISM manager",
-  "research_notes": [
-   {
-    "angle": "service-providers",
-    "text": "Sayari-sourced manager/owner link (Lead) for KUMANA; no official sanctions list names this firm. Left unlisted/agency-only per verifier instruction - stays Lead."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted ship manager",
-  "program_group": "russia",
   "ship_count": 1
  },
  {
@@ -114574,30 +114189,6 @@
   "name_policy": "generic",
   "generic_name": "unlisted United Arab Emirates ship owner",
   "program_group": "both",
-  "ship_count": 1
- },
- {
-  "id": "co:unlisted-026",
-  "type": "company",
-  "name": "unlisted ship manager",
-  "angle": [
-   "service-providers"
-  ],
-  "country": "SG",
-  "role": "ISM manager",
-  "research_notes": [
-   {
-    "angle": "service-providers",
-    "text": "Sayari-sourced manager/owner link (Lead) for OCEAN FORTUNE 18; no official sanctions list names this firm. Left unlisted/agency-only per verifier instruction - stays Lead."
-   }
-  ],
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "generic",
-  "generic_name": "unlisted ship manager",
-  "program_group": "russia",
   "ship_count": 1
  },
  {
@@ -114663,7 +114254,7 @@
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "set up 2022-07-18; shares the Trust Company Complex, Majuro address with 144-145 SDN-listed firms (registered agent, not a cluster); unlisted (not itself on a government sanctions list). Active as of 2026-04-09 per Sayari's Marshall Islands registry pull; shares Algae Ship Charter's hull (EVENTIN) and the Trust Company of the Marshall Islands as registered agent with 10+ other firms on this list."
+    "text": "unlisted (not itself on a government sanctions list). Shares a hull (EVENTIN) with the US-listed Algae Ship Charter."
    },
    {
     "angle": "enforcement",
@@ -115401,7 +114992,7 @@
   "research_notes": [
    {
     "angle": "company-anatomy",
-    "text": "Covered only by the list files, not by this angle's Sayari anatomy pulls (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2025-04-30; manages 1 hull(s)."
+    "text": "Covered only by the list files, not by this angle's company-registry research (time/budget-boxed to the 42-hull A-tier core). Confirmed on the US SDN/CSL list, first seen 2025-04-30; manages 1 hull(s)."
    },
    {
     "angle": "ship-histories",
@@ -117360,7 +116951,7 @@
   "research_notes": [
    {
     "angle": "lobbying",
-    "text": "[lda-foreign-entities] BIS Entity List (84 FR 54002; 85 FR 44159); also CMIC-EO13959 [fara-principals] CMIC/EO13959 designation NOT confirmed in this pass; date corrected from 'n/a' [ownership-bridges] Sayari entity CF2ca8pzwEMGmKrENIifNA"
+    "text": "[lda-foreign-entities] BIS Entity List (84 FR 54002; 85 FR 44159); also CMIC-EO13959 [fara-principals] CMIC/EO13959 designation NOT confirmed in this pass; date corrected from 'n/a'"
    }
   ],
   "aliases": [
@@ -117521,36 +117112,6 @@
   "ship_count": 0
  },
  {
-  "id": "lob:litasco",
-  "type": "company",
-  "name": "Litasco SA",
-  "angle": [
-   "lobbying",
-   "parent-groups"
-  ],
-  "country": "ch",
-  "role": "intermediary",
-  "research_notes": [
-   {
-    "angle": "lobbying",
-    "text": "[ownership-bridges] Lukoil trading subsidiary; zero LDA filings found"
-   },
-   {
-    "angle": "parent-groups",
-    "text": "Lukoil's Geneva-based trading subsidiary. No matching company node exists in our fleet graph."
-   }
-  ],
-  "lobbying_graph": true,
-  "listed_by": [],
-  "programs": [],
-  "aliases": [],
-  "listed": false,
-  "name_policy": "show",
-  "generic_name": "unlisted Switzerland company linked to listed ships",
-  "program_group": "other",
-  "ship_count": 0
- },
- {
   "id": "lob:lukoil",
   "type": "company",
   "name": "PAO LUKOIL",
@@ -117561,10 +117122,6 @@
   "country": "ru",
   "role": "listed entity",
   "research_notes": [
-   {
-    "angle": "lobbying",
-    "text": "[ownership-bridges] Sayari entity eF5hsZhDO7_rfEX9aELqIg (get_entity_summary); find_beneficial_owners traces from Litasco/Neftochim resolve to a related record i1jXEu0dxP424IovVTxgaw, likely a duplicate Sayari entry for the same company, no"
-   },
    {
     "angle": "parent-groups",
     "text": "Also on the lobbying graph as lob:lukoil -- see same_as below."
@@ -117663,10 +117220,6 @@
   "role": "listed entity",
   "research_notes": [
    {
-    "angle": "lobbying",
-    "text": "[ownership-bridges] Sayari entity wHmvb1g8SCDyl5NYw5tBfw shows sanctioned:true and formerly_sanctioned flags together; exact list/date not broken out in this pull"
-   },
-   {
     "angle": "parent-groups",
     "text": "Indian refiner reported to be ~49% Rosneft-linked. No matching company node exists in our fleet graph."
    }
@@ -117694,7 +117247,7 @@
   "research_notes": [
    {
     "angle": "lobbying",
-    "text": "[ownership-bridges] Sayari entity wGLU1TlXmkx7iZX1fScGFQ; refinery beneficiary of EU sanctions derogation"
+    "text": "[ownership-bridges] refinery beneficiary of EU sanctions derogation"
    },
    {
     "angle": "parent-groups",
@@ -117914,7 +117467,7 @@
   "research_notes": [
    {
     "angle": "lobbying",
-    "text": "[ownership-bridges] Reported ~49% Nayara stake; NOT found in Sayari find_beneficial_owners pull for Nayara (top result was an unrelated Indian individual)"
+    "text": "[ownership-bridges] Reported ~49% Nayara stake."
    },
    {
     "angle": "parent-groups",
@@ -117972,7 +117525,7 @@
   "research_notes": [
    {
     "angle": "lobbying",
-    "text": "[ownership-bridges] Zero LDA filings under its own name (confirmed, climate-day/ideas/lobbying/rusal-en-plus-delisting.md); UK 2023 relisting and Sayari's current sanctioned:true flag not independently reconciled this pass"
+    "text": "[ownership-bridges] Zero LDA filings under its own name (confirmed, climate-day/ideas/lobbying/rusal-en-plus-delisting.md); UK 2023 relisting not independently reconciled this pass"
    }
   ],
   "aliases": [

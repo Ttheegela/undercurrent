@@ -67,12 +67,12 @@ footer li{margin:2px 0}
 <main>
   <h1>How chips reach Russia: the routes in the trade records</h1>
   <p class="sub" id="sub">Electronic chips (customs code HS 8542) recorded arriving in Russia, grouped by the country they were shipped from. In these records the middle countries only start appearing after the invasion; the chips themselves were mostly made elsewhere.</p>
-  <div class="note"><b>How to read this.</b> Every number is a count of <b>shipment records</b> in Sayari's trade data, not a value, a volume, or proof that any rule was broken. Each row is a <b>lead, not a finding</b>: it points to where a person should look next. Every row links to the saved sponsor answer it came from.</div>
+  <div class="note"><b>How to read this.</b> Every number is a count of <b>shipment records</b> in Sayari's trade data, not a value, a volume, or proof that any rule was broken. Each row is a <b>lead, not a finding</b>: it points to where a person should look next.</div>
   <p id="err">Could not load routes_8542_rus.js. Run <code>python extract_routes.py</code> in this folder.</p>
   <div id="groups"></div>
   <footer>
     <ul id="caveats"></ul>
-    <p>Source: Sayari trade data (search_trade_facets), saved 25 Sept 2026 in <code>climate-day/pulls/sayari/</code>. Sponsor data licensed for today only; stays on our laptops. Status of every row: <span class="pill">lead, not finding</span></p>
+    <p>Source: Sayari trade data (aggregate counts), saved 25 Sept 2026. Status of every row: <span class="pill">lead, not finding</span></p>
   </footer>
 </main>
 <script src="routes_8542_rus.js"></script>
@@ -80,7 +80,6 @@ footer li{margin:2px 0}
 (function(){
   const D = window.ROUTES;
   if(!D){ document.getElementById('err').style.display='block'; return; }
-  const SRC = '../../pulls/sayari/';
   const fmt = n => n==null ? 'n/a' : n.toLocaleString('en-US');
   const T0 = Date.parse('2018-01-01'), T1 = Date.parse('2027-01-01');
   const pos = d => ((Date.parse(d)-T0)/(T1-T0)*100).toFixed(2)+'%';
@@ -121,7 +120,7 @@ footer li{margin:2px 0}
              <div class="inv" style="left:${pos(inv)}"></div></div>
              <div class="dates">${r.first_date} to ${r.last_date}</div></div>
         <div class="meta"><span>Where the chips were made (top, by records): ${made||'not in the answer'}</span>
-             <span>Source: <a href="${SRC+encodeURIComponent(r.source_file)}">${esc(r.source_file)}</a></span>
+             <span>Source: ${esc(r.source_file)}</span>
              <span class="pill">lead, not finding</span></div>
       </div>`;
     });

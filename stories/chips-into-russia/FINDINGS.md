@@ -139,8 +139,8 @@ through new doors.
   or 2024; 4 appeared in 2022. So buyers renew too, just more slowly. Listed ones include JSC Kompel (OFAC
   2023-07-20, UK 2024-02-22, EU 2024-06-24), Spetsvoltazh and Kvazar (OFAC 2023-05-19), Onelek, Altrabeta and
   Staut (OFAC 2023-07-20), Intellekt Telekom (OFAC 2024-10-30). Kvazar kept receiving chips 14 months after
-  its listing. The largest buyer is flagged by the sponsor as EU-restricted, but it is not on the EU, US or UK
-  asset-freeze lists we checked, so it is not named. **M-H**
+  its listing. The largest buyer is not on the EU, US or UK asset-freeze lists we checked, so it is not named.
+  **M-H**
 - **Hub suppliers serve several buyers.** YW NL E-Commerce (UK 2025-10-15) supplies three of the top 10
   buyers. Elmec Trade (OFAC 2023-05-19), Asialink Shanghai (OFAC 2024-06-12) and Thamestone (OFAC 2023-12-12)
   each supply two. Screening one hub supplier touches several buyers at once. **M-H**
@@ -262,10 +262,9 @@ through new doors.
   2024 flows from both then dropped. About two years from ban to fix. **H**
 - **Aluminium: a legal chain that screens clean.** Turkey is the largest destination for Russian aluminium
   (HS 7601) in Sayari's records: 9,011 records, then Uzbekistan 4,260 and China 3,252. Russia's largest
-  aluminium producer is not on the US, UK or EU lists in our files. One Turkish alloy-wheel maker (unlisted)
-  received 372 records of Russian aluminium 2019 to 2025 and exports wheels mainly to Germany, France, Spain
-  and the Czech Republic, labelled Turkish origin. Nothing needs to change name: the metal becomes a wheel and
-  its origin label changes. **H** for route counts, **L** that any given wheel contains Russian metal. Buying
+  aluminium producer is not on the US, UK or EU lists in our files. Nothing needs to change name: metal cast
+  into a product in Turkey can leave with a Turkish origin label. **H** for route counts, **L** that any given
+  product contains Russian metal. Buying
   Russian aluminium was legal in Turkey and, for most of this period, in the EU.
 - **Rules cover origin, not content.** Since 2024-04-13 the US bans imports of Russian-origin aluminium,
   copper and nickel (Treasury jy2249). Whether wheels cast in Turkey count: not verified. **H** for the rule.

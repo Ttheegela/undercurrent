@@ -565,7 +565,7 @@ function renderSide(n){
 const STEPS = [
   {t:"The shadow fleet", x:`<b>${KG.nodes.filter(n => n.t === "ship").length.toLocaleString()} tankers and cargo ships</b> on US, UK or EU sanctions lists, joined by their permanent hull number to the companies that own, manage or operate them. Every ship here is listed; a red ring on a company or person means a government froze its assets.`,
    s:"UK sanctions list (21 Sep 2026), US Treasury and Commerce lists, EU asset-freeze list, Ukraine's war-sanctions database.", fleet:true},
-  {t:"New name, same hull", x:"A ship's name is paperwork; its hull number is for life. The UK listed <b>CLYDE NOBLE</b> in May 2025. Its manager closed the next month, and the US later listed the same hull as <b>AQUA LIVE</b>.",
+  {t:"New name, same hull", x:"A ship's name is paperwork; its hull number is for life. The UK listed <b>CLYDE NOBLE</b> in May 2025, and the US later listed the same hull as <b>AQUA LIVE</b>.",
    s:"UK list; US Treasury (OFAC) list.", focus:["IMO9282792"], hops:2},
   {t:"The Sovcomflot hub", x:"Russia's state tanker company, <b>Sovcomflot</b>, anchors the Russian cluster. Treasury says it \"sought to circumvent sanctions by transferring the management of tankers to Fornax and Stream\", two Dubai firms.",
    s:"US Treasury press release jy2777, 10 Jan 2025.", focus:["co:sovcomflot", "co:fornax-shipmanagement", "co:stream-shipmanagement"], hops:1},

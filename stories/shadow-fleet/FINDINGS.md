@@ -33,7 +33,7 @@ No ship that the US listed only under its Russia programmes is inside the strict
 - The US listed NEW MILOS on 20 March 2025; the UK listed the same IMO number as VOLANS 50 days later.
 - JUNIA (UK) is BENEDICT (US); FIORA is GOLDEN EAGLE.
 - The UK listed LILY on 21 July 2025; the US listed the same hull as DANYA on 29 July 2026.
-- **One hull, three identities (IMO 9282792).** The UK listed CLYDE NOBLE on 9 May 2025 under an unlisted manager that closed on 19 June 2025. Vicens Marine, a Marshall Islands company set up on 5 May 2025, is itself US-listed (6 February 2026, E.O. 13846). OFAC listed the hull as AQUA LIVE on 6 February 2026. The UK entry still shows the old names. (Company dates: Sayari records and the US list file.)
+- **One hull, three identities (IMO 9282792).** The UK listed CLYDE NOBLE on 9 May 2025. Vicens Marine, a Marshall Islands company set up on 5 May 2025, is itself US-listed (6 February 2026, E.O. 13846). OFAC listed the hull as AQUA LIVE on 6 February 2026. The UK entry still shows the old names. (Company dates: the US list file.)
 
 Across all sources, each hull had a median of 4 names (range 2 to 7). Ukraine's war-sanctions ship database is not a sanctions list. It shows different current names for 7 of the 42 but gives no dates, so "renamed after listing" is not shown. FIORA, UK-listed 9 May 2025, appears there under a newer name (Low).
 
@@ -47,9 +47,7 @@ Across all sources, each hull had a median of 4 names (range 2 to 7). Ukraine's 
 - **17 more one-ship managers are US Iran-listed**, usually the same day as their ship, for example Nissho Lines (8 May 2025), Fleet Tanqo (15 April 2026) and Confident Apex (29 July 2026).
 - **8 UK-named managers are on no list we hold**; we do not name them. 7 ships have a blank manager field.
 
-Timing leads (Medium, Sayari records, links undated):
-- An unlisted manager of EVALI closed on 30 July 2025, the day OFAC listed the ship.
-- An unlisted Dubai company was registered on 14 March 2025, 18 days after OFAC listed PHOENIX I (FENGHUANG on the UK list), and became its UK-named manager.
+Timing lead (Medium, Sayari records, links undated):
 - In 5 of 10 sampled ships, a one-ship owner company is named after the ship's current or former name ("linked to" is not a verified stake).
 
 Listing-day changes (Medium, one source): Ukraine's database dates owner and manager entries for 10 ships. On 4 IMO-confirmed pages (KAVIZ, HORAE, BRIONT, TAGOR), an entry changed on the US listing day; APATE could not be matched by IMO. For TAGOR the change was to Zulu as owner. Innocent explanation: the database may have updated its record that day.

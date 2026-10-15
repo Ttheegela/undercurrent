@@ -87,7 +87,7 @@ header p { color: var(--text-secondary); max-width: 900px; margin-top: 4px; }
 .panel::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; border-top-left-radius: 12px; }
 .panel::after { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; border-bottom-right-radius: 12px; }
 .grid { display: grid; grid-template-columns: minmax(0, 2.3fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; }
-.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 14px; margin-top: 14px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-top: 14px; }
 @media (max-width: 1000px) { .grid, .grid2 { grid-template-columns: minmax(0, 1fr); } }
 svg { display: block; width: 100%; height: auto; }
 .mono { font-family: var(--font-mono); }
@@ -187,7 +187,7 @@ footer .small { color: var(--text-dim); font-size: 11.5px; margin-top: 6px; font
   <h1>What the records can see</h1>
   <p>Chips (HS 8542) arriving in Russia: which countries' own records we can read, which we only see through their partners, and where our sources go blank. Countries are shaded by <em>coverage</em>, not by guilt.</p>
   <div class="readout" aria-label="Data readout">
-    <span><b>SOURCE:</b> Sayari trade records (search_trade_facets), UN Comtrade, official lists</span>
+    <span><b>SOURCE:</b> Sayari trade data (aggregate counts), UN Comtrade, official lists</span>
     <span><b>UNIT:</b> shipment records</span>
     <span><b>STATUS:</b> lead, not finding</span>
     <span><b>DATE:</b> <span id="hdrDate">-</span></span>
@@ -235,10 +235,6 @@ footer .small { color: var(--text-dim); font-size: 11.5px; margin-top: 6px; font
     <h2>Ships · lists yes, positions no</h2>
     <div class="tiles" id="ships"></div>
   </section>
-  <section class="panel" aria-label="Weapon chain">
-    <h2>Weapon chain <span class="badge check" id="wcCheck"></span></h2>
-    <div class="chain" id="chain"></div>
-  </section>
 </div>
 
 <footer>
@@ -250,15 +246,13 @@ footer .small { color: var(--text-dim); font-size: 11.5px; margin-top: 6px; font
 
 <script src="world_110m.js"></script>
 <script src="routes_8542_rus.js"></script>
-<script src="listing_lag.js"></script>
 <script src="coverage.js"></script>
 <script src="ships.js"></script>
-<script src="weapon_chain.js"></script>
 <script>
 (function () {
   'use strict';
   var NS = 'http://www.w3.org/2000/svg';
-  var W = window.WORLD, R = window.ROUTES, C = window.COVERAGE, S = window.SHIPS, WC = window.WEAPON_CHAIN, LL = window.LISTING_LAG;
+  var W = window.WORLD, R = window.ROUTES, C = window.COVERAGE, S = window.SHIPS;
   var PULL = '../../';   // build/viz -> project root
   var MIDDLE = ['ARM', 'ARE', 'KAZ', 'KGZ'];   // routes that start after the invasion, ordered by anchor x
   var NAMES = { ARM: 'ARMENIA', ARE: 'UAE', KAZ: 'KAZAKHSTAN', KGZ: 'KYRGYZSTAN', RUS: 'RUSSIA', HKG: 'HONG KONG' };
@@ -285,8 +279,7 @@ footer .small { color: var(--text-dim); font-size: 11.5px; margin-top: 6px; font
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function fmt(n) { return Number(n).toLocaleString('en-US'); }
   function base(f) { return f.split('/').pop(); }
-  function short(f) { var b = base(f); return b.length > 20 ? b.slice(0, 16) + '…' : b; }
-  function srcHref(f) { return PULL + (f.indexOf('/') >= 0 ? f : 'pulls/sayari/' + f); }
+  function srcHref(f) { return PULL + f; }
 
   // Equal Earth, same constants as the pre-projection in world_110m.js
   function project(lon, lat) {
@@ -307,15 +300,6 @@ footer .small { color: var(--text-dim); font-size: 11.5px; margin-top: 6px; font
   R.routes.forEach(function (r) { routeBy[r.departure_iso] = r; });
   var numToIso = {};
   Object.keys(C.countries).forEach(function (iso) { numToIso[C.countries[iso].num] = iso; });
-  // listed firms per route (from listing_lag.js, matched on the route's source file)
-  var listedOnRoute = {};
-  LL.companies.forEach(function (c) {
-    if (!c.route || !c.route.source_file) return;
-    MIDDLE.forEach(function (iso) {
-      if (base(c.route.source_file) === routeBy[iso].source_file) (listedOnRoute[iso] = listedOnRoute[iso] || []).push(c);
-    });
-  });
-
   // ---------- box content ----------
   function routeLines(iso, endDate) {
     var r = routeBy[iso], cov = C.countries[iso] || {}, lines = [];
@@ -331,9 +315,7 @@ footer .small { color: var(--text-dim); font-size: 11.5px; margin-top: 6px; font
     } else {
       lines.push({ t: 'own statistics: not pulled' });
     }
-    var fl = (listedOnRoute[iso] || [])[0];
-    if (fl) lines.push({ t: fl.first_listing.date <= endDate ? 'listed firm: ' + fl.first_listing.date.slice(0, 7) + ' OFAC' : 'top firm not yet listed' });
-    lines.push({ t: 'source ↗ ' + short(r.source_file), href: srcHref(r.source_file) });
+    lines.push({ t: 'source: Sayari (aggregate)' });
     return lines;
   }
   function russiaLines(endDate) {
@@ -344,7 +326,7 @@ footer .small { color: var(--text-dim); font-size: 11.5px; margin-top: 6px; font
     lines.push({ t: 'Russia are its own data' });
     lines.push({ t: 'Russia-side customs data', cls: endDate >= THIN ? 'warn' : '' });
     lines.push({ t: 'thins from late 2023', cls: endDate >= THIN ? 'warn' : '' });
-    lines.push({ t: 'source ↗ ' + short(R.overall.source_file), href: srcHref(R.overall.source_file) });
+    lines.push({ t: 'source: Sayari (aggregate)' });
     return lines;
   }
 
@@ -454,9 +436,8 @@ footer .small { color: var(--text-dim); font-size: 11.5px; margin-top: 6px; font
     if (cov.note) out.push('note: ' + esc(cov.note));
     if (cov.mirror) out.push('own statistics (' + esc(cov.mirror.unit) + '): ' + Object.keys(cov.mirror.values).map(function (y) { var v = cov.mirror.values[y]; return y + ' ' + (v == null ? 'n/a' : '$' + v + 'M'); }).join(' · ') + ' · <a target="_blank" href="' + srcHref(cov.mirror.source_file) + '">' + esc(base(cov.mirror.source_file)) + ' ↗</a>');
     var r = routeBy[iso];
-    if (r && iso !== 'RUS') out.push('chips to Russia: ' + fmt(r.shipment_records) + ' shipment records, ' + r.first_date + ' to ' + r.last_date + (r.starts_after_invasion ? ' (starts after 24 Feb 2022)' : '') + ' · <a target="_blank" href="' + srcHref(r.source_file) + '">' + esc(r.source_file) + ' ↗</a>');
-    (listedOnRoute[iso] || []).forEach(function (c) { out.push('listed firm on route: ' + esc(c.name) + ', ' + esc(c.first_listing.authority) + ' ' + c.first_listing.date + ' (' + esc(c.role) + ')'); });
-    out.push('coverage source: <a target="_blank" href="' + srcHref(cov.source_file) + '">' + esc(base(cov.source_file)) + ' ↗</a> · STATUS: lead, not finding');
+    if (r && iso !== 'RUS') out.push('chips to Russia: ' + fmt(r.shipment_records) + ' shipment records, ' + r.first_date + ' to ' + r.last_date + (r.starts_after_invasion ? ' (starts after 24 Feb 2022)' : '') + ' · source: ' + esc(r.source_file));
+    out.push('coverage source: ' + esc(cov.source_file) + ' · STATUS: lead, not finding');
     d.innerHTML = out.join('<br>');
   }
 
@@ -547,48 +528,11 @@ footer .small { color: var(--text-dim); font-size: 11.5px; margin-top: 6px; font
       t.innerHTML = '<div class="t">' + esc(s.name) + '</div>' +
         '<div class="row"><b>IMO</b> ' + esc(s.imo) + ' · <b>names</b> ' + s.names_count + '</div>' +
         '<div class="row"><b>names</b> ' + esc(s.names.join(', ')) + '</div>' +
-        (s.manager ? '<div class="row"><b>manager</b> ' + esc(s.manager) + '</div>' : '<div class="row"><b>manager</b> not in our records</div>') +
-        (s.owner ? '<div class="row"><b>owner</b> ' + esc(s.owner) + '</div>' : '') +
         '<div class="row"><b>lists</b> ' + esc(s.lists.join(' · ')) + '</div>' +
-        '<div class="row"><b>flags</b> ' + esc(s.flags_note) + '</div>' +
         '<div class="nodata">' + esc(S.position_note) + '</div>' +
-        '<div class="row"><b>source</b> <a target="_blank" href="' + srcHref(s.source_file) + '">' + esc(base(s.source_file)) + ' ↗</a></div>';
+        '<div class="row"><b>source</b> ' + esc(s.source) + '</div>';
     });
-    S.managers.forEach(function (m) {
-      var t = h('div', 'tile dash', host);
-      t.innerHTML = '<div class="t">' + esc(m.name) + '</div>' +
-        '<div class="row"><b>role</b> ship manager</div>' +
-        '<div class="row"><b>ships</b> ' + esc(m.listed_ships) + '</div>' +
-        '<div class="row"><b>lists</b> ' + esc(m.manager_status) + '</div>' +
-        '<div class="nodata">POSITIONS OF ITS SHIPS: NO DATA</div>' +
-        '<div class="row"><b>source</b> <a target="_blank" href="' + srcHref(m.source_file) + '">' + esc(base(m.source_file)) + ' ↗</a></div>';
-    });
-    h('p', 'note', host.parentNode, 'Border: solid = checked on official lists; dashed = medium (manager’s own listing seen only via aggregators). No voyages, ship-to-ship transfers or insurance in our sources.');
-  }
-
-  // ---------- weapon chain ----------
-  function drawChain() {
-    var host = document.getElementById('chain'), endDate = mEnd(state.m);
-    document.getElementById('wcCheck').textContent = WC.check;
-    host.innerHTML = '';
-    h('div', 'node', host, '<div class="t">' + esc(WC.weapon.name) + '</div>weapon · ' + esc(WC.weapon.part_role));
-    var bl = h('div', 'link broken', host, '<i class="seg a"></i><svg class="gap" viewBox="0 0 16 10"><path d="M2 1L14 9M14 1L2 9" stroke="#f0b44c" stroke-width="1.5"/></svg><i class="seg b"></i><span class="lab">' + esc(WC.part_to_weapon.label) + '</span>');
-    bl.style.height = '48px';
-    h('div', 'node', host, '<div class="t">' + esc(WC.part.number) + '</div>' + esc(WC.part.kind) + ' · ' + esc(WC.part.maker) +
-      '<br>GUR component ' + WC.part.gur_component + ' <a target="_blank" href="' + esc(WC.part.gur_url) + '">war-sanctions.gur.gov.ua ↗</a>' +
-      '<br><span style="color:var(--text-dim)">' + esc(WC.part.gur_note) + '; the part type is listed there, not these chips</span>');
-    h('div', 'link solid', host, '<i class="seg"></i><span class="lab">exact part number in shipment text</span>');
-    var pair = h('div', 'pair', host);
-    WC.shipments.forEach(function (s) {
-      var later = s.date > endDate;
-      h('div', 'node ship' + (later ? ' later' : ''), pair, '<div class="t">' + esc(s.shipper.replace(' CO., LIMITED', '')) + '</div>' +
-        s.date + ' · ' + s.pieces + ' pcs' + (later ? ' (after scrub date)' : '') +
-        '<br>listed: ' + esc(s.shipper_lists.join(', ')) +
-        '<br><a target="_blank" href="' + srcHref(s.source_file) + '">' + esc(short(s.source_file)) + ' ↗</a>');
-    });
-    h('div', 'link solid', host, '<i class="seg"></i><span class="lab">shipped to</span>');
-    h('div', 'node', host, '<div class="t">' + esc(WC.buyer.name) + '</div>' + esc(WC.buyer.country) + ' · listed: ' + esc(WC.buyer.lists.join(', ')));
-    h('p', 'note', host, WC.notes.map(esc).join(' ') + ' Built from <a target="_blank" href="' + srcHref(WC.source_file) + '">weapon_routes.json ↗</a>.');
+    h('p', 'note', host.parentNode, 'Names and list entries come from the UK, US and EU sanctions lists. No voyages, ship-to-ship transfers or insurance in our sources.');
   }
 
   // ---------- state + URL hash (pattern from God's Eye View sharelink.js) ----------
@@ -619,7 +563,7 @@ footer .small { color: var(--text-dim); font-size: 11.5px; margin-top: 6px; font
     document.getElementById('dateOut').textContent = mLabel(state.m);
     document.getElementById('hdrDate').textContent = 'records up to ' + mEnd(state.m);
     Object.keys(countryEls).forEach(function (iso) { countryEls[iso].classList.toggle('sel', iso === state.sel); });
-    drawBoxes(); drawAxis(); drawStrip(); drawChain(); drawDetail(blankName);
+    drawBoxes(); drawAxis(); drawStrip(); drawDetail(blankName);
     writeHash();
   }
 

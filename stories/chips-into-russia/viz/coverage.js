@@ -7,14 +7,14 @@ window.COVERAGE = {
   "partners": "seen only through partners' records (nobody on its own side reports)",
   "none": "not in our data (no own trade source; not checked further)"
  },
- "catalogue_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+ "catalogue_file": "Sayari data-source catalogue (aggregate)",
  "countries": {
   "AFG": {
    "coverage": "own",
    "own_sources": [
     "Afghanistan Imports & Exports (January 2024 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "004"
   },
   "ARG": {
@@ -22,7 +22,7 @@ window.COVERAGE = {
    "own_sources": [
     "Argentina Imports & Exports (January 2022 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "032"
   },
   "AUS": {
@@ -30,7 +30,7 @@ window.COVERAGE = {
    "own_sources": [
     "Australia Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "036"
   },
   "AUT": {
@@ -38,7 +38,7 @@ window.COVERAGE = {
    "own_sources": [
     "Austria Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "040"
   },
   "BGD": {
@@ -46,7 +46,7 @@ window.COVERAGE = {
    "own_sources": [
     "Bangladesh Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "050"
   },
   "BEL": {
@@ -54,7 +54,7 @@ window.COVERAGE = {
    "own_sources": [
     "Belgium Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "056"
   },
   "BOL": {
@@ -62,7 +62,7 @@ window.COVERAGE = {
    "own_sources": [
     "Bolivia Imports & Exports (June 2024 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "068"
   },
   "BWA": {
@@ -70,7 +70,7 @@ window.COVERAGE = {
    "own_sources": [
     "Botswana Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "072"
   },
   "BRA": {
@@ -78,7 +78,7 @@ window.COVERAGE = {
    "own_sources": [
     "Brazil Imports & Exports (2022)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "076"
   },
   "BGR": {
@@ -86,7 +86,7 @@ window.COVERAGE = {
    "own_sources": [
     "Bulgaria Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "100"
   },
   "CMR": {
@@ -94,7 +94,7 @@ window.COVERAGE = {
    "own_sources": [
     "Cameroon Imports & Exports (January 2024 - present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "120"
   },
   "CHL": {
@@ -102,7 +102,7 @@ window.COVERAGE = {
    "own_sources": [
     "Chile Imports & Exports (January 2022 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "152"
   },
   "CHN": {
@@ -110,7 +110,7 @@ window.COVERAGE = {
    "own_sources": [
     "China Imports & Exports (2022 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "156"
   },
   "COL": {
@@ -119,7 +119,7 @@ window.COVERAGE = {
     "Colombia Imports & Exports (2008-2020)",
     "Colombia Imports & Exports (January 2022 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "170"
   },
   "CRI": {
@@ -127,7 +127,7 @@ window.COVERAGE = {
    "own_sources": [
     "Costa Rica Imports & Exports (January 2022 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "188"
   },
   "HRV": {
@@ -135,7 +135,7 @@ window.COVERAGE = {
    "own_sources": [
     "Croatia Imports & Exports (February 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "191"
   },
   "CYP": {
@@ -143,7 +143,7 @@ window.COVERAGE = {
    "own_sources": [
     "Cyprus Imports & Exports (February 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "196"
   },
   "CZE": {
@@ -151,7 +151,7 @@ window.COVERAGE = {
    "own_sources": [
     "Czech Republic Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "203"
   },
   "COD": {
@@ -159,7 +159,7 @@ window.COVERAGE = {
    "own_sources": [
     "Democratic Republic of the Congo Imports & Exports (January 2024 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "180"
   },
   "DNK": {
@@ -167,7 +167,7 @@ window.COVERAGE = {
    "own_sources": [
     "Denmark Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "208"
   },
   "ECU": {
@@ -175,7 +175,7 @@ window.COVERAGE = {
    "own_sources": [
     "Ecuador Imports & Exports (January 2022 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "218"
   },
   "EST": {
@@ -183,7 +183,7 @@ window.COVERAGE = {
    "own_sources": [
     "Estonia Imports & Exports (February 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "233"
   },
   "ETH": {
@@ -191,7 +191,7 @@ window.COVERAGE = {
    "own_sources": [
     "Ethiopia Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "231"
   },
   "FIN": {
@@ -199,7 +199,7 @@ window.COVERAGE = {
    "own_sources": [
     "Finland Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "246"
   },
   "FRA": {
@@ -207,7 +207,7 @@ window.COVERAGE = {
    "own_sources": [
     "France Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "250"
   },
   "DEU": {
@@ -215,7 +215,7 @@ window.COVERAGE = {
    "own_sources": [
     "Germany Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "276"
   },
   "GHA": {
@@ -223,7 +223,7 @@ window.COVERAGE = {
    "own_sources": [
     "Ghana Imports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "288"
   },
   "GRC": {
@@ -231,7 +231,7 @@ window.COVERAGE = {
    "own_sources": [
     "Greece Imports & Exports (February 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "300"
   },
   "HUN": {
@@ -239,7 +239,7 @@ window.COVERAGE = {
    "own_sources": [
     "Hungary Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "348"
   },
   "IND": {
@@ -247,7 +247,7 @@ window.COVERAGE = {
    "own_sources": [
     "India Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "356"
   },
   "IDN": {
@@ -255,7 +255,7 @@ window.COVERAGE = {
    "own_sources": [
     "Indonesia Imports & Exports (January 2019 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "360"
   },
   "IRL": {
@@ -263,7 +263,7 @@ window.COVERAGE = {
    "own_sources": [
     "Ireland Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "372"
   },
   "ITA": {
@@ -271,7 +271,7 @@ window.COVERAGE = {
    "own_sources": [
     "Italy Imports & Exports (February 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "380"
   },
   "CIV": {
@@ -279,7 +279,7 @@ window.COVERAGE = {
    "own_sources": [
     "Ivory Coast Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "384"
   },
   "JPN": {
@@ -287,7 +287,7 @@ window.COVERAGE = {
    "own_sources": [
     "Japan Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "392"
   },
   "KAZ": {
@@ -295,7 +295,7 @@ window.COVERAGE = {
    "own_sources": [
     "Kazakhstan Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "398",
    "note": "own trade source starts January 2023; most Kazakhstan-to-Russia chip records are from 2022",
    "mirror": {
@@ -316,7 +316,7 @@ window.COVERAGE = {
    "own_sources": [
     "Kenya Imports (January 2024 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "404"
   },
   "LVA": {
@@ -324,7 +324,7 @@ window.COVERAGE = {
    "own_sources": [
     "Latvia Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "428"
   },
   "LSO": {
@@ -332,7 +332,7 @@ window.COVERAGE = {
    "own_sources": [
     "Lesotho Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "426"
   },
   "LBR": {
@@ -340,7 +340,7 @@ window.COVERAGE = {
    "own_sources": [
     "Liberia Imports & Exports (January 2024 - present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "430"
   },
   "LTU": {
@@ -348,7 +348,7 @@ window.COVERAGE = {
    "own_sources": [
     "Lithuania Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "440"
   },
   "LUX": {
@@ -356,7 +356,7 @@ window.COVERAGE = {
    "own_sources": [
     "Luxembourg Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "442"
   },
   "MWI": {
@@ -364,7 +364,7 @@ window.COVERAGE = {
    "own_sources": [
     "Malawi Imports & Exports (January 2024 - present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "454"
   },
   "MYS": {
@@ -372,7 +372,7 @@ window.COVERAGE = {
    "own_sources": [
     "Malaysia Imports & Exports (January 2025 - February 2026)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "458"
   },
   "MLT": {
@@ -380,7 +380,7 @@ window.COVERAGE = {
    "own_sources": [
     "Malta Imports & Exports (March 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "470"
   },
   "MEX": {
@@ -388,7 +388,7 @@ window.COVERAGE = {
    "own_sources": [
     "Mexico Imports & Exports (January 2022 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "484"
   },
   "MDA": {
@@ -396,7 +396,7 @@ window.COVERAGE = {
    "own_sources": [
     "Moldova Imports & Exports (January 2023 - May 2023)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "498"
   },
   "NAM": {
@@ -404,7 +404,7 @@ window.COVERAGE = {
    "own_sources": [
     "Namibia Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "516"
   },
   "NLD": {
@@ -412,7 +412,7 @@ window.COVERAGE = {
    "own_sources": [
     "Netherlands Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "528"
   },
   "NIC": {
@@ -420,7 +420,7 @@ window.COVERAGE = {
    "own_sources": [
     "Nicaragua Imports & Exports (January 2024 - December 2025)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "558"
   },
   "NGA": {
@@ -428,7 +428,7 @@ window.COVERAGE = {
    "own_sources": [
     "Nigeria Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "566"
   },
   "PAK": {
@@ -437,7 +437,7 @@ window.COVERAGE = {
     "Pakistan Imports & Exports (January 2023 - Present)",
     "Pakistan Imports (2011-2021)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "586"
   },
   "PAN": {
@@ -445,7 +445,7 @@ window.COVERAGE = {
    "own_sources": [
     "Panama Imports & Exports (January 2022 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "591"
   },
   "PRY": {
@@ -453,7 +453,7 @@ window.COVERAGE = {
    "own_sources": [
     "Paraguay Imports & Exports (January 2022 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "600"
   },
   "PER": {
@@ -461,7 +461,7 @@ window.COVERAGE = {
    "own_sources": [
     "Peru Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "604"
   },
   "PHL": {
@@ -469,7 +469,7 @@ window.COVERAGE = {
    "own_sources": [
     "Philippines Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "608"
   },
   "POL": {
@@ -477,7 +477,7 @@ window.COVERAGE = {
    "own_sources": [
     "Poland Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "616"
   },
   "PRT": {
@@ -485,7 +485,7 @@ window.COVERAGE = {
    "own_sources": [
     "Portugal Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "620"
   },
   "ROU": {
@@ -493,7 +493,7 @@ window.COVERAGE = {
    "own_sources": [
     "Romania Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "642"
   },
   "RUS": {
@@ -501,7 +501,7 @@ window.COVERAGE = {
    "own_sources": [
     "Russia Imports & Exports (January 2022 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "643",
    "note": "81% of chip records into Russia come from Russia's own customs data (471,206 of 582,920); Russia-side customs data thins from late 2023"
   },
@@ -510,7 +510,7 @@ window.COVERAGE = {
    "own_sources": [
     "Slovakia Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "703"
   },
   "SVN": {
@@ -518,7 +518,7 @@ window.COVERAGE = {
    "own_sources": [
     "Slovenia Imports & Exports (February 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "705"
   },
   "KOR": {
@@ -527,7 +527,7 @@ window.COVERAGE = {
     "South Korea Imports & Exports (January 2021 - April 2024)",
     "South Korea Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "410"
   },
   "ESP": {
@@ -535,7 +535,7 @@ window.COVERAGE = {
    "own_sources": [
     "Spain Imports & Exports (February 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "724"
   },
   "LKA": {
@@ -543,7 +543,7 @@ window.COVERAGE = {
    "own_sources": [
     "Sri Lanka Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "144"
   },
   "SWE": {
@@ -551,7 +551,7 @@ window.COVERAGE = {
    "own_sources": [
     "Sweden Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "752"
   },
   "TZA": {
@@ -559,7 +559,7 @@ window.COVERAGE = {
    "own_sources": [
     "Tanzania Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "834"
   },
   "TUR": {
@@ -567,7 +567,7 @@ window.COVERAGE = {
    "own_sources": [
     "Turkey Imports & Exports (January 2019 - September 2024)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "792"
   },
   "UGA": {
@@ -575,7 +575,7 @@ window.COVERAGE = {
    "own_sources": [
     "Uganda Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "800"
   },
   "GBR": {
@@ -584,7 +584,7 @@ window.COVERAGE = {
     "UK HM Revenue & Customs Traders Database",
     "UK Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "826"
   },
   "UKR": {
@@ -592,7 +592,7 @@ window.COVERAGE = {
    "own_sources": [
     "Ukraine Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "804"
   },
   "URY": {
@@ -600,7 +600,7 @@ window.COVERAGE = {
    "own_sources": [
     "Uruguay Imports & Exports (January 2023 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "858"
   },
   "USA": {
@@ -608,7 +608,7 @@ window.COVERAGE = {
    "own_sources": [
     "USA Imports (2021 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "840"
   },
   "UZB": {
@@ -616,7 +616,7 @@ window.COVERAGE = {
    "own_sources": [
     "Uzbekistan Imports & Exports (January 2022 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "860"
   },
   "VEN": {
@@ -624,7 +624,7 @@ window.COVERAGE = {
    "own_sources": [
     "Venezuela Imports & Exports (January 2022 - August 2024)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "862"
   },
   "VNM": {
@@ -632,7 +632,7 @@ window.COVERAGE = {
    "own_sources": [
     "Vietnam Imports & Exports (January 2019 - Present)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "704"
   },
   "ZWE": {
@@ -640,13 +640,13 @@ window.COVERAGE = {
    "own_sources": [
     "Zimbabwe Imports & Exports (January 2023 - June 2023)"
    ],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "num": "716"
   },
   "KGZ": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own in Sayari: seen only when the other side reports",
    "num": "417",
    "mirror": {
@@ -665,7 +665,7 @@ window.COVERAGE = {
   "ARM": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own in Sayari: seen only when the other side reports",
    "num": "051",
    "mirror": {
@@ -684,84 +684,84 @@ window.COVERAGE = {
   "GEO": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own in Sayari: seen only when the other side reports",
    "num": "268"
   },
   "BLR": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own in Sayari: seen only when the other side reports",
    "num": "112"
   },
   "IRN": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own in Sayari: seen only when the other side reports",
    "num": "364"
   },
   "HKG": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own in Sayari: seen only when the other side reports",
    "num": "344"
   },
   "ARE": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own, only a 2020 Dubai customs document set",
    "num": "784"
   },
   "TJK": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own in Sayari: seen only when the other side reports",
    "num": "762"
   },
   "TKM": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own in Sayari: seen only when the other side reports",
    "num": "795"
   },
   "AZE": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own in Sayari: seen only when the other side reports",
    "num": "031"
   },
   "MNG": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own in Sayari: seen only when the other side reports",
    "num": "496"
   },
   "SYR": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own in Sayari: seen only when the other side reports",
    "num": "760"
   },
   "MMR": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own in Sayari: seen only when the other side reports",
    "num": "104"
   },
   "CUB": {
    "coverage": "partners",
    "own_sources": [],
-   "source_file": "pulls/sayari/20260925T132800Z_lookup_data_sources.json",
+   "source_file": "Sayari data-source catalogue (aggregate)",
    "note": "no import/export source of its own in Sayari: seen only when the other side reports",
    "num": "192"
   }

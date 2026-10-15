@@ -593,7 +593,7 @@
   "verifier_conflict": true,
   "source_ref": [
    "[lda-known-listed] prior team research: rusal-en-plus-delisting.md",
-   "[ownership-bridges] public reporting (En+ Group annual report/prospectus); no Sayari find_beneficial_owners pull for Rusal exists in this session's raw files (sonnet-graph/), so not confirmed via an official record this pass"
+   "[ownership-bridges] public reporting (En+ Group annual report/prospectus); not confirmed via an official record this pass"
   ]
  },
  {
@@ -939,79 +939,11 @@
    {
     "angle": "fara-principals",
     "evidence": "Lead"
-   },
-   {
-    "angle": "ownership-bridges",
-    "evidence": "Documented"
-   }
-  ],
-  "verifier_conflict": true,
-  "source_ref": [
-   "[fara-principals] C:/Projects/climate-day/ideas/lobbying/chinese-entity-list-firms.md; team's own research note, not an official corporate/regulatory record verified this pass",
-   "[ownership-bridges] Sayari entity dNBSaGUNeHKjDIMsiDeFTA / CF2ca8pzwEMGmKrENIifNA, find_beneficial_owners path (bo_hikvisionusa.json)"
-  ]
- },
- {
-  "id": "person:oleg_deripaska|owns|org:en_plus",
-  "source": "person:oleg_deripaska",
-  "target": "org:en_plus",
-  "type": "owns",
-  "amount": "",
-  "amount_usd_max": null,
-  "period": "",
-  "issue": "",
-  "evidence": "Documented",
-  "evidence_votes": [
-   {
-    "angle": "ownership-bridges",
-    "evidence": "Documented"
    }
   ],
   "verifier_conflict": false,
   "source_ref": [
-   "[ownership-bridges] Sayari find_beneficial_owners on entity nZnDHV87Ok8PrEgooM6fRg (En+ Group), top result DERIPASKA Oleg, path_length=1 (bo_enplus.json)"
-  ]
- },
- {
-  "id": "org:litasco|subsidiary_of|org:lukoil",
-  "source": "org:litasco",
-  "target": "org:lukoil",
-  "type": "subsidiary_of",
-  "amount": "",
-  "amount_usd_max": null,
-  "period": "",
-  "issue": "",
-  "evidence": "Documented",
-  "evidence_votes": [
-   {
-    "angle": "ownership-bridges",
-    "evidence": "Documented"
-   }
-  ],
-  "verifier_conflict": false,
-  "source_ref": [
-   "[ownership-bridges] Sayari find_beneficial_owners on entity rBQ7x2ur5iqFMcwQAzOqLQ (Litasco SA), result entity i1jXEu0dxP424IovVTxgaw \"PAO LUKOIL\", path_length=2 (bo_litasco.json)"
-  ]
- },
- {
-  "id": "org:neftochim_burgas|subsidiary_of|org:lukoil",
-  "source": "org:neftochim_burgas",
-  "target": "org:lukoil",
-  "type": "subsidiary_of",
-  "amount": "",
-  "amount_usd_max": null,
-  "period": "",
-  "issue": "",
-  "evidence": "Documented",
-  "evidence_votes": [
-   {
-    "angle": "ownership-bridges",
-    "evidence": "Documented"
-   }
-  ],
-  "verifier_conflict": false,
-  "source_ref": [
-   "[ownership-bridges] Sayari find_beneficial_owners on entity wGLU1TlXmkx7iZX1fScGFQ (LUKOIL Neftohim Burgas), via LUKOIL Europe Holdings B.V. (entity ywE2N_zWjtI2M9YX6ZU9cg, path_length=1) to PAO LUKOIL (entity i1jXEu0dxP424IovVTxgaw, path_length=2); corrected from original report, which mislabeled the Burgas query-entity ID as the Holdings entity (bo_neftochim.json)"
+   "[fara-principals] C:/Projects/climate-day/ideas/lobbying/chinese-entity-list-firms.md; team's own research note, not an official corporate/regulatory record verified this pass"
   ]
  },
  {
@@ -1053,7 +985,7 @@
   ],
   "verifier_conflict": false,
   "source_ref": [
-   "[ownership-bridges] public reporting; not confirmed in Sayari find_beneficial_owners pull (entity wHmvb1g8SCDyl5NYw5tBfw / bo_nayara.json); top result was Ashok Kumar Damani, an Indian shareholder"
+   "[ownership-bridges] public reporting"
   ]
  },
  {

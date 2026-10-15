@@ -9,22 +9,29 @@
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../app/style.css">
 <style>
-  .doc { max-width: 46rem; padding-block: var(--space-2xl) var(--space-4xl); }
-  .doc h1 { font-weight: 800; font-size: var(--text-3xl); letter-spacing: -0.03em; line-height: 1; margin: var(--space-xs) 0 var(--space-xl); }
+  /* Page styles on the main site's system (app/style.css tokens only) · hero + Long Document body */
+  .doc { max-width: 46rem; padding-bottom: var(--space-3xl); }
   .doc h2 { font-weight: 700; font-size: var(--text-lg); margin: var(--space-2xl) 0 var(--space-sm); padding-top: var(--space-sm); border-top: 2px solid var(--color-ink); }
   .doc p, .doc li { font-family: var(--font-serif); font-size: var(--text-lg); line-height: 1.6; color: var(--color-ink); }
   .doc ul { padding-left: 1.2em; }
+  .doc li::marker { color: var(--color-accent); }
+  .doc a { text-decoration-color: var(--color-accent); }
 </style>
 </head>
 <body>
 <header class="wrap top">
   <a class="brand" href="../"><span class="brand-mark" aria-hidden="true"></span>Undercurrent</a>
-  <nav aria-label="Primary"><ul><li><a href="../#research">Research</a></li><li><a href="../">Search</a></li></ul></nav>
+  <nav aria-label="Primary"><ul>
+    <li><a href="../#research">Research</a></li>
+    <li><a href="about-the-data.html" aria-current="page">About the data</a></li>
+  </ul></nav>
 </header>
-<main class="wrap doc">
+<main class="wrap">
+<section class="hero">
   <p class="label">About the data</p>
-  <h1>What we check, and what a match means</h1>
-
+  <h1>What we check, <span>and what a match means.</span></h1>
+</section>
+<div class="doc">
   <h2>What we check</h2>
   <ul>
     <li><strong>Our research</strong>: 1,724 ships, 1,007 companies and 25 people in the shadow-fleet network, 8 officially listed companies from our chip research and the listed companies and intermediaries in our lobbying research. A snapshot from the VeilTrace build day, 25 September 2026.</li>
@@ -59,6 +66,16 @@
 
   <h2>Credits and full notes</h2>
   <p>Research by the VeilTrace team at the Trace the Unseen build day, 25 September 2026 (<a href="https://github.com/Ttheegela/veil-trace">original repo</a>). Full notes: <a href="sources/RESEARCH_AND_SOURCES.md">research and sources</a>, <a href="sources/METHODS_LOG.md">methods log</a>.</p>
+</div>
 </main>
+
+<footer class="wrap foot">
+  <span>Undercurrent</span>
+  <span>Research by the VeilTrace team, Trace the Unseen, 25 Sep 2026</span>
+  <a href="about-the-data.html">About the data</a>
+  <a href="sources/METHODS_LOG.md">Methods</a>
+  <a href="https://github.com/Ttheegela/veil-trace">Original research repo</a>
+  <span>Not legal advice</span>
+</footer>
 </body>
 </html>

@@ -12,10 +12,14 @@
 /* Hallmark · redesign: graph app on the main site's system (app/style.css tokens only)
  * nav: N9 edge-aligned (shared) · footer: Ft2 inline (shared) · three-pane layout kept */
 :root {
-  /* Graph vocabulary, mapped onto the site tokens: accent = on a sanctions or export list; neutrals otherwise */
+  /* Page-local data-viz tokens (same hues as the shadow-fleet map and the influence network). Accent = on a sanctions
+   * or export list. Validated on --color-paper, all pairs: CVD worst dE 8.9, normal-vision worst 17.0, all >= 3:1. */
   --g-listed: var(--color-accent); --g-ring: var(--color-accent);
-  --g-clean: var(--color-ink); --g-assoc: var(--color-muted); --g-firm: var(--color-neutral); --g-gov: var(--color-muted);
-  --g-edge: var(--color-neutral); --g-edge-hi: var(--color-ink);
+  --g-clean: oklch(74% 0.12 230);   /* blue: clean intermediaries (subsidiaries, affiliates) */
+  --g-firm:  oklch(82% 0.15 85);    /* amber: lobbying and law firms */
+  --g-assoc: oklch(64% 0.12 160);   /* green-teal: trade associations (square) */
+  --g-gov:   oklch(64% 0.12 160);   /* green-teal: governments (hollow ring) */
+  --g-edge: oklch(58% 0.012 250); --g-edge-hi: var(--color-ink);
 }
 html, body { min-height: 100%; }
 body { display: flex; flex-direction: column; min-height: 100vh; }

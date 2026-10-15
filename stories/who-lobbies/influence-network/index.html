@@ -11,6 +11,15 @@
 <style>
 /* Hallmark · redesign: graph app on the main site's system (app/style.css tokens only)
  * nav: N9 edge-aligned (shared brand, compact) · graph colours read from the same tokens in JS (see TOKEN below) */
+/* Page-local data-viz tokens (same hues as the shadow-fleet map). Validated on --color-paper with the dataviz
+ * validator, all pairs: CVD worst dE 8.9 (protan, gov vs accent), normal-vision worst 17.0, every mark >= 3:1. */
+:root {
+  --kg-corp: oklch(74% 0.12 230);   /* blue: companies, ships, listed people (corporate / fleet side) */
+  --kg-infl: oklch(82% 0.15 85);    /* amber: lobbying firms, lobbyists, trade groups (influence side) */
+  --kg-gov:  oklch(64% 0.12 160);   /* green-teal: government bodies, bills and orders */
+  --kg-ctrl: oklch(62% 0.05 230);   /* blue-grey: owns / runs links */
+  --kg-lead: oklch(58% 0.012 250);  /* grey: inferred leads */
+}
 html, body { height: 100%; overflow: hidden; }
 body { font-size: var(--text-sm); }
 #graph { position: fixed; inset: 0; }
@@ -55,13 +64,13 @@ a.btn { text-decoration: none; display: inline-block; }
 #legend .counts { border-top: var(--rule-hair) solid var(--color-rule); padding-top: var(--space-xs); margin-top: var(--space-2xs); color: var(--color-neutral); }
 #legend.min .body { display: none; }
 /* Legend swatches: the same tokens the canvas draws with */
-.k-corp { fill: var(--color-muted); } .k-infl { fill: var(--color-ink); } .k-gov { fill: var(--color-neutral); }
-.k-hollow { fill: none; stroke: var(--color-muted); stroke-width: 2; }
+.k-corp { fill: var(--kg-corp); } .k-infl { fill: var(--kg-infl); } .k-gov { fill: var(--kg-gov); }
+.k-hollow { fill: none; stroke: var(--kg-corp); stroke-width: 2; }
 .k-sanc { fill: none; stroke: var(--color-accent); stroke-width: 2; } .k-restr { fill: none; stroke: var(--color-accent); stroke-width: 1.6; stroke-dasharray: 2 2; }
 .k-nolob { fill: none; stroke: var(--color-muted); }
 .k-live { fill: none; stroke: var(--color-ink); stroke-width: 1.5; stroke-dasharray: 3 2; }
-.k-ctrl { stroke: var(--color-neutral); stroke-width: 1.5; } .k-money { stroke: var(--color-muted); stroke-width: 2; stroke-dasharray: 5 3; }
-.k-govl { stroke: var(--color-neutral); stroke-width: 1.5; stroke-dasharray: 8 2; opacity: .7; } .k-lead { stroke: var(--color-muted); stroke-width: 1.5; stroke-dasharray: 1 3; }
+.k-ctrl { stroke: var(--kg-ctrl); stroke-width: 1.5; } .k-money { stroke: var(--kg-infl); stroke-width: 2; stroke-dasharray: 5 3; }
+.k-govl { stroke: var(--kg-gov); stroke-width: 1.5; stroke-dasharray: 4 2; } .k-lead { stroke: var(--kg-lead); stroke-width: 1.5; stroke-dasharray: 1 3; }
 .k-bridge { stroke: var(--color-ink); stroke-width: 2.2; }
 
 /* Story caption: the home page's walkthrough card, wider */
@@ -200,11 +209,12 @@ a.btn { text-decoration: none; display: inline-block; }
 (function(){
 "use strict";
 const KG = window.KG;
-// Graph colours: the site's tokens from app/style.css, read once. Accent = sanctioned; neutrals carry everything else.
-const TOKEN = (() => { const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue("--color-" + k).trim();
-  return {paper:v("paper"), rule:v("rule"), neutral:v("neutral"), muted:v("muted"), ink:v("ink"), accent:v("accent")}; })();
+// Graph colours, read once: site tokens (app/style.css) + this page's --kg-* data-viz tokens. Accent = sanctioned only.
+const TOKEN = (() => { const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue("--" + k).trim();
+  return {paper:v("color-paper"), neutral:v("color-neutral"), muted:v("color-muted"), ink:v("color-ink"), accent:v("color-accent"),
+          corp:v("kg-corp"), infl:v("kg-infl"), gov:v("kg-gov"), ctrl:v("kg-ctrl"), lead:v("kg-lead")}; })();
 const alpha = (c, a) => c.replace(/\)$/, ` / ${a})`);   // oklch(L C H) -> oklch(L C H / a)
-const C = {corp:TOKEN.muted, infl:TOKEN.ink, gov:TOKEN.neutral, sanc:TOKEN.accent, live:TOKEN.ink};
+const C = {corp:TOKEN.corp, infl:TOKEN.infl, gov:TOKEN.gov, sanc:TOKEN.accent, live:TOKEN.ink};
 const $ = id => document.getElementById(id);
 
 // ================= data =================
@@ -344,14 +354,14 @@ function drawNode(n, ctx, scale){
 function linkColor(l){
   if (hlLinks && !hlLinks.has(l.id)) return alpha(TOKEN.neutral, 0.025);
   if (l.br && l.c !== "L") return alpha(TOKEN.ink, hlLinks ? 0.95 : 0.8);
-  if (l.c === "L") return alpha(TOKEN.muted, l.br ? 0.7 : 0.5);
+  if (l.c === "L") return alpha(TOKEN.lead, l.br ? 0.9 : 0.7);
   const on = !!hlLinks;
   switch (l.fam){
-    case "money": return on ? alpha(TOKEN.ink, 0.9) : alpha(TOKEN.muted, 0.7);
-    case "gov":   return alpha(TOKEN.neutral, on ? 0.9 : 0.28);
-    case "door":  return alpha(TOKEN.neutral, on ? 0.95 : 0.45);
-    case "staff": return alpha(TOKEN.ink, on ? 0.5 : 0.12);
-    default:      return alpha(TOKEN.neutral, on ? 0.95 : 0.6);   // owner/operator: visible at any zoom
+    case "money": return alpha(TOKEN.infl, on ? 0.95 : 0.7);
+    case "gov":   return alpha(TOKEN.gov, on ? 0.9 : 0.3);
+    case "door":  return alpha(TOKEN.gov, on ? 0.95 : 0.5);
+    case "staff": return alpha(TOKEN.infl, on ? 0.5 : 0.12);
+    default:      return alpha(on ? TOKEN.corp : TOKEN.ctrl, on ? 0.9 : 0.7);   // owner/operator: visible at any zoom
   }
 }
 function linkWidth(l){
@@ -425,12 +435,12 @@ const Graph = ForceGraph()(el)
   .linkVisibility(linkVisible)
   .linkColor(linkColor)
   .linkWidth(linkWidth)
-  .linkLineDash(l => l.c === "L" ? [1, 3] : l.fam === "money" ? [5, 3] : null)
+  .linkLineDash(l => l.c === "L" ? [1, 3] : l.fam === "money" ? [5, 3] : l.fam === "gov" || l.fam === "door" ? [4, 2] : null)
   .linkCurvature(l => l.fam === "door" ? 0.2 : 0)
   .linkDirectionalParticles(l => (l.br && !hlLinks) || (l.fam === "money" && (!hlLinks || hlLinks.has(l.id))) || (pathLinks && pathLinks.has(l.id)) || (hlLinks && hlLinks.has(l.id) && hlLinks.size < 400 && l.fam !== "staff") ? 2 : 0)
   .linkDirectionalParticleWidth(l => l.fam === "money" ? 2.8 : 2.2)
   .linkDirectionalParticleSpeed(0.005)
-  .linkDirectionalParticleColor(l => l.fam === "money" || l.br ? TOKEN.ink : TOKEN.muted)
+  .linkDirectionalParticleColor(l => l.br ? TOKEN.ink : l.fam === "money" ? TOKEN.infl : l.fam === "gov" || l.fam === "door" ? TOKEN.gov : TOKEN.corp)
   .d3AlphaDecay(0.022).d3VelocityDecay(0.38)
   .warmupTicks(260).cooldownTicks(160)
   .onNodeHover(n => { hover = n || null; el.style.cursor = n ? "pointer" : null; showTip(n); hoverHighlight(); })

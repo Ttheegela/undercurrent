@@ -7,12 +7,12 @@ Nothing here is a legal finding; trade figures are declarations, not traced ship
 
 Sources:
 
-- UN Comtrade (https://comtradeplus.un.org/), public preview API, HS 8542 ("electronic integrated
+- UN Comtrade (database home https://comtradeplus.un.org/; figures from its public preview API), HS 8542 ("electronic integrated
   circuits"), annual exports with partner Russia, each country's own declaration, in US dollars; and
   the data-availability list (`/public/v1/getDA/C/A/HS`). Used under the Comtrade data-use policy
   (https://uncomtrade.org/docs/policy-on-comtrade-data-use/); the site publishes a small selection only.
 - Eurostat Comext, dataset DS-045409, EU27 exports of HS 8542, in euros (CC BY 4.0).
-- US Treasury (OFAC) SDN advanced XML (https://sanctionslistservice.ofac.treas.gov/), for listing dates,
+- US Treasury (OFAC) SDN advanced XML (https://ofac.treasury.gov/sanctions-list-service), for listing dates,
   "Organization Established Date" and addresses.
 - Consolidated Screening List (https://www.trade.gov/consolidated-screening-list), for BIS Entity List dates.
 - US Treasury press releases jy1102, jy1402, jy1636, jy2546 and jy2700

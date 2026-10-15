@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   escapeHtml, safeUrl, formatDate, formatUpdated, timelinePositions, citation,
-  renderDossier, renderResearch, renderLists, renderWider, renderEmpty, renderHint, medianMonths,
+  renderDossier, renderResearch, renderLists, recordLink, renderWider, renderEmpty, renderHint, medianMonths,
 } from "../app/render.js";
 
 const TASSOS = {
@@ -92,6 +92,14 @@ test("research: first in full, others collapsed", () => {
   const html = renderResearch([TASSOS, { ...TASSOS, id: "IMO1", name: "TASSOS STAR" }]);
   assert.match(html, /In our research · 2 matches/);
   assert.equal((html.match(/<details class="more">/g) || []).length, 1);
+});
+
+test("list hits link to the official entry where one exists", () => {
+  assert.deepEqual(recordLink({ list: "us", ref: "54815" }), { url: "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=54815", text: "Record" });
+  assert.deepEqual(recordLink({ list: "uk", ref: "RUS3483" }), { url: "https://search-uk-sanctions-list.service.gov.uk/?searchValue=RUS3483", text: "Record" });
+  assert.equal(recordLink({ list: "eu", ref: "1", url: "https://eur-lex.europa.eu/x" }).text, "Legal act");
+  assert.deepEqual(recordLink({ list: "us", ref: "1d0250ee07264881a780d52291d13f77" }), { url: "https://www.trade.gov/consolidated-screening-list", text: "List home" });
+  assert.equal(recordLink({ list: "un", ref: "CDe.001" }).text, "List home");
 });
 
 test("lists table, failures and empty states", () => {

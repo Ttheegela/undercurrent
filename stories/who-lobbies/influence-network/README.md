@@ -58,8 +58,8 @@ join the lobbying side to the fleet. A pulsing green ring means the ship was see
 | US Treasury SDN list and US Consolidated Screening List | Blocked and restricted entities; ships' "Linked To" companies |
 | EU asset-freeze list | EU listings and dates |
 | Ukraine war-sanctions database | Former names and flags only (not a sanctions list) |
-| US Lobbying Disclosure Act database ([lda.gov](https://lda.gov)) | Clients, firms, fees, issues, bills, lobbyists and their past posts |
-| Foreign Agents Registration Act filings ([efile.fara.gov](https://efile.fara.gov)) | Two foreign-agent contracts (En+ Group, Hikvision) |
+| US Lobbying Disclosure Act database ([lda.gov API](https://lda.gov/api/redoc/v1/)) | Clients, firms, fees, issues, bills, lobbyists and their past posts |
+| Foreign Agents Registration Act filings ([En+ Group exhibit](https://efile.fara.gov/docs/6170-Exhibit-AB-20200316-80.pdf), [Hikvision statement](https://efile.fara.gov/docs/3731-Supplemental-Statement-20250430-53.pdf)) | Two foreign-agent contracts (En+ Group, Hikvision) |
 | US Treasury press releases | Ownership statements (e.g. jl2629, jy2777) |
 | Team research | The shadow-fleet map (`research/shadow-fleet/`) and a lobbying study including EU register entries |
 | God's Eye View sanctions layer | Snapshot of listed ships seen on live AIS (20:11 UTC, 25 Sep 2026) |

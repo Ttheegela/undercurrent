@@ -43,7 +43,7 @@ EUROSTAT_PARTNERS = ["RU", "TR", "KZ", "KG", "AM", "AE"]
 EUROSTAT = ("https://ec.europa.eu/eurostat/api/comext/dissemination/statistics/1.0/data/DS-045409?format=JSON"
             "&freq=A&reporter=EU27_2020&" + "&".join(f"partner={p}" for p in EUROSTAT_PARTNERS)
             + f"&product=8542&flow=2&indicators=VALUE_IN_EUROS&sinceTimePeriod={FIRST_YEAR}")
-EUROSTAT_PAGE = "https://ec.europa.eu/eurostat/web/international-trade-in-goods/database"
+EUROSTAT_PAGE = "https://ec.europa.eu/eurostat/databrowser/view/ds-045409/default/table?lang=en"
 OFAC_XML = "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN_ADVANCED.XML"
 OFAC_PAGE = "https://ofac.treasury.gov/sanctions-list-service"
 CSL_PAGE = "https://www.trade.gov/consolidated-screening-list"

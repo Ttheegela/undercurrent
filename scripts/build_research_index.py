@@ -29,18 +29,29 @@ CHIPS_LAG_STORY = {"label": "Open the time-to-list page", "url": "stories/chips-
 LOBBY_STORY = {"label": "Open the lobbying network", "url": "stories/who-lobbies/clean-names-graph/index.html"}
 FLEET_FINDINGS = ("stories/shadow-fleet/FINDINGS.md", "VeilTrace shadow-fleet findings")
 CHIPS_LAG_PAGE = ("stories/chips-into-russia/viz/listing_lag.html", "Semiconductors into Russia: time to list (official dates)")
-CSL_PAGE = ("https://www.trade.gov/consolidated-screening-list", "US Consolidated Screening List (Entity List)")
+CSL_PAGE = ("https://www.trade.gov/consolidated-screening-list", "US Consolidated Screening List (list home; search the name)")
 LOBBY_FINDINGS = ("stories/who-lobbies/FINDINGS.md", "VeilTrace lobbying findings")
 
 GOVERNMENTS = {"gov:us": "United States", "gov:eu": "European Union", "gov:uk": "United Kingdom"}
 SOURCE_LABELS = {
-    "sanctionslist.ofac.treas.gov": "US Treasury OFAC sanctions list",
+    "sanctionslist.ofac.treas.gov": "US Treasury OFAC sanctions list (list home; search the name)",
+    "sanctionssearch.ofac.treas.gov": "US Treasury OFAC sanctions list entry",
+    "search-uk-sanctions-list.service.gov.uk": "UK Sanctions List entry",
+    "www.opensanctions.org": "Ukraine War and Sanctions database (GUR; not a sanctions list), OpenSanctions dataset",
+    "lda.gov": "US lobbying disclosure filing (LDA)",
+    "data.europa.eu": "EU financial sanctions list (dataset page)",
+    "www.federalregister.gov": "Federal Register notice",
     "ofac.treasury.gov": "US Treasury OFAC recent actions",
-    "www.trade.gov": "US Consolidated Screening List",
+    "www.trade.gov": "US Consolidated Screening List (list home; search the name)",
     "home.treasury.gov": "US Treasury press release",
     "eur-lex.europa.eu": "EU Official Journal (EUR-Lex)",
-    "www.gov.uk": "UK Sanctions List",
+    "www.gov.uk": "UK Sanctions List (publication page)",
     "war-sanctions.gur.gov.ua": "Ukraine GUR war-sanctions database (a party to the war; not a sanctions list)",
+}
+# List home pages that some lines still cite (no record id to link to): say so in the label.
+HOME_LABELS = {
+    "https://search-uk-sanctions-list.service.gov.uk": "UK Sanctions List search (home; search the name)",
+    "https://sanctionssearch.ofac.treas.gov/": "US Treasury OFAC sanctions list search (home; search the name)",
 }
 SHIP_KINDS = {"ship", "company", "person"}
 
@@ -85,7 +96,7 @@ class Sources:
                 return item["n"]
         n = len(self.items) + 1
         host = urlparse(url).netloc
-        self.items.append({"n": n, "label": label or SOURCE_LABELS.get(host, host or url), "url": url})
+        self.items.append({"n": n, "label": label or HOME_LABELS.get(url) or SOURCE_LABELS.get(host, host or url), "url": url})
         return n
 
 
@@ -214,8 +225,11 @@ def fleet_entries(nodes: list, edges: list) -> list[dict]:
 
 
 def chip_official_source(first_listing: dict) -> tuple[str, str] | None:
-    """The official page for a first listing: OFAC recent actions for that date, or the Entity List page."""
+    """The official page for a first listing: its own notice when recorded (Federal Register rule for an
+    Entity List addition), else OFAC recent actions for that date, else the Consolidated Screening List."""
     authority, date = first_listing.get("authority", ""), first_listing.get("date", "")
+    if first_listing.get("source_url"):
+        return (first_listing["source_url"], "Federal Register: Entity List additions" if "BIS" in authority else None)
     if "OFAC" in authority and date:
         return (f"https://ofac.treasury.gov/recent-actions/{date.replace('-', '')}", None)
     if "BIS" in authority:

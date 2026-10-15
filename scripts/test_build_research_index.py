@@ -96,7 +96,9 @@ def test_chip_sources_are_official_and_page_link_only_for_firms_on_it(entries):
         "https://ofac.treasury.gov/recent-actions/20230720", "stories/chips-into-russia/viz/listing_lag.html"]
     assert rm["facts"][0]["refs"] == [1, 2]
     assert elem["story"]["url"] == "stories/chips-into-russia/viz/index.html"
-    assert [s["url"] for s in elem["sources"]] == ["https://www.trade.gov/consolidated-screening-list"]
+    assert [(s["url"], s["label"]) for s in elem["sources"]] == [(
+        "https://www.federalregister.gov/documents/2023/12/07/2023-26935/addition-of-entities-to-the-entity-list",
+        "Federal Register: Entity List additions")]
     for e in entries.values():
         if e["id"].startswith("chip:"):
             assert all("FINDINGS.md" not in s["url"] for s in e["sources"])

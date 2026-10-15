@@ -244,6 +244,7 @@ nodes.forEach(n => {
   n.r = n.t === "ship" ? 2.4 : Math.max(3, Math.min(15, 2 + Math.sqrt(n.k) * 1.3));
 });
 // Programme per node: ships carry it; fleet companies take their ships' majority; lobbying clients carry a story group.
+const LIST_HOME = /^https?:\/\/[^\/]+\/?$|\/Home\/SdnList$|\/consolidated-screening-list$|\/the-uk-sanctions-list$/; // a home page, not the record itself
 const PROG = g => g === "russia" ? ["russia"] : g === "iran" ? ["iran"] : g === "both" ? ["russia", "iran"] : g === "china" || g === "chips" ? ["china"] : ["other"];
 nodes.forEach(n => { if (n.t === "ship") n.prog = PROG(n.g); });
 nodes.forEach(n => {
@@ -595,7 +596,7 @@ function renderSide(n){
       const money = l.a ? " · $" + Math.round(l.a).toLocaleString() + (l.an ? " " + l.an : " reported (one per quarter, amendments not double-counted)") : "";
       const subm = l.sub ? " · subcontracted through another firm" + (l.sa ? " ($" + Math.round(l.sa).toLocaleString() + ", already inside that firm's fee)" : "") : "";
       const conf = l.c === "L" ? " · LEAD (our inference)" : l.c === "R" ? " · reported, not re-checked" : "";
-      const src = l.u ? `<a href="${esc(l.u)}" target="_blank" rel="noopener">source</a>` : "";
+      const src = l.u ? `<a href="${esc(l.u)}" target="_blank" rel="noopener">${LIST_HOME.test(l.u) ? "source (home page, not the record)" : "source"}</a>` : "";
       h += `<div class="ln"><span class="who" data-id="${esc(other.id)}">${esc(other.n)}</span>${other.s ? ' <span class="sanc-dot" title="' + statusText(other) + '">●</span>' : ""}
         ${l.q ? `<div class="q">“${esc(l.q.length > 220 ? l.q.slice(0, 218) + "…" : l.q)}”</div>` : ""}
         <div class="meta">${[when, l.r, l.pct ? "ownership " + l.pct + "%" : ""].filter(Boolean).map(esc).join(" · ")}${money}${subm}${conf} ${src}</div></div>`;

@@ -68,6 +68,7 @@ test("timeline prints every event label in full", () => {
   const html = renderDossier({ ...TASSOS, events: [...TASSOS.events, { date: "2024-10-10", kind: "ownership", text: long }] });
   assert.ok(html.includes(`<span class="what">${long.replace("&", "&amp;")}</span>`));
   assert.ok(!html.includes("…"));
+  assert.match(html, /<button type="button" class="tl-more" aria-expanded="false" hidden>Show full text<\/button>/);
 });
 
 test("citation text", () => {

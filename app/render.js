@@ -95,6 +95,7 @@ export function renderDossier(e) {
       <div class="tl-track"><div class="tl-line"></div>${tl.map((x) => `
         <div class="tl-ev${x.kind === "listing" ? " hit" : ""}" style="left:${x.pct.toFixed(1)}%"><span class="when">${escapeHtml(formatDate(x.date).toUpperCase())}</span><span class="dot"></span><span class="what">${escapeHtml(x.text)}</span></div>`).join("")}
       </div>
+      <button type="button" class="tl-more" aria-expanded="false" hidden>Show full text</button>
       <p class="tl-note">Spacing is approximate. Red marks a government listing.</p>
     </div>` : "";
 

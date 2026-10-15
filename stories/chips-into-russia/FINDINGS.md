@@ -1,4 +1,4 @@
-# Chips into Russia: what the official records show
+# Semiconductors into Russia: what the official records show
 
 Every figure here comes from free official sources and is rebuilt nightly by `scripts/build_chips.py`
 into `data/routes.json`, `data/coverage.json` and `data/listing_lag.json`. Figures below are from the

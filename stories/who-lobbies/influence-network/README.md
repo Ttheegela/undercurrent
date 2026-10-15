@@ -42,7 +42,7 @@ they disclose) and marks the ships seen live on our God's Eye globe. Every line 
 | Search | `/`, then a company, ship, person or 7-digit IMO number |
 | Connection between two names | **Find a path** (never routes through bills or bodies being lobbied) |
 | Records behind anything | Click it: every link lists its date, record number and source |
-| Filter | Russia · Iran · China and chips · Other · Leads · **Live on AIS** |
+| Filter | Russia · Iran · China and semiconductors · Other · Leads · **Live on AIS** |
 
 **Visual key.** Columns run left to right: Government, Bills and orders, Lobbyists, Lobbying firms, Clients, Parent
 companies, then the fleet in Russia, Iran and other clusters. Colour shows the side (blue companies and ships, orange

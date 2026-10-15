@@ -1,141 +1,133 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sanctions, Explained</title>
+<title>How sanctions work · Undercurrent</title>
 <meta name="description" content="How sanctions work, how they are evaded, and how evasion can be tracked. A plain-language explainer with diagrams.">
-<link rel="stylesheet" href="tokens.css">
-<script>
-  (function () {
-    var t = null;
-    try { t = new URLSearchParams(location.search).get("theme") || localStorage.getItem("explainer-theme"); } catch (e) {}
-    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
-  })();
-</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../app/style.css">
 <style>
-  /* The same face tokens.css embeds, from the vendored file (OFL 1.1, fonts/LICENSE-IBMPlexSans-OFL.txt). */
-  @font-face { font-family: "IBM Plex Sans Variable"; font-style: normal; font-display: swap; font-weight: 100 700;
-    src: url("fonts/ibm-plex-sans-latin-wght-normal.woff2") format("woff2"); }
+  /* Hallmark · redesign: explainer on the main site's system (app/style.css tokens only) · macrostructure: Long Document
+   * nav: N9 edge-aligned (shared) · footer: Ft2 inline (shared) · enrichment: hand-built SVG diagrams, recoloured via tokens */
+  .hero h1 { max-width: 16ch; }
+  .hero-meta { font-size: var(--text-xs); }
 
-  body { background: var(--bg); color: var(--fg); font-size: var(--text-2); line-height: 1.6; }
-  .wrap { max-width: 46rem; margin: 0 auto; padding-inline: 16px; }
-  .soft { border: 1px solid color-mix(in oklab, var(--border) 40%, transparent); }
-
-  /* Hero */
-  .hero { background: var(--hero-bg, var(--bg)); color: var(--hero-fg, var(--fg)); padding: var(--space-5) 0 var(--space-4); }
-  .hero .top { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); }
-  .kicker { font-size: var(--text-1); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0; }
-  .hero h1 { font: var(--display-weight, 700) var(--text-5)/1.08 var(--font-display, var(--font-sans)); letter-spacing: var(--display-tracking, -.02em); margin: 0 0 var(--space-3); max-width: 16ch; }
-  .grad { color: var(--accent); }
-  @supports (background-clip: text) or (-webkit-background-clip: text) {
-    .grad { background: var(--accent-gradient, linear-gradient(var(--accent), var(--accent))); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .explainer { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-xl); border-top: var(--rule-hair) solid var(--color-rule); padding-bottom: var(--space-3xl); }
+  .toc { padding-top: var(--space-lg); }
+  .toc ol { margin: var(--space-sm) 0 0; padding: 0; list-style: none; counter-reset: toc; display: grid; gap: var(--space-2xs) var(--space-lg); grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); font-size: var(--text-sm); }
+  .toc li { counter-increment: toc; display: flex; gap: var(--space-xs); padding: var(--space-xs) 0; border-top: var(--rule-hair) solid var(--color-rule); }
+  .toc li::before { content: counter(toc); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-accent); min-width: 1.2em; }
+  .toc a { color: var(--color-muted); text-decoration: none; }
+  .toc a:hover { color: var(--color-ink); }
+  @media (min-width: 64rem) {
+    .explainer { grid-template-columns: minmax(0, 46rem) minmax(0, 15rem); justify-content: space-between; }
+    .toc { grid-column: 2; grid-row: 1; position: sticky; top: var(--space-lg); align-self: start; }
+    .toc ol { grid-template-columns: minmax(0, 1fr); }
   }
-  .lede { font-size: var(--text-3); line-height: 1.45; margin: 0 0 var(--space-3); max-width: 38em; }
-  .hero .meta { font-size: var(--text-1); color: var(--muted-fg); margin: 0; }
-  .theme-btn { font-size: var(--text-1); min-height: 2.25rem; padding: 0 .8rem; border-radius: var(--radius-control, var(--radius)); background: transparent; color: var(--fg); border: 1px solid var(--border); cursor: pointer; }
-  .theme-btn:hover { background: var(--muted); }
 
-  /* Contents */
-  nav.toc { margin: var(--space-4) auto 0; }
-  nav.toc ol { margin: 0; padding: var(--space-3) var(--space-3) var(--space-3) 2.2rem; background: var(--surface); border-radius: var(--radius-lg, var(--radius)); font-size: var(--text-1); columns: 2 14rem; }
-  nav.toc a { color: var(--fg); text-decoration-color: color-mix(in oklab, var(--accent) 60%, transparent); }
+  .article section { padding-top: var(--space-2xl); scroll-margin-top: var(--space-md); }
+  .article section + section { margin-top: var(--space-xl); border-top: 2px solid var(--color-ink); padding-top: var(--space-sm); }
+  .article h2 { font-weight: 800; font-size: var(--text-2xl); letter-spacing: -0.025em; line-height: 1.1; margin: var(--space-xs) 0 var(--space-lg); }
+  .article h3 { font-weight: 700; font-size: var(--text-lg); margin: var(--space-2xl) 0 var(--space-sm); }
+  .article p, .article .plain li, .methods li { font-family: var(--font-serif); font-size: var(--text-lg); line-height: 1.6; }
+  .article p { margin: 0 0 var(--space-md); }
+  .article p.label { font-family: var(--font-mono); font-size: var(--text-2xs); line-height: 1.5; margin: 0; }
+  .article strong { font-weight: 700; }
+  .article a { text-decoration-color: var(--color-accent); }
+  .article sup a { font-family: var(--font-mono); font-size: 0.62em; color: var(--color-accent); text-decoration: none; padding-inline: 0.1em; }
+  .plain { margin: 0; padding-left: 1.2em; }
+  .plain li { margin-bottom: var(--space-sm); }
+  .plain li::marker { color: var(--color-accent); }
+  .note { color: var(--color-neutral); font-size: var(--text-sm) !important; font-family: var(--font-display) !important; }
 
-  /* Sections */
-  section { padding-top: var(--space-5); }
-  h2 { font-size: var(--text-4); font-weight: var(--display-weight, 600); letter-spacing: var(--display-tracking, -.02em); line-height: 1.15; margin: var(--space-2) 0 var(--space-3); }
-  h3 { font-size: var(--text-3); font-weight: 600; line-height: 1.3; margin: var(--space-4) 0 var(--space-2); }
-  p { margin: 0 0 var(--space-3); }
-  a { color: var(--accent); }
-  sup a { text-decoration: none; font-size: .78em; padding-left: 1px; }
-  .note { color: var(--muted-fg); font-size: var(--text-1); }
-  strong { font-weight: 600; }
+  /* Cards: hairline grid, like the home page's research rows */
+  .grid { display: grid; border-top: var(--rule-hair) solid var(--color-rule); border-left: var(--rule-hair) solid var(--color-rule); margin: var(--space-md) 0 var(--space-lg); grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
+  .grid-4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); }
+  .card { border-right: var(--rule-hair) solid var(--color-rule); border-bottom: var(--rule-hair) solid var(--color-rule); padding: var(--space-lg) var(--space-md); }
+  .card h4 { margin: 0 0 var(--space-xs); font-size: var(--text-base); font-weight: 700; }
+  .article .card p { margin: 0; font-size: var(--text-sm); line-height: 1.5; color: var(--color-muted); }
+  .card .tag { display: block; font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral); margin-bottom: var(--space-xs); }
 
-  /* Cards */
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr)); gap: var(--space-3); margin: var(--space-3) 0; }
-  .grid-2 { grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); }
-  .grid-4 { grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); }
-  .card { background: var(--surface); color: var(--surface-fg); border-radius: var(--radius); padding: var(--space-3); box-shadow: var(--shadow); }
-  .card h4 { margin: 0 0 var(--space-1); font-size: var(--text-2); font-weight: 600; }
-  .card p { margin: 0; font-size: var(--text-1); line-height: 1.5; }
-  .card .tag { display: inline-block; font-size: .72rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-fg); margin-bottom: var(--space-1); }
+  /* Tactics */
+  .tactics { list-style: none; padding: 0; margin: var(--space-lg) 0; }
+  .tactics li { border-top: var(--rule-hair) solid var(--color-rule); padding: var(--space-md) 0 var(--space-sm); }
+  .tactics h4 { margin: 0 0 var(--space-xs); font-size: var(--text-lg); font-weight: 700; }
+  .ours { border-left: 2px solid var(--color-accent); padding-left: var(--space-md); }
+  .article .ours { font-size: var(--text-base); color: var(--color-muted); }
+  .ours b { color: var(--color-ink); font-family: var(--font-display); font-weight: 700; }
 
-  /* Tactic list */
-  .tactics { list-style: none; padding: 0; margin: var(--space-3) 0; display: grid; gap: var(--space-3); }
-  .tactics li { background: var(--surface); border-radius: var(--radius); padding: var(--space-3); box-shadow: var(--shadow); }
-  .tactics h4 { margin: 0 0 var(--space-1); font-size: var(--text-2); font-weight: 600; }
-  .tactics p { margin: 0 0 var(--space-2); font-size: var(--text-1); line-height: 1.55; }
-  .tactics p:last-child { margin-bottom: 0; }
-  .ours { border-left: 3px solid var(--accent); padding-left: var(--space-2); }
-  .ours b { color: var(--accent); font-weight: 600; }
+  /* Figures: diagrams scroll inside their frame on narrow screens */
+  figure { margin: var(--space-xl) 0; background: var(--color-paper-2); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-sm); padding: var(--space-lg) var(--space-md) var(--space-md); }
+  .fig-body { overflow-x: auto; }
+  figure svg { display: block; width: 100%; min-width: 26rem; max-width: 34rem; height: auto; margin: 0 auto; font-family: var(--font-display); }
+  figcaption { margin-top: var(--space-md); font-size: var(--text-sm); color: var(--color-muted); }
+  figcaption b { color: var(--color-ink); font-weight: 700; }
 
-  /* Figures */
-  figure { margin: var(--space-4) 0; background: var(--surface); border-radius: var(--radius-lg, var(--radius)); padding: var(--space-3); }
-  figure svg { display: block; width: 100%; max-width: 34rem; height: auto; margin: 0 auto; font-family: var(--font-sans); }
-  @media (max-width: 30rem) { figure { padding: var(--space-3) 0; } figcaption { padding-inline: var(--space-3); } }
-  figcaption { margin-top: var(--space-2); font-size: var(--text-1); color: var(--muted-fg); text-align: center; }
-  figcaption b { color: var(--fg); font-weight: 600; }
+  /* SVG vocabulary: main-site tokens only. Listed/blocked = accent; evading = dashed muted; neutral = paper-3 */
+  .t { fill: var(--color-ink); font-size: 15px; font-weight: 500; }
+  .t-b { fill: var(--color-ink); font-size: 15px; font-weight: 700; }
+  .t-s { fill: var(--color-muted); font-size: 13px; }
+  .t-acc { fill: var(--color-accent); font-size: 14px; font-weight: 700; }
+  .t-dan { fill: var(--color-accent); font-size: 13px; font-weight: 700; }
+  .t-warn { fill: var(--color-ink); font-size: 13px; font-weight: 700; }
+  .box { fill: var(--color-paper-3); stroke: var(--color-rule); stroke-width: 1.2; }
+  .box-acc { fill: var(--color-paper-3); stroke: var(--color-muted); stroke-width: 1.5; }
+  .box-dan { fill: var(--color-accent-dim); stroke: var(--color-accent); stroke-width: 1.5; }
+  .box-warn { fill: var(--color-paper); stroke: var(--color-muted); stroke-width: 1.5; stroke-dasharray: 6 4; }
+  .ln { stroke: var(--color-neutral); stroke-width: 1.6; fill: none; }
+  .ln-d { stroke: var(--color-muted); stroke-width: 1.6; fill: none; stroke-dasharray: 6 4; }
+  .ln-x { stroke: var(--color-neutral); stroke-width: 1.4; fill: none; stroke-dasharray: 3 4; }
+  .ln-dan { stroke: var(--color-accent); stroke-width: 2; fill: none; }
+  .ln-acc { stroke: var(--color-ink); stroke-width: 1.4; fill: none; }
+  .ah { fill: var(--color-neutral); }
+  .ah-w { fill: var(--color-muted); }
+  .f-dan { fill: var(--color-accent); }
+  .f-dan-s { fill: color-mix(in oklab, var(--color-accent) 55%, var(--color-paper-2)); }
+  .f-track { fill: var(--color-paper-3); stroke: var(--color-rule); }
+  .f-hatch { fill: url(#hatch); stroke: var(--color-accent); stroke-dasharray: 4 3; }
+  .hatch-ln { stroke: var(--color-accent); stroke-width: 2; }
 
-  /* SVG vocabulary: tokens only, so both themes hold */
-  .t { fill: var(--fg); font-size: 15px; font-weight: 500; }
-  .t-b { fill: var(--fg); font-size: 15px; font-weight: 600; }
-  .t-s { fill: var(--muted-fg); font-size: 13px; }
-  .t-acc { fill: var(--accent); font-size: 14px; font-weight: 600; }
-  .t-dan { fill: var(--danger); font-size: 13px; font-weight: 600; }
-  .t-warn { fill: var(--warning); font-size: 13px; font-weight: 600; }
-  .t-inv { fill: var(--accent-fg); font-size: 13px; font-weight: 600; }
-  .box { fill: var(--surface); stroke: color-mix(in oklab, var(--border) 70%, transparent); stroke-width: 1.2; }
-  .box-m { fill: var(--muted); stroke: color-mix(in oklab, var(--border) 45%, transparent); stroke-width: 1; }
-  .box-acc { fill: color-mix(in oklab, var(--accent) 14%, var(--surface)); stroke: var(--accent); stroke-width: 1.5; }
-  .box-dan { fill: color-mix(in oklab, var(--danger) 12%, var(--surface)); stroke: var(--danger); stroke-width: 1.5; }
-  .box-warn { fill: color-mix(in oklab, var(--warning) 10%, var(--surface)); stroke: var(--warning); stroke-width: 1.5; stroke-dasharray: 6 4; }
-  .ln { stroke: var(--muted-fg); stroke-width: 1.6; fill: none; }
-  .ln-d { stroke: var(--warning); stroke-width: 1.6; fill: none; stroke-dasharray: 6 4; }
-  .ln-x { stroke: var(--muted-fg); stroke-width: 1.4; fill: none; stroke-dasharray: 3 4; }
-  .ln-dan { stroke: var(--danger); stroke-width: 2; fill: none; }
-  .ln-acc { stroke: var(--accent); stroke-width: 1.4; fill: none; }
-  .ah { fill: var(--muted-fg); }
-  .ah-w { fill: var(--warning); }
-  .f-mut { fill: var(--muted-fg); }
-  .f-dan { fill: var(--danger); }
-  .f-dan-s { fill: color-mix(in oklab, var(--danger) 55%, var(--surface)); }
-  .f-acc { fill: var(--accent); }
-  .f-track { fill: var(--muted); stroke: color-mix(in oklab, var(--border) 45%, transparent); }
-  .f-hatch { fill: url(#hatch); stroke: var(--danger); stroke-dasharray: 4 3; }
-  .hatch-ln { stroke: var(--danger); stroke-width: 2; }
-
-  /* Callouts and lists */
-  .callout { background: var(--surface); border-radius: var(--radius); padding: var(--space-3); border-left: 4px solid var(--accent); box-shadow: var(--shadow); margin: var(--space-3) 0; }
-  .callout p:last-child { margin-bottom: 0; }
-  .cant { background: var(--muted); border-radius: var(--radius); padding: var(--space-3); margin: var(--space-3) 0; }
-  .cant ul, .plain { margin: 0; padding-left: 1.2rem; }
-  .cant li, .plain li { margin-bottom: var(--space-1); }
-  .methods { counter-reset: m; list-style: none; padding: 0; margin: var(--space-3) 0; }
-  .methods li { position: relative; padding: 0 0 var(--space-3) 2.6rem; }
-  .methods li::before { counter-increment: m; content: counter(m); position: absolute; left: 0; top: .1rem; width: 1.8rem; height: 1.8rem; border-radius: var(--radius-control, var(--radius)); background: var(--muted); color: var(--fg); font-weight: 600; font-size: var(--text-1); display: grid; place-items: center; }
-  .sources { font-size: var(--text-1); padding-left: 1.6rem; }
-  .sources li { margin-bottom: var(--space-2); overflow-wrap: anywhere; }
-  footer { padding: var(--space-5) 0 var(--space-4); }
-  footer p { font-size: var(--text-1); color: var(--muted-fg); }
+  /* Callouts, methods, sources */
+  .callout { border-top: 2px solid var(--color-accent); padding-top: var(--space-sm); margin: var(--space-md) 0 var(--space-lg); }
+  .article .callout p { font-size: var(--text-xl); line-height: 1.45; margin: 0; }
+  .cant { background: var(--color-paper-2); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-sm); padding: var(--space-lg); margin: var(--space-xl) 0 0; }
+  .cant ul { margin: 0; padding-left: 1.2em; }
+  .cant li { margin-bottom: var(--space-xs); color: var(--color-muted); }
+  .methods { counter-reset: m; list-style: none; padding: 0; margin: var(--space-md) 0; }
+  .methods li { position: relative; padding: var(--space-md) 0 var(--space-md) 2.6rem; border-top: var(--rule-hair) solid var(--color-rule); }
+  .methods li::before { counter-increment: m; content: counter(m, decimal-leading-zero); position: absolute; left: 0; top: calc(var(--space-md) + 0.35rem); font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-accent); }
+  .sources { margin: 0; padding-left: 2em; font-size: var(--text-sm); color: var(--color-muted); }
+  .sources li { margin-bottom: var(--space-xs); overflow-wrap: anywhere; scroll-margin-top: var(--space-lg); }
+  .sources li::marker { font-family: var(--font-mono); color: var(--color-accent); }
+  .sources li:target { color: var(--color-ink); }
+  .sources a { color: var(--color-muted); text-decoration-color: var(--color-neutral); }
+  .draft { margin: 0 0 var(--space-lg); font-size: var(--text-xs); color: var(--color-neutral); }
 </style>
 </head>
-<body><a href="/" style="position:fixed;top:12px;left:12px;z-index:9999;font:500 13px/1 system-ui,sans-serif;color:#e8eaf0;background:#141821;border:1px solid #2c3240;border-radius:4px;padding:8px 10px;text-decoration:none">&larr; Undercurrent</a>
+<body>
 
-<header class="hero on-dark">
-  <div class="wrap">
-    <div class="top">
-      <p class="kicker">Explainer · 5-minute read</p>
-      <button class="theme-btn" id="themeBtn" type="button" aria-label="Change colour theme">Theme: system</button>
-    </div>
-    <h1>A sanctions list is a signal, <span class="grad">not a wall.</span></h1>
-    <p class="lede">Governments name companies. Banks, exporters, shippers and insurers do the actual stopping. Evaders work in the gap between the two. This page explains the machine, the tricks, and how our team tracked them in real trade data.</p>
-    <p class="meta">Trace the Unseen climate build day, 25 September 2026. Companies are named only where an official list names them.</p>
-  </div>
+<header class="wrap top">
+  <a class="brand" href="../../"><span class="brand-mark" aria-hidden="true"></span>Undercurrent</a>
+  <nav aria-label="Primary"><ul>
+    <li><a href="../../#research">Research</a></li>
+    <li><a href="../about-the-data.html">About the data</a></li>
+  </ul></nav>
 </header>
 
 <main class="wrap">
+<section class="hero">
+  <p class="label">Start here · explainer · 5-minute read</p>
+  <h1>A sanctions list is a signal, <span>not a wall.</span></h1>
+  <p class="hero-sub">Governments name companies. Banks, exporters, shippers and insurers do the actual stopping. Evaders work in the gap between the two. This page explains the machine, the tricks, and how our team tracked them in real trade data.</p>
+  <div class="hero-meta"><span>Trace the Unseen climate build day, 25 September 2026. Companies are named only where an official list names them.</span></div>
+</section>
 
+<div class="explainer">
 <nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
   <ol>
     <li><a href="#how">How sanctions work</a></li>
     <li><a href="#pieces">What's involved</a></li>
@@ -146,9 +138,10 @@
   </ol>
 </nav>
 
+<article class="article">
 <!-- 1 -->
 <section id="how">
-  <p class="kicker">1 · The machine</p>
+  <p class="label">1 · The machine</p>
   <h2>How sanctions work</h2>
   <p>A sanction is a government rule that says: <strong>do not do business with this person, company or country</strong>. It is a way to put pressure on someone without firing a shot.</p>
 
@@ -175,6 +168,7 @@
   <p>Governments rarely stop a shipment themselves. The list works because <strong>private gatekeepers check it and refuse</strong>: a bank will not move the money, an exporter will not sell, a shipper will not carry, an insurer will not cover. Each of them faces fines if they get it wrong. So the list is a signal. If a gatekeeper never sees the listed name, the signal never arrives.</p>
 
   <figure>
+    <div class="fig-body">
     <svg viewBox="0 0 480 400" role="img" aria-labelledby="d1t d1d">
       <title id="d1t">Diagram 1: the refusal chain</title>
       <desc id="d1d">A government lists Company A. Banks, exporters, shippers and insurers check the list and refuse Company A. Company B, the same buyer under a new name, is not on the list and passes the checks.</desc>
@@ -212,13 +206,14 @@
       <text x="350" y="339" text-anchor="middle" class="t-s">same buyer, new name</text>
       <text x="350" y="382" text-anchor="middle" class="t-warn">not on the list: checks pass</text>
     </svg>
+    </div>
     <figcaption><b>Diagram 1.</b> The list only works when a gatekeeper recognises the name. A new name slips through until the list catches up.</figcaption>
   </figure>
 </section>
 
 <!-- 2 -->
 <section id="pieces">
-  <p class="kicker">2 · The moving parts</p>
+  <p class="label">2 · The moving parts</p>
   <h2>What's involved</h2>
   <p>Every sanctions case is built from the same seven pieces. Evasion means changing one piece so the others stop lining up.</p>
   <div class="grid grid-4">
@@ -235,6 +230,7 @@
   <p>In the US, any company owned <strong>50% or more in total</strong> by listed parties is blocked automatically, even through a chain of other companies. Stakes from different listed owners are added together.<sup><a href="#s3">3</a>,<a href="#s4">4</a></sup> The EU's test is slightly different: <strong>more than 50%</strong>, or "control", such as the power to appoint most of the board.<sup><a href="#s10">10</a></sup> The line is sharp, so where a company sits relative to it matters a lot.</p>
 
   <figure>
+    <div class="fig-body">
     <svg viewBox="0 0 480 376" role="img" aria-labelledby="d2t d2d">
       <title id="d2t">Diagram 2: ownership and the 50% line</title>
       <desc id="d2d">Example A: two listed owners hold 25% each of Company C, which adds to 50% so C is blocked. Example B: 30% known plus an unknown stake of 0 to 25% gives a range of 30 to 55%, which cannot be cleared.</desc>
@@ -270,13 +266,14 @@
       <text x="0" y="322" class="t">30% known + 0 to 25% unknown = 30% to 55%</text>
       <text x="0" y="346" class="t-acc">Can't clear it: escalate, don't guess</text>
     </svg>
+    </div>
     <figcaption><b>Diagram 2.</b> Stakes add up toward a hard line. Solid bars are known stakes; the hatched bar is a stake we can only bound.</figcaption>
   </figure>
 </section>
 
 <!-- 3 -->
 <section id="evade">
-  <p class="kicker">3 · The tricks</p>
+  <p class="label">3 · The tricks</p>
   <h2>How countries and companies evade</h2>
   <p>Almost every trick does the same thing: it breaks the match between a listed name and a transaction. Below are six, each with an example from our own work or an official source.</p>
 
@@ -289,6 +286,7 @@
   </ol>
 
   <figure>
+    <div class="fig-body">
     <svg viewBox="0 0 480 390" role="img" aria-labelledby="d3t d3d">
       <title id="d3t">Diagram 3: third-country routing</title>
       <desc id="d3d">Chip makers sell to Kyrgyzstan, Kazakhstan and Armenia, which pass the chips on to Russia. Each middle country's own reported chip exports to Russia rose from about zero to more than 13 million dollars. The direct route is restricted after February 2022.</desc>
@@ -331,6 +329,7 @@
       <text x="67" y="84" text-anchor="middle" class="t-warn">Declared countries,</text>
       <text x="67" y="102" text-anchor="middle" class="t-warn">not physical paths</text>
     </svg>
+    </div>
     <figcaption><b>Diagram 3.</b> Chip exports to Russia as each middle country itself reported them to UN Comtrade. The paperwork shows where goods were declared, not the road they took.</figcaption>
   </figure>
 
@@ -366,7 +365,7 @@
 
 <!-- 4 -->
 <section id="track">
-  <p class="kicker">4 · The response</p>
+  <p class="label">4 · The response</p>
   <h2>How we can track them</h2>
   <div class="callout">
     <p><strong>Track the need, not the name.</strong> A name is the easiest thing to change. What Russia's weapons industry needs (a specific chip, delivered to a specific factory) changes slowly. So we watch the product, the buyer, the route, and treat company names as a lagging label.</p>
@@ -396,7 +395,7 @@
 
 <!-- 5 -->
 <section id="ethics">
-  <p class="kicker">5 · The stakes</p>
+  <p class="label">5 · The stakes</p>
   <h2>Why it matters, and the ethics</h2>
   <p>The parts that keep drones and missiles flying are ordinary commercial chips. Closing the gaps in Diagram 1 is how sanctions stop being paperwork. But a tool that points at companies can also hurt the wrong people, so we hold three rules.</p>
 
@@ -412,7 +411,7 @@
 
 <!-- 6 -->
 <section id="sources">
-  <p class="kicker">6 · Receipts</p>
+  <p class="label">6 · Receipts</p>
   <h2>Sources</h2>
   <ol class="sources">
     <li id="s1"><a href="https://main.un.org/securitycouncil/sites/default/files/subsidiary_organs_series_7sep23_.pdf">UN Security Council, Subsidiary Organs fact sheets 2023 (Article 41; asset freeze, travel ban, arms embargo)</a></li>
@@ -436,30 +435,19 @@
   </ol>
   <p class="note">Unnumbered figures (address pairs) come from the team's analysis of the US sanctions list on 25 Sep 2026, re-checked by an independent verifier. At the hackathon we also used a commercial data vendor's company and shipment records; that data, and every figure derived from it, has been removed from this site.</p>
 </section>
+</article>
+</div>
 
+<p class="draft">Draft explainer, written by Claude for the team; not yet reviewed by Alex. Leads, not findings.</p>
 </main>
 
-<footer>
-  <div class="wrap">
-    <p>Draft explainer, written by Claude for the team; not yet reviewed by Alex. Leads, not findings.</p>
-  </div>
+<footer class="wrap foot">
+  <span>Undercurrent</span>
+  <span>Research by the VeilTrace team, Trace the Unseen, 25 Sep 2026</span>
+  <a href="../about-the-data.html">About the data</a>
+  <a href="../sources/METHODS_LOG.md">Methods</a>
+  <a href="https://github.com/Ttheegela/veil-trace">Original research repo</a>
+  <span>Not legal advice</span>
 </footer>
-
-<script>
-  (function () {
-    var btn = document.getElementById("themeBtn");
-    var order = ["system", "light", "dark"];
-    function current() { return document.documentElement.getAttribute("data-theme") || "system"; }
-    function show() { btn.textContent = "Theme: " + current(); }
-    btn.addEventListener("click", function () {
-      var next = order[(order.indexOf(current()) + 1) % order.length];
-      if (next === "system") document.documentElement.removeAttribute("data-theme");
-      else document.documentElement.setAttribute("data-theme", next);
-      try { localStorage.setItem("explainer-theme", next); } catch (e) {}
-      show();
-    });
-    show();
-  })();
-</script>
 </body>
 </html>

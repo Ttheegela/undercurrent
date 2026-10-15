@@ -117,6 +117,49 @@ def fetch_filings(queries, get=get_json, sleep=time.sleep, base: str = BASE) -> 
     return filings
 
 
+ZERO_WIDTH = re.compile("[\u200b\u200c\u200d\ufeff]")
+WORD_MAP = {w.lower(): w for w in ("LLC", "LLP", "LP", "PLLC", "US", "USA", "DLA", "APCO", "ACG", "II", "III", "IV")}
+WORD_MAP.update({"fka": "fka", "jr": "Jr", "sr": "Sr", "mr": "Mr", "mrs": "Mrs", "ms": "Ms", "dr": "Dr", "of": "of", "and": "and", "the": "the", "for": "for"})
+
+
+def clean_text(s: str) -> str:
+    """Undo UTF-8-read-as-cp1252 mojibake, drop zero-width characters, collapse whitespace."""
+    s = s or ""
+    if "\u00e2\u20ac" in s or "\u00c3" in s:
+        try:
+            s = s.encode("cp1252").decode("utf-8")
+        except (UnicodeError, ValueError):
+            pass
+    return re.sub(r"\s+", " ", ZERO_WIDTH.sub("", s).replace("\u037e", ";")).strip()
+
+
+def _word(w: str, first: bool, acronyms: bool) -> str:
+    low = w.lower()
+    if low in WORD_MAP and not (first and low in ("of", "and", "the", "for")):
+        return WORD_MAP[low]
+    if acronyms and 2 <= len(w) <= 4 and not re.search("[aeiouy]", low):
+        return w.upper()
+    out = w.capitalize()
+    return "Mc" + out[2:].capitalize() if low.startswith("mc") and len(w) > 3 else out
+
+
+def display_name(raw: str, acronyms: bool = True) -> str:
+    """Title-case a (usually ALL-CAPS) LDA name; keep acronyms; trust tokens that already have lowercase."""
+    out, prev = [], None
+    for i, tok in enumerate(clean_text(raw).split()):
+        key = re.sub(r"[^a-z0-9]", "", tok.lower())
+        if key and key == prev:
+            continue
+        prev = key
+        if tok.lower() == "d/b/a":
+            out.append("d/b/a")
+        elif re.search("[a-z]", tok):
+            out.append(tok)
+        else:
+            out.append(re.sub("[A-Za-z]+", lambda m: _word(m.group(), i == 0, acronyms), tok))
+    return " ".join(out)
+
+
 def slug(s: str) -> str:
     s = re.sub(r"[.,'\"()&]", " ", s.lower())
     s = re.sub(r"\b(llc|l l c|inc|ltd|lp|llp|pllc|corp|corporation|co|company|the)\b", " ", s)
@@ -125,7 +168,8 @@ def slug(s: str) -> str:
 
 def person_name(p: dict) -> str:
     parts = [p.get("first_name") or "", p.get("middle_name") or "", p.get("last_name") or "", p.get("suffix") or ""]
-    return " ".join(x.strip().title() for x in parts if x and x.strip())
+    name = " ".join(display_name(x, acronyms=False) for x in parts if x and x.strip())
+    return re.sub(r"\b(jr|sr|ii|iii|iv)\b", lambda m: WORD_MAP[m.group().lower()], name, flags=re.I)
 
 
 def money(r: dict) -> float:
@@ -207,17 +251,17 @@ def extract(filings, config: dict) -> dict:
         cn.setdefault("lda_names", [])
         if cname not in cn["lda_names"]:
             cn["lda_names"].append(cname)
-        rname = ((r.get("registrant") or {}).get("name") or "").strip()
+        rname = clean_text((r.get("registrant") or {}).get("name") or "")
         reg_match = match_client(rname)
         self_filed = reg_match is not None and reg_match[0] == cid
         if self_filed:
             fid = cid
         else:
             fid = "lf:" + slug(rname)
-            node(fid, "lobbyfirm", rname.title().replace("Llc", "LLC").replace("Llp", "LLP"))
+            node(fid, "lobbyfirm", display_name(rname))
         hired = edge(cid, fid, "lobbied_in_house" if self_filed else "hired", r)
         for fe in r.get("foreign_entities") or []:
-            fname = (fe.get("name") or "").strip()
+            fname = clean_text(fe.get("name") or "")
             if not fname:
                 continue
             note = "; ".join(re.findall(r"\(([^)]*)\)", fname))
@@ -233,7 +277,7 @@ def extract(filings, config: dict) -> dict:
             elif fm:
                 feid, fetype, fename = fm[0], "company", fm[1]
             else:
-                feid, fetype, fename = "co:" + slug(base), "company", base.title()
+                feid, fetype, fename = "co:" + slug(base), "company", display_name(base)
             if feid == cid:
                 continue
             node(feid, fetype, fename, country=fe.get("country") or "", group=grp,
@@ -242,7 +286,7 @@ def extract(filings, config: dict) -> dict:
             if fe.get("ownership_percentage"):
                 fe_e["ownership_pct"] = fe["ownership_percentage"]
         for act in r.get("lobbying_activities") or []:
-            desc = (act.get("description") or "").strip()
+            desc = clean_text(act.get("description") or "")
             for b in set(BILL_RE.findall(desc)):
                 bid = "bill:" + re.sub(r"[^a-z0-9]", "", b.lower().replace("executive order", "eo"))
                 if bid not in KEY_BILLS and not BILL_KEEP.search(desc):
@@ -268,7 +312,7 @@ def extract(filings, config: dict) -> dict:
                 if not pn or {normalize_name(n) for n in (pn, short)} & excluded:
                     continue
                 pid = "p:" + slug(pn)
-                cov = (entry.get("covered_position") or "").strip()
+                cov = clean_text(entry.get("covered_position") or "")
                 pnode = node(pid, "person", pn, role="lobbyist (named in US lobbying disclosure)")
                 if cov and not ROLE_WORDS.search(cov) and not re.search(r"white house|treasury|commerce|potus|nsc|ustr", cov, re.I):
                     cov = ""

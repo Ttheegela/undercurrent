@@ -1,7 +1,7 @@
 {
   "label": "US lobbying (LDA)",
   "source_url": "https://lda.gov/api/redoc/v1/",
-  "checked_at": "2026-10-17T08:06:16Z",
+  "checked_at": "2026-10-18T08:23:31Z",
   "status": "kept-previous",
   "error": "RuntimeError: giving up on https://lda.gov/api/v1/filings/?client_name=Sberbank&page_size=25",
   "updated_at": "2026-10-16T08:34:02Z",

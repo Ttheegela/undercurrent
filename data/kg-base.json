@@ -2179,5 +2179,207 @@
 "s": "blocked",
 "t": "company"
 }
+],
+"status": {
+"co:arctic-lng-2": {
+"lists": [
+[
+"US SDN",
+"46030",
+"RUSSIA-EO14024"
+],
+[
+"UK",
+"RUS2092",
+"22/02/2024"
 ]
+],
+"s": "blocked"
+},
+"co:cetc": {
+"lists": [
+[
+"US Chinese military companies (CMIC)",
+"30936",
+"CMIC-EO13959"
+]
+],
+"s": "restricted"
+},
+"co:dji": {
+"lists": [
+[
+"US Chinese military companies (CMIC): SZ DJI Technology",
+"33111",
+"CMIC-EO13959"
+],
+[
+"US Commerce Entity List",
+"",
+"2020-12-18"
+]
+],
+"s": "restricted"
+},
+"co:gazprom": {
+"lists": [
+[
+"US sectoral (SSI) and menu-based (NS-MBS)",
+"17250",
+"RUSSIA-EO14024"
+],
+[
+"US Commerce Entity List",
+"",
+"2014-09-17"
+]
+],
+"s": "restricted"
+},
+"co:gazprombank": {
+"lists": [
+[
+"US SDN",
+"17016",
+"RUSSIA-EO14024"
+],
+[
+"UK",
+"RUS1072",
+"24/03/2022"
+]
+],
+"s": "blocked"
+},
+"co:hangzhou-hikvision": {
+"lists": [
+[
+"US Chinese military companies (CMIC)",
+"30946",
+"CMIC-EO13959"
+],
+[
+"US Commerce Entity List",
+"",
+"2019-10-09"
+]
+],
+"s": "restricted"
+},
+"co:huawei": {
+"lists": [
+[
+"US Chinese military companies (CMIC)",
+"30947",
+"CMIC-EO13959"
+],
+[
+"US Commerce Entity List",
+"",
+"2019-05-21"
+]
+],
+"s": "restricted"
+},
+"co:hytera": {
+"lists": [
+[
+"US Commerce Entity List",
+"",
+"2024-08-27"
+]
+],
+"s": "restricted"
+},
+"co:nord-stream-2": {
+"lists": [
+[
+"US SDN",
+"31926",
+"PEESA-EO14039; RUSSIA-EO14024"
+]
+],
+"s": "blocked"
+},
+"co:novatek": {
+"lists": [
+[
+"US sectoral (SSI)",
+"17064",
+"UKRAINE-EO13662"
+]
+],
+"s": "restricted"
+},
+"co:sberbank": {
+"lists": [
+[
+"US SDN",
+"17018",
+"RUSSIA-EO14024"
+],
+[
+"UK",
+"RUS0256",
+"01/03/2022"
+]
+],
+"s": "blocked"
+},
+"co:smic": {
+"lists": [
+[
+"US Chinese military companies (CMIC)",
+"30951",
+"CMIC-EO13959"
+],
+[
+"US Commerce Entity List",
+"",
+"2020-12-18"
+]
+],
+"s": "restricted"
+},
+"co:vtb-bank": {
+"lists": [
+[
+"US SDN",
+"17013",
+"RUSSIA-EO14024"
+],
+[
+"UK",
+"RUS0250",
+"24/02/2022"
+]
+],
+"s": "blocked"
+},
+"gov:russia": {
+"lists": [
+[
+"US menu-based (NS-MBS): Ministry of Finance",
+"31694",
+"RUSSIA-EO14024"
+]
+],
+"s": "restricted"
+},
+"p:oleg-deripaska": {
+"lists": [
+[
+"US SDN",
+"24283",
+"UKRAINE-EO13661"
+],
+[
+"UK",
+"RUS0269",
+"10/03/2022"
+]
+],
+"s": "blocked"
+}
+}
 }

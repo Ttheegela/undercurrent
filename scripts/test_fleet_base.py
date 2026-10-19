@@ -90,8 +90,9 @@ def test_kg_base_keeps_team_and_curated_only():
 
     kg = {
         "meta": {"no_lobbying_found": {"names": ["X"]}, "live": {"count": 1}, "counts": {}},
-        "nodes": [{"id": i, "t": "company", "n": i, "L": "lobby"} for i in "abcdef"]
-        + [{"id": "ship", "t": "ship", "n": "S", "L": "fleet", "live": {"area": "Baltic", "at": "2026-09-25T20:11Z"}}],
+        "nodes": [{"id": i, "t": "company", "n": i, "L": "lobby", "s": "", "lists": []} for i in "abcdef"]
+        + [{"id": "ship", "t": "ship", "n": "S", "L": "fleet", "s": "", "lists": [],
+            "live": {"area": "Baltic", "at": "2026-09-25T20:11Z"}}],
         "edges": [e("a", "b", "fleet"), e("b", "c", "lobby"), e("c", "d", "team"), e("e", "f", "curated")],
     }
     base = split_kg(kg)
@@ -100,3 +101,16 @@ def test_kg_base_keeps_team_and_curated_only():
     assert base["meta"] == {"no_lobbying_found": {"names": ["X"]}, "live": {"count": 1}}
     assert base["live_flags"] == {"ship": {"area": "Baltic", "at": "2026-09-25T20:11Z"}}
     assert base["lob_alias"] == LOB_ALIAS and LOB_ALIAS["lob:huawei"] == "co:huawei"
+
+
+def test_kg_base_keeps_curated_status_of_lobby_side_companies():
+    def n(i, layer, s="", lists=()):
+        return {"id": i, "t": "company", "n": i, "L": layer, "s": s, "lists": [list(x) for x in lists]}
+
+    kg = {
+        "meta": {"no_lobbying_found": {}, "live": None},
+        "nodes": [n("co:nord-stream-2", "lobby", "blocked", [("US SDN", "31926", "PEESA-EO14039")]),
+                  n("co:plain", "lobby"), n("co:ship-owner", "fleet", "blocked", [("US", "", "2025-01-10")])],
+        "edges": [],
+    }
+    assert split_kg(kg)["status"] == {"co:nord-stream-2": {"s": "blocked", "lists": [["US SDN", "31926", "PEESA-EO14039"]]}}

@@ -92,6 +92,9 @@ def split_kg(kg: dict) -> dict:
         "lob_alias": dict(LOB_ALIAS),
         # the 25 Sep AIS sightings sit on fleet ships, which are rarely edge endpoints, so they are kept by id
         "live_flags": {n["id"]: n["live"] for n in kg["nodes"] if "live" in n},
+        # hand-checked list status of lobby-side companies (Nord Stream 2, Huawei ...); most are not edge endpoints
+        "status": {n["id"]: {"s": n["s"], "lists": n["lists"]} for n in kg["nodes"]
+                   if n["L"] == "lobby" and (n["s"] or n["lists"])},
         "meta": {"no_lobbying_found": kg["meta"]["no_lobbying_found"], "live": kg["meta"]["live"]},
     }
 
@@ -125,4 +128,4 @@ if __name__ == "__main__":
     print(f"fleet base: {len(fleet['nodes'])} nodes, {len(fleet['edges'])} edges, "
           f"{len(fleet['node_fields'])} list nodes with research fields")
     print(f"kg base: {len(kg['nodes'])} nodes, {len(kg['edges'])} edges, "
-          f"{len(kg['live_flags'])} live flags, {len(kg['lob_alias'])} lob aliases")
+          f"{len(kg['live_flags'])} live flags, {len(kg['lob_alias'])} lob aliases, {len(kg['status'])} curated statuses")

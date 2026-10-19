@@ -31,9 +31,9 @@ def fnode(nid, type_, name, **kw):
             "listed_by": [], "listing_dates": {}, "program_group": "russia", **kw}
 
 
-def fedge(s, t, type_, date="2024-09-09", confidence="Documented"):
+def fedge(s, t, type_, date="2024-09-09", confidence="Documented", **kw):
     return {"source": s, "target": t, "type": type_, "date": date, "confidence": confidence,
-            "source_url": "https://example.gov/" + s, "source_file": "UK list", "record": "UK 1", "quote": "q"}
+            "source_url": "https://example.gov/" + s, "source_file": "UK list", "record": "UK 1", "quote": "q", **kw}
 
 
 def make_fleet(*extra_nodes, extra_edges=()):
@@ -234,23 +234,73 @@ def test_base_fleet_company_that_the_fleet_graph_made_generic_follows_its_new_id
     assert (link["s"], link["t"]) == (hashed, "co:nord-stream-2")
 
 
-def test_base_company_missing_from_the_fleet_graph_is_kept_as_it_was():
+def test_base_fleet_company_absent_live_has_no_frozen_status():
     zara = {"id": "co:zara-shipholding", "t": "company", "n": "ZARA SHIPHOLDING CO", "L": "fleet", "g": "russia",
-            "s": "blocked", "lists": [["US SDN", "50524", "RUSSIA-EO14024"]], "info": {}, "notes": []}
+            "s": "blocked", "lists": [["US SDN", "50524", "RUSSIA-EO14024"]], "info": {"role": "kept"}, "notes": []}
     link = {"s": "co:zara-shipholding", "t": "co:nord-stream-2", "y": "linked_to", "c": "D", "d": "", "u": "", "f": "",
             "r": "", "q": "", "L": "curated", "a": 0, "an": ""}
     kg = build_kg(make_fleet(), lobby(), make_base([zara], [link]), None, DAY)
-    assert get(kg, "co:zara-shipholding")["lists"] == zara["lists"] and get(kg, "co:zara-shipholding")["br"]
+    node = get(kg, "co:zara-shipholding")  # the node stays, so the curated edge resolves, but 25 Sep's list status goes
+    assert (node["s"], node["lists"], node["info"]) == ("", [], zara["info"]) and node["br"]
+    assert zara["s"] == "blocked"  # the base itself is untouched
 
 
 def test_curated_status_of_lobbying_companies_is_kept():
-    ssi = {"s": "restricted", "lists": [["US sectoral (SSI)", "17250", "RUSSIA-EO14024"]]}
-    status = {"co:nord-stream-2": {"s": "blocked", "lists": [["US SDN", "31926", "PEESA-EO14039"]]}, ZULU: ssi}
+    status = {"co:nord-stream-2": {"s": "blocked", "lists": [["US SDN", "31926", "PEESA-EO14039"]]}}
     kg = build_kg(make_fleet(), lobby(), make_base(status=status), None, DAY)
     nord = get(kg, "co:nord-stream-2")
     assert (nord["s"], nord["lists"]) == ("blocked", status["co:nord-stream-2"]["lists"])
-    # a company that is now also a fleet company: the hand-checked level beats "every listed company is blocked"
-    assert (get(kg, ZULU)["s"], get(kg, ZULU)["lists"]) == ("restricted", ssi["lists"])
+
+
+SSI_GAZPROM = {"s": "restricted", "lists": [["US sectoral (SSI) and menu-based (NS-MBS)", "17250", "RUSSIA-EO14024"]]}
+
+
+def test_sectoral_only_listing_is_not_blocked():
+    # Gazprom, Novatek: on the US CSL as sectoral or menu-based entries, which limit dealings without freezing assets.
+    def company(nid, name):
+        return fnode(nid, "company", name, listed=True, listed_by=["us"], listing_dates={"us": "2014-09-12"})
+
+    sectoral = [fedge("co:gazprom", "gov:us", "designated_by", us_list="NS-MBS List"),
+                fedge("co:novatek", "gov:us", "designated_by", us_list="SSI"),
+                fedge("co:frozen", "gov:us", "designated_by", us_list="SDN"),
+                fedge("co:both", "gov:uk", "designated_by"),  # the UK asset freeze outranks the US sectoral entry,
+                fedge("co:both", "gov:us", "designated_by", us_list="SSI")]  # whichever edge comes last
+    fleet = make_fleet(*[company(i, i) for i in ("co:gazprom", "co:novatek", "co:frozen", "co:both")], extra_edges=sectoral
+                       + [fedge(i, "IMO9408695", "owns") for i in ("co:gazprom", "co:novatek", "co:frozen", "co:both")])
+    kg = build_kg(fleet, lobby(), make_base(), None, DAY)
+    assert [get(kg, i)["s"] for i in ("co:gazprom", "co:novatek", "co:frozen", "co:both")] == [
+        "restricted", "restricted", "blocked", "blocked"]
+    assert get(kg, "IMO9408695")["s"] == "blocked"  # a US edge with no list type (vessels, research) stays blocked
+    assert get(kg, "co:gazprom")["lists"] == [["US", "", "2024-09-09"]]
+
+
+def test_curated_level_upgraded_by_live_blocking_listing():
+    status = {"co:gazprom": SSI_GAZPROM, "co:novatek": SSI_GAZPROM, "co:frozen": {"s": "blocked", "lists": [["x", "", ""]]}}
+    gaz = fnode("co:gazprom", "company", "PJSC GAZPROM", listed=True, listed_by=["us"])
+    nov = fnode("co:novatek", "company", "Novatek", listed=True, listed_by=["us"])
+    froz = fnode("co:frozen", "company", "Frozen", listed=True, listed_by=["us"])
+    edges = [fedge("co:gazprom", "gov:us", "designated_by", us_list="NS-MBS List"),  # still sectoral: curated stands
+             fedge("co:novatek", "gov:us", "designated_by", us_list="SDN"),  # SDN-listed since: blocked, live lists
+             fedge("co:frozen", "gov:us", "designated_by", us_list="SSI")]  # curated blocked is not weakened
+    edges += [fedge(i, "IMO9408695", "owns") for i in ("co:gazprom", "co:novatek", "co:frozen")]
+    kg = build_kg(make_fleet(gaz, nov, froz, extra_edges=edges), lobby(), make_base(status=status), None, DAY)
+    assert (get(kg, "co:gazprom")["s"], get(kg, "co:gazprom")["lists"]) == ("restricted", SSI_GAZPROM["lists"])
+    assert (get(kg, "co:novatek")["s"], get(kg, "co:novatek")["lists"]) == ("blocked", [["US", "", "2024-09-09"]])
+    assert (get(kg, "co:frozen")["s"], get(kg, "co:frozen")["lists"]) == ("blocked", [["x", "", ""]])
+
+
+def test_lists_keep_the_25_sep_order():
+    # ships were UK, US, EU; companies and people US, EU, UK. Listed by edge order (the long form is sorted) it was EU, UK, US.
+    def desig(nid):
+        return [fedge(nid, "gov:" + g, "designated_by", date=d) for g, d in (("eu", "2025-01-01"), ("uk", "2024-02-02"),
+                                                                              ("us", "2023-03-03"))]
+
+    firm = fnode("co:firm", "company", "Firm", listed=True, listed_by=["eu", "uk", "us"])
+    edges = desig("co:firm") + desig("IMO9408695") + [fedge("co:firm", "IMO9408695", "owns")]
+    kg = build_kg(make_fleet(firm, extra_edges=edges), lobby(), make_base(), None, DAY)
+    assert [x[0] for x in get(kg, "IMO9408695")["lists"]] == ["UK", "US", "EU"]
+    assert [x[0] for x in get(kg, "co:firm")["lists"]] == ["US", "EU", "UK"]
+    assert get(kg, "co:firm")["lists"][0] == ["US", "", "2023-03-03"]
 
 
 def test_no_lobbying_marker_and_live_flags():

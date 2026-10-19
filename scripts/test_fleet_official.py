@@ -139,3 +139,28 @@ def test_uk_ship_names_written_with_their_imo():
     nodes, _ = fo.parse_uk(text)
     tassos = next(n for n in nodes if n["id"] == "IMO9408695")
     assert (tassos["name"], tassos["aliases"], tassos["names_by_source"]) == ("TASSOS", ["TASSOS"], {"UK list": "TASSOS"})
+
+
+def csl_entity(source, name, ent, programs):
+    return {"source": source, "type": "Entity", "name": name, "entity_number": ent, "programs": programs}
+
+
+SSI = "Sectoral Sanctions Identifications List (SSI) - Treasury Department"
+SDN = "Specially Designated Nationals (SDN) - Treasury Department"
+
+
+def test_us_designation_says_which_list_it_is_on(tmp_path):
+    # The kg page shows "blocked" only for SDN entries; sectoral and menu-based lists limit dealings, they do not freeze.
+    rows = [csl_entity(SSI, "Boribo Shipping Corp", "1001", "UKRAINE-EO13662"),
+            csl_entity("Non-SDN Menu-Based Sanctions List (NS-MBS List) - Treasury Department", "Zulu Ships Management",
+                       "1002", "RUSSIA-EO14024"),
+            csl_entity(SSI, "NS Laguna Shipping Inc", "1003", "UKRAINE-EO13662"),  # SSI first, SDN second, as the CSL has it
+            csl_entity(SDN, "NS Laguna Shipping Inc", "1003", "UKRAINE-EO13662")]
+    g = build(tmp_path, csl_rows=rows)
+    us_list = lambda nid: edges_of(g, nid, "designated_by")["gov:us"].get("us_list")  # noqa: E731
+    assert us_list("co:boribo-shipping") == "SSI"
+    assert us_list("co:zulu-ships-management") == "NS-MBS List"
+    assert us_list("co:ns-laguna-shipping") == "SDN"
+    assert us_list("co:nitc") == "SDN"  # OpenSanctions' copy of the SDN list
+    assert us_list("p:artemov-viktor-sergiyovich") == "SDN"
+

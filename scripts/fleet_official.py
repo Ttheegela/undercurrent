@@ -121,6 +121,13 @@ def prog_class(text):
     return base
 
 
+def csl_list(source: str) -> str:
+    """The short list name in a CSL source label: "Sectoral Sanctions Identifications List (SSI) - Treasury Department"
+    is "SSI"; the SDN list is "SDN". Only the SDN list freezes assets: SSI, NS-MBS, CMIC and the rest limit dealings."""
+    m = re.search(r"\(([^)]+)\)", source)
+    return m.group(1) if m else source
+
+
 class _Graph:
     """Nodes merge like build_base.node(): list fields are unioned, other fields keep their first value.
     Edges fold by (source, target, type): sources are unioned and the earliest date is kept."""
@@ -345,11 +352,11 @@ def _company_listings_and_people(g: _Graph, uk_text: str, csl_text: str, ofac_te
             uk_entities.setdefault(norm_co(nm), r)
     csl = _csv(csl_text)
     csl_ent = {}  # OFAC (Treasury) rows only: another list's row of the same name must not mask the OFAC entry
-    for r in csl:
-        if r["type"] != "Vessel" and "Treasury" in r["source"]:
-            for nm in [r["name"]] + r["alt_names"].split(";"):
-                if nm.strip():
-                    csl_ent.setdefault(norm_co(nm), r)
+    treasury = [r for r in csl if r["type"] != "Vessel" and "Treasury" in r["source"]]
+    for r in sorted(treasury, key=lambda r: csl_list(r["source"]) != "SDN"):  # an entity on SSI and SDN is on the SDN list
+        for nm in [r["name"]] + r["alt_names"].split(";"):
+            if nm.strip():
+                csl_ent.setdefault(norm_co(nm), r)
     us_orgs, sdn_people = {}, {}
     for r in _csv(ofac_text):
         names = [nm for nm in [r["name"]] + r["aliases"].split(";") if nm.strip()]
@@ -371,7 +378,7 @@ def _company_listings_and_people(g: _Graph, uk_text: str, csl_text: str, ofac_te
                         else (OS_ENTITY.format(r["id"]), "OpenSanctions " + r["id"]))
             g.node(nid, programs=pc, us_date=date, address_us=r["addresses"][:200])
             g.edge(nid, "gov:us", "designated_by", date, url, OFAC_OS_FILE, (r["sanctions"] or "")[:160], rec,
-                   program=pc, date_note=OS_DATE_NOTE)
+                   program=pc, date_note=OS_DATE_NOTE, us_list="SDN")
             for c in [x for x in r["countries"].split(";") if x]:
                 if g.country(c):
                     g.edge(nid, "cc:" + c, "registered_in", "", url, OFAC_OS_FILE, "OFAC country: " + CNAME.get(c, c), rec)
@@ -380,7 +387,8 @@ def _company_listings_and_people(g: _Graph, uk_text: str, csl_text: str, ofac_te
             pc = prog_class(c2["programs"])
             g.node(nid, programs=pc, us_date=c2["start_date"])
             g.edge(nid, "gov:us", "designated_by", c2["start_date"], OFAC_ENTRY.format(c2["entity_number"]), CSL_FILE,
-                   "Programmes: " + c2["programs"], "OFAC ent_num " + c2["entity_number"], program=pc)
+                   "Programmes: " + c2["programs"], "OFAC ent_num " + c2["entity_number"], program=pc,
+                   us_list=csl_list(c2["source"]))
         if r := uk_entities.get(key):
             d = ddmmyyyy(r["Date Designated"])
             g.node(nid, uk_date=d)

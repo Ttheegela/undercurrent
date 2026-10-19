@@ -261,10 +261,15 @@ def apply_naming_policy(graph: dict) -> dict:
     return graph
 
 
+def generic_id(nid: str) -> str:
+    """The id a company gets once it turns generic: co:unlisted-<first 8 hex of sha1(its id)>, the same on every run."""
+    return "co:unlisted-" + hashlib.sha1(nid.encode()).hexdigest()[:8]
+
+
 def _rename_generic(graph: dict) -> None:
-    """A generic firm's id would spell its name: it becomes co:unlisted-<first 8 hex of sha1(id)>, the same on every
-    run, on the node, every edge (whose id is recomputed) and the pattern examples."""
-    ren = {n["id"]: "co:unlisted-" + hashlib.sha1(n["id"].encode()).hexdigest()[:8] for n in graph["nodes"]
+    """A generic firm's id would spell its name: it becomes generic_id(id), on the node, every edge (whose id is
+    recomputed) and the pattern examples."""
+    ren = {n["id"]: generic_id(n["id"]) for n in graph["nodes"]
            if n.get("name_policy") == "generic" and not n["id"].startswith("co:unlisted-")}
     if not ren:
         return

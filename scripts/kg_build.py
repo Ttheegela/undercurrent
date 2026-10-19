@@ -9,17 +9,20 @@ curated bridges, the bridge flag and the orphan-ship drop and count. Node and ed
     (base["lob_alias"] stays in the base for regenerating it);
   * with no lobbying asset, yesterday's lobby layer is carried over from previous_kg.
 Hand-checked list status of lobby-side companies lives in base["status"] and is applied last, as the original's curated
-status was. The 16 fleet companies in the base are not in it: their status is always the live one.
+status was, but never weaker than the live one: a node shows the stronger of the two levels. Only an asset freeze is
+"blocked" (UK and EU lists, the US SDN list); a US entry off the SDN list (SSI, NS-MBS, ...) is "restricted", the
+page's dashed ring. The 16 fleet companies in the base are not in base["status"]: their status is always the live one,
+and one that today's lists no longer give shows as on no list rather than keep its 25 Sep status.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from normalize import normalize_name
+from fleet_merge import generic_id
+from lobbying import exclusion_set, is_excluded
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "data" / "lobbying-clients.json"
@@ -31,6 +34,9 @@ GOV_NAMES = {"gov:us": "US", "gov:uk": "UK", "gov:eu": "EU", "gov:ca": "Canada",
 INFO_KEYS = ("imo", "aliases", "role", "ship_type", "year_built", "flag_now", "flags_before", "country", "named_by",
              "programs", "first_listed")
 LOBBY_INFO_KEYS = ("role", "country", "title", "covered_positions", "lda_names")
+LEVELS = ("", "restricted", "blocked")  # a node's status, weakest first
+LIST_ORDER = {"ship": ("UK", "US", "EU")}  # the order of a node's lists on 25 Sep; companies and people went US, EU, UK
+DEFAULT_LIST_ORDER = ("US", "EU", "UK")
 DERIVED = ("k", "br", "nolobby")  # worked out afresh on every build, never copied from a base or yesterday's graph
 NAME_SUFFIXES = {"jr", "sr", "ii", "iii", "iv"}
 GENERATED_FROM = ["UK, US and EU sanctions lists and OpenSanctions (nightly)", "US Senate lobbying disclosures (LDA)",
@@ -46,12 +52,20 @@ def iso(d: str) -> str:
     return d if re.match(r"\d{4}", d) else ""
 
 
-def _generic_id(nid: str) -> str:
-    """The id fleet_merge._rename_generic gives a company that has turned generic."""
-    return "co:unlisted-" + hashlib.sha1(nid.encode()).hexdigest()[:8]
+def _level(e: dict) -> str:
+    """What one designation does to a node. The UK and EU lists freeze assets. A US edge with no list type is a
+    Treasury designation (vessels, research); one that names a list off the SDN list (SSI, NS-MBS, CMIC ...) does not."""
+    return "restricted" if e["target"] == "gov:us" and e.get("us_list", "SDN") != "SDN" else "blocked"
 
 
-def _fleet_node(n: dict, listed_dates: dict) -> dict:
+def _lists(n: dict, dates: dict) -> list:
+    order = LIST_ORDER.get(n["type"], DEFAULT_LIST_ORDER)
+    entries = [[k.upper() if len(k) == 2 else k, "", v] for k, v in dates.items()] \
+        or [[x.upper(), "", ""] for x in n.get("listed_by") or []]
+    return sorted(entries, key=lambda x: order.index(x[0]) if x[0] in order else len(order))
+
+
+def _fleet_node(n: dict, listed_dates: dict, live: dict) -> dict:
     lb = n.get("listed_by") or []
     info = {k: n[k] for k in INFO_KEYS if n.get(k)}
     notes = [r["text"] for r in n.get("research_notes") or []]
@@ -61,9 +75,8 @@ def _fleet_node(n: dict, listed_dates: dict) -> dict:
         info.pop("aliases", None)
         notes = []
     return {"id": n["id"], "t": n["type"], "n": name, "L": "fleet", "g": n.get("program_group") or "other",
-            "s": "blocked" if n.get("listed") or lb else "",
-            "lists": [[k.upper() if len(k) == 2 else k, "", v] for k, v in listed_dates.get(n["id"], {}).items()]
-                     or [[x.upper(), "", ""] for x in lb],
+            "s": live.get(n["id"]) or ("blocked" if n.get("listed") or lb else ""),
+            "lists": _lists(n, listed_dates.get(n["id"], {})),
             "info": info, "notes": notes[:3],
             "unverified_person": n["type"] == "person" and not (n.get("named_by") or n.get("listed"))}
 
@@ -94,18 +107,17 @@ def _plain(item: dict, keys=DERIVED) -> dict:
 
 
 def _excluded(lobby: dict | None, exclude: list[str] | None) -> set[str]:
-    """Normalised names of lobbyists to leave out: the asset's list plus the config's (or `exclude`, when given)."""
+    """Lobbyists to leave out: the asset's list plus the config's (or `exclude`, when given), as lobbying.py reads them."""
     names = list((lobby or {}).get("exclude_lobbyists") or [])
     names += json.loads(CONFIG.read_text(encoding="utf-8"))["exclude_lobbyists"] if exclude is None else exclude
-    return {normalize_name(x) for x in names} - {""}
+    return exclusion_set(names)
 
 
 def _is_excluded(name: str, excluded: set[str]) -> bool:
-    """The filing builder matches the full name and first + last name; the node keeps only the full name, so first
-    + last is its first and last word without a Jr/Sr/II suffix (a two-word first name or surname is missed)."""
+    """lobbying.is_excluded on the full name and on first + last name. The node keeps only the full name, so first +
+    last is its first and last word without a Jr/Sr/II suffix (a two-word first name or surname is missed)."""
     words = [w for w in name.split() if w.strip(".,").lower() not in NAME_SUFFIXES]
-    short = " ".join(words[:1] + words[-1:] if len(words) > 1 else words)
-    return bool({normalize_name(name), normalize_name(short)} & excluded)
+    return is_excluded(excluded, name, " ".join(words[:1] + words[-1:] if len(words) > 1 else words))
 
 
 def build_kg(fleet: dict, lobby: dict | None, base: dict, previous_kg: dict | None, generated: str,
@@ -119,10 +131,12 @@ def build_kg(fleet: dict, lobby: dict | None, base: dict, previous_kg: dict | No
 
     # ---- fleet layer -------------------------------------------------------------------------
     listed_dates = defaultdict(dict)  # node -> {gov name: date}
+    live = {}  # node -> its strongest level among its designations
     for e in fleet["edges"]:
         if e["type"] == "designated_by" and e["target"] in GOV_NAMES:
             listed_dates[e["source"]].setdefault(GOV_NAMES[e["target"]], iso(e.get("date", "")))
-    nodes = {n["id"]: _fleet_node(n, listed_dates) for n in fleet["nodes"]
+            live[e["source"]] = max(live.get(e["source"], ""), _level(e), key=LEVELS.index)
+    nodes = {n["id"]: _fleet_node(n, listed_dates, live) for n in fleet["nodes"]
              if n["type"] not in ("country", "government") and not n["id"].startswith("lob:")}
     fleet_ids = set(nodes)
     edges = [_fleet_edge(e) for e in fleet["edges"]
@@ -148,8 +162,9 @@ def build_kg(fleet: dict, lobby: dict | None, base: dict, previous_kg: dict | No
             nodes[n["id"]] = n
 
     # ---- base: team lobbying nodes, curated bridges, and what only the 25 Sep research holds -------------
-    renamed = {n["id"]: _generic_id(n["id"]) for n in base["nodes"]
-               if n["id"] not in fleet_ids and _generic_id(n["id"]) in fleet_ids}  # a fleet firm that turned generic
+    # kg-base's lob: nodes and team edges are frozen and already alias-merged, so base["lob_alias"] is not applied here.
+    renamed = {n["id"]: generic_id(n["id"]) for n in base["nodes"]
+               if n["id"] not in fleet_ids and generic_id(n["id"]) in fleet_ids}  # a fleet firm that turned generic
     for n in base["nodes"]:
         nid = n["id"]
         if nid in renamed:
@@ -158,8 +173,10 @@ def build_kg(fleet: dict, lobby: dict | None, base: dict, previous_kg: dict | No
             nodes[nid] = {**_plain(n), **nodes[nid]}
         elif nid not in nodes:
             nodes[nid] = _plain(n)
+            if n["L"] == "fleet":  # no ship names it and no list holds it today: 25 Sep's list status is not today's
+                nodes[nid].update(s="", lists=[])
     for nid, st in base.get("status", {}).items():  # hand-checked: "restricted" (sectoral) is not "blocked"
-        if nid in nodes:
+        if nid in nodes and LEVELS.index(st["s"]) >= LEVELS.index(nodes[nid]["s"]):  # a stronger live listing stays
             nodes[nid].update(s=st["s"], lists=st["lists"])
     for nid, seen in base["live_flags"].items():
         if nid in nodes:

@@ -11,6 +11,7 @@ import fleet_official as fo
 import kg_build
 from changes import diff, summarize, update_record
 from fleet_merge import edge_id, generic_id, merge
+from kg_build import build_kg
 from lists import LISTS
 
 FIX = Path(__file__).parent / "fixtures" / "fleet"
@@ -172,6 +173,21 @@ def test_flag_change():
     assert diff(fleet(ship()), curr, "fleet", DAY, set()) == []  # a flag only just given is not a re-flagging
 
 
+def test_cosmetic_respelling_is_not_a_rename():
+    def company(name):
+        return fleet(fnode("co:orchid-shipmanagement", "company", name, name_policy="show", listed_by=["us"]),
+                     listing("co:orchid-shipmanagement", "us"), *GOV_NODES)
+    # whichever vessel record names a company decides how it is spelled: a vessel leaving can flip it
+    assert diff(company("Orchid Ship management LLC-FZ"), company("Orchid Shipmanagement LLC-FZ"), "fleet", DAY,
+                set()) == []
+    assert diff(company("Orchid Shipmanagement Ltd"), company("Orchid Shipmanagement Limited"), "fleet", DAY, set()) == []
+    assert diff(company("Fleet Tanqo Pvt Ltd"), company("FLEET TANQO PRIVATE LIMITED"), "fleet", DAY, set()) == []
+    assert diff(company("Orchid Maritime Sdn Bhd"), company("Orchid Maritime"), "fleet", DAY, set()) == []
+    assert diff(fleet(ship(name="OCEAN 28")), fleet(ship(name="Ocean-28")), "fleet", DAY, set()) == []
+    assert only(diff(company("Orchid Ship management LLC-FZ"), company("Orchid Maritime LLC-FZ"), "fleet", DAY, set()))[
+        "summary"] == "Renamed: Orchid Ship management LLC-FZ → Orchid Maritime LLC-FZ"
+
+
 def test_rename_and_programmes():
     prev = fleet(ship(name="OLD STAR", programs=["russia"]), listing(TASSOS, "uk"), *GOV_NODES)
     curr = fleet(ship(name="TASSOS", programs=["iran", "russia"]), listing(TASSOS, "uk"), *GOV_NODES)
@@ -223,16 +239,21 @@ def test_company_joining_map_is_not_a_listing(tmp_path):
     assert (new["kind"], "field" in new, new["source_url"]) == ("added", False, new["source_url"]) and new["source_url"]
 
 
-def test_research_company_no_longer_looked_up_is_not_a_delisting(tmp_path):
-    # research keeps TRANS-FLOT JSC on the map once the vessel is gone, but nothing looks it up in the lists any more
+def kept_by_research():
+    """A research link that keeps TRANS-FLOT JSC on the map after the vessel that names it is gone: (links, names)."""
     cite = {"url": "https://home.treasury.gov/news/x", "file": "study.csv", "quote": "q", "record": "",
             "angle": "studies", "confidence": "Documented"}
     held = {"source": "co:trans-flot", "target": "co:sovfracht", "type": "controls", "date": "", "source_url": cite["url"],
             "source_file": cite["file"], "quote": "q", "record": "", "angle": "studies", "confidence": "Documented",
             "sources": [cite]}
-    today = map_on(tmp_path, "today", research=[held], known={"co:trans-flot": ["TRANS-FLOT JSC"]})
-    tomorrow = map_on(tmp_path, "tomorrow", drop={"MARSHAL ZHUKOV"}, research=[held],
-                      known={"co:trans-flot": ["TRANS-FLOT JSC"]})
+    return [held], {"co:trans-flot": ["TRANS-FLOT JSC"]}
+
+
+def test_research_company_no_longer_looked_up_is_not_a_delisting(tmp_path):
+    # research keeps TRANS-FLOT JSC on the map once the vessel is gone, but nothing looks it up in the lists any more
+    held, known = kept_by_research()
+    today = map_on(tmp_path, "today", research=held, known=known)
+    tomorrow = map_on(tmp_path, "tomorrow", drop={"MARSHAL ZHUKOV"}, research=held, known=known)
     assert next(n for n in tomorrow["nodes"] if n["id"] == "co:trans-flot")["layer"] == "research"
     gone = diff(today, tomorrow, "fleet", DAY, set())
     assert "US removed MARSHAL ZHUKOV (IMO 9690224)" in {c["summary"] for c in gone}
@@ -506,6 +527,39 @@ def test_kg_only_firm_listing_is_reported_on_the_network():
     assert diff(net("US", kg_only=False), net("US", "UK", kg_only=False), "lobby", DAY, set()) == []  # the map's to report
 
 
+def network_of(fleet_graph):
+    asset = {"nodes": [], "edges": [], "filings_scanned": 0, "filings_kept": 0}
+    base = {"nodes": [], "edges": [], "lob_alias": {}, "live_flags": {}, "status": {},
+            "meta": {"no_lobbying_found": {"match": [], "names": []}, "live": None}}
+    return build_kg(fleet_graph, asset, base, None, DAY)
+
+
+def test_network_status_ignores_company_no_longer_looked_up(tmp_path):
+    # the vessel that named TRANS-FLOT JSC drops out; research keeps the company, but nothing looks it up, so the
+    # network's level for it falls to none though the US list still holds it
+    held, known = kept_by_research()
+    today = network_of(map_on(tmp_path, "today", research=held, known=known))
+    tomorrow = network_of(map_on(tmp_path, "tomorrow", drop={"MARSHAL ZHUKOV"}, research=held, known=known))
+    was, now = (next(n for n in g["nodes"] if n["id"] == "co:trans-flot") for g in (today, tomorrow))
+    assert (was["s"], now["s"], was.get("lk"), now.get("lk")) == ("blocked", "", 1, None)
+    assert not [c for c in diff(today, tomorrow, "lobby", DAY, set()) if c["id"] == "co:trans-flot"]
+    assert not [c for c in diff(tomorrow, today, "lobby", DAY, set()) if c["id"] == "co:trans-flot"]  # nor the way back
+
+
+def test_network_status_reports_looked_up_company_level_change():
+    def firm(level):
+        return kg({**knode("co:gazprom", "company", "Gazprom", L="fleet", s=level, lists=[["US", "", ""]]), "lk": 1})
+    c = only(diff(firm("restricted"), firm("blocked"), "lobby", DAY, set()))  # SSI to SDN, looked up on both days
+    assert (c["field"], c["from"], c["to"], c["summary"]) == ("status", "restricted", "blocked",
+                                                              "Gazprom changed status: restricted → blocked")
+    once = kg(knode("co:gazprom", "company", "Gazprom", L="fleet", s="restricted", lists=[["US", "", ""]]))
+    assert diff(once, firm("blocked"), "lobby", DAY, set()) == []  # looked up only one day: nothing says the level moved
+    def zara(level):
+        return kg({**knode("co:zara", "company", "Zara Shipholding", L="fleet", s=level), "kg_only": True})
+    assert only(diff(zara("blocked"), zara("restricted"), "lobby", DAY, set()))["summary"] == (
+        "Zara Shipholding changed status: blocked → restricted")  # looked up for the network every night
+
+
 def test_network_level_row_uses_the_ships_name():
     named = kg(knode(TASSOS, "ship", "TASSOS", L="fleet", s="blocked", lists=[["US", "", ""]]))
     bare = kg(knode(TASSOS, "ship", TASSOS, L="fleet", s="", lists=[]))  # delisted: only a research edge keeps it
@@ -666,6 +720,13 @@ def test_same_day_rerun_keeps_first_runs_changes():
     # the same change again is not doubled (the later run's row wins); a listing and a delisting of one node both stay
     later = update_record(record, DAY, [change(summary="a2", id="IMO1"), change(summary="d", id="IMO3")], {})
     assert [c["summary"] for c in later["days"][0]["changes"]] == ["a2", "b", "c", "d"]  # (in the diff's order)
+
+
+def test_sources_of_a_day_are_in_a_fixed_order():
+    names = ["us", "uk", "eu", "un", "lobbying"]  # (a set's order would depend on the hash seed)
+    first = update_record(None, DAY, [], {k: "fresh" for k in names})["days"][0]["sources"]
+    again = update_record(update_record(None, DAY, [], {"un": "fresh"}), DAY, [], {k: "fresh" for k in names})
+    assert list(first) == sorted(names) == list(again["days"][0]["sources"])
 
 
 def test_record_keeps_its_first_day_while_it_fits():

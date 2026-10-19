@@ -3,7 +3,8 @@
 Ported from veil-trace@88dcaa2:research/knowledge-graph/scripts/build_kg.py:78-202: the fleet layer, the lobby layer,
 curated bridges, the bridge flag and the orphan-ship drop and count. Node and edge keys are unchanged, but for two
 that the change record (changes.py) reads: `kg_only` on a company only this page shows, and `fl` on a lobby link
-(every filing id, shortened to 8 characters, sorted), with `fr`, the ones posted in the last 14 days. What differs:
+(every filing id, shortened to 8 characters, sorted), with `fr`, the ones posted in the last 14 days, and `lk` on a
+fleet node the lists were asked about that night (a company is asked about only while a vessel names it). What differs:
   * the fleet is merge() output (fleet_merge.py), the lobby layer is build/lobbying.json.gz;
   * the team lobbying nodes ("lob:") and the 30 team and 18 curated edges come from data/kg-base.json, which holds
     them as the original left them: already merged through LOB_ALIAS, typed and hubbed (HUBS, LOB_TYPE), and with
@@ -94,7 +95,8 @@ def _fleet_node(n: dict, live: dict) -> dict:
             "lists": _lists(n),
             "info": info, "notes": notes[:3],
             "unverified_person": n["type"] == "person" and not (n.get("named_by") or n.get("listed")),
-            **({"kg_only": True} if n.get("kg_only") else {})}  # looked up in the lists for this page; not on the map
+            **({"kg_only": True} if n.get("kg_only") else {}),  # looked up in the lists for this page; not on the map
+            **({"lk": 1} if n.get("layer") == "official" else {})}  # the lists were asked about it that night
 
 
 def _fleet_edge(e: dict) -> dict:

@@ -16,7 +16,7 @@ SAMPLE = json.loads((Path(__file__).parent / "fixtures" / "lobbying_sample.json"
 ZULU = "co:zulu-ships-management-and-operation-l-l-c"
 GENERIC = "co:unlisted-003"
 NODE_KEYS = {"id", "t", "n", "L", "g", "s", "lists", "info", "notes", "k", "br", "unverified_person", "hub", "src",
-             "live", "nolobby", "kg_only"}
+             "live", "nolobby", "kg_only", "lk"}
 EDGE_KEYS = {"fleet": {"s", "t", "y", "c", "d", "u", "f", "r", "q", "L", "br"},
              "lobby": {"s", "t", "y", "c", "d", "d2", "u", "r", "ids", "fl", "fr", "a", "q", "pct", "sa", "sub", "L", "br"}}
 
@@ -485,6 +485,19 @@ def merged(official_nodes, official_edges, research_edges=()):
     """merge() of an official layer over a research base: the long form build_kg reads."""
     base = {"nodes": [], "edges": list(research_edges), "node_fields": {}, "meta": {}, "generated": "2026-09-25"}
     return merge(base, {"nodes": official_nodes, "edges": official_edges}, aliases={}, eu_records=[])
+
+
+def test_nodes_looked_up_that_night_are_marked():
+    zulu = mcompany("co:zulu")
+    held = medge("co:held-by-research", "co:zulu", "controls", "", research(GOV_US))  # a research link names the stub
+    sdn = medge("co:zulu", "gov:us", "designated_by", "2024-08-23", research(GOV_US, angle="lists"), us_list="SDN")
+    link = medge("co:zulu", "IMO9000001", "linked_to", "", research(GOV_US, angle="lists"))
+    fleet = merged([mship("IMO9000001"), zulu], [sdn, link], [held])
+    assert next(n for n in fleet["nodes"] if n["id"] == "co:held-by-research")["layer"] == "research"
+    kg = build_kg(fleet, lobby(), make_base(), None, DAY)
+    # looked up in the lists that night = in the official layer; the stub is on the map but no list was asked about it
+    assert sorted(n["id"] for n in kg["nodes"] if n.get("lk")) == ["IMO9000001", "co:zulu"]
+    assert "lk" not in get(kg, "co:held-by-research")
 
 
 def test_ship_listed_only_by_us_shows_only_us():

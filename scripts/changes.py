@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import re
 
-from fleet_merge import _map_graph, edge_id, generic_id
+from fleet_merge import _loose, _map_graph, edge_id, generic_id
 from fleet_official import CNAME
 from kg_build import _excluded, _is_excluded
 from lists import LISTS
@@ -121,7 +121,9 @@ def _kg_view(graph: dict) -> tuple[dict, list]:
         if n["L"] in ("fleet", "lobby"):
             lobby, info = n["L"] == "lobby", n.get("info") or {}
             noun = ("lobbyist" if n["id"] in lobbyists else "person") if n["t"] == "person" else LOBBY_NOUN.get(n["t"])
-            nodes[n["id"]] = _node(n["id"], n["t"], n["n"], type_=noun if lobby else None,
+            # a ship is in the lists whatever else keeps it here; a company or person only while the lists were asked (lk)
+            asked = lobby or n["t"] == "ship" or bool(n.get("kg_only") or n.get("lk"))
+            nodes[n["id"]] = _node(n["id"], n["t"], n["n"], type_=noun if lobby else None, official=asked,
                                    generic=n["id"].startswith("co:unlisted-"), lobby=lobby, kg_only=bool(n.get("kg_only")),
                                    flag=info.get("flag_now"),
                                    govs=() if lobby else {x[0].split()[0].upper() for x in n["lists"]},
@@ -148,11 +150,14 @@ def _source(n: dict, govs) -> tuple[str, str]:
 def _facts(p: dict, c: dict, down: set) -> dict:
     """What changed in a node's own fields, as {field: (from, to)}. A fact counts only when both days know it (a list
     that starts to give a flag has not re-flagged the ship), and a generic company's name is the policy's, not its own."""
-    norm = lambda s: normalize_name(s) or s.casefold().strip()  # noqa: E731
+    squash = lambda s: re.sub(r"[\W_]", "", s.casefold())  # noqa: E731
+    # (a name spelled another way: case, spacing, punctuation or legal form. The vessel record that names a company
+    # decides its spelling, so a vessel leaving can flip it)
+    respelt = lambda a, b: any(f(a) == f(b) != "" for f in (squash, _loose, normalize_name))  # noqa: E731
     first = lambda n: next((g for g in PRECEDENCE if g in n["govs"]), None)  # noqa: E731
     out = {}
     # (the name and flag are the first list's: when the list ranking first changed, another's spelling is no rename)
-    if first(p) == first(c) and not (p["generic"] or c["generic"]) and norm(p["name"]) != norm(c["name"]):
+    if first(p) == first(c) and not (p["generic"] or c["generic"]) and not respelt(p["name"], c["name"]):
         out["name"] = p["name"], c["name"]
     if first(p) == first(c) and p["flag"] and c["flag"] and p["flag"] != c["flag"]:
         out["flag_now"] = CNAME.get(p["flag"], p["flag"]), CNAME.get(c["flag"], c["flag"])
@@ -307,7 +312,7 @@ def update_record(record: dict | None, date: str, changes: list[dict], sources: 
     rows = {(c["graph"], c["kind"], c["item"], c["id"], c.get("field"), "to" in c): c
             for c in same["changes"] + list(changes)}
     seen = {k: "fresh" if "fresh" in (same["sources"].get(k), sources.get(k)) else "unavailable"
-            for k in same["sources"].keys() | sources.keys()}
+            for k in sorted(same["sources"].keys() | sources.keys())}
     today = {"date": date, "sources": seen, "changes": sorted(rows.values(), key=_order)}
     days = [d for d in held if d["date"] != date] + [today]
     days = sorted(days, key=lambda d: d["date"], reverse=True)[:keep_days]

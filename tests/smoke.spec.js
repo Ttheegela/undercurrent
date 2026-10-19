@@ -264,6 +264,8 @@ const NETWORK = "/stories/who-lobbies/influence-network/index.html";
 
 for (const [name, path] of [["shadow-fleet map", MAP], ["influence network", NETWORK]]) {
   test(`${name}: the key drags, collapses and resets, and remembers across reloads`, async ({ page }) => {
+    // Four loads of a multi-megabyte graph page plus CDN scripts: give CI room beyond the 30 s default.
+    test.slow();
     const errors = watchErrors(page);
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto(path);

@@ -3,6 +3,8 @@ import shutil
 from pathlib import Path
 
 import fleet_official as fo
+from fleet_merge import compact, merge
+from kg_build import build_kg
 
 FIX = Path(__file__).parent / "fixtures" / "fleet"
 DOWNLOADS = {fo.OS_EU_JOURNAL: "os_eu_journal_sample.csv", fo.OS_OFAC: "os_ofac_sample.csv"}
@@ -13,7 +15,7 @@ def fake_fetch(url):
     return (FIX / DOWNLOADS[url]).read_text(encoding="utf-8")
 
 
-def build(tmp_path, fetch=fake_fetch, csl_rows=()):
+def build(tmp_path, fetch=fake_fetch, csl_rows=(), uk_rows=(), **official_args):
     raw = tmp_path / "fleet-raw"
     raw.mkdir(exist_ok=True)
     shutil.copy(FIX / "uk_sample.csv", raw / "uk.csv")
@@ -21,7 +23,10 @@ def build(tmp_path, fetch=fake_fetch, csl_rows=()):
     with open(raw / "us.csv", "a", newline="", encoding="utf-8") as f:
         header = (FIX / "csl_sample.csv").read_text(encoding="utf-8").split("\n", 1)[0].split(",")
         csv.DictWriter(f, fieldnames=header).writerows(csl_rows)
-    return fo.build_official(raw, fetch=fetch)
+    with open(raw / "uk.csv", "a", newline="", encoding="utf-8") as f:
+        header = (FIX / "uk_sample.csv").read_text(encoding="utf-8").split("\n")[1].split(",")
+        csv.DictWriter(f, fieldnames=header).writerows(uk_rows)
+    return fo.build_official(raw, fetch=fetch, **official_args)
 
 
 def edges_of(graph, source, type_):
@@ -163,4 +168,61 @@ def test_us_designation_says_which_list_it_is_on(tmp_path):
     assert us_list("co:ns-laguna-shipping") == "SDN"
     assert us_list("co:nitc") == "SDN"  # OpenSanctions' copy of the SDN list
     assert us_list("p:artemov-viktor-sergiyovich") == "SDN"
+
+
+def test_each_designation_says_whether_it_freezes_assets(tmp_path):
+    # Only an asset freeze is "blocked" on the kg page: the UK row's own "Sanctions Imposed", the EU list, the US list.
+    unfrozen = {"Unique ID": "RUS9001", "Name 6": "Boribo Shipping Corp", "Designation Type": "Entity",
+                "Regime Name": "The Russia (Sanctions) (EU Exit) Regulations 2019", "Date Designated": "01/02/2025",
+                "Sanctions Imposed": "Trust Services Sanctions|Transport sanctions"}
+    g = build(tmp_path, uk_rows=[unfrozen])
+    des = lambda nid, gov: edges_of(g, nid, "designated_by")[gov]  # noqa: E731
+    assert des("IMO9408695", "gov:uk")["uk_freeze"] is False  # a specified ship
+    assert des("IMO9408695", "gov:eu")["eu_reg"] == "833"  # an Annex XLII ship listing of Reg. 833/2014
+    assert des("IMO9408695", "gov:us")["us_list"] == "SDN"
+    assert des("co:one-moon-marine-services-l-l-c", "gov:uk")["uk_freeze"] is True  # "Asset freeze" in its row
+    assert des("co:boribo-shipping", "gov:uk")["uk_freeze"] is False
+
+
+def test_folded_designations_keep_the_strongest_type():
+    def folded(*edges):
+        g = fo._Graph()
+        for e in edges:
+            g.fold({"source": "co:a", "target": "gov:x", "type": "designated_by", "date": "", "sources": [], **e})
+        return next(iter(g.edges.values()))
+
+    for order in (1, -1):  # whichever edge arrives first
+        assert folded(*[{"us_list": "SSI"}, {"us_list": "SDN"}][::order])["us_list"] == "SDN"
+        assert folded(*[{"uk_freeze": False}, {"uk_freeze": True}][::order])["uk_freeze"] is True
+        assert folded(*[{"eu_reg": "833"}, {"eu_reg": "269"}][::order])["eu_reg"] == "269"
+
+
+def test_extra_company_gets_live_sdn_status(tmp_path):
+    # Zara Shipholding is on the SDN list, but no vessel names it: the kg base asks for it by name.
+    extra = {"co:zara-shipholding": "ZARA SHIPHOLDING CO", "co:nitc": "NITC"}
+    row = csl_entity(SDN, "ZARA SHIPHOLDING CO", "50524", "RUSSIA-EO14024")
+    g = build(tmp_path, csl_rows=[row], extra_companies=extra)
+    zara = node(g, "co:zara-shipholding")
+    assert (zara["name"], zara["listed_by"], zara["kg_only"]) == ("ZARA SHIPHOLDING CO", ["us"], True)
+    us = edges_of(g, "co:zara-shipholding", "designated_by")["gov:us"]
+    assert (us["us_list"], us["record"]) == ("SDN", "OFAC ent_num 50524")
+    assert "kg_only" not in node(g, "co:nitc")  # a vessel names it: an ordinary node, as before
+
+    # through merge and the kg build: "blocked", and out of the map payload
+    long = merge({"nodes": [], "edges": [], "node_fields": {}, "meta": {}}, g, aliases={}, eu_records=[])
+    arctic = {"id": "co:arctic-lng-2", "t": "company", "n": "Arctic LNG 2", "L": "lobby", "g": "russia", "s": "",
+              "lists": [], "info": {}, "notes": []}
+    old = {"id": "co:zara-shipholding", "t": "company", "n": "ZARA SHIPHOLDING CO", "L": "fleet", "g": "russia",
+           "s": "blocked", "lists": [["US SDN", "50524", "RUSSIA-EO14024"]], "info": {}, "notes": []}
+    link = {"s": "co:zara-shipholding", "t": "co:arctic-lng-2", "y": "linked_to", "c": "D", "d": "", "u": "", "f": "",
+            "r": "", "q": "", "L": "curated", "a": 0, "an": ""}
+    kg_base = {"nodes": [old, arctic], "edges": [link], "lob_alias": {}, "live_flags": {}, "status": {},
+               "meta": {"no_lobbying_found": {"match": [], "names": []}, "live": None}}
+    asset = {"nodes": [], "edges": [], "filings_scanned": 0, "filings_kept": 0}
+    kg = build_kg(long, asset, kg_base, None, "2026-10-19", exclude=[])
+    node_ = next(n for n in kg["nodes"] if n["id"] == "co:zara-shipholding")
+    assert (node_["s"], [x[0] for x in node_["lists"]]) == ("blocked", ["US"])
+    payload = compact(long, "2026-10-19")
+    assert "co:zara-shipholding" not in {n["id"] for n in payload["nodes"]}
+    assert not [e for e in payload["edges"] if "co:zara-shipholding" in (e["s"], e["t"])]
 

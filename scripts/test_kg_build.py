@@ -203,6 +203,24 @@ def test_excluded_lobbyists_never_appear():
     check(build_kg(make_fleet(), None, make_base(), fresh, DAY, exclude=["Vincent Roberti", "Walker Roberts"]))
 
 
+def test_excluded_lobbyist_with_two_word_surname_is_dropped():
+    # LDA gives first "Mary", middle "Ann", last "Van Der Berg": the filing builder's first + last name is "Mary Van Der
+    # Berg", but the node reads "Mary Ann Van Der Berg", whose first and last words alone ("Mary Berg") match nothing.
+    person = {"id": "p:mary-ann-van-der-berg", "type": "person", "name": "Mary Ann Van Der Berg", "layer": "lobby"}
+    link = {"source": person["id"], "target": "lf:capitol-counsel", "type": "lobbyist_at", "filings": ["f"],
+            "years": [2021], "texts": [], "n_filings": 1, "source_url": "u", "confidence": "Documented"}
+    asset = lobby(nodes=SAMPLE["nodes"] + [person], edges=SAMPLE["edges"] + [link])
+
+    def build(exclude):
+        return build_kg(make_fleet(), asset, make_base(), None, DAY, exclude=exclude)
+
+    assert person["id"] in {n["id"] for n in build([])["nodes"]}
+    for entry in ("Mary Van Der Berg", "MARY ANN VAN DER BERG", "Mary Berg"):  # over-excluding is the safe direction
+        kg = build([entry])
+        assert person["id"] not in {x for e in kg["edges"] for x in (e["s"], e["t"])} | {n["id"] for n in kg["nodes"]}
+    assert "Lydia Strunk" in {n["n"] for n in build(["Mary Van Der Berg"])["nodes"]}
+
+
 def test_config_exclusions_are_read_when_not_passed():
     kg_build.CONFIG.write_text(json.dumps({"exclude_lobbyists": ["Lydia Strunk"]}), encoding="utf-8")
     kg = build_kg(make_fleet(), lobby(), make_base(), None, DAY)
@@ -217,6 +235,18 @@ def test_base_fleet_company_takes_live_names_and_status():
     assert (zulu["n"], zulu["s"], zulu["lists"]) == ("ZULU SHIPS MANAGEMENT", "blocked", [["EU", "", "2025-10-24"]])
     assert zulu["note_from_base"] == "kept"
     assert zulu["k"] == 1 and "br" not in zulu and "nolobby" not in zulu  # derived flags are recomputed, not copied
+
+
+def test_base_fleet_company_keeps_its_description_when_the_live_node_has_none():
+    # a company no vessel names (Zara Shipholding) has no live role; the base's line about it stays
+    old = {"id": ZULU, "t": "company", "n": "OLD", "L": "fleet", "g": "russia", "s": "", "lists": [], "notes": [],
+           "info": {"role": "shipping company linked by OFAC to Arctic LNG 2", "country": "IN"}}
+    zulu = get(build_kg(make_fleet(), lobby(), make_base([old]), None, DAY), ZULU)
+    assert zulu["info"]["role"] == "ship manager"  # a live role still wins
+    live = make_fleet()
+    live["nodes"][1] = {k: v for k, v in live["nodes"][1].items() if k != "role"}
+    zulu = get(build_kg(live, lobby(), make_base([old]), None, DAY), ZULU)
+    assert zulu["info"] == {"role": old["info"]["role"], "country": "ae", "programs": ["russia"]}
 
 
 def test_base_fleet_company_that_the_fleet_graph_made_generic_follows_its_new_id():
@@ -270,8 +300,34 @@ def test_sectoral_only_listing_is_not_blocked():
     kg = build_kg(fleet, lobby(), make_base(), None, DAY)
     assert [get(kg, i)["s"] for i in ("co:gazprom", "co:novatek", "co:frozen", "co:both")] == [
         "restricted", "restricted", "blocked", "blocked"]
-    assert get(kg, "IMO9408695")["s"] == "blocked"  # a US edge with no list type (vessels, research) stays blocked
+    assert get(kg, "IMO9408695")["s"] == "blocked"  # listed, but no designation edge to read a type from: as before
     assert get(kg, "co:gazprom")["lists"] == [["US", "", "2024-09-09"]]
+
+
+def test_uk_or_eu_only_ship_is_restricted():
+    # A UK specified ship and an EU Annex XLII listing are shipping measures, not asset freezes; a US SDN entry is one.
+    ships = {"IMO1000001": [("gov:uk", {"uk_freeze": False})], "IMO1000002": [("gov:eu", {"eu_reg": "833"})],
+             "IMO1000003": [("gov:uk", {"uk_freeze": False}), ("gov:eu", {"eu_reg": "833"})],
+             "IMO1000004": [("gov:uk", {"uk_freeze": False}), ("gov:us", {"us_list": "SDN"})]}
+    nodes = [fnode(i, "ship", i, imo=i[3:], listed=True) for i in ships]
+    edges = [fedge(i, gov, "designated_by", **kw) for i, es in ships.items() for gov, kw in es]
+    edges += [fedge(ZULU, i, "manages") for i in ships]
+    kg = build_kg(make_fleet(*nodes, extra_edges=edges), lobby(), make_base(), None, DAY)
+    assert [get(kg, i)["s"] for i in ships] == ["restricted", "restricted", "restricted", "blocked"]
+
+
+def test_uk_row_without_asset_freeze_is_restricted():
+    def company(nid):
+        return fnode(nid, "company", nid, listed=True)
+
+    ids = ("co:uk-freeze", "co:uk-no-freeze", "co:eu-269", "co:eu-833")
+    designations = [fedge("co:uk-freeze", "gov:uk", "designated_by", uk_freeze=True),
+                    fedge("co:uk-no-freeze", "gov:uk", "designated_by", uk_freeze=False),
+                    fedge("co:eu-269", "gov:eu", "designated_by", eu_reg="269"),
+                    fedge("co:eu-833", "gov:eu", "designated_by", eu_reg="833")]
+    edges = designations + [fedge(i, "IMO9408695", "owns") for i in ids]
+    kg = build_kg(make_fleet(*map(company, ids), extra_edges=edges), lobby(), make_base(), None, DAY)
+    assert [get(kg, i)["s"] for i in ids] == ["blocked", "restricted", "blocked", "restricted"]
 
 
 def test_curated_level_upgraded_by_live_blocking_listing():

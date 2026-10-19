@@ -107,6 +107,17 @@ def load_kg_base(path: Path = DATA / "kg-base.json") -> dict:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def kg_extra_companies(kg_base: dict, fleet_base: dict | None = None) -> dict[str, str]:
+    """{id: name} of the fleet companies the kg base holds that the fleet base does not know: pass to
+    fleet_official.build_official so each is looked up in today's lists even when no vessel names it (Zara Shipholding
+    and Skyhart are linked to Arctic LNG 2, not to a ship). The fleet base's own companies are left alone, so the
+    map's payload does not change."""
+    fleet_base = fleet_base or {"nodes": [], "edges": [], "node_fields": {}}
+    known = {n["id"] for n in fleet_base["nodes"]} | set(fleet_base["node_fields"])
+    known |= {x for e in fleet_base["edges"] for x in (e["source"], e["target"])}
+    return {n["id"]: n["n"] for n in kg_base["nodes"] if n["L"] == "fleet" and n["t"] == "company" and n["id"] not in known}
+
+
 def sep25_text(path: str) -> str:
     """A repo file as it was at SEP25; fails rather than read anything newer."""
     return subprocess.run(["git", "-C", str(ROOT), "show", f"{SEP25}:{path}"], check=True, capture_output=True,

@@ -1,4 +1,4 @@
-from fleet_base import LOB_ALIAS, split_fleet, split_kg
+from fleet_base import LOB_ALIAS, kg_extra_companies, load_fleet_base, load_kg_base, split_fleet, split_kg
 
 META = {
     "findings": [{"id": "f1"}], "patterns": [{"id": "p1"}], "study_counts": {"a": 1}, "title": "T",
@@ -114,3 +114,14 @@ def test_kg_base_keeps_curated_status_of_lobby_side_companies():
         "edges": [],
     }
     assert split_kg(kg)["status"] == {"co:nord-stream-2": {"s": "blocked", "lists": [["US SDN", "31926", "PEESA-EO14039"]]}}
+
+
+def test_kg_extra_companies_are_the_kg_fleet_companies_the_fleet_base_lacks():
+    kg_base = load_kg_base()
+    every = kg_extra_companies(kg_base)
+    assert every["co:zara-shipholding"] == "ZARA SHIPHOLDING CO" and len(every) == 16
+    # Gazprom Neft and the rest are research nodes of the map already; only the two Arctic LNG 2 firms are new to it
+    assert kg_extra_companies(kg_base, load_fleet_base()) == {
+        "co:zara-shipholding": "ZARA SHIPHOLDING CO",
+        "co:skyhart-management-services": "SKYHART MANAGEMENT SERVICES PRIVATE LIMITED"}
+

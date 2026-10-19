@@ -10,9 +10,11 @@ curated bridges, the bridge flag and the orphan-ship drop and count. Node and ed
   * with no lobbying asset, yesterday's lobby layer is carried over from previous_kg.
 Hand-checked list status of lobby-side companies lives in base["status"] and is applied last, as the original's curated
 status was, but never weaker than the live one: a node shows the stronger of the two levels. Only an asset freeze is
-"blocked" (UK and EU lists, the US SDN list); a US entry off the SDN list (SSI, NS-MBS, ...) is "restricted", the
-page's dashed ring. The 16 fleet companies in the base are not in base["status"]: their status is always the live one,
-and one that today's lists no longer give shows as on no list rather than keep its 25 Sep status.
+"blocked" (a US SDN entry, a UK row with an asset freeze, an EU Reg. 269/2014 entry); the rest is "restricted", the
+page's dashed ring (US SSI and NS-MBS entries, UK specified ships, EU Reg. 833/2014 measures such as the ship listing),
+so a ship listed only by the UK or EU is "restricted". The 16 fleet companies in the base are not in base["status"]:
+their status is always the live one, and one that today's lists no longer give shows as on no list rather than keep
+its 25 Sep status.
 """
 from __future__ import annotations
 
@@ -22,7 +24,9 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from fleet_merge import generic_id
+from fleet_official import freezes
 from lobbying import exclusion_set, is_excluded
+from normalize import normalize_name
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "data" / "lobbying-clients.json"
@@ -53,9 +57,10 @@ def iso(d: str) -> str:
 
 
 def _level(e: dict) -> str:
-    """What one designation does to a node. The UK and EU lists freeze assets. A US edge with no list type is a
-    Treasury designation (vessels, research); one that names a list off the SDN list (SSI, NS-MBS, CMIC ...) does not."""
-    return "restricted" if e["target"] == "gov:us" and e.get("us_list", "SDN") != "SDN" else "blocked"
+    """What one designation does to a node: "blocked" if it freezes assets, else "restricted". The edge says which
+    (fleet_official.freezes): a US SDN entry, a UK row with an asset freeze, an EU Reg. 269/2014 entry; not a US
+    SSI or NS-MBS entry, a UK specified ship, nor an EU Reg. 833/2014 measure. One with no type keeps its old level."""
+    return "blocked" if freezes(e) else "restricted"
 
 
 def _lists(n: dict, dates: dict) -> list:
@@ -106,18 +111,27 @@ def _plain(item: dict, keys=DERIVED) -> dict:
     return {k: v for k, v in item.items() if k not in keys}
 
 
-def _excluded(lobby: dict | None, exclude: list[str] | None) -> set[str]:
-    """Lobbyists to leave out: the asset's list plus the config's (or `exclude`, when given), as lobbying.py reads them."""
+def _ends(name: str) -> tuple:
+    """The first and last word of a normalised name, a Jr/Sr/II suffix left out."""
+    words = [w for w in normalize_name(name).split() if w.lower() not in NAME_SUFFIXES]
+    return (words[0], words[-1]) if words else ()
+
+
+def _excluded(lobby: dict | None, exclude: list[str] | None) -> tuple[set[str], set[tuple]]:
+    """Lobbyists to leave out, as lobbying.py reads them: the asset's list plus the config's (or `exclude`, when
+    given), and the first and last words of each."""
     names = list((lobby or {}).get("exclude_lobbyists") or [])
     names += json.loads(CONFIG.read_text(encoding="utf-8"))["exclude_lobbyists"] if exclude is None else exclude
-    return exclusion_set(names)
+    full = exclusion_set(names)
+    return full, {_ends(x) for x in full}
 
 
-def _is_excluded(name: str, excluded: set[str]) -> bool:
-    """lobbying.is_excluded on the full name and on first + last name. The node keeps only the full name, so first +
-    last is its first and last word without a Jr/Sr/II suffix (a two-word first name or surname is missed)."""
-    words = [w for w in name.split() if w.strip(".,").lower() not in NAME_SUFFIXES]
-    return is_excluded(excluded, name, " ".join(words[:1] + words[-1:] if len(words) > 1 else words))
+def _is_excluded(name: str, excluded: tuple[set[str], set[tuple]]) -> bool:
+    """lobbying.is_excluded on the full name, or the same first and last word as an excluded name. The node keeps
+    only the display name, so "Mary Ann Van Der Berg" must meet the filing builder's "Mary Van Der Berg"; matching
+    too many people is the safe side."""
+    full, ends = excluded
+    return is_excluded(full, name) or _ends(name) in ends
 
 
 def build_kg(fleet: dict, lobby: dict | None, base: dict, previous_kg: dict | None, generated: str,
@@ -171,6 +185,8 @@ def build_kg(fleet: dict, lobby: dict | None, base: dict, previous_kg: dict | No
             continue
         if nid in fleet_ids:  # live names and list status win; the base adds the fields only it has
             nodes[nid] = {**_plain(n), **nodes[nid]}
+            if n["info"].get("role"):  # a firm no vessel names has no live role
+                nodes[nid]["info"].setdefault("role", n["info"]["role"])
         elif nid not in nodes:
             nodes[nid] = _plain(n)
             if n["L"] == "fleet":  # no ship names it and no list holds it today: 25 Sep's list status is not today's

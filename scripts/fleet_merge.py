@@ -44,6 +44,10 @@ LEGAL_WORDS = re.compile(r"\b(the|l l c|llc|ltd|limited|liability|pvt|private|in
                          r"corporation|jsc|pjsc|ojsc|cjsc|ooo|fze|fzco|fz|s a|sa|ag|gmbh|plc|llp|bv|pte|"
                          r"sole proprietorship)\b")
 CARE_OF = re.compile(r"(\s+c/o\s+)", re.I)
+# Reg. 833/2014 holds the transaction, port and ship measures (its articles are numbered 3a to 3zb); Reg. 269/2014 freezes assets.
+EU_833 = re.compile(r"833/2014|Annex\s+XLII|\bArticles?\s+3[a-z]{1,2}\b")
+UK_SHIP = re.compile(r"specified ship", re.I)
+LIST_EDGES = ("designated_by", "registered_in")  # what the lists alone say about a node
 KEEP = ("id", "type", "name", "aliases", "imo", "programs", "program_group", "listed_by", "listed", "first_listed",
         "listing_dates", "country", "role", "ship_type", "year_built", "flag_now", "flags_before", "flag_us", "mmsi_us",
         "names_by_source", "ua_former_names", "ship_count", "name_count", "flag_count", "name_policy", "generic_name",
@@ -81,7 +85,8 @@ def _official(official: dict, aliases: dict[str, str], eu_records: list[list[str
         keys = sorted({norm_co(x) for x in [n["name"]] + n.get("aliases", [])})  # aliases: alias-table spellings only
         for r in [r for key in keys for r in eu.get(key, [])]:
             g.node("gov:eu", type="government", name=GOVS["gov:eu"])
-            g.edge(nid, "gov:eu", "designated_by", r[3], r[6] or EU_PAGE, EU_FILE, "Programme: " + r[2], "EU id " + r[4])
+            g.edge(nid, "gov:eu", "designated_by", r[3], r[6] or EU_PAGE, EU_FILE, "Programme: " + r[2], "EU id " + r[4],
+                   eu_reg="269" if r[2] == "Russia/Ukraine" else r[2])  # the financial list is asset freezes
     nodes, edges = g.parts()
     return {"nodes": nodes, "edges": edges}
 
@@ -103,6 +108,22 @@ def _fold(into: dict, e: dict, layer: str) -> None:
             cur["date_note"] = e["date_note"]
     if any(s["confidence"] == "Documented" for s in cur["sources"]):
         cur["confidence"] = "Documented"
+
+
+def _measure(edges: dict) -> None:
+    """A research designation has no list row, so its type comes from the instrument its quotes cite, where they name
+    one: Reg. 833/2014 and UK ship measures do not freeze assets. Anything else keeps its 25 Sep reading (a freeze)."""
+    for e in edges.values():
+        text = " ".join(s["quote"] or "" for s in e["sources"])
+        if e["type"] != "designated_by" or text == "":
+            continue
+        if e["target"] == "gov:eu" and "eu_reg" not in e:
+            if "269/2014" in text:
+                e["eu_reg"] = "269"
+            elif EU_833.search(text):
+                e["eu_reg"] = "833"
+        elif e["target"] == "gov:uk" and "uk_freeze" not in e and UK_SHIP.search(text):
+            e["uk_freeze"] = False
 
 
 def _stub(nid: str, known: list[str]) -> dict:
@@ -189,6 +210,7 @@ def merge(base: dict, official: dict, aliases: dict[str, str] | None = None,
         for x in (e["source"], e["target"]):
             if x not in nodes:
                 nodes[x] = _stub(x, known.get(x, []))
+    _measure(edges)
     for nid, fields in base["node_fields"].items():
         n = nodes.get(nid)
         if n is None:  # a list node that left the lists and that no research edge cites
@@ -331,8 +353,20 @@ def _scrub(graph: dict, hidden: dict[str, str]) -> None:
         graph["meta"] = dict(graph["meta"], findings=[dict(f, text=scrub(f["text"])) for f in graph["meta"]["findings"]])
 
 
+def _map_graph(graph: dict) -> dict:
+    """The graph less the companies build_official looked up for the kg page only (kg_only) that no fleet edge touches:
+    on the map they would be loose nodes."""
+    busy = {x for e in graph["edges"] if e["type"] not in LIST_EDGES for x in (e["source"], e["target"])}
+    hidden = {n["id"] for n in graph["nodes"] if n.get("kg_only") and n["id"] not in busy}
+    if not hidden:
+        return graph
+    return dict(graph, nodes=[n for n in graph["nodes"] if n["id"] not in hidden],
+                edges=[e for e in graph["edges"] if not {e["source"], e["target"]} & hidden])
+
+
 def compact(graph: dict, generated: str) -> dict:
     """The page's FLEET_DATA: a [url, file] source table, a quote table and short edge keys (merge.py:306-355)."""
+    graph = _map_graph(graph)
     sources, quotes, sidx, qidx = [], [], {}, {}
 
     def ref(table, index, key):

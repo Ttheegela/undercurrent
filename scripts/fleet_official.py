@@ -128,6 +128,17 @@ def csl_list(source: str) -> str:
     return m.group(1) if m else source
 
 
+# Which designation types freeze assets: an edge's own type field, by the government that made it. The kg page shows
+# "blocked" for a freeze and "restricted" for the rest (US SSI, NS-MBS and the like; UK ship and non-freeze rows; EU
+# Reg. 833/2014 measures such as the Annex XLII ship listing). Reg. 269/2014 and the EU financial list freeze assets.
+FREEZES = {"us_list": lambda v: v == "SDN", "uk_freeze": bool, "eu_reg": lambda v: v != "833"}
+
+
+def freezes(edge: dict) -> bool:
+    """Does this designation freeze assets? One that carries no type is taken to."""
+    return all(test(edge[k]) for k, test in FREEZES.items() if k in edge)
+
+
 class _Graph:
     """Nodes merge like build_base.node(): list fields are unioned, other fields keep their first value.
     Edges fold by (source, target, type): sources are unioned and the earliest date is kept."""
@@ -168,6 +179,9 @@ class _Graph:
         cur["sources"] += [s for s in e["sources"] if s not in cur["sources"]]
         if e["date"] and (not cur["date"] or e["date"] < cur["date"]):
             cur["date"] = e["date"]
+        for k, test in FREEZES.items():  # an entity on both the SSI and the SDN list is on the SDN list
+            if k in e and (k not in cur or (test(e[k]) and not test(cur[k]))):
+                cur[k] = e[k]
 
     def country(self, code: str) -> bool:
         if not code or code.startswith("raw:"):
@@ -238,7 +252,8 @@ def parse_uk(text: str) -> tuple[list[dict], list[dict]]:
                    ship_type=prim["Type of ship"].strip(), year_built=prim["Year Built"].strip(),
                    tonnage=prim["Tonnage of ship"].strip(), programs="russia", uk_id=uid, uk_name=name,
                    names_by_source={"UK list": name}, uk_date=d)
-        g.edge(sid, "gov:uk", "designated_by", d, url, UK_FILE, (prim["Other Information"] or "")[:160], uid, regime="Russia")
+        g.edge(sid, "gov:uk", "designated_by", d, url, UK_FILE, (prim["Other Information"] or "")[:160], uid, regime="Russia",
+               uk_freeze="Asset freeze" in prim["Sanctions Imposed"])
         cur = prim["Current believed flag of ship"].strip()
         for c in isos(cur):
             if g.country(c):
@@ -295,7 +310,7 @@ def parse_csl(text: str, first_seen: dict[str, str] | None = None) -> tuple[list
                    us_programs=r["programs"], mmsi_us=mmsi.group(1) if mmsi else "")
         via_os = {"date_note": OS_DATE_NOTE} if usd and not r["start_date"] else {}
         g.edge(sid, "gov:us", "designated_by", usd, url, CSL_OS_DATE_FILE if via_os else CSL_FILE,
-               "Programmes: " + r["programs"], rec, program=pc, **via_os)
+               "Programmes: " + r["programs"], rec, program=pc, us_list=csl_list(r["source"]), **via_os)
         fl = r["vessel_flag"].strip()
         for c in isos(fl):
             if g.country(c):
@@ -337,7 +352,7 @@ def parse_os_eu_journal(text: str) -> tuple[list[dict], list[dict]]:
                programs=pc, names_by_source={"EU list": name}, eu_date=d)
         reason = re.sub(r"\s*-\s*\d{4}-\d{2}-\d{2}$", "", r["sanctions"].split(";")[0])
         g.edge(sid, "gov:eu", "designated_by", d, OS_ENTITY.format(r["id"]), EU_FILE, reason[:200], "OpenSanctions " + r["id"],
-               regime="Russia (Reg. 833/2014 ship list)" if pc == "russia" else pc)
+               regime="Russia (Reg. 833/2014 ship list)" if pc == "russia" else pc, eu_reg="833")
     return g.parts()
 
 
@@ -393,7 +408,8 @@ def _company_listings_and_people(g: _Graph, uk_text: str, csl_text: str, ofac_te
             d = ddmmyyyy(r["Date Designated"])
             g.node(nid, uk_date=d)
             g.edge(nid, "gov:uk", "designated_by", d, UK_ENTRY.format(r["Unique ID"], "Entity"), UK_FILE,
-                   (r["UK Statement of Reasons"] or r["Other Information"])[:200], r["Unique ID"])
+                   (r["UK Statement of Reasons"] or r["Other Information"])[:200], r["Unique ID"],
+                   uk_freeze="Asset freeze" in r["Sanctions Imposed"])
 
     csl_people = {norm_co(r["name"]) for r in csl if r["type"] == "Individual" and "Treasury" in r["source"]}
     ren = {}
@@ -410,8 +426,10 @@ def _company_listings_and_people(g: _Graph, uk_text: str, csl_text: str, ofac_te
         g.fold(e)
 
 
-def build_official(raw_dir: Path, fetch=fetch_text) -> dict:
-    """The official layer as {"nodes": [...], "edges": [...]} in the long nodes.json/edges.json shape."""
+def build_official(raw_dir: Path, fetch=fetch_text, extra_companies: dict[str, str] | None = None) -> dict:
+    """The official layer as {"nodes": [...], "edges": [...]} in the long nodes.json/edges.json shape.
+    `extra_companies` ({id: name}) are looked up in the lists like the companies the vessels name, for the kg page's
+    sake (see fleet_base.kg_extra_companies). One that no vessel names becomes a node flagged kg_only."""
     raw_dir = Path(raw_dir)
     uk = (raw_dir / "uk.csv").read_text(encoding="utf-8-sig")
     us = (raw_dir / "us.csv").read_text(encoding="utf-8-sig")
@@ -421,5 +439,8 @@ def build_official(raw_dir: Path, fetch=fetch_text) -> dict:
         g.node(gid, type="government", name=name)
     for part in (parse_uk(uk), parse_csl(us, parse_os_ofac_dates(ofac)), parse_os_eu_journal(eu)):
         g.add(*part)
+    for cid, name in (extra_companies or {}).items():
+        if cid not in g.nodes:
+            g.node(cid, type="company", name=name, kg_only=True)
     _company_listings_and_people(g, uk, us, ofac)
     return g.finish()

@@ -8,6 +8,9 @@ curated bridges, the bridge flag and the orphan-ship drop and count. Node and ed
     the "only where no link of ours joins the pair" test applied. So the fleet graph's own "lob:" rows are not read
     (base["lob_alias"] stays in the base for regenerating it);
   * with no lobbying asset, yesterday's lobby layer is carried over from previous_kg.
+A fleet node's lists and their dates are merge()'s own (listed_by and listing_dates, fleet_merge._status): the raw
+designation edges also hold research designations that no list backs today, and give the "blocked" level only where
+they back a government in listed_by.
 Hand-checked list status of lobby-side companies lives in base["status"] and is applied last, as the original's curated
 status was, but never weaker than the live one: a node shows the stronger of the two levels. Only an asset freeze is
 "blocked" (a US SDN entry, a UK row with an asset freeze, an EU Reg. 269/2014 entry); the rest is "restricted", the
@@ -20,11 +23,11 @@ from __future__ import annotations
 
 import json
 import re
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
 from fleet_merge import generic_id
-from fleet_official import freezes
+from fleet_official import FREEZES, freezes
 from lobbying import exclusion_set, is_excluded
 from normalize import normalize_name
 
@@ -56,22 +59,25 @@ def iso(d: str) -> str:
     return d if re.match(r"\d{4}", d) else ""
 
 
-def _level(e: dict) -> str:
+def _level(e: dict, ship: bool) -> str:
     """What one designation does to a node: "blocked" if it freezes assets, else "restricted". The edge says which
     (fleet_official.freezes): a US SDN entry, a UK row with an asset freeze, an EU Reg. 269/2014 entry; not a US
-    SSI or NS-MBS entry, a UK specified ship, nor an EU Reg. 833/2014 measure. One with no type keeps its old level."""
-    return "blocked" if freezes(e) else "restricted"
+    SSI or NS-MBS entry, a UK specified ship, nor an EU Reg. 833/2014 measure. A research designation with no type
+    keeps its 25 Sep level; a ship's must say so, since the feeds that list ships type every edge."""
+    typed = any(k in e for k in FREEZES)
+    return "blocked" if freezes(e) and (typed or not ship) else "restricted"
 
 
-def _lists(n: dict, dates: dict) -> list:
+def _lists(n: dict) -> list:
+    """The node's lists as merge() decided them (fleet_merge._status): listed_by and listing_dates, never the raw
+    designation edges, which still hold designations that no list backs today."""
     order = LIST_ORDER.get(n["type"], DEFAULT_LIST_ORDER)
-    entries = [[k.upper() if len(k) == 2 else k, "", v] for k, v in dates.items()] \
-        or [[x.upper(), "", ""] for x in n.get("listed_by") or []]
+    dates = n.get("listing_dates") or {}
+    entries = [[GOV_NAMES.get("gov:" + g, g.upper()), "", iso(dates.get(g, ""))] for g in n.get("listed_by") or []]
     return sorted(entries, key=lambda x: order.index(x[0]) if x[0] in order else len(order))
 
 
-def _fleet_node(n: dict, listed_dates: dict, live: dict) -> dict:
-    lb = n.get("listed_by") or []
+def _fleet_node(n: dict, live: dict) -> dict:
     info = {k: n[k] for k in INFO_KEYS if n.get(k)}
     notes = [r["text"] for r in n.get("research_notes") or []]
     name = n["name"]
@@ -80,8 +86,8 @@ def _fleet_node(n: dict, listed_dates: dict, live: dict) -> dict:
         info.pop("aliases", None)
         notes = []
     return {"id": n["id"], "t": n["type"], "n": name, "L": "fleet", "g": n.get("program_group") or "other",
-            "s": live.get(n["id"]) or ("blocked" if n.get("listed") or lb else ""),
-            "lists": _lists(n, listed_dates.get(n["id"], {})),
+            "s": live.get(n["id"], ""),
+            "lists": _lists(n),
             "info": info, "notes": notes[:3],
             "unverified_person": n["type"] == "person" and not (n.get("named_by") or n.get("listed"))}
 
@@ -144,13 +150,13 @@ def build_kg(fleet: dict, lobby: dict | None, base: dict, previous_kg: dict | No
     excluded = _excluded(lobby, exclude)
 
     # ---- fleet layer -------------------------------------------------------------------------
-    listed_dates = defaultdict(dict)  # node -> {gov name: date}
-    live = {}  # node -> its strongest level among its designations
+    by_id = {n["id"]: n for n in fleet["nodes"]}
+    live = {}  # node -> its strongest level among the designations that back a government in its listed_by
     for e in fleet["edges"]:
-        if e["type"] == "designated_by" and e["target"] in GOV_NAMES:
-            listed_dates[e["source"]].setdefault(GOV_NAMES[e["target"]], iso(e.get("date", "")))
-            live[e["source"]] = max(live.get(e["source"], ""), _level(e), key=LEVELS.index)
-    nodes = {n["id"]: _fleet_node(n, listed_dates, live) for n in fleet["nodes"]
+        n = by_id.get(e["source"])
+        if e["type"] == "designated_by" and n and e["target"][4:] in (n.get("listed_by") or ()):
+            live[n["id"]] = max(live.get(n["id"], ""), _level(e, n["type"] == "ship"), key=LEVELS.index)
+    nodes = {n["id"]: _fleet_node(n, live) for n in fleet["nodes"]
              if n["type"] not in ("country", "government") and not n["id"].startswith("lob:")}
     fleet_ids = set(nodes)
     edges = [_fleet_edge(e) for e in fleet["edges"]
@@ -192,8 +198,10 @@ def build_kg(fleet: dict, lobby: dict | None, base: dict, previous_kg: dict | No
             if n["L"] == "fleet":  # no ship names it and no list holds it today: 25 Sep's list status is not today's
                 nodes[nid].update(s="", lists=[])
     for nid, st in base.get("status", {}).items():  # hand-checked: "restricted" (sectoral) is not "blocked"
-        if nid in nodes and LEVELS.index(st["s"]) >= LEVELS.index(nodes[nid]["s"]):  # a stronger live listing stays
-            nodes[nid].update(s=st["s"], lists=st["lists"])
+        n = nodes.get(nid)
+        if n and LEVELS.index(st["s"]) >= LEVELS.index(n["s"]):  # a stronger live listing keeps its own level and lists
+            named = {x[0].split()[0] for x in st["lists"]}  # the curated entries describe their governments' listings;
+            n.update(s=st["s"], lists=st["lists"] + [x for x in n["lists"] if x[0].split()[0] not in named])  # a new one shows
     for nid, seen in base["live_flags"].items():
         if nid in nodes:
             nodes[nid]["live"] = seen

@@ -122,7 +122,7 @@ def _measure(edges: dict) -> None:
                 e["eu_reg"] = "269"
             elif EU_833.search(text):
                 e["eu_reg"] = "833"
-        elif e["target"] == "gov:uk" and "uk_freeze" not in e and UK_SHIP.search(text):
+        elif e["target"] == "gov:uk" and e["source"].startswith("IMO") and "uk_freeze" not in e and UK_SHIP.search(text):
             e["uk_freeze"] = False
 
 
@@ -354,14 +354,16 @@ def _scrub(graph: dict, hidden: dict[str, str]) -> None:
 
 
 def _map_graph(graph: dict) -> dict:
-    """The graph less the companies build_official looked up for the kg page only (kg_only) that no fleet edge touches:
-    on the map they would be loose nodes."""
+    """The graph less the companies build_official looked up for the kg page only (kg_only) that no fleet edge touches,
+    and the countries only they point at: on the map they would be loose nodes."""
     busy = {x for e in graph["edges"] if e["type"] not in LIST_EDGES for x in (e["source"], e["target"])}
     hidden = {n["id"] for n in graph["nodes"] if n.get("kg_only") and n["id"] not in busy}
     if not hidden:
         return graph
-    return dict(graph, nodes=[n for n in graph["nodes"] if n["id"] not in hidden],
-                edges=[e for e in graph["edges"] if not {e["source"], e["target"]} & hidden])
+    edges = [e for e in graph["edges"] if not {e["source"], e["target"]} & hidden]
+    used = {x for e in edges for x in (e["source"], e["target"])}
+    hidden |= {e["target"] for e in graph["edges"] if e["source"] in hidden} - used  # a country only they pointed at
+    return dict(graph, nodes=[n for n in graph["nodes"] if n["id"] not in hidden], edges=edges)
 
 
 def compact(graph: dict, generated: str) -> dict:

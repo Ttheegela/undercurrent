@@ -7,6 +7,7 @@ import pytest
 
 import kg_build
 from fleet_base import load_kg_base
+from fleet_merge import compact, merge
 from kg_build import build_kg
 
 DAY = "2026-10-19"
@@ -36,12 +37,16 @@ def fedge(s, t, type_, date="2024-09-09", confidence="Documented", **kw):
             "source_url": "https://example.gov/" + s, "source_file": "UK list", "record": "UK 1", "quote": "q", **kw}
 
 
+def listed_by(*govs, **dates):
+    return {"listed": True, "listed_by": sorted(govs), "listing_dates": dates}
+
+
 def make_fleet(*extra_nodes, extra_edges=()):
     nodes = [
-        fnode("IMO9408695", "ship", "TASSOS", imo="9408695", listed=True, listed_by=["uk", "us"], flag_now="Liberia",
-              listing_dates={"uk": "2024-09-26", "us": "2025-07-30"}, ship_type="Crude Oil Tanker"),
-        fnode(ZULU, "company", "ZULU SHIPS MANAGEMENT", listed=True, listed_by=["eu"], country="ae",
-              listing_dates={"eu": "2025-10-24"}, role="ship manager", name_policy="show"),
+        fnode("IMO9408695", "ship", "TASSOS", imo="9408695", flag_now="Liberia", ship_type="Crude Oil Tanker",
+              **listed_by("uk", "us", uk="2024-09-26", us="2025-07-30")),
+        fnode(ZULU, "company", "ZULU SHIPS MANAGEMENT", country="ae", role="ship manager", name_policy="show",
+              **listed_by("eu", eu="2025-10-24")),
         fnode(GENERIC, "company", "REAL NAME LTD", aliases=["REAL NAME"], name_policy="generic",
               generic_name="unlisted Kazakhstan ship manager",
               research_notes=[{"angle": "x", "text": "REAL NAME LTD"}]),
@@ -53,6 +58,8 @@ def make_fleet(*extra_nodes, extra_edges=()):
         fedge(ZULU, "IMO9408695", "manages"),
         fedge(GENERIC, "IMO9408695", "manages", confidence="Lead"),
         fedge(ZULU, "gov:eu", "designated_by", date="2025-10-24"),
+        fedge("IMO9408695", "gov:uk", "designated_by", date="2024-09-26", uk_freeze=False),
+        fedge("IMO9408695", "gov:us", "designated_by", date="2025-07-30", us_list="SDN"),
         fedge("IMO9408695", "cc:lr", "flagged_in"),
     ] + list(extra_edges)
     return {"nodes": nodes, "edges": edges, "meta": {}}
@@ -133,8 +140,8 @@ def test_fleet_layer_from_the_long_form():
     kg = build_kg(make_fleet(), lobby(), make_base(), None, DAY)
     ship, zulu = get(kg, "IMO9408695"), get(kg, ZULU)
     assert (ship["t"], ship["L"], ship["s"], ship["g"]) == ("ship", "fleet", "blocked", "russia")
-    assert zulu["lists"] == [["EU", "", "2025-10-24"]]  # dated from its designated_by edge
-    assert ship["lists"] == [["UK", "", ""], ["US", "", ""]]  # no such edge: the bare list names
+    assert zulu["lists"] == [["EU", "", "2025-10-24"]]  # dated by its listing_dates
+    assert ship["lists"] == [["UK", "", "2024-09-26"], ["US", "", "2025-07-30"]]  # dates from listing_dates
     assert ship["info"]["flag_now"] == "Liberia" and ship["info"]["imo"] == "9408695"
     manages = next(e for e in kg["edges"] if e["s"] == ZULU and e["t"] == "IMO9408695")
     assert (manages["y"], manages["c"], manages["d"], manages["u"], manages["L"]) == (
@@ -276,10 +283,17 @@ def test_base_fleet_company_absent_live_has_no_frozen_status():
 
 
 def test_curated_status_of_lobbying_companies_is_kept():
-    status = {"co:nord-stream-2": {"s": "blocked", "lists": [["US SDN", "31926", "PEESA-EO14039"]]}}
-    kg = build_kg(make_fleet(), lobby(), make_base(status=status), None, DAY)
+    status = {"co:nord-stream-2": {"s": "blocked", "lists": [["US SDN", "31926", "PEESA-EO14039"]]},
+              "co:base-only": {"s": "blocked", "lists": [["US SDN", "1", "RUSSIA-EO14024"], ["UK", "RUS1", "2022-03-01"]]}}
+    # kg-base keeps the same status on the base node of a company the asset does not hold: it must not show twice
+    only = {"id": "co:base-only", "t": "company", "n": "Base Only", "L": "lobby", "g": "", "info": {}, "notes": [],
+            **status["co:base-only"]}
+    link = {"s": "co:base-only", "t": "co:nord-stream-2", "y": "owns", "c": "L", "d": "", "u": "", "f": "", "r": "",
+            "q": "", "L": "curated", "a": 0, "an": ""}
+    kg = build_kg(make_fleet(), lobby(), make_base([only], [link], status=status), None, DAY)
     nord = get(kg, "co:nord-stream-2")
     assert (nord["s"], nord["lists"]) == ("blocked", status["co:nord-stream-2"]["lists"])
+    assert get(kg, "co:base-only")["lists"] == status["co:base-only"]["lists"]
 
 
 SSI_GAZPROM = {"s": "restricted", "lists": [["US sectoral (SSI) and menu-based (NS-MBS)", "17250", "RUSSIA-EO14024"]]}
@@ -288,7 +302,8 @@ SSI_GAZPROM = {"s": "restricted", "lists": [["US sectoral (SSI) and menu-based (
 def test_sectoral_only_listing_is_not_blocked():
     # Gazprom, Novatek: on the US CSL as sectoral or menu-based entries, which limit dealings without freezing assets.
     def company(nid, name):
-        return fnode(nid, "company", name, listed=True, listed_by=["us"], listing_dates={"us": "2014-09-12"})
+        govs = ("uk", "us") if nid == "co:both" else ("us",)
+        return fnode(nid, "company", name, **listed_by(*govs, us="2014-09-12"))
 
     sectoral = [fedge("co:gazprom", "gov:us", "designated_by", us_list="NS-MBS List"),
                 fedge("co:novatek", "gov:us", "designated_by", us_list="SSI"),
@@ -300,25 +315,26 @@ def test_sectoral_only_listing_is_not_blocked():
     kg = build_kg(fleet, lobby(), make_base(), None, DAY)
     assert [get(kg, i)["s"] for i in ("co:gazprom", "co:novatek", "co:frozen", "co:both")] == [
         "restricted", "restricted", "blocked", "blocked"]
-    assert get(kg, "IMO9408695")["s"] == "blocked"  # listed, but no designation edge to read a type from: as before
-    assert get(kg, "co:gazprom")["lists"] == [["US", "", "2024-09-09"]]
+    assert get(kg, "IMO9408695")["s"] == "blocked"  # a UK specified ship, and a US SDN entry
+    assert get(kg, "co:gazprom")["lists"] == [["US", "", "2014-09-12"]]  # the date is the list's, from listing_dates
 
 
 def test_uk_or_eu_only_ship_is_restricted():
     # A UK specified ship and an EU Annex XLII listing are shipping measures, not asset freezes; a US SDN entry is one.
     ships = {"IMO1000001": [("gov:uk", {"uk_freeze": False})], "IMO1000002": [("gov:eu", {"eu_reg": "833"})],
              "IMO1000003": [("gov:uk", {"uk_freeze": False}), ("gov:eu", {"eu_reg": "833"})],
-             "IMO1000004": [("gov:uk", {"uk_freeze": False}), ("gov:us", {"us_list": "SDN"})]}
-    nodes = [fnode(i, "ship", i, imo=i[3:], listed=True) for i in ships]
+             "IMO1000004": [("gov:uk", {"uk_freeze": False}), ("gov:us", {"us_list": "SDN"})],
+             "IMO1000005": [("gov:eu", {})]}  # an EU ship listing of another programme: no type, so nothing says freeze
+    nodes = [fnode(i, "ship", i, imo=i[3:], **listed_by(*(g[4:] for g, _ in es))) for i, es in ships.items()]
     edges = [fedge(i, gov, "designated_by", **kw) for i, es in ships.items() for gov, kw in es]
     edges += [fedge(ZULU, i, "manages") for i in ships]
     kg = build_kg(make_fleet(*nodes, extra_edges=edges), lobby(), make_base(), None, DAY)
-    assert [get(kg, i)["s"] for i in ships] == ["restricted", "restricted", "restricted", "blocked"]
+    assert [get(kg, i)["s"] for i in ships] == ["restricted", "restricted", "restricted", "blocked", "restricted"]
 
 
 def test_uk_row_without_asset_freeze_is_restricted():
     def company(nid):
-        return fnode(nid, "company", nid, listed=True)
+        return fnode(nid, "company", nid, **listed_by("uk" if "uk" in nid else "eu"))
 
     ids = ("co:uk-freeze", "co:uk-no-freeze", "co:eu-269", "co:eu-833")
     designations = [fedge("co:uk-freeze", "gov:uk", "designated_by", uk_freeze=True),
@@ -331,10 +347,11 @@ def test_uk_row_without_asset_freeze_is_restricted():
 
 
 def test_curated_level_upgraded_by_live_blocking_listing():
-    status = {"co:gazprom": SSI_GAZPROM, "co:novatek": SSI_GAZPROM, "co:frozen": {"s": "blocked", "lists": [["x", "", ""]]}}
-    gaz = fnode("co:gazprom", "company", "PJSC GAZPROM", listed=True, listed_by=["us"])
-    nov = fnode("co:novatek", "company", "Novatek", listed=True, listed_by=["us"])
-    froz = fnode("co:frozen", "company", "Frozen", listed=True, listed_by=["us"])
+    frozen = {"s": "blocked", "lists": [["US SDN", "1", "RUSSIA-EO14024"]]}
+    status = {"co:gazprom": SSI_GAZPROM, "co:novatek": SSI_GAZPROM, "co:frozen": frozen}
+    gaz = fnode("co:gazprom", "company", "PJSC GAZPROM", **listed_by("us", us="2024-09-09"))
+    nov = fnode("co:novatek", "company", "Novatek", **listed_by("us", us="2024-09-09"))
+    froz = fnode("co:frozen", "company", "Frozen", **listed_by("us", us="2024-09-09"))
     edges = [fedge("co:gazprom", "gov:us", "designated_by", us_list="NS-MBS List"),  # still sectoral: curated stands
              fedge("co:novatek", "gov:us", "designated_by", us_list="SDN"),  # SDN-listed since: blocked, live lists
              fedge("co:frozen", "gov:us", "designated_by", us_list="SSI")]  # curated blocked is not weakened
@@ -342,7 +359,20 @@ def test_curated_level_upgraded_by_live_blocking_listing():
     kg = build_kg(make_fleet(gaz, nov, froz, extra_edges=edges), lobby(), make_base(status=status), None, DAY)
     assert (get(kg, "co:gazprom")["s"], get(kg, "co:gazprom")["lists"]) == ("restricted", SSI_GAZPROM["lists"])
     assert (get(kg, "co:novatek")["s"], get(kg, "co:novatek")["lists"]) == ("blocked", [["US", "", "2024-09-09"]])
-    assert (get(kg, "co:frozen")["s"], get(kg, "co:frozen")["lists"]) == ("blocked", [["x", "", ""]])
+    assert (get(kg, "co:frozen")["s"], get(kg, "co:frozen")["lists"]) == ("blocked", frozen["lists"])
+
+
+def test_curated_lists_keep_live_listings_of_other_governments():
+    # the curated level wins a tie, but a new listing by a government the curated entries do not name still shows
+    status = {"co:novatek": SSI_GAZPROM}
+    nov = fnode("co:novatek", "company", "Novatek", **listed_by("eu", "us", eu="2026-10-01", us="2014-09-12"))
+    edges = [fedge("co:novatek", "gov:us", "designated_by", us_list="SSI"),
+             fedge("co:novatek", "gov:eu", "designated_by", eu_reg="833"),
+             fedge("co:novatek", "IMO9408695", "owns")]
+    kg = build_kg(make_fleet(nov, extra_edges=edges), lobby(), make_base(status=status), None, DAY)
+    novatek = get(kg, "co:novatek")
+    assert novatek["s"] == "restricted"
+    assert novatek["lists"] == SSI_GAZPROM["lists"] + [["EU", "", "2026-10-01"]]  # the US entry is the curated one
 
 
 def test_lists_keep_the_25_sep_order():
@@ -351,10 +381,12 @@ def test_lists_keep_the_25_sep_order():
         return [fedge(nid, "gov:" + g, "designated_by", date=d) for g, d in (("eu", "2025-01-01"), ("uk", "2024-02-02"),
                                                                               ("us", "2023-03-03"))]
 
-    firm = fnode("co:firm", "company", "Firm", listed=True, listed_by=["eu", "uk", "us"])
-    edges = desig("co:firm") + desig("IMO9408695") + [fedge("co:firm", "IMO9408695", "owns")]
-    kg = build_kg(make_fleet(firm, extra_edges=edges), lobby(), make_base(), None, DAY)
-    assert [x[0] for x in get(kg, "IMO9408695")["lists"]] == ["UK", "US", "EU"]
+    dates = {"eu": "2025-01-01", "uk": "2024-02-02", "us": "2023-03-03"}
+    firm = fnode("co:firm", "company", "Firm", **listed_by("eu", "uk", "us", **dates))
+    ship = fnode("IMO1000009", "ship", "SHIP", imo="1000009", **listed_by("eu", "uk", "us", **dates))
+    edges = desig("co:firm") + desig("IMO1000009") + [fedge("co:firm", "IMO1000009", "owns")]
+    kg = build_kg(make_fleet(firm, ship, extra_edges=edges), lobby(), make_base(), None, DAY)
+    assert [x[0] for x in get(kg, "IMO1000009")["lists"]] == ["UK", "US", "EU"]
     assert [x[0] for x in get(kg, "co:firm")["lists"]] == ["US", "EU", "UK"]
     assert get(kg, "co:firm")["lists"][0] == ["US", "", "2023-03-03"]
 
@@ -376,3 +408,83 @@ def test_build_is_deterministic_and_leaves_inputs_alone():
     one = build_kg(fleet, asset, base, None, DAY)
     assert (fleet, asset, base) == before
     assert json.dumps(one, sort_keys=True) == json.dumps(build_kg(fleet, asset, base, None, DAY), sort_keys=True)
+
+
+def research(url, quote="q", angle="studies", record=""):
+    return {"url": url, "file": angle + ".csv", "quote": quote, "record": record, "angle": angle,
+            "confidence": "Documented"}
+
+
+def mship(nid):
+    return {"id": nid, "type": "ship", "name": nid, "imo": nid[3:], "aliases": [], "programs": ["russia"],
+            "angle": ["lists"]}
+
+
+def mcompany(nid):
+    return {"id": nid, "type": "company", "name": nid.upper(), "aliases": [], "programs": ["russia"], "angle": ["lists"]}
+
+
+def medge(s, t, type_, date, source, **kw):
+    return {"source": s, "target": t, "type": type_, "date": date, "source_url": source["url"],
+            "source_file": source["file"], "quote": source["quote"], "record": source["record"],
+            "angle": source["angle"], "confidence": "Documented", "sources": [source], **kw}
+
+
+GOV_UK = "https://search-uk-sanctions-list.service.gov.uk/designations/RUS1/Ship"
+GOV_EU = "https://eur-lex.europa.eu/eli/reg_impl/2026/1/oj/eng"
+GOV_US = "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=1"
+
+
+def merged(official_nodes, official_edges, research_edges=()):
+    """merge() of an official layer over a research base: the long form build_kg reads."""
+    base = {"nodes": [], "edges": list(research_edges), "node_fields": {}, "meta": {}, "generated": "2026-09-25"}
+    return merge(base, {"nodes": official_nodes, "edges": official_edges}, aliases={}, eu_records=[])
+
+
+def test_ship_listed_only_by_us_shows_only_us():
+    # The UK and EU designations are 25 Sep research that the feeds no longer back: merge() leaves them out of
+    # listed_by, and so must the network page.
+    ops = medge("co:ops", "IMO2000001", "operates", "2025-07-30", research(GOV_US, angle="lists"))
+    us = medge("IMO2000001", "gov:us", "designated_by", "2025-07-30", research(GOV_US, angle="lists"), us_list="SDN")
+    frozen = [medge("IMO2000001", "gov:uk", "designated_by", "2024-07-31", research(GOV_UK)),
+              medge("IMO2000001", "gov:eu", "designated_by", "2024-08-01", research(GOV_EU))]
+    fleet = merged([mship("IMO2000001"), mcompany("co:ops")], [ops, us], frozen)
+    assert next(n for n in fleet["nodes"] if n["id"] == "IMO2000001")["listed_by"] == ["us"]
+    ship = get(build_kg(fleet, lobby(), make_base(), None, DAY), "IMO2000001")
+    assert (ship["s"], ship["lists"]) == ("blocked", [["US", "", "2025-07-30"]])
+
+
+def test_delisted_ship_with_research_designation_is_not_listed_on_network():
+    ops = [medge(c, "IMO2000002", "operates", "2025-07-30", research(GOV_US, angle="lists"))
+           for c in ("co:ops", "co:cited", "co:blog")]
+    research_edges = [  # no list holds the ship any more; a company's official-host citation still counts
+        medge("IMO2000002", "gov:uk", "designated_by", "2024-07-31", research(GOV_UK)),
+        medge("IMO2000002", "gov:eu", "designated_by", "2024-08-01", research(GOV_EU)),
+        medge("co:cited", "gov:us", "designated_by", "2024-03-05", research(GOV_US)),
+        medge("co:blog", "gov:us", "designated_by", "2024-03-05", research("https://example.org/blog"))]
+    nodes = [mship("IMO2000002"), mcompany("co:ops"), mcompany("co:cited"), mcompany("co:blog")]
+    fleet = merged(nodes, ops, research_edges)
+    assert next(n for n in fleet["nodes"] if n["id"] == "IMO2000002")["listed"] is False
+    kg = build_kg(fleet, lobby(), make_base(), None, DAY)
+    assert (get(kg, "IMO2000002")["s"], get(kg, "IMO2000002")["lists"]) == ("", [])
+    assert (get(kg, "co:cited")["s"], get(kg, "co:cited")["lists"]) == ("blocked", [["US", "", "2024-03-05"]])
+    assert (get(kg, "co:blog")["s"], get(kg, "co:blog")["lists"]) == ("", [])
+
+
+def test_extra_company_is_blocked_on_the_network_and_out_of_the_map_payload():
+    zara = dict(mcompany("co:zara-shipholding"), name="ZARA SHIPHOLDING CO", kg_only=True)
+    sdn = medge("co:zara-shipholding", "gov:us", "designated_by", "2024-08-23", research(GOV_US, angle="lists"),
+                us_list="SDN")
+    where = medge("co:zara-shipholding", "cc:ae", "registered_in", "", research(GOV_US, angle="lists"))
+    fleet = merged([zara], [sdn, where])
+    old = {"id": "co:zara-shipholding", "t": "company", "n": "ZARA SHIPHOLDING CO", "L": "fleet", "g": "russia",
+           "s": "blocked", "lists": [["US SDN", "50524", "RUSSIA-EO14024"]], "info": {}, "notes": []}
+    arctic = {"id": "co:arctic-lng-2", "t": "company", "n": "Arctic LNG 2", "L": "lobby", "g": "russia", "s": "",
+              "lists": [], "info": {}, "notes": []}
+    link = {"s": "co:zara-shipholding", "t": "co:arctic-lng-2", "y": "linked_to", "c": "D", "d": "", "u": "", "f": "",
+            "r": "", "q": "", "L": "curated", "a": 0, "an": ""}
+    kg = build_kg(fleet, lobby(), make_base([old, arctic], [link]), None, DAY)
+    assert (get(kg, "co:zara-shipholding")["s"], get(kg, "co:zara-shipholding")["lists"]) == (
+        "blocked", [["US", "", "2024-08-23"]])
+    ids = {n["id"] for n in compact(fleet, DAY)["nodes"]}
+    assert not ids & {"co:zara-shipholding", "cc:ae"}

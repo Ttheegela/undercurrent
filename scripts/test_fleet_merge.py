@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 from fleet_base import load_fleet_base
-import kg_build
+from fleet_official import freezes
 from fleet_merge import apply_naming_policy, compact, edge_id, is_official, load_aliases, merge
 
 ZULU_OFAC = "co:zulu-ships-management-and-operation-l-l-c"
@@ -324,23 +324,28 @@ def test_research_designation_citing_833_is_restricted():
               "co:freeze": "Entry 979, Council Implementing Regulation (EU) 2026/1843 (implementing Reg 269/2014)",
               "co:unknown": "UKR - 2025/1476 (OJ L202501476) - 2025-07-18"}
     edges = [cite(nid, "gov:eu", q) for nid, q in quotes.items()]
-    edges.append(cite("co:ship-firm", "gov:uk", "Shipping sanctions: a specified ship is prohibited from entering ports"))
-    g = run(base([company(nid, nid) for nid in [*quotes, "co:ship-firm"]], edges))
+    edges.append(cite("IMO9408695", "gov:uk", "Shipping sanctions: a specified ship is prohibited from entering ports"))
+    edges.append(cite("co:mentions", "gov:uk", "involved in a scheme using a specified ship; assets are frozen"))
+    g = run(base([company(nid, nid) for nid in [*quotes, "co:mentions"]] + [TASSOS], edges))
     eu = {nid: edges_of(g, nid, "designated_by")["gov:eu"] for nid in quotes}
     assert {nid: e.get("eu_reg") for nid, e in eu.items()} == {
         "co:part-c": "833", "co:annex-xiii": "833", "co:freeze": "269", "co:unknown": None}
-    assert edges_of(g, "co:ship-firm", "designated_by")["gov:uk"]["uk_freeze"] is False
-    # the kg page: 833/2014 and UK ship measures are "restricted"; everything else keeps its 25 Sep level
-    assert {nid: kg_build._level(e) for nid, e in eu.items()} == {
-        "co:part-c": "restricted", "co:annex-xiii": "restricted", "co:freeze": "blocked", "co:unknown": "blocked"}
-    assert kg_build._level(edges_of(g, "co:ship-firm", "designated_by")["gov:uk"]) == "restricted"
+    uk_ship = edges_of(g, "IMO9408695", "designated_by")["gov:uk"]
+    assert uk_ship["uk_freeze"] is False  # a specified ship
+    assert "uk_freeze" not in edges_of(g, "co:mentions", "designated_by")["gov:uk"]  # a company's quote that mentions one
+    # 833/2014 and UK ship measures do not freeze assets; everything else keeps its 25 Sep reading
+    assert {nid: freezes(e) for nid, e in eu.items()} == {
+        "co:part-c": False, "co:annex-xiii": False, "co:freeze": True, "co:unknown": True}
+    assert not freezes(uk_ship) and freezes(edges_of(g, "co:mentions", "designated_by")["gov:uk"])
 
 
 def test_company_added_only_for_the_kg_stays_out_of_the_map_payload():
     lone = company("co:lone", "LONE CO", kg_only=True, listed_by=["us"], listed=True)
     busy = company("co:busy", "BUSY CO", kg_only=True)  # a research edge ties it to a ship: an ordinary node
     owns = edge("co:busy", "IMO9408695", "owns", "2024-01-01", src("studies", "https://example.org/s"))
-    official = {"nodes": [TASSOS, lone, busy], "edges": [
+    lone2 = company("co:lone2", "LONE TWO CO", kg_only=True)  # its country is named by no other node or edge
+    official = {"nodes": [TASSOS, lone, lone2, busy], "edges": [
+        edge("co:lone2", "cc:zz", "registered_in", "", src("lists", "https://gov.example/us", "OFAC ent_num 3")),
         edge("co:lone", "gov:us", "designated_by", "2024-08-23", src("lists", "https://gov.example/us", "OFAC ent_num 1")),
         edge("co:lone", "cc:in", "registered_in", "", src("lists", "https://gov.example/us", "OFAC ent_num 1")),
         edge("co:busy", "gov:us", "designated_by", "2024-08-23", src("lists", "https://gov.example/us", "OFAC ent_num 2")),
@@ -349,7 +354,7 @@ def test_company_added_only_for_the_kg_stays_out_of_the_map_payload():
     assert {"co:lone", "co:busy"} <= {n["id"] for n in g["nodes"]}  # the long form keeps both for the kg build
     data = compact(g, "2026-10-19")
     ids = {n["id"] for n in data["nodes"]}
-    assert "co:lone" not in ids and {"co:busy", "IMO9408695"} <= ids
+    assert not ids & {"co:lone", "co:lone2", "cc:zz"} and {"co:busy", "IMO9408695", "cc:in"} <= ids
     assert not [e for e in data["edges"] if "co:lone" in (e["s"], e["t"])]
     assert data["meta"]["counts"]["companies"] == 1
 

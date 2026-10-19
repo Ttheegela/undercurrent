@@ -1,10 +1,9 @@
 import csv
+import io
 import shutil
 from pathlib import Path
 
 import fleet_official as fo
-from fleet_merge import compact, merge
-from kg_build import build_kg
 
 FIX = Path(__file__).parent / "fixtures" / "fleet"
 DOWNLOADS = {fo.OS_EU_JOURNAL: "os_eu_journal_sample.csv", fo.OS_OFAC: "os_ofac_sample.csv"}
@@ -208,21 +207,24 @@ def test_extra_company_gets_live_sdn_status(tmp_path):
     assert (us["us_list"], us["record"]) == ("SDN", "OFAC ent_num 50524")
     assert "kg_only" not in node(g, "co:nitc")  # a vessel names it: an ordinary node, as before
 
-    # through merge and the kg build: "blocked", and out of the map payload
-    long = merge({"nodes": [], "edges": [], "node_fields": {}, "meta": {}}, g, aliases={}, eu_records=[])
-    arctic = {"id": "co:arctic-lng-2", "t": "company", "n": "Arctic LNG 2", "L": "lobby", "g": "russia", "s": "",
-              "lists": [], "info": {}, "notes": []}
-    old = {"id": "co:zara-shipholding", "t": "company", "n": "ZARA SHIPHOLDING CO", "L": "fleet", "g": "russia",
-           "s": "blocked", "lists": [["US SDN", "50524", "RUSSIA-EO14024"]], "info": {}, "notes": []}
-    link = {"s": "co:zara-shipholding", "t": "co:arctic-lng-2", "y": "linked_to", "c": "D", "d": "", "u": "", "f": "",
-            "r": "", "q": "", "L": "curated", "a": 0, "an": ""}
-    kg_base = {"nodes": [old, arctic], "edges": [link], "lob_alias": {}, "live_flags": {}, "status": {},
-               "meta": {"no_lobbying_found": {"match": [], "names": []}, "live": None}}
-    asset = {"nodes": [], "edges": [], "filings_scanned": 0, "filings_kept": 0}
-    kg = build_kg(long, asset, kg_base, None, "2026-10-19", exclude=[])
-    node_ = next(n for n in kg["nodes"] if n["id"] == "co:zara-shipholding")
-    assert (node_["s"], [x[0] for x in node_["lists"]]) == ("blocked", ["US"])
-    payload = compact(long, "2026-10-19")
-    assert "co:zara-shipholding" not in {n["id"] for n in payload["nodes"]}
-    assert not [e for e in payload["edges"] if "co:zara-shipholding" in (e["s"], e["t"])]
 
+def test_eu_ship_listing_is_833_only_for_the_russia_programme(tmp_path):
+    # OpenSanctions' EU journal also holds other programmes' ships; only Russia's are Annex XLII (Reg. 833/2014).
+    def fetch(url):
+        text = fake_fetch(url)
+        if url != fo.OS_EU_JOURNAL:
+            return text
+        rows = list(csv.DictReader(io.StringIO(text)))
+        for r in rows:
+            if r["name"] == "LEVEL":
+                r["program_ids"], r["sanctions"] = "EU-PRK", "Article 1: vessel of another programme - 2024-01-01"
+        out = io.StringIO()
+        writer = csv.DictWriter(out, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+        return out.getvalue()
+
+    g = build(tmp_path, fetch=fetch)
+    des = lambda nid: edges_of(g, nid, "designated_by")["gov:eu"]  # noqa: E731
+    assert des("IMO9408695")["eu_reg"] == "833"
+    assert "eu_reg" not in des("IMO9339325")

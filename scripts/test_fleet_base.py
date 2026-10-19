@@ -118,7 +118,7 @@ def test_kg_base_keeps_curated_status_of_lobby_side_companies():
 
 def test_kg_extra_companies_are_the_kg_fleet_companies_the_fleet_base_lacks():
     kg_base = load_kg_base()
-    every = kg_extra_companies(kg_base)
+    every = kg_extra_companies(kg_base, {"nodes": [], "edges": [], "node_fields": {}})
     assert every["co:zara-shipholding"] == "ZARA SHIPHOLDING CO" and len(every) == 16
     # Gazprom Neft and the rest are research nodes of the map already; only the two Arctic LNG 2 firms are new to it
     assert kg_extra_companies(kg_base, load_fleet_base()) == {

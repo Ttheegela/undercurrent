@@ -352,7 +352,8 @@ def parse_os_eu_journal(text: str) -> tuple[list[dict], list[dict]]:
                programs=pc, names_by_source={"EU list": name}, eu_date=d)
         reason = re.sub(r"\s*-\s*\d{4}-\d{2}-\d{2}$", "", r["sanctions"].split(";")[0])
         g.edge(sid, "gov:eu", "designated_by", d, OS_ENTITY.format(r["id"]), EU_FILE, reason[:200], "OpenSanctions " + r["id"],
-               regime="Russia (Reg. 833/2014 ship list)" if pc == "russia" else pc, eu_reg="833")
+               regime="Russia (Reg. 833/2014 ship list)" if pc == "russia" else pc,
+               **({"eu_reg": "833"} if pc == "russia" else {}))  # another programme's ships: no type to read
     return g.parts()
 
 

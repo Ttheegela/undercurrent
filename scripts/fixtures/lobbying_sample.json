@@ -1,0 +1,1652 @@
+{
+"bridges": {
+"links": [],
+"no_lobbying_found": []
+},
+"edges": [
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"c61517fa-a82e-4593-8eb8-223ae83bd229"
+],
+"n_filings": 1,
+"ownership_pct": "10.00",
+"source": "co:e-on",
+"source_url": "https://lda.gov/filings/public/filing/c61517fa-a82e-4593-8eb8-223ae83bd229/print/",
+"target": "co:nord-stream-2",
+"texts": [],
+"type": "foreign_entity_of",
+"years": [
+2016,
+2016
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"23a7c4fc-fd15-4e76-970f-785f8a322402",
+"f70731ef-c005-47b9-851c-00b68b7bacd6",
+"f33dec04-2c49-44b4-9f98-33e454ade10e",
+"c61517fa-a82e-4593-8eb8-223ae83bd229"
+],
+"n_filings": 4,
+"ownership_pct": "10.00",
+"source": "co:engie",
+"source_url": "https://lda.gov/filings/public/filing/23a7c4fc-fd15-4e76-970f-785f8a322402/print/",
+"target": "co:nord-stream-2",
+"texts": [
+"DEBTHOLDER, 10% OF NS2 OPERATING BUDGET"
+],
+"type": "foreign_entity_of",
+"years": [
+2016,
+2018
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"94d8fe43-1c0c-4899-a632-6850f2dd52cf",
+"23a7c4fc-fd15-4e76-970f-785f8a322402",
+"f70731ef-c005-47b9-851c-00b68b7bacd6",
+"238b5c8c-2aae-4208-808e-639f0237c278",
+"f33dec04-2c49-44b4-9f98-33e454ade10e",
+"9825cfd9-478f-46a1-a798-5edac2a7d410",
+"c61517fa-a82e-4593-8eb8-223ae83bd229",
+"e351d5ec-5125-4417-af12-fb116277227d"
+],
+"n_filings": 8,
+"ownership_pct": "100.00",
+"source": "co:gazprom",
+"source_url": "https://lda.gov/filings/public/filing/94d8fe43-1c0c-4899-a632-6850f2dd52cf/print/",
+"target": "co:nord-stream-2",
+"texts": [
+"50% OF NS2 OPERATING BUDGET"
+],
+"type": "foreign_entity_of",
+"years": [
+2016,
+2020
+]
+},
+{
+"amount": 2010000.0,
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"9825cfd9-478f-46a1-a798-5edac2a7d410",
+"1bfcf4fd-002a-48d6-a1ab-f59cf7daab93",
+"7e5ee02b-5ccc-486b-90f4-e1e5b29bca72",
+"7c31590b-aa29-42da-9b10-a50afd514b77",
+"3b839811-891d-44ba-b75e-b7fe4ffe03d4",
+"19bfd350-a90e-41ea-af1e-6899a193bebc",
+"81568d5d-f0e3-4f3d-9569-40998d66eb57",
+"181f442a-09eb-401b-be34-89e30735b57e",
+"9279043c-1adc-4f2d-aeaa-05bb6d73d739"
+],
+"n_filings": 9,
+"source": "co:nord-stream-2",
+"source_url": "https://lda.gov/filings/public/filing/9825cfd9-478f-46a1-a798-5edac2a7d410/print/",
+"target": "lf:bgr-government-affairs",
+"texts": [
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline."
+],
+"type": "hired",
+"years": [
+2020,
+2022
+]
+},
+{
+"amount": 150000.0,
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"94d8fe43-1c0c-4899-a632-6850f2dd52cf",
+"df2c1c46-ac94-4109-ae4a-fee901fc30f6"
+],
+"n_filings": 2,
+"source": "co:nord-stream-2",
+"source_url": "https://lda.gov/filings/public/filing/94d8fe43-1c0c-4899-a632-6850f2dd52cf/print/",
+"target": "lf:capitol-counsel",
+"texts": [
+"Issues related to Russian sanctions legislation S. 722 - Countering Iran's Destabilizing Activities Act of 2017 and H.R.3364 - Countering America's Adversaries Through Sanctions Act."
+],
+"type": "hired",
+"years": [
+2017,
+2017
+]
+},
+{
+"amount": 400000.0,
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"238b5c8c-2aae-4208-808e-639f0237c278",
+"c0b7fe70-af09-4511-8da9-119bbdc5f815",
+"664c6def-1744-4846-afbb-8dd8ba4d92dc",
+"f379ad70-c879-4585-8814-a5a39f4672e5",
+"9bd23061-e7a5-4447-bc45-4389a13bbfa8",
+"f9e3df73-616b-4269-91ef-c9e9aad9a37b",
+"e5fc7077-ffa7-4267-8bc1-fc1c19992bff",
+"8441de7a-a978-47b9-b2a7-6b34ada34ca5"
+],
+"n_filings": 8,
+"source": "co:nord-stream-2",
+"source_url": "https://lda.gov/filings/public/filing/238b5c8c-2aae-4208-808e-639f0237c278/print/",
+"target": "lf:hawksbill-group",
+"texts": [
+"Issues related to Russian sanctions regulation. S. 722 - Countering Iran's Destabilizing Activities Act of 2017 and H.R. 3364 - Countering America's Adversaries Through Sanctions Act."
+],
+"type": "hired",
+"years": [
+2017,
+2018
+]
+},
+{
+"amount": 550000.0,
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"c61517fa-a82e-4593-8eb8-223ae83bd229",
+"a2302f20-3548-4231-9ed7-92f130293120",
+"c67d9ce1-390d-4e64-9c91-e0890855c5e5",
+"c3cc67f0-f186-48e6-bc28-06444637e7ea",
+"6ab763cd-64f4-45aa-8fbb-3ba1b0be865a",
+"e351d5ec-5125-4417-af12-fb116277227d",
+"47e8573b-44f3-473f-a45d-24337bb17726"
+],
+"n_filings": 7,
+"source": "co:nord-stream-2",
+"source_url": "https://lda.gov/filings/public/filing/c61517fa-a82e-4593-8eb8-223ae83bd229/print/",
+"target": "lf:mclarty-inbound",
+"texts": [
+"Monitoring and supplementing Washington discussion of EU energy security"
+],
+"type": "hired",
+"years": [
+2016,
+2016
+]
+},
+{
+"amount": 10760000.0,
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"23a7c4fc-fd15-4e76-970f-785f8a322402",
+"ded4add7-aa6b-4644-bcf7-7e927a72da74",
+"d6a87ffa-e7cd-4548-bd63-05c3bdb26255",
+"621587a3-c402-42b3-afbb-658c6f7643cb",
+"6ffa46f3-1be6-41d1-a076-4fb226a408bd",
+"fd5c9d0c-de4d-494b-9012-58bc44a6776d",
+"dbe4b19c-4a59-4b58-b9ec-1709af5bd437",
+"6a81def6-9f3b-450a-bd26-eee83b0f4fe9",
+"3f7a4919-3cbb-4666-a13c-65192c2e3e61",
+"492439b5-d4d6-470f-87a4-2d25665d41d1",
+"fc417964-eaaf-4e1e-b503-9ef710714772",
+"20a5b569-0fe9-49f6-a0bf-e6c3c98330e0",
+"03b6c38c-3d64-4143-a16c-d097667a39c8",
+"7709f394-d083-4903-824d-c13f7979f2b6",
+"e5e3c485-c283-4811-8dd2-bce4bac1b64e",
+"99ca5486-4ca7-4fe9-81c3-4cd434bad476",
+"db80224a-04fc-4fca-be2a-e58afdf1573f",
+"2e405d0f-7ab5-49ad-99c1-98237f526eef",
+"a6fb5f85-32c9-445c-a248-aaa68e5af353",
+"fb72d684-4b61-41ed-a492-fe6c72cafe33",
+"65a7e6d0-0714-4f3e-a06f-0142c6f19723",
+"3c62a230-10e2-4594-882f-4f7919c0a31c",
+"4e8823ab-fc29-4041-ac36-37d21fd4205f",
+"89b8fe4a-4ffd-41da-a1b3-fb002241de6f",
+"c5d2686c-a944-426c-b81e-833c4ede2700"
+],
+"n_filings": 25,
+"source": "co:nord-stream-2",
+"source_url": "https://lda.gov/filings/public/filing/23a7c4fc-fd15-4e76-970f-785f8a322402/print/",
+"target": "lf:roberti-global-fka-roberti-white",
+"texts": [
+"- Issues related to the U.S. position toward the Nord Stream 2 Pipeline, including potential financial sanctions affecting the project.",
+"- Issues related to the U.S. position toward the Nord Stream 2 pipeline, including potential financial sanctions affecting the project.",
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline, including potential financial sanctions affecting the project.",
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline."
+],
+"type": "hired",
+"years": [
+2017,
+2022
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"f70731ef-c005-47b9-851c-00b68b7bacd6",
+"f9806e41-70d6-4e50-a972-c2f3ebf6b733",
+"f08c5d08-b4ab-45b9-b97a-dbad35e8f4aa",
+"21338a7f-5ef7-480d-8dc5-2979b61503ba",
+"8e07d4eb-887a-42f3-b483-58a1d743dab7",
+"38ecbfb9-a077-4524-912c-0ede57748132",
+"8ef33a38-0451-4255-a9c5-501a2bc3f143",
+"e29a475f-1ba0-4eae-9646-0e2e82179e5a"
+],
+"n_filings": 8,
+"source": "co:nord-stream-2",
+"source_url": "https://lda.gov/filings/public/filing/f70731ef-c005-47b9-851c-00b68b7bacd6/print/",
+"sub_amount": 320000.0,
+"subcontract": true,
+"target": "lf:smw-partners",
+"texts": [
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline, including potential financial sanctions affecting the project."
+],
+"type": "hired",
+"years": [
+2017,
+2018
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"f33dec04-2c49-44b4-9f98-33e454ade10e",
+"455726fa-0f8d-445d-89da-fbe4d792255b",
+"0dc73c27-1a54-480e-b2c3-0101f2941343",
+"0671e76c-a675-4c60-9afe-bc979aa2ea2c",
+"5e998f08-0d44-4f8f-bf61-a9180dc698de",
+"9da30f3a-2b97-48b7-8817-fb071b3c908c",
+"ef2af5e6-658f-4161-9281-4efc22be65be",
+"810c83d9-fc8b-451e-9df4-21bd862b1ed4"
+],
+"n_filings": 8,
+"source": "co:nord-stream-2",
+"source_url": "https://lda.gov/filings/public/filing/f33dec04-2c49-44b4-9f98-33e454ade10e/print/",
+"sub_amount": 200000.0,
+"subcontract": true,
+"target": "lf:sweeney-associates",
+"texts": [
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline, including potential financial sanctions affecting the project."
+],
+"type": "hired",
+"years": [
+2018,
+2020
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"23a7c4fc-fd15-4e76-970f-785f8a322402",
+"f70731ef-c005-47b9-851c-00b68b7bacd6",
+"f33dec04-2c49-44b4-9f98-33e454ade10e",
+"c61517fa-a82e-4593-8eb8-223ae83bd229"
+],
+"n_filings": 4,
+"ownership_pct": "10.00",
+"source": "co:omv",
+"source_url": "https://lda.gov/filings/public/filing/23a7c4fc-fd15-4e76-970f-785f8a322402/print/",
+"target": "co:nord-stream-2",
+"texts": [
+"DEBTHOLDER, 10% OF NS2 OPERATING BUDGET"
+],
+"type": "foreign_entity_of",
+"years": [
+2016,
+2018
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"23a7c4fc-fd15-4e76-970f-785f8a322402",
+"f70731ef-c005-47b9-851c-00b68b7bacd6",
+"f33dec04-2c49-44b4-9f98-33e454ade10e",
+"c61517fa-a82e-4593-8eb8-223ae83bd229"
+],
+"n_filings": 4,
+"ownership_pct": "10.00",
+"source": "co:shell",
+"source_url": "https://lda.gov/filings/public/filing/23a7c4fc-fd15-4e76-970f-785f8a322402/print/",
+"target": "co:nord-stream-2",
+"texts": [
+"DEBTHOLDER, 10% OF NS2 OPERATING BUDGET"
+],
+"type": "foreign_entity_of",
+"years": [
+2016,
+2018
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"23a7c4fc-fd15-4e76-970f-785f8a322402",
+"f70731ef-c005-47b9-851c-00b68b7bacd6",
+"f33dec04-2c49-44b4-9f98-33e454ade10e"
+],
+"n_filings": 3,
+"ownership_pct": "0.00",
+"source": "co:uniper",
+"source_url": "https://lda.gov/filings/public/filing/23a7c4fc-fd15-4e76-970f-785f8a322402/print/",
+"target": "co:nord-stream-2",
+"texts": [
+"DEBTHOLDER, 10% OF NS2 OPERATING BUDGET"
+],
+"type": "foreign_entity_of",
+"years": [
+2017,
+2018
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"23a7c4fc-fd15-4e76-970f-785f8a322402",
+"f70731ef-c005-47b9-851c-00b68b7bacd6",
+"f33dec04-2c49-44b4-9f98-33e454ade10e",
+"c61517fa-a82e-4593-8eb8-223ae83bd229"
+],
+"n_filings": 4,
+"ownership_pct": "10.00",
+"source": "co:wintershall",
+"source_url": "https://lda.gov/filings/public/filing/23a7c4fc-fd15-4e76-970f-785f8a322402/print/",
+"target": "co:nord-stream-2",
+"texts": [
+"DEBTHOLDER, 10% OF NS2 OPERATING BUDGET"
+],
+"type": "foreign_entity_of",
+"years": [
+2016,
+2018
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"94d8fe43-1c0c-4899-a632-6850f2dd52cf",
+"23a7c4fc-fd15-4e76-970f-785f8a322402",
+"f70731ef-c005-47b9-851c-00b68b7bacd6",
+"238b5c8c-2aae-4208-808e-639f0237c278",
+"f33dec04-2c49-44b4-9f98-33e454ade10e",
+"9825cfd9-478f-46a1-a798-5edac2a7d410"
+],
+"n_filings": 6,
+"ownership_pct": "0.00",
+"source": "gov:russia",
+"source_url": "https://lda.gov/filings/public/filing/94d8fe43-1c0c-4899-a632-6850f2dd52cf/print/",
+"target": "co:nord-stream-2",
+"texts": [
+"38% OWNERSHIP IN GAZPROM",
+"38% OWNERSHIP OF GAZPROM",
+"50% OWNERSHIP OF GAZPROM"
+],
+"type": "foreign_entity_of",
+"years": [
+2017,
+2020
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"1bfcf4fd-002a-48d6-a1ab-f59cf7daab93",
+"7e5ee02b-5ccc-486b-90f4-e1e5b29bca72",
+"7c31590b-aa29-42da-9b10-a50afd514b77",
+"3b839811-891d-44ba-b75e-b7fe4ffe03d4",
+"19bfd350-a90e-41ea-af1e-6899a193bebc",
+"81568d5d-f0e3-4f3d-9569-40998d66eb57",
+"181f442a-09eb-401b-be34-89e30735b57e",
+"9279043c-1adc-4f2d-aeaa-05bb6d73d739"
+],
+"n_filings": 8,
+"source": "lf:bgr-government-affairs",
+"source_url": "https://lda.gov/filings/public/filing/1bfcf4fd-002a-48d6-a1ab-f59cf7daab93/print/",
+"target": "gov:us-house",
+"texts": [
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline."
+],
+"type": "lobbied",
+"years": [
+2020,
+2022
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"1bfcf4fd-002a-48d6-a1ab-f59cf7daab93",
+"7e5ee02b-5ccc-486b-90f4-e1e5b29bca72",
+"7c31590b-aa29-42da-9b10-a50afd514b77",
+"3b839811-891d-44ba-b75e-b7fe4ffe03d4",
+"19bfd350-a90e-41ea-af1e-6899a193bebc",
+"81568d5d-f0e3-4f3d-9569-40998d66eb57",
+"181f442a-09eb-401b-be34-89e30735b57e",
+"9279043c-1adc-4f2d-aeaa-05bb6d73d739"
+],
+"n_filings": 8,
+"source": "lf:bgr-government-affairs",
+"source_url": "https://lda.gov/filings/public/filing/1bfcf4fd-002a-48d6-a1ab-f59cf7daab93/print/",
+"target": "gov:us-senate",
+"texts": [
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline."
+],
+"type": "lobbied",
+"years": [
+2020,
+2022
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"94d8fe43-1c0c-4899-a632-6850f2dd52cf",
+"df2c1c46-ac94-4109-ae4a-fee901fc30f6"
+],
+"n_filings": 2,
+"source": "lf:capitol-counsel",
+"source_url": "https://lda.gov/filings/public/filing/94d8fe43-1c0c-4899-a632-6850f2dd52cf/print/",
+"target": "bill:hr3364",
+"texts": [
+"Issues related to Russian sanctions legislation S. 722 - Countering Iran's Destabilizing Activities Act of 2017 and H.R.3364 - Countering America's Adversaries Through Sanctions Act."
+],
+"type": "lobbied_on",
+"years": [
+2017,
+2017
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"94d8fe43-1c0c-4899-a632-6850f2dd52cf",
+"df2c1c46-ac94-4109-ae4a-fee901fc30f6"
+],
+"n_filings": 2,
+"source": "lf:capitol-counsel",
+"source_url": "https://lda.gov/filings/public/filing/94d8fe43-1c0c-4899-a632-6850f2dd52cf/print/",
+"target": "bill:s722",
+"texts": [
+"Issues related to Russian sanctions legislation S. 722 - Countering Iran's Destabilizing Activities Act of 2017 and H.R.3364 - Countering America's Adversaries Through Sanctions Act."
+],
+"type": "lobbied_on",
+"years": [
+2017,
+2017
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"df2c1c46-ac94-4109-ae4a-fee901fc30f6"
+],
+"n_filings": 1,
+"source": "lf:capitol-counsel",
+"source_url": "https://lda.gov/filings/public/filing/df2c1c46-ac94-4109-ae4a-fee901fc30f6/print/",
+"target": "gov:us-house",
+"texts": [
+"Issues related to Russian sanctions legislation S. 722 - Countering Iran's Destabilizing Activities Act of 2017 and H.R.3364 - Countering America's Adversaries Through Sanctions Act."
+],
+"type": "lobbied",
+"years": [
+2017,
+2017
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"df2c1c46-ac94-4109-ae4a-fee901fc30f6"
+],
+"n_filings": 1,
+"source": "lf:capitol-counsel",
+"source_url": "https://lda.gov/filings/public/filing/df2c1c46-ac94-4109-ae4a-fee901fc30f6/print/",
+"target": "gov:us-senate",
+"texts": [
+"Issues related to Russian sanctions legislation S. 722 - Countering Iran's Destabilizing Activities Act of 2017 and H.R.3364 - Countering America's Adversaries Through Sanctions Act."
+],
+"type": "lobbied",
+"years": [
+2017,
+2017
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"238b5c8c-2aae-4208-808e-639f0237c278"
+],
+"n_filings": 1,
+"source": "lf:hawksbill-group",
+"source_url": "https://lda.gov/filings/public/filing/238b5c8c-2aae-4208-808e-639f0237c278/print/",
+"target": "bill:hr3364",
+"texts": [
+"Issues related to Russian sanctions regulation. S. 722 - Countering Iran's Destabilizing Activities Act of 2017 and H.R. 3364 - Countering America's Adversaries Through Sanctions Act."
+],
+"type": "lobbied_on",
+"years": [
+2017,
+2017
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"238b5c8c-2aae-4208-808e-639f0237c278"
+],
+"n_filings": 1,
+"source": "lf:hawksbill-group",
+"source_url": "https://lda.gov/filings/public/filing/238b5c8c-2aae-4208-808e-639f0237c278/print/",
+"target": "bill:s722",
+"texts": [
+"Issues related to Russian sanctions regulation. S. 722 - Countering Iran's Destabilizing Activities Act of 2017 and H.R. 3364 - Countering America's Adversaries Through Sanctions Act."
+],
+"type": "lobbied_on",
+"years": [
+2017,
+2017
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"ded4add7-aa6b-4644-bcf7-7e927a72da74",
+"d6a87ffa-e7cd-4548-bd63-05c3bdb26255",
+"621587a3-c402-42b3-afbb-658c6f7643cb",
+"6ffa46f3-1be6-41d1-a076-4fb226a408bd",
+"fd5c9d0c-de4d-494b-9012-58bc44a6776d",
+"dbe4b19c-4a59-4b58-b9ec-1709af5bd437",
+"6a81def6-9f3b-450a-bd26-eee83b0f4fe9",
+"3f7a4919-3cbb-4666-a13c-65192c2e3e61",
+"492439b5-d4d6-470f-87a4-2d25665d41d1",
+"fc417964-eaaf-4e1e-b503-9ef710714772",
+"20a5b569-0fe9-49f6-a0bf-e6c3c98330e0",
+"03b6c38c-3d64-4143-a16c-d097667a39c8",
+"7709f394-d083-4903-824d-c13f7979f2b6",
+"e5e3c485-c283-4811-8dd2-bce4bac1b64e",
+"99ca5486-4ca7-4fe9-81c3-4cd434bad476",
+"db80224a-04fc-4fca-be2a-e58afdf1573f",
+"2e405d0f-7ab5-49ad-99c1-98237f526eef",
+"a6fb5f85-32c9-445c-a248-aaa68e5af353",
+"fb72d684-4b61-41ed-a492-fe6c72cafe33",
+"65a7e6d0-0714-4f3e-a06f-0142c6f19723",
+"3c62a230-10e2-4594-882f-4f7919c0a31c",
+"4e8823ab-fc29-4041-ac36-37d21fd4205f",
+"89b8fe4a-4ffd-41da-a1b3-fb002241de6f",
+"c5d2686c-a944-426c-b81e-833c4ede2700"
+],
+"n_filings": 24,
+"source": "lf:roberti-global-fka-roberti-white",
+"source_url": "https://lda.gov/filings/public/filing/ded4add7-aa6b-4644-bcf7-7e927a72da74/print/",
+"target": "gov:us-house",
+"texts": [
+"- Issues related to the U.S. position toward the Nord Stream 2 Pipeline, including potential financial sanctions affecting the project.",
+"- Issues related to the U.S. position toward the Nord Stream 2 pipeline, including potential financial sanctions affecting the project.",
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline, including potential financial sanctions affecting the project.",
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline."
+],
+"type": "lobbied",
+"years": [
+2017,
+2022
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"ded4add7-aa6b-4644-bcf7-7e927a72da74",
+"d6a87ffa-e7cd-4548-bd63-05c3bdb26255",
+"621587a3-c402-42b3-afbb-658c6f7643cb",
+"6ffa46f3-1be6-41d1-a076-4fb226a408bd",
+"fd5c9d0c-de4d-494b-9012-58bc44a6776d",
+"dbe4b19c-4a59-4b58-b9ec-1709af5bd437",
+"6a81def6-9f3b-450a-bd26-eee83b0f4fe9",
+"3f7a4919-3cbb-4666-a13c-65192c2e3e61",
+"492439b5-d4d6-470f-87a4-2d25665d41d1",
+"fc417964-eaaf-4e1e-b503-9ef710714772",
+"20a5b569-0fe9-49f6-a0bf-e6c3c98330e0",
+"03b6c38c-3d64-4143-a16c-d097667a39c8",
+"7709f394-d083-4903-824d-c13f7979f2b6",
+"e5e3c485-c283-4811-8dd2-bce4bac1b64e",
+"99ca5486-4ca7-4fe9-81c3-4cd434bad476",
+"db80224a-04fc-4fca-be2a-e58afdf1573f",
+"2e405d0f-7ab5-49ad-99c1-98237f526eef",
+"a6fb5f85-32c9-445c-a248-aaa68e5af353",
+"fb72d684-4b61-41ed-a492-fe6c72cafe33",
+"65a7e6d0-0714-4f3e-a06f-0142c6f19723",
+"3c62a230-10e2-4594-882f-4f7919c0a31c",
+"4e8823ab-fc29-4041-ac36-37d21fd4205f",
+"89b8fe4a-4ffd-41da-a1b3-fb002241de6f",
+"c5d2686c-a944-426c-b81e-833c4ede2700"
+],
+"n_filings": 24,
+"source": "lf:roberti-global-fka-roberti-white",
+"source_url": "https://lda.gov/filings/public/filing/ded4add7-aa6b-4644-bcf7-7e927a72da74/print/",
+"target": "gov:us-senate",
+"texts": [
+"- Issues related to the U.S. position toward the Nord Stream 2 Pipeline, including potential financial sanctions affecting the project.",
+"- Issues related to the U.S. position toward the Nord Stream 2 pipeline, including potential financial sanctions affecting the project.",
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline, including potential financial sanctions affecting the project.",
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline."
+],
+"type": "lobbied",
+"years": [
+2017,
+2022
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"f9806e41-70d6-4e50-a972-c2f3ebf6b733",
+"f08c5d08-b4ab-45b9-b97a-dbad35e8f4aa",
+"21338a7f-5ef7-480d-8dc5-2979b61503ba",
+"8e07d4eb-887a-42f3-b483-58a1d743dab7",
+"38ecbfb9-a077-4524-912c-0ede57748132",
+"8ef33a38-0451-4255-a9c5-501a2bc3f143",
+"e29a475f-1ba0-4eae-9646-0e2e82179e5a"
+],
+"n_filings": 7,
+"source": "lf:smw-partners",
+"source_url": "https://lda.gov/filings/public/filing/f9806e41-70d6-4e50-a972-c2f3ebf6b733/print/",
+"target": "gov:white-house",
+"texts": [
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline, including potential financial sanctions affecting the project."
+],
+"type": "lobbied",
+"years": [
+2017,
+2018
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"ef2af5e6-658f-4161-9281-4efc22be65be",
+"810c83d9-fc8b-451e-9df4-21bd862b1ed4"
+],
+"n_filings": 2,
+"source": "lf:sweeney-associates",
+"source_url": "https://lda.gov/filings/public/filing/ef2af5e6-658f-4161-9281-4efc22be65be/print/",
+"target": "gov:us-house",
+"texts": [
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline, including potential financial sanctions affecting the project."
+],
+"type": "lobbied",
+"years": [
+2020,
+2020
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"ef2af5e6-658f-4161-9281-4efc22be65be",
+"810c83d9-fc8b-451e-9df4-21bd862b1ed4"
+],
+"n_filings": 2,
+"source": "lf:sweeney-associates",
+"source_url": "https://lda.gov/filings/public/filing/ef2af5e6-658f-4161-9281-4efc22be65be/print/",
+"target": "gov:us-senate",
+"texts": [
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline, including potential financial sanctions affecting the project."
+],
+"type": "lobbied",
+"years": [
+2020,
+2020
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"ef2af5e6-658f-4161-9281-4efc22be65be",
+"810c83d9-fc8b-451e-9df4-21bd862b1ed4"
+],
+"n_filings": 2,
+"source": "lf:sweeney-associates",
+"source_url": "https://lda.gov/filings/public/filing/ef2af5e6-658f-4161-9281-4efc22be65be/print/",
+"target": "gov:us-treasury",
+"texts": [
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline, including potential financial sanctions affecting the project."
+],
+"type": "lobbied",
+"years": [
+2020,
+2020
+]
+},
+{
+"client": "co:nord-stream-2",
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"455726fa-0f8d-445d-89da-fbe4d792255b",
+"0dc73c27-1a54-480e-b2c3-0101f2941343",
+"0671e76c-a675-4c60-9afe-bc979aa2ea2c",
+"5e998f08-0d44-4f8f-bf61-a9180dc698de",
+"9da30f3a-2b97-48b7-8817-fb071b3c908c",
+"ef2af5e6-658f-4161-9281-4efc22be65be",
+"810c83d9-fc8b-451e-9df4-21bd862b1ed4"
+],
+"n_filings": 7,
+"source": "lf:sweeney-associates",
+"source_url": "https://lda.gov/filings/public/filing/455726fa-0f8d-445d-89da-fbe4d792255b/print/",
+"target": "gov:white-house",
+"texts": [
+"Issues related to the U.S. position toward the Nord Stream 2 pipeline, including potential financial sanctions affecting the project."
+],
+"type": "lobbied",
+"years": [
+2018,
+2020
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"94d8fe43-1c0c-4899-a632-6850f2dd52cf",
+"df2c1c46-ac94-4109-ae4a-fee901fc30f6"
+],
+"n_filings": 2,
+"source": "p:bob-r-brooks-jr",
+"source_url": "https://lda.gov/filings/public/filing/94d8fe43-1c0c-4899-a632-6850f2dd52cf/print/",
+"target": "co:nord-stream-2",
+"texts": [],
+"type": "lobbied_for",
+"years": [
+2017,
+2017
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"94d8fe43-1c0c-4899-a632-6850f2dd52cf"
+],
+"n_filings": 1,
+"source": "p:bob-r-brooks-jr",
+"source_url": "https://lda.gov/filings/public/filing/94d8fe43-1c0c-4899-a632-6850f2dd52cf/print/",
+"target": "gov:us-house",
+"texts": [
+"Chief of Staff, Rep. Jim McCrery & Rep. Jay Dickey."
+],
+"type": "formerly_served_in",
+"years": [
+2017,
+2017
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"94d8fe43-1c0c-4899-a632-6850f2dd52cf",
+"df2c1c46-ac94-4109-ae4a-fee901fc30f6"
+],
+"n_filings": 2,
+"source": "p:bob-r-brooks-jr",
+"source_url": "https://lda.gov/filings/public/filing/94d8fe43-1c0c-4899-a632-6850f2dd52cf/print/",
+"target": "lf:capitol-counsel",
+"texts": [],
+"type": "lobbyist_at",
+"years": [
+2017,
+2017
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"238b5c8c-2aae-4208-808e-639f0237c278"
+],
+"n_filings": 1,
+"source": "p:jaime-ardila",
+"source_url": "https://lda.gov/filings/public/filing/238b5c8c-2aae-4208-808e-639f0237c278/print/",
+"target": "co:nord-stream-2",
+"texts": [],
+"type": "lobbied_for",
+"years": [
+2017,
+2017
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"238b5c8c-2aae-4208-808e-639f0237c278"
+],
+"n_filings": 1,
+"source": "p:jaime-ardila",
+"source_url": "https://lda.gov/filings/public/filing/238b5c8c-2aae-4208-808e-639f0237c278/print/",
+"target": "lf:hawksbill-group",
+"texts": [],
+"type": "lobbyist_at",
+"years": [
+2017,
+2017
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"f70731ef-c005-47b9-851c-00b68b7bacd6",
+"f9806e41-70d6-4e50-a972-c2f3ebf6b733",
+"f08c5d08-b4ab-45b9-b97a-dbad35e8f4aa",
+"21338a7f-5ef7-480d-8dc5-2979b61503ba",
+"8e07d4eb-887a-42f3-b483-58a1d743dab7",
+"38ecbfb9-a077-4524-912c-0ede57748132",
+"8ef33a38-0451-4255-a9c5-501a2bc3f143",
+"e29a475f-1ba0-4eae-9646-0e2e82179e5a",
+"f33dec04-2c49-44b4-9f98-33e454ade10e",
+"455726fa-0f8d-445d-89da-fbe4d792255b",
+"0dc73c27-1a54-480e-b2c3-0101f2941343",
+"0671e76c-a675-4c60-9afe-bc979aa2ea2c",
+"5e998f08-0d44-4f8f-bf61-a9180dc698de",
+"9da30f3a-2b97-48b7-8817-fb071b3c908c",
+"ef2af5e6-658f-4161-9281-4efc22be65be",
+"810c83d9-fc8b-451e-9df4-21bd862b1ed4"
+],
+"n_filings": 16,
+"source": "p:john-e-sweeney",
+"source_url": "https://lda.gov/filings/public/filing/f70731ef-c005-47b9-851c-00b68b7bacd6/print/",
+"target": "co:nord-stream-2",
+"texts": [],
+"type": "lobbied_for",
+"years": [
+2017,
+2020
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"f70731ef-c005-47b9-851c-00b68b7bacd6",
+"f33dec04-2c49-44b4-9f98-33e454ade10e"
+],
+"n_filings": 2,
+"source": "p:john-e-sweeney",
+"source_url": "https://lda.gov/filings/public/filing/f70731ef-c005-47b9-851c-00b68b7bacd6/print/",
+"target": "gov:us-house",
+"texts": [
+"Member of Congress"
+],
+"type": "formerly_served_in",
+"years": [
+2017,
+2018
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"f70731ef-c005-47b9-851c-00b68b7bacd6",
+"f9806e41-70d6-4e50-a972-c2f3ebf6b733",
+"f08c5d08-b4ab-45b9-b97a-dbad35e8f4aa",
+"21338a7f-5ef7-480d-8dc5-2979b61503ba",
+"8e07d4eb-887a-42f3-b483-58a1d743dab7",
+"38ecbfb9-a077-4524-912c-0ede57748132",
+"8ef33a38-0451-4255-a9c5-501a2bc3f143",
+"e29a475f-1ba0-4eae-9646-0e2e82179e5a"
+],
+"n_filings": 8,
+"source": "p:john-e-sweeney",
+"source_url": "https://lda.gov/filings/public/filing/f70731ef-c005-47b9-851c-00b68b7bacd6/print/",
+"target": "lf:smw-partners",
+"texts": [],
+"type": "lobbyist_at",
+"years": [
+2017,
+2018
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"f33dec04-2c49-44b4-9f98-33e454ade10e",
+"455726fa-0f8d-445d-89da-fbe4d792255b",
+"0dc73c27-1a54-480e-b2c3-0101f2941343",
+"0671e76c-a675-4c60-9afe-bc979aa2ea2c",
+"5e998f08-0d44-4f8f-bf61-a9180dc698de",
+"9da30f3a-2b97-48b7-8817-fb071b3c908c",
+"ef2af5e6-658f-4161-9281-4efc22be65be",
+"810c83d9-fc8b-451e-9df4-21bd862b1ed4"
+],
+"n_filings": 8,
+"source": "p:john-e-sweeney",
+"source_url": "https://lda.gov/filings/public/filing/f33dec04-2c49-44b4-9f98-33e454ade10e/print/",
+"target": "lf:sweeney-associates",
+"texts": [],
+"type": "lobbyist_at",
+"years": [
+2018,
+2020
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"23a7c4fc-fd15-4e76-970f-785f8a322402",
+"ded4add7-aa6b-4644-bcf7-7e927a72da74",
+"d6a87ffa-e7cd-4548-bd63-05c3bdb26255",
+"621587a3-c402-42b3-afbb-658c6f7643cb",
+"6ffa46f3-1be6-41d1-a076-4fb226a408bd",
+"fd5c9d0c-de4d-494b-9012-58bc44a6776d",
+"dbe4b19c-4a59-4b58-b9ec-1709af5bd437",
+"6a81def6-9f3b-450a-bd26-eee83b0f4fe9",
+"3f7a4919-3cbb-4666-a13c-65192c2e3e61",
+"492439b5-d4d6-470f-87a4-2d25665d41d1"
+],
+"n_filings": 10,
+"source": "p:lydia-strunk",
+"source_url": "https://lda.gov/filings/public/filing/23a7c4fc-fd15-4e76-970f-785f8a322402/print/",
+"target": "co:nord-stream-2",
+"texts": [],
+"type": "lobbied_for",
+"years": [
+2017,
+2019
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"23a7c4fc-fd15-4e76-970f-785f8a322402"
+],
+"n_filings": 1,
+"source": "p:lydia-strunk",
+"source_url": "https://lda.gov/filings/public/filing/23a7c4fc-fd15-4e76-970f-785f8a322402/print/",
+"target": "gov:us-house",
+"texts": [
+"Deputy floor director Speaker Ryan (2015-17); Deputy Floor Director Speaker Boehner (2013-15); House Rules Committee 2011-13; House Republican Cloakroom floor assistant 2008-2011 (minority Leader Boehner/Speaker Boehner)"
+],
+"type": "formerly_served_in",
+"years": [
+2017,
+2017
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"23a7c4fc-fd15-4e76-970f-785f8a322402",
+"ded4add7-aa6b-4644-bcf7-7e927a72da74",
+"d6a87ffa-e7cd-4548-bd63-05c3bdb26255",
+"621587a3-c402-42b3-afbb-658c6f7643cb",
+"6ffa46f3-1be6-41d1-a076-4fb226a408bd",
+"fd5c9d0c-de4d-494b-9012-58bc44a6776d",
+"dbe4b19c-4a59-4b58-b9ec-1709af5bd437",
+"6a81def6-9f3b-450a-bd26-eee83b0f4fe9",
+"3f7a4919-3cbb-4666-a13c-65192c2e3e61",
+"492439b5-d4d6-470f-87a4-2d25665d41d1"
+],
+"n_filings": 10,
+"source": "p:lydia-strunk",
+"source_url": "https://lda.gov/filings/public/filing/23a7c4fc-fd15-4e76-970f-785f8a322402/print/",
+"target": "lf:roberti-global-fka-roberti-white",
+"texts": [],
+"type": "lobbyist_at",
+"years": [
+2017,
+2019
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"c61517fa-a82e-4593-8eb8-223ae83bd229",
+"c67d9ce1-390d-4e64-9c91-e0890855c5e5"
+],
+"n_filings": 2,
+"source": "p:philippe-edouard-maze-sencier",
+"source_url": "https://lda.gov/filings/public/filing/c61517fa-a82e-4593-8eb8-223ae83bd229/print/",
+"target": "co:nord-stream-2",
+"texts": [],
+"type": "lobbied_for",
+"years": [
+2016,
+2016
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"c61517fa-a82e-4593-8eb8-223ae83bd229",
+"c67d9ce1-390d-4e64-9c91-e0890855c5e5"
+],
+"n_filings": 2,
+"source": "p:philippe-edouard-maze-sencier",
+"source_url": "https://lda.gov/filings/public/filing/c61517fa-a82e-4593-8eb8-223ae83bd229/print/",
+"target": "lf:mclarty-inbound",
+"texts": [],
+"type": "lobbyist_at",
+"years": [
+2016,
+2016
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"c61517fa-a82e-4593-8eb8-223ae83bd229",
+"c67d9ce1-390d-4e64-9c91-e0890855c5e5"
+],
+"n_filings": 2,
+"source": "p:richard-r-burt",
+"source_url": "https://lda.gov/filings/public/filing/c61517fa-a82e-4593-8eb8-223ae83bd229/print/",
+"target": "co:nord-stream-2",
+"texts": [],
+"type": "lobbied_for",
+"years": [
+2016,
+2016
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"c61517fa-a82e-4593-8eb8-223ae83bd229",
+"c67d9ce1-390d-4e64-9c91-e0890855c5e5"
+],
+"n_filings": 2,
+"source": "p:richard-r-burt",
+"source_url": "https://lda.gov/filings/public/filing/c61517fa-a82e-4593-8eb8-223ae83bd229/print/",
+"target": "lf:mclarty-inbound",
+"texts": [],
+"type": "lobbyist_at",
+"years": [
+2016,
+2016
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"238b5c8c-2aae-4208-808e-639f0237c278"
+],
+"n_filings": 1,
+"source": "p:robert-e-ferguson",
+"source_url": "https://lda.gov/filings/public/filing/238b5c8c-2aae-4208-808e-639f0237c278/print/",
+"target": "co:nord-stream-2",
+"texts": [],
+"type": "lobbied_for",
+"years": [
+2017,
+2017
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"238b5c8c-2aae-4208-808e-639f0237c278"
+],
+"n_filings": 1,
+"source": "p:robert-e-ferguson",
+"source_url": "https://lda.gov/filings/public/filing/238b5c8c-2aae-4208-808e-639f0237c278/print/",
+"target": "lf:hawksbill-group",
+"texts": [],
+"type": "lobbyist_at",
+"years": [
+2017,
+2017
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"238b5c8c-2aae-4208-808e-639f0237c278"
+],
+"n_filings": 1,
+"source": "p:timothy-lee",
+"source_url": "https://lda.gov/filings/public/filing/238b5c8c-2aae-4208-808e-639f0237c278/print/",
+"target": "co:nord-stream-2",
+"texts": [],
+"type": "lobbied_for",
+"years": [
+2017,
+2017
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"238b5c8c-2aae-4208-808e-639f0237c278"
+],
+"n_filings": 1,
+"source": "p:timothy-lee",
+"source_url": "https://lda.gov/filings/public/filing/238b5c8c-2aae-4208-808e-639f0237c278/print/",
+"target": "lf:hawksbill-group",
+"texts": [],
+"type": "lobbyist_at",
+"years": [
+2017,
+2017
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"23a7c4fc-fd15-4e76-970f-785f8a322402",
+"ded4add7-aa6b-4644-bcf7-7e927a72da74",
+"d6a87ffa-e7cd-4548-bd63-05c3bdb26255",
+"621587a3-c402-42b3-afbb-658c6f7643cb",
+"6ffa46f3-1be6-41d1-a076-4fb226a408bd",
+"fd5c9d0c-de4d-494b-9012-58bc44a6776d",
+"dbe4b19c-4a59-4b58-b9ec-1709af5bd437",
+"6a81def6-9f3b-450a-bd26-eee83b0f4fe9",
+"3f7a4919-3cbb-4666-a13c-65192c2e3e61",
+"492439b5-d4d6-470f-87a4-2d25665d41d1",
+"fc417964-eaaf-4e1e-b503-9ef710714772",
+"20a5b569-0fe9-49f6-a0bf-e6c3c98330e0",
+"03b6c38c-3d64-4143-a16c-d097667a39c8",
+"7709f394-d083-4903-824d-c13f7979f2b6",
+"e5e3c485-c283-4811-8dd2-bce4bac1b64e",
+"99ca5486-4ca7-4fe9-81c3-4cd434bad476",
+"db80224a-04fc-4fca-be2a-e58afdf1573f",
+"2e405d0f-7ab5-49ad-99c1-98237f526eef",
+"a6fb5f85-32c9-445c-a248-aaa68e5af353",
+"fb72d684-4b61-41ed-a492-fe6c72cafe33",
+"65a7e6d0-0714-4f3e-a06f-0142c6f19723",
+"3c62a230-10e2-4594-882f-4f7919c0a31c",
+"4e8823ab-fc29-4041-ac36-37d21fd4205f",
+"89b8fe4a-4ffd-41da-a1b3-fb002241de6f",
+"c5d2686c-a944-426c-b81e-833c4ede2700"
+],
+"n_filings": 25,
+"source": "p:vincent-a-roberti-sr",
+"source_url": "https://lda.gov/filings/public/filing/23a7c4fc-fd15-4e76-970f-785f8a322402/print/",
+"target": "co:nord-stream-2",
+"texts": [],
+"type": "lobbied_for",
+"years": [
+2017,
+2022
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"23a7c4fc-fd15-4e76-970f-785f8a322402",
+"ded4add7-aa6b-4644-bcf7-7e927a72da74",
+"d6a87ffa-e7cd-4548-bd63-05c3bdb26255",
+"621587a3-c402-42b3-afbb-658c6f7643cb",
+"6ffa46f3-1be6-41d1-a076-4fb226a408bd",
+"fd5c9d0c-de4d-494b-9012-58bc44a6776d",
+"dbe4b19c-4a59-4b58-b9ec-1709af5bd437",
+"6a81def6-9f3b-450a-bd26-eee83b0f4fe9",
+"3f7a4919-3cbb-4666-a13c-65192c2e3e61",
+"492439b5-d4d6-470f-87a4-2d25665d41d1",
+"fc417964-eaaf-4e1e-b503-9ef710714772",
+"20a5b569-0fe9-49f6-a0bf-e6c3c98330e0",
+"03b6c38c-3d64-4143-a16c-d097667a39c8",
+"7709f394-d083-4903-824d-c13f7979f2b6",
+"e5e3c485-c283-4811-8dd2-bce4bac1b64e",
+"99ca5486-4ca7-4fe9-81c3-4cd434bad476",
+"db80224a-04fc-4fca-be2a-e58afdf1573f",
+"2e405d0f-7ab5-49ad-99c1-98237f526eef",
+"a6fb5f85-32c9-445c-a248-aaa68e5af353",
+"fb72d684-4b61-41ed-a492-fe6c72cafe33",
+"65a7e6d0-0714-4f3e-a06f-0142c6f19723",
+"3c62a230-10e2-4594-882f-4f7919c0a31c",
+"4e8823ab-fc29-4041-ac36-37d21fd4205f",
+"89b8fe4a-4ffd-41da-a1b3-fb002241de6f",
+"c5d2686c-a944-426c-b81e-833c4ede2700"
+],
+"n_filings": 25,
+"source": "p:vincent-a-roberti-sr",
+"source_url": "https://lda.gov/filings/public/filing/23a7c4fc-fd15-4e76-970f-785f8a322402/print/",
+"target": "lf:roberti-global-fka-roberti-white",
+"texts": [],
+"type": "lobbyist_at",
+"years": [
+2017,
+2022
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"9825cfd9-478f-46a1-a798-5edac2a7d410",
+"1bfcf4fd-002a-48d6-a1ab-f59cf7daab93",
+"7e5ee02b-5ccc-486b-90f4-e1e5b29bca72",
+"7c31590b-aa29-42da-9b10-a50afd514b77",
+"3b839811-891d-44ba-b75e-b7fe4ffe03d4",
+"19bfd350-a90e-41ea-af1e-6899a193bebc",
+"81568d5d-f0e3-4f3d-9569-40998d66eb57",
+"181f442a-09eb-401b-be34-89e30735b57e",
+"9279043c-1adc-4f2d-aeaa-05bb6d73d739"
+],
+"n_filings": 9,
+"source": "p:walker-roberts",
+"source_url": "https://lda.gov/filings/public/filing/9825cfd9-478f-46a1-a798-5edac2a7d410/print/",
+"target": "co:nord-stream-2",
+"texts": [],
+"type": "lobbied_for",
+"years": [
+2020,
+2022
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"1bfcf4fd-002a-48d6-a1ab-f59cf7daab93"
+],
+"n_filings": 1,
+"source": "p:walker-roberts",
+"source_url": "https://lda.gov/filings/public/filing/1bfcf4fd-002a-48d6-a1ab-f59cf7daab93/print/",
+"target": "gov:white-house",
+"texts": [
+"Dep. COS, House Intl. Rel. Comm., Sp. Asst. to Pres."
+],
+"type": "formerly_served_in",
+"years": [
+2020,
+2020
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"9825cfd9-478f-46a1-a798-5edac2a7d410",
+"1bfcf4fd-002a-48d6-a1ab-f59cf7daab93",
+"7e5ee02b-5ccc-486b-90f4-e1e5b29bca72",
+"7c31590b-aa29-42da-9b10-a50afd514b77",
+"3b839811-891d-44ba-b75e-b7fe4ffe03d4",
+"19bfd350-a90e-41ea-af1e-6899a193bebc",
+"81568d5d-f0e3-4f3d-9569-40998d66eb57",
+"181f442a-09eb-401b-be34-89e30735b57e",
+"9279043c-1adc-4f2d-aeaa-05bb6d73d739"
+],
+"n_filings": 9,
+"source": "p:walker-roberts",
+"source_url": "https://lda.gov/filings/public/filing/9825cfd9-478f-46a1-a798-5edac2a7d410/print/",
+"target": "lf:bgr-government-affairs",
+"texts": [],
+"type": "lobbyist_at",
+"years": [
+2020,
+2022
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"94d8fe43-1c0c-4899-a632-6850f2dd52cf",
+"df2c1c46-ac94-4109-ae4a-fee901fc30f6"
+],
+"n_filings": 2,
+"source": "p:warren-j-tryon",
+"source_url": "https://lda.gov/filings/public/filing/94d8fe43-1c0c-4899-a632-6850f2dd52cf/print/",
+"target": "co:nord-stream-2",
+"texts": [],
+"type": "lobbied_for",
+"years": [
+2017,
+2017
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"94d8fe43-1c0c-4899-a632-6850f2dd52cf"
+],
+"n_filings": 1,
+"source": "p:warren-j-tryon",
+"source_url": "https://lda.gov/filings/public/filing/94d8fe43-1c0c-4899-a632-6850f2dd52cf/print/",
+"target": "gov:us-house",
+"texts": [
+"Deputy Staff Director, House Financial Services Committee; Deputy Chief of Staff & LD, Rep. Spencer Bachus."
+],
+"type": "formerly_served_in",
+"years": [
+2017,
+2017
+]
+},
+{
+"confidence": "Documented",
+"dataset": "US lobbying disclosures (LDA)",
+"filings": [
+"94d8fe43-1c0c-4899-a632-6850f2dd52cf",
+"df2c1c46-ac94-4109-ae4a-fee901fc30f6"
+],
+"n_filings": 2,
+"source": "p:warren-j-tryon",
+"source_url": "https://lda.gov/filings/public/filing/94d8fe43-1c0c-4899-a632-6850f2dd52cf/print/",
+"target": "lf:capitol-counsel",
+"texts": [],
+"type": "lobbyist_at",
+"years": [
+2017,
+2017
+]
+}
+],
+"exclude_lobbyists": [],
+"filings_kept": 1495,
+"filings_scanned": 1562,
+"nodes": [
+{
+"id": "bill:hr3364",
+"layer": "lobby",
+"name": "H.R.3364",
+"title": "H.R.3364 Countering America's Adversaries Through Sanctions Act (CAATSA, 2017)",
+"type": "bill"
+},
+{
+"id": "bill:s722",
+"layer": "lobby",
+"name": "S.722",
+"title": "S.722 Countering Iran's Destabilizing Activities Act (2017), the vehicle for new Russia sanctions",
+"type": "bill"
+},
+{
+"country": "DE",
+"group": "russia",
+"id": "co:e-on",
+"layer": "lobby",
+"name": "E.ON",
+"role": "named as a foreign entity on a US lobbying filing",
+"type": "company"
+},
+{
+"country": "FR",
+"group": "russia",
+"id": "co:engie",
+"layer": "lobby",
+"name": "Engie",
+"role": "named as a foreign entity on a US lobbying filing",
+"type": "company"
+},
+{
+"country": "RU",
+"group": "russia",
+"id": "co:gazprom",
+"layer": "lobby",
+"name": "Gazprom",
+"role": "named as a foreign entity on a US lobbying filing",
+"type": "company"
+},
+{
+"group": "russia",
+"id": "co:nord-stream-2",
+"layer": "lobby",
+"lda_names": [
+"NORD STREAM 2 AG",
+"ROBERTI GLOBAL ON BEHALF OF NORD STREAM 2 AG",
+"NORD STREAM 2 AG (THROUGH ROBERTI GLOBAL)",
+"NEW EUROPEAN PIPELINE AG"
+],
+"name": "Nord Stream 2 AG",
+"type": "company"
+},
+{
+"country": "AT",
+"group": "russia",
+"id": "co:omv",
+"layer": "lobby",
+"name": "OMV",
+"role": "named as a foreign entity on a US lobbying filing",
+"type": "company"
+},
+{
+"country": "NL",
+"group": "russia",
+"id": "co:shell",
+"layer": "lobby",
+"name": "Shell",
+"role": "named as a foreign entity on a US lobbying filing",
+"type": "company"
+},
+{
+"country": "DE",
+"group": "russia",
+"id": "co:uniper",
+"layer": "lobby",
+"name": "Uniper",
+"role": "named as a foreign entity on a US lobbying filing",
+"type": "company"
+},
+{
+"country": "DE",
+"group": "russia",
+"id": "co:wintershall",
+"layer": "lobby",
+"name": "Wintershall",
+"role": "named as a foreign entity on a US lobbying filing",
+"type": "company"
+},
+{
+"country": "RU",
+"group": "russia",
+"id": "gov:russia",
+"layer": "lobby",
+"name": "Government of Russia",
+"role": "named as a foreign entity on a US lobbying filing",
+"type": "government"
+},
+{
+"id": "gov:us-house",
+"layer": "lobby",
+"name": "US House of Representatives",
+"type": "government"
+},
+{
+"id": "gov:us-senate",
+"layer": "lobby",
+"name": "US Senate",
+"type": "government"
+},
+{
+"id": "gov:us-treasury",
+"layer": "lobby",
+"name": "US Treasury",
+"type": "government"
+},
+{
+"id": "gov:white-house",
+"layer": "lobby",
+"name": "White House",
+"type": "government"
+},
+{
+"id": "lf:bgr-government-affairs",
+"layer": "lobby",
+"name": "BGR Government Affairs",
+"type": "lobbyfirm"
+},
+{
+"id": "lf:capitol-counsel",
+"layer": "lobby",
+"name": "Capitol Counsel LLC",
+"type": "lobbyfirm"
+},
+{
+"id": "lf:hawksbill-group",
+"layer": "lobby",
+"name": "Hawksbill Group, LLC",
+"type": "lobbyfirm"
+},
+{
+"id": "lf:mclarty-inbound",
+"layer": "lobby",
+"name": "McLarty Inbound LLC",
+"type": "lobbyfirm"
+},
+{
+"id": "lf:roberti-global-fka-roberti-white",
+"layer": "lobby",
+"name": "Roberti Global (fka Roberti White, LLC)",
+"type": "lobbyfirm"
+},
+{
+"id": "lf:smw-partners",
+"layer": "lobby",
+"name": "SMW Partners, LLC",
+"type": "lobbyfirm"
+},
+{
+"id": "lf:sweeney-associates",
+"layer": "lobby",
+"name": "Sweeney & Associates LLC",
+"type": "lobbyfirm"
+},
+{
+"covered_positions": [
+"Chief of Staff, Rep. Jim McCrery & Rep. Jay Dickey."
+],
+"id": "p:bob-r-brooks-jr",
+"layer": "lobby",
+"name": "Bob R Brooks Jr",
+"role": "lobbyist (named in US lobbying disclosure)",
+"type": "person"
+},
+{
+"id": "p:jaime-ardila",
+"layer": "lobby",
+"name": "Jaime Ardila",
+"role": "lobbyist (named in US lobbying disclosure)",
+"type": "person"
+},
+{
+"covered_positions": [
+"Member of Congress"
+],
+"id": "p:john-e-sweeney",
+"layer": "lobby",
+"name": "John E. Sweeney",
+"role": "lobbyist (named in US lobbying disclosure)",
+"type": "person"
+},
+{
+"covered_positions": [
+"Deputy floor director Speaker Ryan (2015-17); Deputy Floor Director Speaker Boehner (2013-15); House Rules Committee 2011-13; House Republican Cloakroom floor assistant 2008-2011 (minority Leader Boehner/Speaker Boehner)"
+],
+"id": "p:lydia-strunk",
+"layer": "lobby",
+"name": "Lydia Strunk",
+"role": "lobbyist (named in US lobbying disclosure)",
+"type": "person"
+},
+{
+"id": "p:philippe-edouard-maze-sencier",
+"layer": "lobby",
+"name": "Philippe Edouard Maze-Sencier",
+"role": "lobbyist (named in US lobbying disclosure)",
+"type": "person"
+},
+{
+"id": "p:richard-r-burt",
+"layer": "lobby",
+"name": "Richard R. Burt",
+"role": "lobbyist (named in US lobbying disclosure)",
+"type": "person"
+},
+{
+"id": "p:robert-e-ferguson",
+"layer": "lobby",
+"name": "Robert E. Ferguson",
+"role": "lobbyist (named in US lobbying disclosure)",
+"type": "person"
+},
+{
+"id": "p:timothy-lee",
+"layer": "lobby",
+"name": "Timothy Lee",
+"role": "lobbyist (named in US lobbying disclosure)",
+"type": "person"
+},
+{
+"id": "p:vincent-a-roberti-sr",
+"layer": "lobby",
+"name": "Vincent A. Roberti, Sr.",
+"role": "lobbyist (named in US lobbying disclosure)",
+"type": "person"
+},
+{
+"covered_positions": [
+"Dep. COS, Hse. Intl. Rel. Comm., Sp. Asst., Pres.",
+"Dep. COS, House Intl. Rel. Comm., Sp. Asst. to Pres."
+],
+"id": "p:walker-roberts",
+"layer": "lobby",
+"name": "Walker Roberts",
+"role": "lobbyist (named in US lobbying disclosure)",
+"type": "person"
+},
+{
+"covered_positions": [
+"Deputy Staff Director, House Financial Services Committee; Deputy Chief of Staff & LD, Rep. Spencer Bachus."
+],
+"id": "p:warren-j-tryon",
+"layer": "lobby",
+"name": "Warren J. Tryon",
+"role": "lobbyist (named in US lobbying disclosure)",
+"type": "person"
+}
+],
+"updated_at": "2026-10-16T08:34:02Z"
+}

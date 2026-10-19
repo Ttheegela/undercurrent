@@ -8,10 +8,11 @@ import sys
 from pathlib import Path
 
 from fleet_base import load_fleet_base
-from fleet_merge import apply_naming_policy, compact, edge_id, load_aliases, merge
+from fleet_merge import apply_naming_policy, compact, edge_id, is_official, load_aliases, merge
 
 ZULU_OFAC = "co:zulu-ships-management-and-operation-l-l-c"
 EMPTY = {"nodes": [], "edges": []}
+GONE_ID = "co:unlisted-" + hashlib.sha1(b"co:gone-shipping").hexdigest()[:8]  # co:gone-shipping, once generic
 
 
 def src(angle, url, record="", confidence="Documented", quote="q"):
@@ -66,9 +67,10 @@ TASSOS_UK = edge("IMO9408695", "gov:uk", "designated_by", "2026-02-24",
 def test_research_item_survives_when_official_is_empty():
     b = load_fleet_base()
     g = run(b)
-    keys = {(e["source"], e["target"], e["type"]) for e in g["edges"]}
-    assert keys == {(e["source"], e["target"], e["type"]) for e in b["edges"]}
     ids = {n["id"] for n in g["nodes"]}
+    published = lambda x: x if x in ids else "co:unlisted-" + hashlib.sha1(x.encode()).hexdigest()[:8]  # noqa: E731
+    keys = {(e["source"], e["target"], e["type"]) for e in g["edges"]}
+    assert keys == {(published(e["source"]), published(e["target"]), e["type"]) for e in b["edges"]}
     assert all(e["source"] in ids and e["target"] in ids for e in g["edges"])  # list nodes the research cites
     assert {e["layer"] for e in g["edges"]} == {"research"}
 
@@ -121,14 +123,62 @@ def test_research_designation_does_not_keep_delisted_ship_listed():
 
 
 def test_generic_ids_not_renumbered():
-    gone = dict(MANAGES, source="co:gone-shipping")  # a firm no list holds any more, cited only by research
-    g = run(base([GENERIC], [MANAGES, gone]), {"nodes": [TASSOS], "edges": [TASSOS_UK]})
+    g = run(base([GENERIC], [MANAGES]), {"nodes": [TASSOS], "edges": [TASSOS_UK]})
     n = node(g, "co:unlisted-003")
     assert n["name_policy"] == "generic" and n["name"] == "unlisted Kazakhstan ship manager"
     assert "IMO9408695" in edges_of(g, "co:unlisted-003", "manages")
-    stub = node(g, "co:gone-shipping")
-    assert (stub["name_policy"], stub["name"], stub["aliases"]) == ("generic", "unlisted ship manager", [])
     assert apply_naming_policy(copy.deepcopy(g)) == g  # idempotent
+
+
+def test_generic_stub_id_hides_name():
+    gone = dict(MANAGES, source="co:gone-shipping")  # a firm no list holds any more, cited only by research
+    b = dict(base([GENERIC], [MANAGES, gone]), known_names={"co:gone-shipping": ["Gone Shipping LLC"]})
+    b["meta"]["patterns"] = [{"id": "p", "examples": ["co:gone-shipping", "IMO9408695"]}]
+    g = run(b)
+    stub = node(g, GONE_ID)
+    assert (stub["name_policy"], stub["name"], stub["aliases"]) == ("generic", "unlisted ship manager", [])
+    assert "IMO9408695" in edges_of(g, GONE_ID, "manages") and "gone" not in json.dumps(g).lower()
+    assert g["meta"]["patterns"][0]["examples"] == [GONE_ID, "IMO9408695"]
+    assert all(e["id"] == edge_id(e["source"], e["target"], e["type"]) for e in g["edges"])
+    assert node(g, "co:unlisted-003")["name"] == "unlisted Kazakhstan ship manager"  # base generic ids are kept
+    assert apply_naming_policy(copy.deepcopy(g)) == g
+
+
+def test_published_generic_labels_are_kept():
+    # co:unlisted-006 was published as "unlisted ship manager"; its only edge left (an incoming sold_to) would make
+    # it "unlisted company". The published label stays, and texts already carrying it are not scrubbed again.
+    sold = company("co:unlisted-006", "unlisted ship manager", angle=["ship-histories"], name_policy="generic",
+                   generic_name="unlisted ship manager")
+    sale = edge("IMO9408695", "co:unlisted-006", "sold_to", "2022-01",
+                src("ship-histories", "https://example.org/s", confidence="Lead", quote="Sold to [unlisted ship manager]"))
+    fields = {"IMO9408695": {"research_notes": [{"angle": "ship-histories", "text": "ISM: [unlisted ship manager]"}]}}
+    g = run(base([sold], [sale], fields))
+    n = node(g, "co:unlisted-006")
+    assert (n["name"], n["generic_name"], n["name_policy"]) == ("unlisted ship manager",) * 2 + ("generic",)
+    text = json.dumps(g)
+    assert "[[" not in text and text.count("[unlisted ship manager]") == 3
+
+
+def test_history_names_withheld_unless_the_company_is_shown():
+    elevate = edge("co:elevate-marine-management", "IMO9408695", "manages", "2024-01",
+                   src("ship-histories", "https://example.org/e", confidence="Lead"))
+    front = company("co:front-marine", "FRONT MARINE LIMITED", angle=["studies"], listed_by=[])
+    named = edge("co:front-marine", "IMO9408695", "operates", "2025-01", src("studies", "https://www.justice.gov/x"))
+    fields = {"IMO9408695": {"history": [{"date": "2024-01", "kind": "manager", "from": "Front Marine Ltd",
+                                          "to": "elevate marine management pvt ltd"}]}}
+    b = dict(base([front], [elevate, named], fields),
+             known_names={"co:elevate-marine-management": ["ELEVATE MARINE MANAGEMENT PRIVATE LIMITED"]})
+    h = node(run(b), "IMO9408695")["history"][0]
+    assert (h["from"], h["to"]) == ("Front Marine Ltd", "an unlisted company")  # spelling the scrub cannot see
+
+
+def test_is_official_matches_the_host():
+    assert is_official("https://ofac.treasury.gov/recent-actions/20250101")
+    assert is_official("https://sanctionssearch.ofac.treas.gov/Details.aspx?id=1")
+    assert is_official("https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401746")
+    assert not is_official("https://ofac.evil.example/x")
+    assert not is_official("https://example.org/?next=https://www.gov.uk/")
+    assert not is_official("https://war-sanctions.gur.gov.ua/en") and not is_official("")
 
 
 def test_generic_stub_scrubs_real_name():
@@ -140,7 +190,7 @@ def test_generic_stub_scrubs_real_name():
     b = dict(base(edges=[cited], node_fields=fields), known_names={"co:gone-shipping": ["Gone Shipping LLC", "Gone Ship"]})
     b["meta"]["findings"] = [{"angle": "studies", "text": "Gone Ship ran it."}]
     g = run(b)
-    gone = node(g, "co:gone-shipping")
+    gone = node(g, GONE_ID)
     assert (gone["name_policy"], gone["name"], gone["aliases"]) == ("generic", "unlisted ship manager", [])
     text = json.dumps(g).lower()
     assert "gone ship" not in text and text.count("[unlisted ship manager]") == 5  # quote x2, note, history, finding

@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 GENERATED = "2026-09-25"
-SEP25 = "82a03ea"  # the last commit before the live graphs: its story files are the 25 Sep snapshot
+SEP25 = "ad46320"  # the merge-base on main; its story files are the 25 Sep snapshot
 UA_CURRENT = "Ukraine database (current)"
 
 NODE_RESEARCH_FIELDS = (

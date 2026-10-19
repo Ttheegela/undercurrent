@@ -2,7 +2,8 @@
 
 Ported from veil-trace@88dcaa2:tools/fleet/network/merge.py: listing status (:181-192, from official-layer
 designations, plus research designations citing an official host for companies and people), the naming policy and
-generic-name scrub (:194-251; generic ids come from the base and are never renumbered), ship and company facts
+generic-name scrub, stable generic ids and withheld history names (:194-271; ids already co:unlisted-* are kept),
+ship and company facts
 (:273-296), counts and the compact page payload (:306-355). gap_days_us_minus_uk is build_base.py:409-418.
 Before merging, official company ids go through data/fleet-company-aliases.json (fleet_aliases.py) and companies
 on the EU financial sanctions list (data/lists/eu.json, exact normalised name) get their EU designation.
@@ -15,6 +16,7 @@ import re
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fleet_base import UA_CURRENT
 from fleet_official import CNAME, GOVS, _Graph, norm_co
@@ -24,9 +26,10 @@ DATA = ROOT / "data"
 
 EU_FILE = "EU financial sanctions list"
 EU_PAGE = "https://data.europa.eu/data/datasets/consolidated-list-of-persons-groups-and-entities-subject-to-eu-financial-sanctions"
-OFFICIAL_HOSTS = ("treasury.gov", "ofac", "gov.uk", "europa.eu", "justice.gov", "federalregister.gov", "state.gov",
-                  "uscourts.gov", "courtlistener", "lda.senate.gov", "fara.gov", "consilium", "eur-lex", "bis.gov",
-                  "trade.gov", "imo.org", "gc.ca", "dfat.gov.au")
+# merge.py:13-14 as domains: "ofac" is treas.gov, "courtlistener" .com, "eur-lex" and "consilium" sit under europa.eu
+OFFICIAL_HOSTS = ("treasury.gov", "treas.gov", "gov.uk", "europa.eu", "justice.gov", "federalregister.gov", "state.gov",
+                  "uscourts.gov", "courtlistener.com", "lda.senate.gov", "fara.gov", "bis.gov", "trade.gov", "imo.org",
+                  "gc.ca", "dfat.gov.au")
 ROLE_WORDS = {"manages": "ship manager", "operates": "ship operator", "owns": "ship owner",
               "linked_to": "company linked to listed ships", "formerly_operated": "former ship operator",
               "insured_by": "insurer"}
@@ -35,6 +38,9 @@ FLEET_ROLES = {"owns", "manages", "operates", "linked_to", "formerly_operated", 
 SHIP_LINKS = ("operates", "manages", "owns", "linked_to", "formerly_operated")
 ID_TYPES = (("IMO", "ship"), ("p:", "person"), ("cc:", "country"), ("gov:", "government"))
 NAME_NOTE = "Not itself on a sanctions list we hold. Named by an official record in the role shown."
+COMPANYISH = re.compile(r"(ltd|llc|l\.l\.c|inc|corp|co\.|company|shipping|marine|maritime|lines|management|"
+                        r"shipmanagement|pvt|fze|fzco|dmcc|s\.a|limited|trading|navigation|tankers?|holding)", re.I)
+WITHHELD = "an unlisted company"
 KEEP = ("id", "type", "name", "aliases", "imo", "programs", "program_group", "listed_by", "listed", "first_listed",
         "listing_dates", "country", "role", "ship_type", "year_built", "flag_now", "flags_before", "flag_us", "mmsi_us",
         "names_by_source", "ua_former_names", "ship_count", "name_count", "flag_count", "name_policy", "generic_name",
@@ -205,13 +211,15 @@ def merge(base: dict, official: dict, aliases: dict[str, str] | None = None,
 
 
 def is_official(url: str) -> bool:
-    return any(h in (url or "").lower() for h in OFFICIAL_HOSTS)
+    host = urlsplit(url or "").hostname or ""
+    return any(host == h or host.endswith("." + h) for h in OFFICIAL_HOSTS)
 
 
 def apply_naming_policy(graph: dict) -> dict:
     """An unlisted company keeps its name only when an official record names it in its fleet role (merge.py:194-224).
-    A generic company shows its generic name and no aliases, and its real names are scrubbed from every text we
-    publish (merge.py:229-251); its id comes from the base and is kept."""
+    A generic company shows its generic name and no aliases, its real names are scrubbed from every text we publish
+    (:229-251) and its id stops spelling them (:252-257); company-like history names stay only for shown firms
+    (:260-271). A label already published (name == generic_name) is kept: the texts carry it."""
     roles, fleet_actor, official_named, hidden = defaultdict(set), set(), set(), {}
     for e in graph["edges"]:
         ends = {e["source"], e["target"]}
@@ -226,6 +234,7 @@ def apply_naming_policy(graph: dict) -> dict:
     for n in graph["nodes"]:
         if n["type"] != "company":
             continue
+        published = n.get("name_policy") == "generic" and n["name"] == n.get("generic_name")
         named = n["listed"] or n.get("lobbying_graph") or n["id"] not in fleet_actor
         noted = not named and n["id"] in official_named
         n["name_policy"] = "show" if named or noted else "generic"
@@ -233,8 +242,9 @@ def apply_naming_policy(graph: dict) -> dict:
             n["name_note"] = NAME_NOTE
         elif n.get("name_note") == NAME_NOTE:
             del n["name_note"]
-        c = CNAME.get(n.get("country", ""), "")
-        n["generic_name"] = ("unlisted " + (c + " " if c else "") + min(roles[n["id"]], default="company")).strip()
+        if not published:
+            c = CNAME.get(n.get("country", ""), "")
+            n["generic_name"] = ("unlisted " + (c + " " if c else "") + min(roles[n["id"]], default="company")).strip()
         if n["name_policy"] == "generic":
             for name in [n["name"]] + n.get("aliases", []):
                 if len(name) > 3 and name.lower() != n["generic_name"].lower():
@@ -243,7 +253,42 @@ def apply_naming_policy(graph: dict) -> dict:
             n.pop("address_us", None)
     if hidden:
         _scrub(graph, hidden)
+    _rename_generic(graph)
+    _withhold_history_names(graph)
     return graph
+
+
+def _rename_generic(graph: dict) -> None:
+    """A generic firm's id would spell its name: it becomes co:unlisted-<first 8 hex of sha1(id)>, the same on every
+    run, on the node, every edge (whose id is recomputed) and the pattern examples."""
+    ren = {n["id"]: "co:unlisted-" + hashlib.sha1(n["id"].encode()).hexdigest()[:8] for n in graph["nodes"]
+           if n.get("name_policy") == "generic" and not n["id"].startswith("co:unlisted-")}
+    if not ren:
+        return
+    for n in graph["nodes"]:
+        n["id"] = ren.get(n["id"], n["id"])
+    for e in graph["edges"]:
+        e["source"], e["target"] = ren.get(e["source"], e["source"]), ren.get(e["target"], e["target"])
+        e["id"] = edge_id(e["source"], e["target"], e["type"])
+    graph["nodes"].sort(key=lambda n: n["id"])
+    graph["edges"].sort(key=lambda e: (e["source"], e["target"], e["type"]))
+    if graph.get("meta", {}).get("patterns"):
+        graph["meta"] = dict(graph["meta"], patterns=[dict(p, examples=[ren.get(x, x) for x in p.get("examples", [])])
+                                                      for p in graph["meta"]["patterns"]])
+
+
+def _withhold_history_names(graph: dict) -> None:
+    """A company-like name in a ship's history stays only if it is a company we show by name (merge.py:260-271)."""
+    shown = {norm_co(x) for n in graph["nodes"] if n["type"] == "company" and n.get("name_policy") == "show"
+             for x in [n["name"]] + n.get("aliases", [])}
+
+    def withheld(value):
+        value = (value or "").strip()
+        return bool(value) and bool(COMPANYISH.search(value)) and norm_co(value) not in shown
+
+    for n in graph["nodes"]:
+        if n.get("history"):
+            n["history"] = [dict(h, **{k: WITHHELD for k in ("from", "to") if withheld(h.get(k))}) for h in n["history"]]
 
 
 def _scrub(graph: dict, hidden: dict[str, str]) -> None:

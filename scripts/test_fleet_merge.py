@@ -172,6 +172,33 @@ def test_history_names_withheld_unless_the_company_is_shown():
     assert (h["from"], h["to"]) == ("Front Marine Ltd", "an unlisted company")  # spelling the scrub cannot see
 
 
+def test_history_keeps_listed_firm_with_dotted_suffix():
+    # TASSOS's history spells Zulu "...Sole Proprietorship LLC"; the listed node is "...SOLE PROPRIETORSHIP L.L.C".
+    # A generic look-alike that the research still cites cannot hide a firm we show.
+    zulu = company(ZULU_OFAC, "THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C")
+    us = edge(ZULU_OFAC, "gov:us", "designated_by", "2025-07-30",
+              src("lists", "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=54895", "OFAC ent_num 54895"))
+    twin = edge("co:zulu-twin", "IMO9408695", "manages", "2023-01", src("ship-histories", "https://example.org/z"))
+    spelled = "the Zulu Ships Management & Operation - Sole Proprietorship LLC"
+    fields = {"IMO9408695": {"history": [{"date": "2023-01", "kind": "manager", "from": "", "to": spelled}]}}
+    b = dict(base(edges=[twin], node_fields=fields),
+             known_names={"co:zulu-twin": ["ZULU SHIPS MANAGEMENT AND OPERATION LLC"]})
+    g = run(b, {"nodes": [TASSOS, zulu], "edges": [TASSOS_UK, us]})
+    assert node(g, ZULU_OFAC)["listed_by"] == ["us"]
+    assert node(g, "IMO9408695")["history"][0]["to"] == spelled
+
+
+def test_history_withholds_each_care_of_part_on_its_own():
+    gone = edge("co:gone-shipping", "IMO9408695", "manages", "2024-01", src("ship-histories", "https://example.org/g"))
+    front = company("co:front-marine", "FRONT MARINE LIMITED", angle=["studies"], listed_by=[])
+    named = edge("co:front-marine", "IMO9408695", "operates", "2025-01", src("studies", "https://www.justice.gov/x"))
+    fields = {"IMO9408695": {"history": [{"date": "2024-01", "kind": "owner", "from": "Old Owner Inc",
+                                          "to": "Gone Shipping Pvt. Ltd c/o Front Marine Ltd"}]}}
+    b = dict(base([front], [gone, named], fields), known_names={"co:gone-shipping": ["GONE SHIPPING PRIVATE LIMITED"]})
+    h = node(run(b), "IMO9408695")["history"][0]
+    assert (h["from"], h["to"]) == ("Old Owner Inc", "an unlisted company c/o Front Marine Ltd")  # unknown firm kept
+
+
 def test_is_official_matches_the_host():
     assert is_official("https://ofac.treasury.gov/recent-actions/20250101")
     assert is_official("https://sanctionssearch.ofac.treas.gov/Details.aspx?id=1")

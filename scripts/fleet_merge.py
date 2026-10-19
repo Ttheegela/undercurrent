@@ -2,8 +2,8 @@
 
 Ported from veil-trace@88dcaa2:tools/fleet/network/merge.py: listing status (:181-192, from official-layer
 designations, plus research designations citing an official host for companies and people), the naming policy and
-generic-name scrub, stable generic ids and withheld history names (:194-271; ids already co:unlisted-* are kept),
-ship and company facts
+generic-name scrub and stable generic ids (:194-257; ids already co:unlisted-* are kept), history names of firms
+generic today withheld (after :260-271), ship and company facts
 (:273-296), counts and the compact page payload (:306-355). gap_days_us_minus_uk is build_base.py:409-418.
 Before merging, official company ids go through data/fleet-company-aliases.json (fleet_aliases.py) and companies
 on the EU financial sanctions list (data/lists/eu.json, exact normalised name) get their EU designation.
@@ -38,9 +38,12 @@ FLEET_ROLES = {"owns", "manages", "operates", "linked_to", "formerly_operated", 
 SHIP_LINKS = ("operates", "manages", "owns", "linked_to", "formerly_operated")
 ID_TYPES = (("IMO", "ship"), ("p:", "person"), ("cc:", "country"), ("gov:", "government"))
 NAME_NOTE = "Not itself on a sanctions list we hold. Named by an official record in the role shown."
-COMPANYISH = re.compile(r"(ltd|llc|l\.l\.c|inc|corp|co\.|company|shipping|marine|maritime|lines|management|"
-                        r"shipmanagement|pvt|fze|fzco|dmcc|s\.a|limited|trading|navigation|tankers?|holding)", re.I)
 WITHHELD = "an unlisted company"
+# Legal-form words the history check ignores, so "Pvt Ltd" meets "PRIVATE LIMITED" and "LLC" meets "L.L.C".
+LEGAL_WORDS = re.compile(r"\b(the|l l c|llc|ltd|limited|liability|pvt|private|inc|incorporated|co|company|corp|"
+                         r"corporation|jsc|pjsc|ojsc|cjsc|ooo|fze|fzco|fz|s a|sa|ag|gmbh|plc|llp|bv|pte|"
+                         r"sole proprietorship)\b")
+CARE_OF = re.compile(r"(\s+c/o\s+)", re.I)
 KEEP = ("id", "type", "name", "aliases", "imo", "programs", "program_group", "listed_by", "listed", "first_listed",
         "listing_dates", "country", "role", "ship_type", "year_built", "flag_now", "flags_before", "flag_us", "mmsi_us",
         "names_by_source", "ua_former_names", "ship_count", "name_count", "flag_count", "name_policy", "generic_name",
@@ -218,8 +221,8 @@ def is_official(url: str) -> bool:
 def apply_naming_policy(graph: dict) -> dict:
     """An unlisted company keeps its name only when an official record names it in its fleet role (merge.py:194-224).
     A generic company shows its generic name and no aliases, its real names are scrubbed from every text we publish
-    (:229-251) and its id stops spelling them (:252-257); company-like history names stay only for shown firms
-    (:260-271). A label already published (name == generic_name) is kept: the texts carry it."""
+    (:229-251), its id stops spelling them (:252-257) and other spellings of them leave ship histories. A label
+    already published (name == generic_name) is kept: the texts carry it."""
     roles, fleet_actor, official_named, hidden = defaultdict(set), set(), set(), {}
     for e in graph["edges"]:
         ends = {e["source"], e["target"]}
@@ -254,7 +257,7 @@ def apply_naming_policy(graph: dict) -> dict:
     if hidden:
         _scrub(graph, hidden)
     _rename_generic(graph)
-    _withhold_history_names(graph)
+    _withhold_history_names(graph, hidden)
     return graph
 
 
@@ -277,18 +280,28 @@ def _rename_generic(graph: dict) -> None:
                                                       for p in graph["meta"]["patterns"]])
 
 
-def _withhold_history_names(graph: dict) -> None:
-    """A company-like name in a ship's history stays only if it is a company we show by name (merge.py:260-271)."""
-    shown = {norm_co(x) for n in graph["nodes"] if n["type"] == "company" and n.get("name_policy") == "show"
-             for x in [n["name"]] + n.get("aliases", [])}
+def _loose(name: str) -> str:
+    """A firm's name without punctuation or legal-form words, for the history check only."""
+    words = re.sub(r"[^a-z0-9]+", " ", name.lower().replace("&", " and "))
+    return " ".join(LEGAL_WORDS.sub(" ", words).split())
 
-    def withheld(value):
-        value = (value or "").strip()
-        return bool(value) and bool(COMPANYISH.search(value)) and norm_co(value) not in shown
+
+def _withhold_history_names(graph: dict, generic_names) -> None:
+    """A history name that is another spelling of a firm generic today becomes "an unlisted company". Each "c/o" part
+    is checked on its own; a part naming a firm we show, or no generic firm, stays (merge.py:260-271, narrowed)."""
+    shown = {_loose(x) for n in graph["nodes"] if n["type"] == "company" and n.get("name_policy") == "show"
+             for x in [n["name"]] + n.get("aliases", [])}
+    hide = {_loose(x) for x in generic_names} - shown - {""}
+    if not hide:
+        return
+
+    def withhold(value):
+        return "".join(WITHHELD if i % 2 == 0 and _loose(part) in hide else part
+                       for i, part in enumerate(CARE_OF.split(value)))
 
     for n in graph["nodes"]:
         if n.get("history"):
-            n["history"] = [dict(h, **{k: WITHHELD for k in ("from", "to") if withheld(h.get(k))}) for h in n["history"]]
+            n["history"] = [dict(h, **{k: withhold(h[k]) for k in ("from", "to") if h.get(k)}) for h in n["history"]]
 
 
 def _scrub(graph: dict, hidden: dict[str, str]) -> None:

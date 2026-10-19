@@ -381,7 +381,7 @@ def _company_listings_and_people(g: _Graph, uk_text: str, csl_text: str, ofac_te
             g.edge(nid, "gov:uk", "designated_by", d, UK_ENTRY.format(r["Unique ID"], "Entity"), UK_FILE,
                    (r["UK Statement of Reasons"] or r["Other Information"])[:200], r["Unique ID"])
 
-    csl_people = {norm_co(r["name"]) for r in csl if r["type"] == "Individual"}
+    csl_people = {norm_co(r["name"]) for r in csl if r["type"] == "Individual" and "Treasury" in r["source"]}
     ren = {}
     for nid, n in list(g.nodes.items()):
         k = norm_co(n["name"]) if n.get("type") == "company" else ""

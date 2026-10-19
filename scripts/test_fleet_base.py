@@ -3,6 +3,7 @@ from fleet_base import LOB_ALIAS, split_fleet, split_kg
 META = {
     "findings": [{"id": "f1"}], "patterns": [{"id": "p1"}], "study_counts": {"a": 1}, "title": "T",
     "subtitle": "S", "credits": ["C"], "coverage": {"x": 1}, "generated": "2026-09-25", "counts": {"nodes": 9},
+    "angles": ["studies"], "verified_angles": ["studies"],
 }
 
 
@@ -31,7 +32,8 @@ NODES = [
     {"id": "IMO9408695", "type": "ship", "name": "TASSOS", "listed_by": ["uk", "us"], "programs": ["russia"],
      "angle": ["lists", "company-anatomy"], "role": "tanker", "ua_former_names": ["Bay Global"],
      "ua_flag_countries": ["lr"], "history": [{"date": "2023-02", "kind": "owner"}],
-     "research_notes": [{"angle": "company-anatomy", "text": "note"}]},
+     "research_notes": [{"angle": "company-anatomy", "text": "note"}],
+     "sources": [{"label": "Ukraine database", "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"}]},
     {"id": "IMO1021570", "type": "ship", "name": "OCEAN 28", "listed_by": ["us"], "angle": ["lists"]},
     {"id": "co:unlisted-003", "type": "company", "name": "unlisted Kazakhstan ship manager",
      "angle": ["ship-histories"], "listed_by": [], "name_policy": "generic",
@@ -53,14 +55,15 @@ def test_lists_only_edges_leave_the_base():
 def test_research_fields_kept_for_list_nodes():
     base = split_fleet(NODES, EDGES, META)
     fields = base["node_fields"]["IMO9408695"]
-    assert fields["research_notes"] == NODES[0]["research_notes"]
+    assert fields["research_notes"] == NODES[0]["research_notes"] and fields["sources"] == NODES[0]["sources"]
     assert fields["angle"] == ["company-anatomy"]
     assert "listed_by" not in fields and "programs" not in fields
     assert "IMO1021570" not in base["node_fields"]  # nothing to keep
     assert [n["id"] for n in base["nodes"]] == ["co:unlisted-003"]
     assert base["generated"] == "2026-09-25"
     assert base["meta"] == {k: META[k] for k in
-                            ("findings", "patterns", "study_counts", "title", "subtitle", "credits", "coverage")}
+                            ("findings", "patterns", "study_counts", "title", "subtitle", "credits", "coverage",
+                             "angles", "verified_angles")}
 
 
 def test_generic_companies_stay_generic():

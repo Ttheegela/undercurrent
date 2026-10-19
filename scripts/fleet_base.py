@@ -15,9 +15,10 @@ GENERATED = "2026-09-25"
 
 NODE_RESEARCH_FIELDS = (
     "research_notes", "history", "ua_former_names", "ua_flag_countries",
-    "name_policy", "generic_name", "name_note", "role",
+    "name_policy", "generic_name", "name_note", "role", "sources",
 )
-FLEET_META_KEYS = ("findings", "patterns", "study_counts", "title", "subtitle", "credits", "coverage")
+FLEET_META_KEYS = ("findings", "patterns", "study_counts", "title", "subtitle", "credits", "coverage",
+                   "angles", "verified_angles")
 # What an edge repeats at its top level from its first source (source key -> edge key).
 EDGE_FROM_SOURCE = {"url": "source_url", "file": "source_file", "quote": "quote", "record": "record",
                     "angle": "angle", "confidence": "confidence"}

@@ -1,3 +1,4 @@
+import csv
 import shutil
 from pathlib import Path
 
@@ -12,11 +13,14 @@ def fake_fetch(url):
     return (FIX / DOWNLOADS[url]).read_text(encoding="utf-8")
 
 
-def build(tmp_path, fetch=fake_fetch):
+def build(tmp_path, fetch=fake_fetch, csl_rows=()):
     raw = tmp_path / "fleet-raw"
     raw.mkdir(exist_ok=True)
     shutil.copy(FIX / "uk_sample.csv", raw / "uk.csv")
     shutil.copy(FIX / "csl_sample.csv", raw / "us.csv")
+    with open(raw / "us.csv", "a", newline="", encoding="utf-8") as f:
+        header = (FIX / "csl_sample.csv").read_text(encoding="utf-8").split("\n", 1)[0].split(",")
+        csv.DictWriter(f, fieldnames=header).writerows(csl_rows)
     return fo.build_official(raw, fetch=fetch)
 
 
@@ -117,3 +121,10 @@ def test_treasury_entry_wins_over_other_csl_lists(tmp_path):
 
 def test_opensanctions_csv_with_bom(tmp_path):
     assert build(tmp_path, fetch=lambda url: "﻿" + fake_fetch(url)) == build(tmp_path)
+
+
+def test_only_treasury_individuals_become_people(tmp_path):
+    # BIS's Denied Persons List also holds individuals; one named like a UK operator must not turn it into a person.
+    dpl = {"source": "Denied Persons List (DPL) - Bureau of Industry and Security", "type": "Individual",
+           "name": "ZULU SHIPS MANAGEMENT"}
+    assert node(build(tmp_path, csl_rows=[dpl]), "co:zulu-ships-management")["type"] == "company"

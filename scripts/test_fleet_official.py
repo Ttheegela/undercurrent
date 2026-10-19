@@ -12,12 +12,12 @@ def fake_fetch(url):
     return (FIX / DOWNLOADS[url]).read_text(encoding="utf-8")
 
 
-def build(tmp_path):
+def build(tmp_path, fetch=fake_fetch):
     raw = tmp_path / "fleet-raw"
     raw.mkdir(exist_ok=True)
     shutil.copy(FIX / "uk_sample.csv", raw / "uk.csv")
     shutil.copy(FIX / "csl_sample.csv", raw / "us.csv")
-    return fo.build_official(raw, fetch=fake_fetch)
+    return fo.build_official(raw, fetch=fetch)
 
 
 def edges_of(graph, source, type_):
@@ -78,7 +78,9 @@ def test_no_fuzzy_company_merge(tmp_path):
     # UK writes TASSOS's operator as "Zulu Ships Management"; it is not merged into the OFAC record by containment.
     assert "IMO9408695" in edges_of(g, "co:zulu-ships-management", "operates")
     assert "IMO9408695" not in edges_of(g, fo.co_id(ZULU_OFAC), "operates")
-    assert node(g, "co:zulu-ships-management")["listed_by"] == []
+    unlisted = node(g, "co:zulu-ships-management")
+    assert unlisted["listed_by"] == [] and unlisted["listing_dates"] == {}  # same node shape whether listed or not
+    assert all(isinstance(n["listing_dates"], dict) for n in g["nodes"] if n["type"] in ("ship", "company", "person"))
 
 
 def test_eu_status_source_label(tmp_path):
@@ -100,3 +102,18 @@ def test_flags_owners_people_and_uk_entities(tmp_path):
     one_moon = edges_of(g, "co:one-moon-marine-services-l-l-c", "designated_by")["gov:uk"]
     assert one_moon["source_url"] == "https://search-uk-sanctions-list.service.gov.uk/designations/RUS2151/Entity"
     assert not any(n.get("name") == "DILBAR" for n in g["nodes"])  # yachts are skipped
+
+
+def test_treasury_entry_wins_over_other_csl_lists(tmp_path):
+    # The CSL holds BIS's Entity List row "Trans-Flot JSC" before OFAC's TRANS-FLOT JSC (ent_num 21110).
+    g = build(tmp_path)
+    assert "IMO9690224" in edges_of(g, "co:trans-flot", "linked_to")
+    des = edges_of(g, "co:trans-flot", "designated_by")
+    assert set(des) == {"gov:us"}
+    us = des["gov:us"]
+    assert us["source_url"] == "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=21110"
+    assert us["record"] == "OFAC ent_num 21110" and len(us["sources"]) == 1
+
+
+def test_opensanctions_csv_with_bom(tmp_path):
+    assert build(tmp_path, fetch=lambda url: "﻿" + fake_fetch(url)) == build(tmp_path)

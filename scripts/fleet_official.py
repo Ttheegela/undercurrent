@@ -193,8 +193,6 @@ class _Graph:
             n["listed"] = bool(n["listed_by"])
             if n["listing_dates"]:
                 n["first_listed"] = min(n["listing_dates"].values())
-            else:
-                del n["listing_dates"]
         return {"nodes": [self.nodes[k] for k in sorted(self.nodes)],
                 "edges": [self.edges[k] for k in sorted(self.edges)]}
 
@@ -340,9 +338,9 @@ def _company_listings_and_people(g: _Graph, uk_text: str, csl_text: str, ofac_te
             nm = " ".join(x for x in [r["Name 6"]] + [r[f"Name {i}"] for i in range(1, 6)] if x.strip()).strip()
             uk_entities.setdefault(norm_co(nm), r)
     csl = _csv(csl_text)
-    csl_ent = {}
+    csl_ent = {}  # OFAC (Treasury) rows only: another list's row of the same name must not mask the OFAC entry
     for r in csl:
-        if r["type"] != "Vessel":
+        if r["type"] != "Vessel" and "Treasury" in r["source"]:
             for nm in [r["name"]] + r["alt_names"].split(";"):
                 if nm.strip():
                     csl_ent.setdefault(norm_co(nm), r)
@@ -360,7 +358,6 @@ def _company_listings_and_people(g: _Graph, uk_text: str, csl_text: str, ofac_te
         if n.get("type") != "company" or not (key := norm_co(n["name"])):
             continue
         r, c2 = us_orgs.get(key), csl_ent.get(key)
-        c2 = c2 if c2 and "Treasury" in c2["source"] else None
         if r:
             pc, date = prog_class(r["sanctions"] + " " + r["program_ids"]), r["first_seen"][:10]
             # the OFAC entry when the CSL holds the same name, else the OpenSanctions page

@@ -1,9 +1,9 @@
 """Merge the fixed 25 Sep research base with the nightly official layer into the shadow-fleet map payload.
 
 Ported from veil-trace@88dcaa2:tools/fleet/network/merge.py: listing status (:181-192, from official-layer
-designations and research designations citing an official host), the naming policy and generic-name scrub
-(:194-251; generic ids come from the base and are never renumbered), ship and company facts (:273-296), counts and
-the compact page payload (:306-355). gap_days_us_minus_uk is build_base.py:409-418.
+designations, plus research designations citing an official host for companies and people), the naming policy and
+generic-name scrub (:194-251; generic ids come from the base and are never renumbered), ship and company facts
+(:273-296), counts and the compact page payload (:306-355). gap_days_us_minus_uk is build_base.py:409-418.
 Before merging, official company ids go through data/fleet-company-aliases.json (fleet_aliases.py) and companies
 on the EU financial sanctions list (data/lists/eu.json, exact normalised name) get their EU designation.
 """
@@ -107,15 +107,17 @@ def _stub(nid: str, known: list[str]) -> dict:
 
 
 def _status(nodes: dict, edges: list[dict]) -> None:
-    """Listing status from the official layer's designations and from research designations that cite an
-    official host, the same way for every node (merge.py:181-192)."""
+    """Listing status (merge.py:181-192). Ships: the official layer only, since the UK, US and EU vessel feeds are
+    authoritative by IMO and a delisting must show. Companies and people: also research designations that cite an
+    official host, such as an EU act or a UK list entry the feeds do not cover."""
     for n in nodes.values():
         n["listed_by"], n["listing_dates"] = [], {}
         n.pop("first_listed", None)
     for e in edges:
-        if e["type"] == "designated_by" and e["target"].startswith("gov:") and (
-                e["layer"] == "official" or any(is_official(s["url"]) for s in e["sources"])):
-            n, gov = nodes[e["source"]], e["target"][4:]
+        n = nodes[e["source"]]
+        if e["type"] == "designated_by" and e["target"].startswith("gov:") and (e["layer"] == "official" or (
+                n["type"] != "ship" and any(is_official(s["url"]) for s in e["sources"]))):
+            gov = e["target"][4:]
             n["listed_by"].append(gov)
             if e["date"]:
                 n["listing_dates"][gov] = e["date"]

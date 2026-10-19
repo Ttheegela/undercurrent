@@ -94,12 +94,30 @@ def test_research_only_node_has_no_list_status():
 
 
 def test_status_from_official_host_research_designation():
+    # Companies and people: a government record cited by research counts (e.g. Moonlight's EU act, Shamkhani's UK entry).
     front = company("co:front", "Front Co", angle=["treasury-iran"], listed_by=[], listed=False)
+    person = {"id": "p:named", "type": "person", "name": "NAMED", "angle": ["studies"], "listed_by": []}
     press = edge("co:front", "gov:us", "designated_by", "2024-03-05",
                  src("treasury-iran", "https://home.treasury.gov/news/press-releases/jy2178"))
     blog = edge("co:front", "gov:uk", "designated_by", "2024-01-01", src("studies", "https://example.org/blog"))
-    n = node(run(base([front], [press, blog])), "co:front")
+    uk_entry = edge("p:named", "gov:uk", "designated_by", "2025-08-21",
+                    src("studies", "https://search-uk-sanctions-list.service.gov.uk/designations/IRN0249/Entity"))
+    g = run(base([front, person], [press, blog, uk_entry]))
+    n = node(g, "co:front")
     assert n["listed_by"] == ["us"] and n["listing_dates"] == {"us": "2024-03-05"} and n["first_listed"] == "2024-03-05"
+    assert node(g, "p:named")["listed_by"] == ["uk"]
+
+
+def test_research_designation_does_not_keep_delisted_ship_listed():
+    # Ships: the UK, US and EU vessel feeds are authoritative by IMO, so only the official layer sets status.
+    cited = edge("IMO9408695", "gov:uk", "designated_by", "2024-07-31",
+                 src("company-anatomy", "https://search-uk-sanctions-list.service.gov.uk/designations/RUS3483/Ship"))
+    us = edge("IMO9408695", "gov:us", "designated_by", "2025-07-30",
+              src("lists", "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=54815", "OFAC ent_num 54815"))
+    g = run(base(edges=[cited]), {"nodes": [TASSOS], "edges": [us]})  # the UK no longer lists TASSOS
+    tassos = node(g, "IMO9408695")
+    assert tassos["listed_by"] == ["us"] and tassos["listing_dates"] == {"us": "2025-07-30"}
+    assert edges_of(g, "IMO9408695", "designated_by")["gov:uk"]["layer"] == "research"  # the citation stays
 
 
 def test_generic_ids_not_renumbered():

@@ -128,3 +128,14 @@ def test_only_treasury_individuals_become_people(tmp_path):
     dpl = {"source": "Denied Persons List (DPL) - Bureau of Industry and Security", "type": "Individual",
            "name": "ZULU SHIPS MANAGEMENT"}
     assert node(build(tmp_path, csl_rows=[dpl]), "co:zulu-ships-management")["type"] == "company"
+
+
+def test_uk_ship_names_written_with_their_imo():
+    # The UK list writes some ships' primary names as "IMO 9243320 ('YEHOPE')": the name is the quoted part.
+    assert fo.uk_ship_name("IMO 9243320 ('YEHOPE')") == "YEHOPE"
+    assert fo.uk_ship_name("IMO 9331048 (CHAIVO)") == fo.uk_ship_name('IMO 9331048 ("CHAIVO")') == "CHAIVO"
+    assert fo.uk_ship_name(" PRIMORYE ") == "PRIMORYE"
+    text = (FIX / "uk_sample.csv").read_text(encoding="utf-8").replace(",RUS3483,,,TASSOS,", ",RUS3483,,,IMO 9408695 ('TASSOS'),")
+    nodes, _ = fo.parse_uk(text)
+    tassos = next(n for n in nodes if n["id"] == "IMO9408695")
+    assert (tassos["name"], tassos["aliases"], tassos["names_by_source"]) == ("TASSOS", ["TASSOS"], {"UK list": "TASSOS"})

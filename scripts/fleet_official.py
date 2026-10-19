@@ -208,6 +208,12 @@ def _uk_rows(text: str) -> list[dict]:
     return _csv(text)
 
 
+def uk_ship_name(text: str) -> str:
+    """The UK list writes some ships' names as "IMO 9243320 ('YEHOPE')" or "IMO 9331048 (CHAIVO)": keep the name."""
+    m = re.fullmatch(r"""IMO\s*\d{7}\s*\(\s*['"]?(.+?)['"]?\s*\)""", text.strip())
+    return m.group(1) if m else text.strip()
+
+
 def parse_uk(text: str) -> tuple[list[dict], list[dict]]:
     """UK list ships under the Russia regime, with flags and owner/operators (build_base.py:124-168)."""
     g = _Graph()
@@ -218,10 +224,10 @@ def parse_uk(text: str) -> tuple[list[dict], list[dict]]:
             ships.setdefault(im, []).append(r)
     for im, rs in ships.items():
         prim = next((r for r in rs if r["Name type"].lower().startswith("primary")), rs[0])
-        sid, uid, name = "IMO" + im, prim["Unique ID"], prim["Name 6"].strip()
+        sid, uid, name = "IMO" + im, prim["Unique ID"], uk_ship_name(prim["Name 6"])
         url = UK_ENTRY.format(uid, "Ship")
         d = ddmmyyyy(prim["Date Designated"])
-        n = g.node(sid, type="ship", name=name, imo=im, aliases=[r["Name 6"].strip() for r in rs if r["Name 6"].strip()],
+        n = g.node(sid, type="ship", name=name, imo=im, aliases=[uk_ship_name(r["Name 6"]) for r in rs if r["Name 6"].strip()],
                    ship_type=prim["Type of ship"].strip(), year_built=prim["Year Built"].strip(),
                    tonnage=prim["Tonnage of ship"].strip(), programs="russia", uk_id=uid, uk_name=name,
                    names_by_source={"UK list": name}, uk_date=d)

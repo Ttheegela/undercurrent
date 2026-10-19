@@ -1,0 +1,102 @@
+import shutil
+from pathlib import Path
+
+import fleet_official as fo
+
+FIX = Path(__file__).parent / "fixtures" / "fleet"
+DOWNLOADS = {fo.OS_EU_JOURNAL: "os_eu_journal_sample.csv", fo.OS_OFAC: "os_ofac_sample.csv"}
+ZULU_OFAC = "THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C"
+
+
+def fake_fetch(url):
+    return (FIX / DOWNLOADS[url]).read_text(encoding="utf-8")
+
+
+def build(tmp_path):
+    raw = tmp_path / "fleet-raw"
+    raw.mkdir(exist_ok=True)
+    shutil.copy(FIX / "uk_sample.csv", raw / "uk.csv")
+    shutil.copy(FIX / "csl_sample.csv", raw / "us.csv")
+    return fo.build_official(raw, fetch=fake_fetch)
+
+
+def edges_of(graph, source, type_):
+    return {e["target"]: e for e in graph["edges"] if e["source"] == source and e["type"] == type_}
+
+
+def node(graph, nid):
+    return next(n for n in graph["nodes"] if n["id"] == nid)
+
+
+def test_tassos_designations(tmp_path):
+    g = build(tmp_path)
+    des = edges_of(g, "IMO9408695", "designated_by")
+    assert set(des) == {"gov:uk", "gov:us", "gov:eu"}
+    uk, us = des["gov:uk"], des["gov:us"]
+    assert uk["source_url"] == "https://search-uk-sanctions-list.service.gov.uk/designations/RUS3483/Ship"
+    assert (uk["record"], uk["date"]) == ("RUS3483", "2026-02-24")
+    assert us["source_url"] == "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=54815"
+    assert us["record"] == "OFAC ent_num 54815"
+    assert us["date"] == "2025-07-30" and "via OpenSanctions" in us["source_file"]  # the CSL has no vessel dates
+    for e in des.values():
+        assert e["confidence"] == "Documented" and e["sources"][0]["angle"] == "lists"
+        assert e["sources"][0]["url"] == e["source_url"]
+    tassos = node(g, "IMO9408695")
+    assert tassos["listed_by"] == ["eu", "uk", "us"] and tassos["listed"] is True
+    assert tassos["listing_dates"] == {"eu": "2025-10-24", "uk": "2026-02-24", "us": "2025-07-30"}
+    assert tassos["first_listed"] == "2025-07-30" and tassos["flag_us"] == "lr"  # the UK row leaves the flag blank
+    assert "cc:lr" in edges_of(g, "IMO9408695", "flagged_in")
+
+
+def test_linked_to_creates_company_edge(tmp_path):
+    g = build(tmp_path)
+    cid = fo.co_id(ZULU_OFAC)
+    assert cid == "co:zulu-ships-management-and-operation-l-l-c"  # the 25 Sep id, which the research base uses
+    linked = edges_of(g, cid, "linked_to")["IMO9408695"]
+    assert linked["record"] == "OFAC ent_num 54815" and "Linked To" in linked["quote"]
+    zulu = node(g, cid)
+    assert zulu["type"] == "company" and zulu["listed_by"] == ["us"] and zulu["country"] == "ae"
+    assert edges_of(g, cid, "designated_by")["gov:us"]["source_url"].endswith("?id=54895")
+    assert "cc:ae" in edges_of(g, cid, "registered_in")
+
+
+def test_ids_are_stable_across_runs(tmp_path):
+    a, b = build(tmp_path), build(tmp_path)
+    assert a == b
+    keys = [(e["source"], e["target"], e["type"]) for e in a["edges"]]
+    assert keys == sorted(keys) and len(keys) == len(set(keys))
+    assert [n["id"] for n in a["nodes"]] == sorted(n["id"] for n in a["nodes"])
+
+
+def test_no_fuzzy_company_merge(tmp_path):
+    # Spelled-out suffixes normalise the same. Dotted "L.L.C." stays in the id exactly as on 25 Sep
+    # (veil-trace's line 65 never matched), so the research base's company ids keep resolving.
+    assert fo.norm_co("Gulf Star Shipping LLC") == fo.norm_co("Gulf Star Shipping Ltd") == "gulf star shipping"
+    assert fo.norm_co("Gulf Star Shipping L.L.C.") == "gulf star shipping l l c"
+    assert fo.norm_co("Gulf Star Shipping") != fo.norm_co("Gulf Sun Shipping")
+    g = build(tmp_path)
+    # UK writes TASSOS's operator as "Zulu Ships Management"; it is not merged into the OFAC record by containment.
+    assert "IMO9408695" in edges_of(g, "co:zulu-ships-management", "operates")
+    assert "IMO9408695" not in edges_of(g, fo.co_id(ZULU_OFAC), "operates")
+    assert node(g, "co:zulu-ships-management")["listed_by"] == []
+
+
+def test_eu_status_source_label(tmp_path):
+    eu = edges_of(build(tmp_path), "IMO9408695", "designated_by")["gov:eu"]
+    assert "EU Official Journal, via OpenSanctions" in eu["source_file"]
+    assert eu["source_url"] == "https://www.opensanctions.org/entities/NK-k837moN9ssPZedvkRUrexG/"
+    assert eu["date"] == "2025-10-24"
+
+
+def test_flags_owners_people_and_uk_entities(tmp_path):
+    g = build(tmp_path)
+    assert "cc:lr" in edges_of(g, "IMO9292204", "formerly_flagged_in")  # UK "Previous flags"
+    assert "IMO9292204" in edges_of(g, "co:scf-management-services-dubai", "formerly_operated")
+    assert "cc:pw" in edges_of(g, "IMO9255880", "formerly_flagged_in")  # CSL "Former Vessel Flag"
+    assert "IMO9569671" in edges_of(g, "co:nitc", "owns")
+    artemov = node(g, "p:artemov-viktor-sergiyovich")  # OFAC "Linked To" an individual
+    assert artemov["type"] == "person" and artemov["listed_by"] == ["us"]
+    assert "IMO9255880" in edges_of(g, artemov["id"], "linked_to")
+    one_moon = edges_of(g, "co:one-moon-marine-services-l-l-c", "designated_by")["gov:uk"]
+    assert one_moon["source_url"] == "https://search-uk-sanctions-list.service.gov.uk/designations/RUS2151/Entity"
+    assert not any(n.get("name") == "DILBAR" for n in g["nodes"])  # yachts are skipped

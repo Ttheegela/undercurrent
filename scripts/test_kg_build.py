@@ -1,6 +1,7 @@
 import copy
 import hashlib
 import json
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -17,7 +18,7 @@ GENERIC = "co:unlisted-003"
 NODE_KEYS = {"id", "t", "n", "L", "g", "s", "lists", "info", "notes", "k", "br", "unverified_person", "hub", "src",
              "live", "nolobby", "kg_only"}
 EDGE_KEYS = {"fleet": {"s", "t", "y", "c", "d", "u", "f", "r", "q", "L", "br"},
-             "lobby": {"s", "t", "y", "c", "d", "d2", "u", "r", "ids", "fl", "a", "q", "pct", "sa", "sub", "L", "br"}}
+             "lobby": {"s", "t", "y", "c", "d", "d2", "u", "r", "ids", "fl", "fr", "a", "q", "pct", "sa", "sub", "L", "br"}}
 
 
 @pytest.fixture(autouse=True)
@@ -169,7 +170,7 @@ def test_node_and_edge_keys_keep_the_old_shape():
         if e["L"] in EDGE_KEYS:
             assert set(e) <= EDGE_KEYS[e["L"]], e
     lobby_edge = next(e for e in kg["edges"] if e["L"] == "lobby" and e["y"] == "hired")
-    assert set(lobby_edge) - {"br"} == EDGE_KEYS["lobby"] - {"br"}
+    assert set(lobby_edge) - {"br"} == EDGE_KEYS["lobby"] - {"br", "fr"}  # (fr only where a filing is recent)
 
 
 def test_lobby_links_carry_all_their_filing_ids_in_a_fixed_order():
@@ -184,6 +185,22 @@ def test_lobby_links_carry_all_their_filing_ids_in_a_fixed_order():
         edge["source"], edge["target"], edge["type"]))["filings"].reverse()
     again = build_kg(make_fleet(), shuffled, load_kg_base(), None, DAY)
     assert [e["fl"] for e in again["edges"] if e["L"] == "lobby"] == [e["fl"] for e in kg["edges"] if e["L"] == "lobby"]
+
+
+def test_lobby_links_carry_their_recent_filings():
+    asset = lobby()
+    edge = next(e for e in asset["edges"] if len(e["filings"]) > 1)
+    first, second, *rest = edge["filings"]
+    ago = lambda days: (date.fromisoformat(DAY) - timedelta(days=days)).isoformat()  # noqa: E731
+    asset["filing_posted"] = {first: ago(3), second: ago(14), **{f: ago(15) for f in rest}}  # LDA posts late: 14 days count
+    built = {(e["s"], e["t"], e["y"]): e for e in build_kg(make_fleet(), asset, load_kg_base(), None, DAY)["edges"]
+             if e["L"] == "lobby"}
+    assert built[(edge["source"], edge["target"], edge["type"])]["fr"] == sorted([first[:8], second[:8]])
+    for e in asset["edges"]:  # every link: the recent filings it holds, and no key where it holds none
+        want = sorted(f[:8] for f in e["filings"] if f in (first, second))
+        assert built[(e["source"], e["target"], e["type"])].get("fr") == (want or None)
+    assert sum("fr" not in e for e in built.values()) > 0
+    assert not any("fr" in e for e in build_kg(make_fleet(), lobby(), load_kg_base(), None, DAY)["edges"])
 
 
 def test_bridge_flags_on_links_between_the_two_sides():

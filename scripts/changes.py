@@ -16,8 +16,10 @@ Ask read (data/changes/changes.json).
     its listed_by is compared only when it was looked up on both days (official on both). A link changes only when it
     enters or leaves the graph. Company ids are slugs of the lists' own spellings, so a respelling is a removal and an
     addition; none has happened yet.
-  * A lobby node or link is news only when it carries a filing (kg `fl`) that yesterday's lobby layer did not hold: a
-    registrant renamed in the LDA gets new ids for its whole history, and a link out of yesterday's graph can return.
+  * A lobby node or link is news only when it carries a filing that yesterday's lobby layer (kg `fl`) did not hold and
+    that was posted in the last 14 days (kg `fr`): a registrant renamed in the LDA gets new ids for its whole history,
+    a link out of yesterday's graph can return, and a filing a partial fetch lost can come back; LDA posts filings late,
+    but not months late.
   * Designations, flags and registrations are node facts (listed_by, flag_now), never links.
   * Nothing a failing source could have caused: a government in `unavailable` is left out of every listing, and an
     item only that government supplied is skipped. "lobbying" covers the whole lobby layer, and lobby links and nodes
@@ -68,21 +70,22 @@ def _node(nid, t, name, *, type_=None, generic=False, official=True, lobby=False
     govs = set(govs) & set(GOVS)
     return {"id": nid, "t": t, "type": type_ or t, "name": name, "generic": generic, "official": official,
             "lobby": lobby, "kg_only": kg_only, "flag": flag or "", "govs": govs, "programs": set(programs or ()),
-            "status": status, "desig": {}, "src": None, "origin": set(govs), "fl": set()}
+            "status": status, "desig": {}, "src": None, "origin": set(govs), "fr": set()}
 
 
-def _edge(eid, s, t, type_, src, origin, official=True, lobby=False, fl=()) -> dict:
-    """`fl` None means the edge's filings are not known (kg.json from before the change record held six per link)."""
+def _edge(eid, s, t, type_, src, origin, official=True, lobby=False, fl=(), fr=()) -> dict:
+    """A lobby link's filings, `fl` (None: not known, as in kg.json from before the change record, which held six per
+    link) and `fr`, those of them posted in the last 14 days."""
     return {"id": eid, "s": s, "t": t, "type": type_, "src": src, "origin": origin, "official": official, "lobby": lobby,
-            "fl": None if fl is None else set(fl)}
+            "fl": None if fl is None else set(fl), "fr": set(fr)}
 
 
 def _link(nodes: dict, edges: list) -> None:
     """What an official link tells its two ends: the first source to cite, which governments supplied it, and (a
-    lobby link) its filings."""
+    lobby link) its recent filings."""
     for e in edges:
         for end in (e["s"], e["t"]):
-            nodes[end]["fl"] |= e["fl"] or set()
+            nodes[end]["fr"] |= e["fr"]
             if e["official"]:
                 nodes[end]["src"] = nodes[end]["src"] or e["src"]
                 nodes[end]["origin"] |= e["origin"]
@@ -124,7 +127,7 @@ def _kg_view(graph: dict) -> tuple[dict, list]:
                                    govs=() if lobby else {x[0].split()[0].upper() for x in n["lists"]},
                                    programs=info.get("programs"), status=n["s"])
     edges = [_edge(edge_id(e["s"], e["t"], e["y"]), e["s"], e["t"], e["y"], (e.get("u") or "", e.get("f") or LDA_LABEL),
-                   _origin(e.get("f")), lobby=True, fl=e.get("fl"))
+                   _origin(e.get("f")), lobby=True, fl=e.get("fl"), fr=e.get("fr", ()))
              for e in graph["edges"] if e["L"] == "lobby" and e["s"] in nodes and e["t"] in nodes]
     _link(nodes, edges)
     return nodes, edges
@@ -214,8 +217,8 @@ def diff(prev: dict | None, curr: dict, graph: str, date: str, unavailable: set[
     for k in sorted(pn.keys() | cn.keys()):
         p, c = pn.get(k), cn.get(k)
         if c and not p and c["official"] and (graph == "fleet" or c["lobby"]) and not skipped(c["origin"]):
-            if c["lobby"] and (blind or not c["fl"] - old):
-                continue  # a renamed registrant's old filings
+            if c["lobby"] and (blind or not c["fr"] - old):
+                continue  # a renamed registrant's filings, or a backfill
             govs = sorted(c["govs"] - down) if c["t"] == "ship" else []  # only a ship's arrival is a listing
             put("added", "node", c["id"], pick(k, 1)["name"], c["type"], _source(c, govs), (k,), govs,
                 **({"field": "listed_by", "to": govs} if govs else {}))
@@ -245,8 +248,8 @@ def diff(prev: dict | None, curr: dict, graph: str, date: str, unavailable: set[
         e, side = (c, 1) if c and not p else (p, 0) if p and not c else (None, 0)
         if e is None or not e["official"] or skipped(e["origin"]):
             continue
-        if e["lobby"] and (side == 0 or e["type"] not in LOBBY_EDGES or blind or not (e["fl"] or set()) - old):
-            continue  # a filing is never deleted, only some lobby links are news, and only on a filing not seen before
+        if e["lobby"] and (side == 0 or e["type"] not in LOBBY_EDGES or blind or not e["fr"] - old):
+            continue  # a filing is never deleted, only some lobby links are news, and only on a new recent filing
         a, b = pick(e["s"], side), pick(e["t"], side)
         put("added" if side else "removed", "edge", e["id"], f"{a['name']} → {b['name']}", e["type"], e["src"],
             (e["s"], e["t"]), sorted(e["origin"]), endpoints=[a["name"], b["name"]],

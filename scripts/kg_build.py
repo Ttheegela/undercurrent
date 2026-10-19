@@ -3,7 +3,7 @@
 Ported from veil-trace@88dcaa2:research/knowledge-graph/scripts/build_kg.py:78-202: the fleet layer, the lobby layer,
 curated bridges, the bridge flag and the orphan-ship drop and count. Node and edge keys are unchanged, but for two
 that the change record (changes.py) reads: `kg_only` on a company only this page shows, and `fl` on a lobby link
-(every filing id, shortened to 8 characters, sorted). What differs:
+(every filing id, shortened to 8 characters, sorted), with `fr`, the ones posted in the last 14 days. What differs:
   * the fleet is merge() output (fleet_merge.py), the lobby layer is build/lobbying.json.gz;
   * the team lobbying nodes ("lob:") and the 30 team and 18 curated edges come from data/kg-base.json, which holds
     them as the original left them: already merged through LOB_ALIAS, typed and hubbed (HUBS, LOB_TYPE), and with
@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
+from datetime import date, timedelta
 from pathlib import Path
 
 from fleet_merge import generic_id
@@ -48,6 +49,7 @@ LIST_ORDER = {"ship": ("UK", "US", "EU")}  # the order of a node's lists on 25 S
 DEFAULT_LIST_ORDER = ("US", "EU", "UK")
 DERIVED = ("k", "br", "nolobby")  # worked out afresh on every build, never copied from a base or yesterday's graph
 NAME_SUFFIXES = {"jr", "sr", "ii", "iii", "iv"}
+RECENT_DAYS = 14  # LDA posts a filing up to about two weeks late; one posted before that that turns up is a backfill
 GENERATED_FROM = ["UK, US and EU sanctions lists and OpenSanctions (nightly)", "US Senate lobbying disclosures (LDA)",
                   "hand-checked links and 25 Sep 2026 research (data/kg-base.json)"]
 
@@ -106,12 +108,14 @@ def _lobby_node(n: dict) -> dict:
             "lists": [], "info": {k: n[k] for k in LOBBY_INFO_KEYS if n.get(k)}, "notes": []}
 
 
-def _lobby_edge(e: dict) -> dict:
+def _lobby_edge(e: dict, recent: set) -> dict:
     yrs = e.get("years") or []
+    new = sorted(f[:8] for f in e["filings"] if f in recent)
     return {"s": e["source"], "t": e["target"], "y": e["type"], "c": "D",
             "d": "%s" % yrs[0] if yrs else "", "d2": "%s" % yrs[-1] if yrs else "",
             "u": e["source_url"], "r": "%d filing%s" % (e["n_filings"], "" if e["n_filings"] == 1 else "s"),
             "ids": e["filings"][:6], "fl": sorted(f[:8] for f in e["filings"]),  # every filing, for the change record
+            **({"fr": new} if new else {}),  # ... and those of them posted within RECENT_DAYS of `generated`
             "a": e.get("amount", 0), "q": " | ".join(e.get("texts", []))[:300],
             "pct": e.get("ownership_pct", ""), "sa": e.get("sub_amount", 0), "sub": e.get("subcontract", False),
             "L": "lobby"}
@@ -169,7 +173,9 @@ def build_kg(fleet: dict, lobby: dict | None, base: dict, previous_kg: dict | No
     # ---- lobby layer: today's asset, or yesterday's layer ---------------------------------------
     if lobby is not None:
         lobby_nodes = [_lobby_node(n) for n in lobby["nodes"]]
-        lobby_edges = [_lobby_edge(e) for e in lobby["edges"]]
+        since = (date.fromisoformat(generated[:10]) - timedelta(days=RECENT_DAYS)).isoformat()
+        recent = {u for u, day in lobby.get("filing_posted", {}).items() if day >= since}
+        lobby_edges = [_lobby_edge(e, recent) for e in lobby["edges"]]
         filings = lobby["filings_scanned"], lobby["filings_kept"]
     else:
         lobby_nodes = [_plain(n) for n in previous_kg["nodes"] if n["L"] == "lobby"]

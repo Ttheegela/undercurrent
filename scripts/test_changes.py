@@ -388,10 +388,12 @@ def knode(nid, t, name, L="lobby", s="", lists=(), **info):
             "notes": []}
 
 
-def kedge(s, t, y, L="lobby", fl=None, **kw):
+def kedge(s, t, y, L="lobby", fl=None, fr=None, **kw):
+    """A link's filings (`fl`) and those of them posted in the last 14 days (`fr`, all of them unless a test says)."""
     fl = fl or [edge_id(s, t, y)[2:10]]  # a filing of its own, unless the test says which
+    fr = fl if fr is None else fr
     return {"s": s, "t": t, "y": y, "c": "D", "d": "2025", "u": "https://lda.gov/filings/public/filing/f1/print/",
-            "r": "1 filing", "q": "", "L": L, **({"fl": fl} if L == "lobby" else {}), **kw}
+            "r": "1 filing", "q": "", "L": L, **({"fl": fl, **({"fr": fr} if fr else {})} if L == "lobby" else {}), **kw}
 
 
 def kg(*parts):
@@ -449,6 +451,30 @@ def test_returning_lobby_link_is_not_new():
     new = kg(NS2, CAPITOL, john, kedge("p:john-doe", CAPITOL["id"], "lobbyist_at", fl=["aaaa1111"]),
              kedge(NS2["id"], CAPITOL["id"], "hired", fl=["aaaa1111", "cccc3333"]))
     assert [c["summary"] for c in diff(prev, new, "lobby", DAY, set())] == ["Nord Stream 2 AG hired Capitol Counsel LLC"]
+
+
+def test_returning_old_filing_is_not_new():
+    john = knode("p:john-doe", "person", "John Doe")
+    jane = knode("p:jane-roe", "person", "Jane Roe")
+    prev = kg(NS2, CAPITOL, john, kedge("p:john-doe", CAPITOL["id"], "lobbyist_at", fl=["aaaa1111"]))
+    # a filing posted 60 days ago is in today's graph and was not in yesterday's (a partial fetch yesterday, or a backfill):
+    # its link, and a lobbyist who is only in it, are not news. The older filing on the link was there before anyway.
+    back = kg(NS2, CAPITOL, john, jane, kedge("p:john-doe", CAPITOL["id"], "lobbyist_at", fl=["aaaa1111"]),
+              kedge(NS2["id"], CAPITOL["id"], "hired", fl=["aaaa1111", "dddd4444"], fr=[]),
+              kedge("p:jane-roe", CAPITOL["id"], "lobbyist_at", fl=["dddd4444"], fr=[]))
+    assert diff(prev, back, "lobby", DAY, set()) == []
+
+
+def test_new_recent_filing_is_new():
+    john = knode("p:john-doe", "person", "John Doe")
+    jane = knode("p:jane-roe", "person", "Jane Roe")
+    prev = kg(NS2, CAPITOL, john, kedge("p:john-doe", CAPITOL["id"], "lobbyist_at", fl=["aaaa1111"]))
+    now = kg(NS2, CAPITOL, john, jane, kedge("p:john-doe", CAPITOL["id"], "lobbyist_at", fl=["aaaa1111"]),
+             kedge(NS2["id"], CAPITOL["id"], "hired", fl=["aaaa1111", "dddd4444"], fr=["dddd4444"]),  # posted 3 days ago
+             kedge("p:jane-roe", CAPITOL["id"], "lobbyist_at", fl=["dddd4444"], fr=["dddd4444"]))
+    assert {c["summary"] for c in diff(prev, now, "lobby", DAY, set())} == {
+        "Nord Stream 2 AG hired Capitol Counsel LLC", "Jane Roe is a lobbyist at Capitol Counsel LLC",
+        "New lobbyist: Jane Roe"}
 
 
 def test_yesterday_without_filing_ids_cannot_say_what_lobbying_is_new():

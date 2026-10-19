@@ -370,4 +370,8 @@ def extract(filings, config: dict) -> dict:
         if not e["amount"]:
             e.pop("amount")
         edges.append(e)
-    return {"nodes": list(nodes.values()), "edges": edges, "filings_kept": kept, "filings_scanned": len(filings)}
+    # the day each kept filing was posted (LDA posts late, so the graph builders can tell a new filing from a backfill)
+    posted = {u: filings[u]["dt_posted"][:10] for u in sorted({u for e in edges for u in e["filings"]})
+              if filings[u].get("dt_posted")}
+    return {"nodes": list(nodes.values()), "edges": edges, "filings_kept": kept, "filings_scanned": len(filings),
+            "filing_posted": posted}

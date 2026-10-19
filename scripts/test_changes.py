@@ -95,6 +95,27 @@ def test_new_and_removed_link():
     assert (gone["kind"], gone["summary"]) == ("removed", "Link removed: TASSOS → Zulu Ships Management (managed by)")
 
 
+def test_edge_change_carries_endpoint_ids():
+    base = [ship(), ZULU_NODE, listing(TASSOS, "uk"), *GOV_NODES]
+    with_link = fleet(*base, fedge(ZULU, TASSOS, "manages"))
+    added = only(diff(fleet(*base), with_link, "fleet", DAY, set()))
+    assert (added["endpoints"], added["endpoint_ids"]) == (["Zulu Ships Management", "TASSOS"], [ZULU, TASSOS])
+    assert only(diff(with_link, fleet(*base), "fleet", DAY, set()))["endpoint_ids"] == [ZULU, TASSOS]
+    # a company that is generic today is known by its published id, never the one that spelled its name
+    gen = generic_id(REAL)
+    shown = fnode(REAL, "company", "Real Ltd", name_policy="show")
+    generic = fnode(gen, "company", "unlisted ship manager", name_policy="generic", generic_name="unlisted ship manager")
+    prev = fleet(*base, shown, fedge(REAL, TASSOS, "owns", url="https://example.gov/owns"))
+    gone = only(diff(prev, fleet(*base, generic), "fleet", DAY, set()))
+    assert gone["endpoint_ids"] == [gen, TASSOS] and REAL not in json.dumps(gone)
+    new = only(diff(fleet(*base), fleet(*base, generic, fedge(gen, TASSOS, "owns")), "fleet", DAY, set())[1:])
+    assert new["endpoint_ids"] == [gen, TASSOS]
+    # and on the network, where a lobby link can end on a fleet-layer company
+    hired = only(diff(kg(NS2, CAPITOL), kg(NS2 | {"L": "fleet"}, CAPITOL, kedge(NS2["id"], CAPITOL["id"], "hired")),
+                      "lobby", DAY, set()))
+    assert hired["endpoint_ids"] == [NS2["id"], CAPITOL["id"]]
+
+
 def test_designations_flags_and_registrations_are_not_links():
     nodes = [ship(), ZULU_NODE, *GOV_NODES, fnode("cc:lr", "country", "Liberia"), listing(TASSOS, "uk")]
     curr = fleet(*nodes, listing(TASSOS, "us"), fedge(TASSOS, "cc:lr", "flagged_in"), fedge(ZULU, "cc:lr", "registered_in"))
@@ -138,7 +159,7 @@ def test_rename_and_programmes():
 def test_research_items_never_change():
     prev = fleet(ship(ADISA, "ADISA", layer="research", flag_now="pa"), ZULU_NODE | {"layer": "research"},
                  fedge(ZULU, ADISA, "manages", layer="research"))
-    curr = fleet(ship(ADISA, "ADISA", layer="research", flag_now="cm", listed_by=["us"]),
+    curr = fleet(ship(ADISA, "ADISA", layer="research", flag_now="cm"),
                  ship(layer="research"), fnode("co:new", "company", "New Co", layer="research"),
                  fedge("co:new", TASSOS, "owns", layer="research"))
     assert diff(prev, curr, "fleet", DAY, set()) == []
@@ -151,6 +172,33 @@ def test_delisted_ship_that_research_keeps_is_a_listing_change_not_a_removal():
     c = only(diff(prev, fleet(stub, *GOV_NODES), "fleet", DAY, set()))
     assert (c["kind"], c["field"], c["name"], c["summary"]) == ("changed", "listed_by", "ADISA",
                                                                  "EU removed ADISA (IMO 9341279)")
+
+
+def test_research_known_ship_newly_listed_is_reported():
+    known = ship(ADISA, "ADISA", [], layer="research")  # on the map since 25 Sep as research, on no list
+    prev = fleet(known, ZULU_NODE, fedge(ZULU, ADISA, "owns", layer="research"), *GOV_NODES)
+    curr = fleet(ship(ADISA, "ADISA", ["uk"]), ZULU_NODE, fedge(ZULU, ADISA, "owns", layer="research"),
+                 listing(ADISA, "uk"), *GOV_NODES)
+    c = only(diff(prev, curr, "fleet", DAY, set()))
+    assert (c["kind"], c["field"], c["to"], c["summary"]) == ("changed", "listed_by", ["UK"], "UK listed ADISA (IMO 9341279)")
+    assert (c["source_url"], c["source_label"]) == (UK_URL, "UK Sanctions List")  # its official designation
+    assert diff(prev, curr, "fleet", DAY, {"uk"}) == []  # the UK list failed
+    # a node on both days is compared whatever its layer, by the merged listed_by
+    both = fleet(fnode("co:acme", "company", "Acme", layer="research", listed_by=["eu"]))
+    assert only(diff(fleet(fnode("co:acme", "company", "Acme", layer="research")), both, "fleet", DAY, set()))[
+        "summary"] == "EU listed Acme"
+
+
+def test_research_known_ship_delisted_is_reported():
+    known = ship(ADISA, "ADISA", [], layer="research")
+    prev = fleet(ship(ADISA, "ADISA", ["uk"]), ZULU_NODE, fedge(ZULU, ADISA, "owns", layer="research"),
+                 listing(ADISA, "uk"), *GOV_NODES)
+    curr = fleet(known, ZULU_NODE, fedge(ZULU, ADISA, "owns", layer="research"), *GOV_NODES)
+    c = only(diff(prev, curr, "fleet", DAY, set()))
+    assert (c["kind"], c["field"], c["from"], c["summary"]) == ("changed", "listed_by", ["UK"],
+                                                                "UK removed ADISA (IMO 9341279)")
+    assert (c["source_url"], c["source_label"]) == (UK_URL, "UK Sanctions List")  # yesterday's designation
+    assert diff(prev, curr, "fleet", DAY, {"uk"}) == []
 
 
 def test_kept_previous_source_records_no_changes():
@@ -276,6 +324,7 @@ def test_new_lobbying_links_and_nodes():
     prev = kg(NS2)
     curr = kg(NS2, CAPITOL, knode("p:john-doe", "person", "John Doe"), knode("bill:eo1", "bill", "EO 14024"),
               knode("gov:us-senate", "government", "US Senate"),
+              knode("co:sberbank", "company", "Sberbank", s="restricted", lists=[["US SSI", "", ""]]),  # hand-checked list
               kedge(NS2["id"], CAPITOL["id"], "hired"), kedge("p:john-doe", CAPITOL["id"], "lobbyist_at"),
               kedge(CAPITOL["id"], "bill:eo1", "lobbied_on"), kedge(CAPITOL["id"], "gov:us-senate", "lobbied"),
               kedge("p:john-doe", NS2["id"], "lobbied_for"))  # not one of the four reported types
@@ -284,7 +333,7 @@ def test_new_lobbying_links_and_nodes():
         "Nord Stream 2 AG hired Capitol Counsel LLC", "John Doe is a lobbyist at Capitol Counsel LLC",
         "Capitol Counsel LLC lobbied on EO 14024", "Capitol Counsel LLC lobbied US Senate",
         "New lobbying firm: Capitol Counsel LLC", "New lobbyist: John Doe", "New bill: EO 14024",
-        "New agency: US Senate"}
+        "New agency: US Senate", "New company: Sberbank"}
     hired = next(c for c in changes if c["node_type"] == "hired")
     assert (hired["graph"], hired["kind"], hired["item"], hired["id"]) == (
         "lobby", "added", "edge", edge_id(NS2["id"], CAPITOL["id"], "hired"))
@@ -314,42 +363,54 @@ def test_excluded_lobbyist_never_appears(tmp_path, monkeypatch):
 
 
 def test_lobbying_unavailable_skips_the_lobby_layer_only():
-    ship_node = knode(TASSOS, "ship", "TASSOS", L="fleet", imo="9408695")
+    ship_node = knode(TASSOS, "ship", "TASSOS", L="fleet", s="restricted", lists=[["UK", "", ""]], imo="9408695")
+    prev = kg(knode(TASSOS, "ship", "TASSOS", L="fleet", s="blocked", lists=[["UK", "", ""]], imo="9408695"))
     curr = kg(NS2, CAPITOL, ship_node, kedge(NS2["id"], CAPITOL["id"], "hired"))
-    assert len(diff(kg(), curr, "lobby", DAY, set())) == 4
-    assert [c["id"] for c in diff(kg(), curr, "lobby", DAY, {"lobbying"})] == [TASSOS]
+    assert len(diff(prev, curr, "lobby", DAY, set())) == 4  # two nodes, the link and the ship's new level
+    assert [c["id"] for c in diff(prev, curr, "lobby", DAY, {"lobbying"})] == [TASSOS]
     bridge = kg(knode("co:a", "company", "A Ltd", L="fleet"), knode("co:b", "company", "B Ltd", L="fleet"),
                 kedge("co:a", "co:b", "hired"))  # a lobby link between two fleet-layer companies is still lobbying
     assert diff(kg(knode("co:a", "company", "A Ltd", L="fleet"), knode("co:b", "company", "B Ltd", L="fleet")),
                 bridge, "lobby", DAY, {"lobbying"}) == []
 
 
-def test_status_and_lists_on_the_network():
-    def ship_kg(s, lists, flag="lr"):
-        return kg(knode(TASSOS, "ship", "TASSOS", L="fleet", s=s, lists=lists, imo="9408695", flag_now=flag,
-                        programs=["russia"]), knode(ZULU, "company", "Zulu", L="fleet"),
-                  kedge(ZULU, TASSOS, "manages", L="fleet", u="https://example.gov/z", f="UK Sanctions List"))
-    prev = ship_kg("blocked", [["UK", "", "2024-09-26"]])
-    curr = ship_kg("restricted", [["UK", "", "2024-09-26"], ["US SDN", "", "2025-07-30"]], flag="cm")
-    summaries = {c["summary"] for c in diff(prev, curr, "lobby", DAY, set())}
-    assert summaries == {"TASSOS changed status: blocked → restricted", "US listed TASSOS (IMO 9408695)",
-                         "TASSOS changed flag: Liberia → Cameroon"}
-    # the US list failed: neither its listing nor the level it may have set is today's news
-    assert {c["summary"] for c in diff(prev, curr, "lobby", DAY, {"us"})} == {"TASSOS changed flag: Liberia → Cameroon"}
+def ship_kg(s="restricted", lists=(("UK", "", "2024-09-26"),), flag="lr", extra=()):
+    return kg(knode(TASSOS, "ship", "TASSOS", L="fleet", s=s, lists=lists, imo="9408695", flag_now=flag,
+                    programs=["russia"]), knode(ZULU, "company", "Zulu", L="fleet"),
+              kedge(ZULU, TASSOS, "manages", L="fleet", u="https://example.gov/z", f="UK Sanctions List"), *extra)
 
 
-def test_new_ship_on_the_network_and_its_link():
-    def ship_kg(*parts):  # joining the network is not a listing: the ship may have been listed for years
-        return kg(knode(ZULU, "company", "Zulu", L="fleet"), *parts)
-    ship = [knode(TASSOS, "ship", "TASSOS", L="fleet", lists=[["UK", "", ""]], imo="9408695"),
-            kedge(ZULU, TASSOS, "manages", L="fleet", u="https://example.gov/z", f="UK Sanctions List")]
-    changes = diff(ship_kg(), ship_kg(*ship), "lobby", DAY, set())
-    assert {c["summary"] for c in changes} == {"New ship: TASSOS (IMO 9408695)",
-                                               "New link: TASSOS → Zulu (managed by)"}
-    assert {c["summary"] for c in diff(ship_kg(*ship), ship_kg(), "lobby", DAY, set())} == {
-        "Removed ship: TASSOS (IMO 9408695)", "Link removed: TASSOS → Zulu (managed by)"}
-    link = next(c for c in changes if c["item"] == "edge")
-    assert (link["source_url"], link["source_label"]) == ("https://example.gov/z", "UK Sanctions List")
+def test_status_changes_on_the_network():
+    prev, curr = ship_kg("blocked"), ship_kg("restricted")
+    c = only(diff(prev, curr, "lobby", DAY, set()))
+    assert (c["graph"], c["kind"], c["field"], c["from"], c["to"]) == ("lobby", "changed", "status", "blocked", "restricted")
+    assert c["summary"] == "TASSOS changed status: blocked → restricted"
+    assert (c["source_url"], c["source_label"]) == (LISTS["uk"]["page"], "United Kingdom sanctions list")
+    # the US list failed: the level it may have set is not today's news
+    us_added = ship_kg("blocked", (("UK", "", ""), ("US SDN", "", "")))
+    assert only(diff(curr, us_added, "lobby", DAY, set()))["field"] == "status"
+    assert diff(curr, us_added, "lobby", DAY, {"us"}) == []
+
+
+def test_new_listing_appears_once_across_graphs():
+    # one night, seen by both graphs: TASSOS gains a US listing, a manager link and a new flag; NEWCOMER is listed
+    prev_map = fleet(ship(flag_now="lr"), ZULU_NODE, listing(TASSOS, "uk"), *GOV_NODES)
+    curr_map = fleet(ship(listed_by=["uk", "us"], flag_now="cm"), ship("IMO9000001", "NEWCOMER", ["us"]), ZULU_NODE,
+                     listing(TASSOS, "uk"), listing(TASSOS, "us", "https://ofac/1", "US CSL"),
+                     listing("IMO9000001", "us", "https://ofac/9", "US CSL"), fedge(ZULU, TASSOS, "manages"), *GOV_NODES)
+    newcomer = knode("IMO9000001", "ship", "NEWCOMER", L="fleet", lists=[["US", "", ""]], imo="9000001")
+    prev_net = ship_kg()
+    curr_net = ship_kg(lists=(("UK", "", ""), ("US SDN", "", "")), flag="cm", extra=(
+        newcomer, kedge(ZULU, "IMO9000001", "operates", L="fleet")))
+    on_map = diff(prev_map, curr_map, "fleet", DAY, set())
+    assert {c["summary"] for c in on_map} == {
+        "US listed TASSOS (IMO 9408695)", "TASSOS changed flag: Liberia → Cameroon", "US listed NEWCOMER (IMO 9000001)",
+        "New link: TASSOS → Zulu Ships Management (managed by)"}
+    assert diff(prev_net, curr_net, "lobby", DAY, set()) == []  # the fleet layer is the map's to report
+    assert diff(curr_net, prev_net, "lobby", DAY, set()) == []  # nor is a delisting
+    # the network keeps only what the map cannot say: the level
+    assert [c["summary"] for c in diff(prev_net, ship_kg("blocked", flag="cm", extra=(newcomer,)), "lobby", DAY, set())] == [
+        "TASSOS changed status: restricted → blocked"]
 
 
 def test_network_ignores_team_and_curated_links_and_company_that_changes_sides():

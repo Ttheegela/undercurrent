@@ -5,10 +5,11 @@ English; update_record() files a night's changes into the rolling record that th
 Ask read (data/changes/changes.json).
 
   * graph "fleet" is fleet_merge.merge()'s long form, "lobby" is kg_build.build_kg()'s window.KG shape.
-  * Only official items count: ships, companies and people the lists name (layer "official"), their links, and on the
-    network the lobbying layer's additions. A research item never changes the record.
-  * A node is "added" or "removed" only when it enters or leaves the graph. A delisted ship that a research edge keeps on
-    the map stays; its listing change is a "changed" row. A link changes only when it enters or leaves the graph.
+  * The fleet layer is reported once, on graph "fleet" (the network's pages use the same ids). Graph "lobby" holds the
+    lobbying layer's additions and the level ("status") of the fleet nodes the network draws.
+  * A node is "added" or "removed" only when an official node enters or leaves the graph; a research item never is. A
+    delisted ship that a research edge keeps on the map stays, and its listing change is a "changed" row: listed_by is
+    compared for every node on both days, whatever its layer. A link changes only when it enters or leaves the graph.
   * Designations, flags and registrations are node facts (listed_by, flag_now), never links.
   * Nothing a failing source could have caused: a government in `unavailable` is left out of every listing, and an
     item only that government supplied is skipped. "lobbying" covers the whole lobby layer, and lobby links and nodes
@@ -93,19 +94,19 @@ def _fleet_view(graph: dict) -> tuple[dict, list]:
 
 
 def _kg_view(graph: dict) -> tuple[dict, list]:
-    """The network's fleet and lobby layers; the base's team and curated links are fixed and left out."""
+    """The network's nodes (the fleet layer for its level and as link ends) and its lobby links; the base's team and
+    curated links are fixed and left out, and the fleet layer's links are the map's to report."""
     nodes = {}
     for n in graph["nodes"]:
         if n["L"] in ("fleet", "lobby"):
             lobby, info = n["L"] == "lobby", n.get("info") or {}
             nodes[n["id"]] = _node(n["id"], n["t"], n["n"], type_=LOBBY_NOUN.get(n["t"]) if lobby else None,
                                    generic=n["id"].startswith("co:unlisted-"), lobby=lobby, flag=info.get("flag_now"),
-                                   govs={x[0].split()[0].upper() for x in n["lists"]}, programs=info.get("programs"),
-                                   status=n["s"])
-    edges = [_edge(edge_id(e["s"], e["t"], e["y"]), e["s"], e["t"], e["y"],
-                   (e.get("u") or "", e.get("f") or (LDA_LABEL if e["L"] == "lobby" else "")),
-                   _origin(e.get("f")), lobby=e["L"] == "lobby")
-             for e in graph["edges"] if e["L"] in ("fleet", "lobby") and e["s"] in nodes and e["t"] in nodes]
+                                   govs=() if lobby else {x[0].split()[0].upper() for x in n["lists"]},
+                                   programs=info.get("programs"), status=n["s"])
+    edges = [_edge(edge_id(e["s"], e["t"], e["y"]), e["s"], e["t"], e["y"], (e.get("u") or "", e.get("f") or LDA_LABEL),
+                   _origin(e.get("f")), lobby=True)
+             for e in graph["edges"] if e["L"] == "lobby" and e["s"] in nodes and e["t"] in nodes]
     _link(nodes, edges)
     return nodes, edges
 
@@ -181,28 +182,29 @@ def diff(prev: dict | None, curr: dict, graph: str, date: str, unavailable: set[
 
     for k in sorted(pn.keys() | cn.keys()):
         p, c = pn.get(k), cn.get(k)
-        if c and not p and c["official"]:
+        if c and not p and c["official"] and (graph == "fleet" or c["lobby"]):
             govs = sorted(c["govs"] - down)
-            if not skipped(c["origin"]):  # (on the network a node may join without a new listing)
+            if not skipped(c["origin"]):
                 put("added", "node", c["id"], pick(k, 1)["name"], c["type"], _source(c, govs or sorted(c["govs"])),
-                    **({"field": "listed_by", "to": govs} if govs and graph == "fleet" else {}))
-        elif p and not c and p["official"] and not p["lobby"]:
+                    **({"field": "listed_by", "to": govs} if govs else {}))
+        elif p and not c and p["official"] and graph == "fleet":
             govs = sorted(p["govs"] - down)
             if not skipped(p["origin"]):
                 put("removed", "node", p["id"], pick(k, 0)["name"], p["type"], _source(p, govs or sorted(p["govs"])),
-                    **({"field": "listed_by", "from": govs} if govs and graph == "fleet" else {}))
-        elif p and c and (p["official"] or c["official"]) and not (p["lobby"] or c["lobby"]):
+                    **({"field": "listed_by", "from": govs} if govs else {}))
+        elif p and c and not (p["lobby"] or c["lobby"]):
             now = pick(k, 1)
             before, after = p["govs"] - down, c["govs"] - down
-            if after - before:
+            if graph == "fleet" and after - before:
                 put("changed", "node", c["id"], now["name"], now["type"], _source(c, sorted(after - before)),
                     field="listed_by", to=sorted(after - before))
-            if before - after:
+            if graph == "fleet" and before - after:
                 put("changed", "node", c["id"], now["name"], now["type"], _source(p, sorted(before - after)),
                     field="listed_by", **{"from": sorted(before - after)})
             for field, (was, is_) in (_facts(p, c, down) if p["official"] and c["official"] else {}).items():
-                put("changed", "node", c["id"], now["name"], now["type"], _source(c, sorted(c["govs"])),
-                    field=field, **{"from": was, "to": is_})
+                if graph == "fleet" or field == "status":  # the network adds only the level
+                    put("changed", "node", c["id"], now["name"], now["type"], _source(c, sorted(c["govs"])),
+                        field=field, **{"from": was, "to": is_})
 
     for k in sorted(pe.keys() | ce.keys()):
         p, c = pe.get(k), ce.get(k)
@@ -213,7 +215,7 @@ def diff(prev: dict | None, curr: dict, graph: str, date: str, unavailable: set[
             continue  # a filing is never deleted, and only some lobby links are news
         a, b = pick(e["s"], side), pick(e["t"], side)
         put("added" if side else "removed", "edge", e["id"], f"{a['name']} → {b['name']}", e["type"], e["src"],
-            endpoints=[a["name"], b["name"]])
+            endpoints=[a["name"], b["name"]], endpoint_ids=[(cn.get(x) or pn[x])["id"] for x in (e["s"], e["t"])])
 
     for c in out:
         c["summary"] = summarize(c)

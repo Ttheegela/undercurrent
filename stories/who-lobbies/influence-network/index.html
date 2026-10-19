@@ -30,6 +30,7 @@ button { font: inherit; color: inherit; }
 /* Top bar: the site's header row, with the graph tools inline. Wraps instead of overflowing; JS reads its height. */
 #bar { position: fixed; top: 0; left: 0; right: 0; z-index: 8; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs) var(--space-md); padding: var(--space-sm) var(--page-gutter); background: var(--color-paper); border-bottom: var(--rule-hair) solid var(--color-rule); }
 #bar .brand { flex: none; }
+#bar .nav-graphs { margin-left: auto; }
 #bar h1 { margin: 0; font-size: var(--text-sm); font-weight: 700; color: var(--color-muted); white-space: nowrap; }
 .sep { width: 1px; height: 1.5rem; background: var(--color-rule); flex: none; }
 .spacer { flex: 1; }
@@ -48,21 +49,20 @@ a.btn { text-decoration: none; display: inline-block; }
 .tog[aria-pressed=false]:not(#liveBtn) { text-decoration: line-through; }
 .tog i { width: 0.5rem; height: 0.5rem; border-radius: 50%; display: inline-block; border: 1.5px solid var(--color-ink); }
 .tog[aria-pressed=true] i { background: var(--color-ink); }
-#pathPop { top: calc(var(--bar-h, 3.5rem) + var(--space-xs)); display: none; padding: var(--space-sm); gap: var(--space-xs); align-items: center; flex-wrap: wrap; width: min(35rem, calc(100vw - 2 * var(--page-gutter))); }
+#pathPop { top: calc(var(--bar-h, 3.5rem) + var(--space-xs)); z-index: 7; display: none; padding: var(--space-sm); gap: var(--space-xs); align-items: center; flex-wrap: wrap; width: min(35rem, calc(100vw - 2 * var(--page-gutter))); }
 #pathPop input { background: var(--color-paper); border: var(--rule-hair) solid var(--color-rule); color: var(--color-ink); border-radius: var(--radius-sm); padding: 0.45rem 0.6rem; font: var(--text-sm) var(--font-display); width: 12rem; min-width: 0; flex: 1 1 9rem; }
 #pathPop input:focus { outline: none; border-color: var(--color-muted); }
 #pathmsg { font-size: var(--text-xs); color: var(--color-muted); width: 100%; }
 
 /* Legend */
-#legend { left: var(--page-gutter); top: calc(var(--bar-h, 3.5rem) + var(--space-sm)); width: 19rem; padding: var(--space-sm) var(--space-md); font-size: var(--text-xs); color: var(--color-muted); }
-#legend .ttl { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2xs); }
-#legend .ttl button { background: none; border: 0; color: var(--color-neutral); cursor: pointer; font-size: var(--text-xs); text-decoration: underline; text-underline-offset: 0.2em; }
+/* Default corner: top right, clear of the story card; the camera fits to its left (flyTo) */
+#legend { position: fixed; z-index: 6; top: calc(var(--bar-h, 3.5rem) + var(--space-sm)); right: var(--page-gutter); width: 19rem; max-height: calc(100% - var(--bar-h, 3.5rem) - 2 * var(--space-sm)); font-size: var(--text-xs); color: var(--color-muted); }
+#legend .lg-body { padding: var(--space-xs) var(--space-md) var(--space-sm); }
 #legend .g { display: grid; grid-template-columns: 1fr 1fr; gap: 3px var(--space-sm); margin: var(--space-2xs) 0 var(--space-xs); }
 #legend .it { display: flex; align-items: center; gap: var(--space-xs); white-space: nowrap; }
 #legend .it.wide { grid-column: 1 / -1; white-space: normal; }
 #legend svg { flex: none; }
 #legend .counts { border-top: var(--rule-hair) solid var(--color-rule); padding-top: var(--space-xs); margin-top: var(--space-2xs); color: var(--color-neutral); }
-#legend.min .body { display: none; }
 /* Legend swatches: the same tokens the canvas draws with */
 .k-corp { fill: var(--kg-corp); } .k-infl { fill: var(--kg-infl); } .k-gov { fill: var(--kg-gov); }
 .k-hollow { fill: none; stroke: var(--kg-corp); stroke-width: 2; }
@@ -112,7 +112,7 @@ a.btn { text-decoration: none; display: inline-block; }
 #tip { position: fixed; pointer-events: none; background: var(--color-paper-3); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-sm); padding: var(--space-xs) var(--space-sm); font-size: var(--text-xs); display: none; z-index: 9; max-width: 20rem; }
 #tip b { display: block; font-size: var(--text-sm); } #tip span { color: var(--color-muted); }
 #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--color-muted); font-family: var(--font-mono); font-size: var(--text-xs); z-index: 20; background: var(--color-paper); }
-@media (max-width: 68.75rem) { #bar h1, #bar .sep { display: none; } .qbox input { width: 11rem; } #legend { display: none; } }
+@media (max-width: 68.75rem) { #bar h1, #bar .sep { display: none; } .qbox input { width: 11rem; } }
 @media (max-width: 47.5rem) {
   /* Three rows: brand + methods / search / tools, with the filters in a sideways-scrolling strip */
   #bar { padding-block: var(--space-xs); gap: var(--space-xs); }
@@ -121,6 +121,9 @@ a.btn { text-decoration: none; display: inline-block; }
   .qbox { flex: 1 1 100%; order: 1; } .qbox input { width: 100%; }
   #pathBtn, #fitBtn { order: 2; }
   .toggles { order: 3; flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  #bar .nav-graphs { order: 4; flex-basis: 100%; }
+  /* the key: a chip under the bar, opening as a sheet over the story card */
+  #legend:not(.is-collapsed) { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 60%; z-index: 9; border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
   #side { width: calc(100% - 2 * var(--page-gutter)); top: auto; height: 55vh; }
   #story { padding: var(--space-sm) var(--space-md); }
   #story h2 { font-size: var(--text-lg); }
@@ -150,6 +153,10 @@ a.btn { text-decoration: none; display: inline-block; }
     <button class="tog" data-vis="lead" aria-pressed="true" title="Links we inferred ourselves (dotted)">Leads</button>
     <button class="tog" id="liveBtn" aria-pressed="false" title="Ships seen live on AIS in the God's Eye snapshot, and who runs them"><i></i>Live on AIS</button>
   </div>
+  <nav class="nav-graphs" aria-label="Graphs"><ul>
+    <li><a href="../../shadow-fleet/network/shadow_fleet_map.html">Shadow fleet map</a></li>
+    <li><a href="index.html" aria-current="page">Influence network</a></li>
+  </ul></nav>
 </header>
 
 <div id="pathPop" class="card">
@@ -158,9 +165,13 @@ a.btn { text-decoration: none; display: inline-block; }
   <div id="pathmsg">Shortest chain of recorded links between two names.</div>
 </div>
 
-<aside id="legend" class="card">
-  <div class="ttl"><span class="kicker">Key</span><button id="legBtn">hide</button></div>
-  <div class="body">
+<aside id="legend" class="lg" data-legend="uc-legend-influence" data-legend-below="#bar" aria-label="Key">
+  <div class="lg-head">
+    <button type="button" class="lg-handle" title="Drag to move" aria-label="Move key (arrow keys, Shift for bigger steps)">Key</button>
+    <button type="button" class="lg-btn lg-reset" aria-label="Reset key position">Reset</button>
+    <button type="button" class="lg-btn lg-toggle" aria-expanded="true" aria-controls="legend-body">Hide</button>
+  </div>
+  <div class="body lg-body" id="legend-body">
     <div class="g">
       <span class="it"><svg width="12" height="12"><rect class="k-corp" x="1" y="1" width="10" height="10" rx="2"/></svg>Company</span>
       <span class="it"><svg width="12" height="12"><path class="k-corp" d="M6 1 L11 11 L1 11Z"/></svg>Ship (by hull no.)</span>
@@ -184,7 +195,9 @@ a.btn { text-decoration: none; display: inline-block; }
     </div>
     <div class="counts" id="counts"></div>
   </div>
+  <span class="lg-size" aria-hidden="true" title="Drag to resize"></span>
 </aside>
+<script src="../../../app/legend.js"></script>
 
 <section id="story" class="card" aria-live="polite">
   <div class="kicker" id="stepk"></div>
@@ -515,9 +528,14 @@ function flyTo(ids, pad){
   if (!pts.length) return;
   const W = el.clientWidth, H = el.clientHeight;
   const story = $("story"), storyH = story.style.display === "none" ? 40 : story.offsetHeight + 24;
-  const leg = $("legend"), legOpen = getComputedStyle(leg).display !== "none" && !leg.classList.contains("min");
-  const L = legOpen ? leg.getBoundingClientRect().right + 10 : 20;
-  const side = $("side"), R = W - (side.classList.contains("open") && innerWidth > 760 ? side.offsetWidth + 30 : 20), T = $("bar").offsetHeight + 16, B = H - storyH;
+  const side = $("side"), T = $("bar").offsetHeight + 16, B = H - storyH;
+  let L = 20, R = W - (side.classList.contains("open") && innerWidth > 760 ? side.offsetWidth + 30 : 20);
+  // The key floats over the graph: fit beside it (left or right, whichever it is nearer) unless that leaves too little room.
+  const leg = $("legend");
+  if (!leg.classList.contains("is-collapsed") && innerWidth > 760){
+    const r = leg.getBoundingClientRect(), l2 = r.right + 10, r2 = r.left - 10;
+    if (r.left + r.right < W){ if (R - l2 > W / 2) L = l2; } else if (r2 - L > W / 2) R = Math.min(R, r2);
+  }
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   pts.forEach(n => { x0 = Math.min(x0, n.x); x1 = Math.max(x1, n.x); y0 = Math.min(y0, n.y); y1 = Math.max(y1, n.y); });
   const m = 70 * (pad || 1), bw = Math.max(60, x1 - x0), bh = Math.max(60, y1 - y0);
@@ -708,7 +726,6 @@ $("liveBtn").onclick = () => {
   const nb = neighborhood(ids, 1, ["ctrl"]); hlNodes = nb.ns; hlLinks = nb.ls;
   setTimeout(() => flyTo([...hlNodes], 1), 0);
 };
-$("legBtn").onclick = () => { const l = $("legend"); l.classList.toggle("min"); $("legBtn").textContent = l.classList.contains("min") ? "show" : "hide"; };
 
 // ================= keyboard =================
 addEventListener("keydown", e => {

@@ -1,6 +1,6 @@
 # Live graphs, daily updates and the Ask chat
 
-Date: 2026-10-19 · Status: draft for review · Owner: Tarun Theegela
+Date: 2026-10-19 · Status: for owner review · Owner: Tarun Theegela
 
 ## Intent
 
@@ -32,6 +32,15 @@ Part 2 depends on the change record from part 1, but the rest of Ask (lookups, e
     - the daily changes
     - the explainer, About and Methods pages
   - It suggests where to look next: a graph focused on a ship or company, or a page.
+- **Every page reflects the updates (owner's requirement).** Wherever a page states a count or a date that the nightly data changes, it is read from the latest nightly output, not hard-coded. This includes:
+  - home cards (ships, lobbying reports, semiconductor months)
+  - "Data built" and "Data as of" lines on the graphs
+  - the stats on the Methods and About pages
+  - the influence network's node, link and ship counts
+  - the research notes pages that quote these figures
+
+  Where a figure belongs to the fixed 25 September research (for example "Key findings" in the notes), it stays, but is labelled as of 25 September. A test fails if a page shows a figure that disagrees with the current data files.
+- **No raw Markdown anywhere.** Every reader-facing page is HTML in the site design. (Done in PR #25: notes are generated from `.md` by `scripts/build_docs.py`, old `.md` URLs redirect, and a test blocks `.md` links.) Any new page from this design follows the same rule.
 
 ## Non-goals
 
@@ -81,6 +90,11 @@ The graphs must also never:
   - **The lobbying side:** lda.gov via the existing lobbying build.
   - **Bridges between the fleet and lobbying sides:** the existing hand-checked bridges (`data/lobbying-bridges.json`).
   - The original hackathon builders (`veil-trace@88dcaa2: tools/fleet/network/merge.py`, `build_base.py`, `research/knowledge-graph/scripts/build_kg.py`) are the reference for how nodes and links were derived from these lists; port only the parts that use official data. The veil-trace repo is read-only.
+  - **EU ship listings and US listing dates (designer's call):**
+    - **The problem with the official files:** the EU financial-sanctions file the nightly job downloads has no ships. EU vessel bans (port bans) are published in the Official Journal annexes instead. The US screening list has no dates on vessel rows.
+    - **Where the live layer takes them from:** OpenSanctions, which the nightly job already downloads. Its `eu_journal_sanctions` dataset carries the EU port-ban ships (about 736 vessels). For US vessels, its record dates are used.
+    - **Labelling:** on the map and in the change record, these are labelled as coming from the official source via OpenSanctions (for example "EU Official Journal, via OpenSanctions"). The link is the specific Official Journal act where OpenSanctions names it, otherwise the OpenSanctions entity page.
+    - **Guard:** "official data wins" never removes a status merely because one source lacks that field. A status is removed only when the source that carried it stops carrying it.
 - **Base layer plus live layer:** each node and link carries a layer: `research` (fixed 25 Sep base) or `official` (rebuilt nightly).
   - A research item is never removed by the nightly build.
   - An official item appears, changes or disappears with the data.
@@ -98,6 +112,11 @@ The graphs must also never:
     - a plain-English summary
     - the official source URL of the record that caused it (per-entry links, as the site now uses)
   - The record is kept for at least 90 days. Calendar and Updates page read it.
+- **Links that come only from OpenSanctions relationships (designer's call):**
+  - **Stable keys:** a link is identified by its two endpoints' stable keys (IMO for ships; US/UK/EU/UN list id, or exact list name, for companies and people), never by OpenSanctions entity ids. When OpenSanctions merges or splits its ids, nothing changes on the map or in the record.
+  - **What gets recorded:** an added or removed link is recorded as a dated change only when it appears or disappears in the underlying list data, and the authority labels (US, UK, …) say which list.
+  - **Source:** the per-entry US or UK record where one can be resolved (extend the connections build to keep dataset and record ids). Otherwise the OpenSanctions entity page, labelled "via OpenSanctions".
+  - **Suppressed changes:** a link with neither a resolvable record nor a stable endpoint key updates the graph but produces no dated change entry.
 - **No phantom changes:** if a source kept its previous copy that night, its items are carried over unchanged, and the day's record notes "<source> unavailable". On the first run there is no "yesterday", so it records no changes; the day is the baseline.
 - **Both graphs** get the Show-changes panel with presets, calendar, change list and fly-to.
 - **Updates page:** at `stories/updates/` (or a path the builder finds cleaner). It is linked from the top menu next to the two graphs.
@@ -141,9 +160,14 @@ The graphs must also never:
   - The function logs no message text.
   - About the data gets one plain paragraph saying so.
 - **Cost and abuse limits:**
-  - A per-visitor cap on questions per hour, enforced server-side without storing content.
+  - **Budget: $5 a month (owner's decision).**
+    - **Free tier doesn't cover it:** Haiku 5.5 is not in AI Gateway's free tier (checked 2026-10-19), so Ask runs on purchased AI Gateway credits.
+    - **The cap:** an AI Gateway **project budget** of $5 with a monthly refresh on the `undercurrent` project. It covers requests made with the project's OIDC token. AI Gateway rejects requests with HTTP 402 `quota_for_entity_exceeded` once spend reaches the limit, and resets on the 1st (UTC). The budget is a soft cap, so the request that crosses it still completes.
+    - **No datastore:** Ask maps that 402 to "Ask is resting until next month", and the rest of the site is unaffected.
+    - **Owner's one-time steps:** buy AI Gateway credits (for example $5–10) with auto top-up left **off**, and approve setting the project budget (`vercel ai-gateway budgets set project undercurrent --limit 5 --refresh-period monthly`) with spend alerts at 50% and 100%.
+    - **Roughly 5,000 answers a month at about $0.001 each.**
+  - A per-visitor cap on questions per hour, enforced server-side without storing content (best effort per function instance is acceptable, since the budget is the hard backstop).
   - A max conversation length, and a max output length per answer.
-  - A hard monthly spend ceiling. When it's reached, the panel says "Ask is resting until next month" and the rest of the site is unaffected.
   - The existing `/api/` rate limit applies.
   - The Firewall's "read-only methods" rule must be updated to allow POST on the chat path only.
 - **Failure:**
@@ -157,7 +181,11 @@ The graphs must also never:
 - How the claim-checking step works: a structured answer format with claims and their source ids is the expected route.
 - The per-visitor limit mechanism within Hobby-plan limits.
 - Whether the AI SDK is worth adding as a runtime dependency for the chat function, versus calling AI Gateway's API directly. The rest of the site stays dependency-free.
-- An evaluation set of at least 40 questions, run in CI against recorded tool results and in a manual live pass:
+- An evaluation set of at least 40 questions. How it runs (designer's call):
+  - **In CI:** the set runs on every PR with **recorded** tool results **and recorded model outputs**. This tests the server-side claim checker, the refusals and the answer format without calling the model, and needs no new secret.
+  - **Live pass:** the same questions run against the real model through a deployed endpoint, by hand before launch and after any prompt or model change. It costs a few cents, and the owner runs it, or a helper does in a session, from a script.
+
+  The set covers:
   - the owner's four fears
   - each data area
   - off-topic and legal-advice probes
@@ -171,3 +199,5 @@ The graphs must also never:
 - On a night when a source is down, no false removals appear, and the Updates page says which source was unavailable.
 - Ask answers "What changed this week?", "Is TASSOS sanctioned?" and "Who lobbied for Nord Stream 2?" with correct, linked sources, and refuses "Should I buy oil from this ship?" and "What's the weather?".
 - Asked about a name that isn't in the data, Ask says it's not on the lists checked and never says "not sanctioned".
+- The day after a list change, every page that shows a count or date (home cards, graphs, Methods, About, notes) shows the new figure, and no page anywhere opens as raw Markdown.
+- Ask's spend for the month never exceeds $5 by more than one request, and when it's used up the panel says so while the rest of the site keeps working.

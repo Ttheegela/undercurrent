@@ -258,3 +258,64 @@ test("chip dossiers: RM Design links the time-to-list page, ELEM GROUP does not"
   await expect(elem.locator('a[href$="viz/index.html"]')).toBeVisible();
   await expect(elem.locator('a[href$="listing_lag.html"]')).toHaveCount(0);
 });
+
+const MAP = "/stories/shadow-fleet/network/shadow_fleet_map.html";
+const NETWORK = "/stories/who-lobbies/influence-network/index.html";
+
+for (const [name, path] of [["shadow-fleet map", MAP], ["influence network", NETWORK]]) {
+  test(`${name}: the key drags, collapses and resets, and remembers across reloads`, async ({ page }) => {
+    const errors = watchErrors(page);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(path);
+    const key = page.locator("#legend"), handle = key.locator(".lg-handle"), toggle = key.locator(".lg-toggle");
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    const start = await key.boundingBox(), h = await handle.boundingBox();
+    const dx = start.x < 640 ? 100 : -100, dy = start.y < 400 ? 80 : -80; // away from the default corner
+    await page.mouse.move(h.x + 20, h.y + h.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(h.x + 20 + dx, h.y + h.height / 2 + dy, { steps: 5 });
+    await page.mouse.up();
+    await handle.focus();
+    await page.keyboard.press("ArrowRight");
+    const moved = await key.boundingBox();
+    expect([Math.round(moved.x - start.x), Math.round(moved.y - start.y)]).toEqual([dx + 8, dy]);
+
+    await page.reload();
+    expect(await key.boundingBox()).toEqual(moved);
+    await toggle.click();
+    await page.reload();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(key.locator(".lg-body")).toBeHidden();
+    await toggle.click();
+    await key.locator(".lg-reset").click();
+    expect(await key.boundingBox()).toEqual(start);
+    await page.reload();
+    expect(await key.boundingBox()).toEqual(start);
+    expect(errors).toEqual([]);
+  });
+}
+
+test("every page with the main header links to both graphs, on desktop and phone", async ({ page }) => {
+  test.setTimeout(90_000);
+  const pages = ["/index.html", "/stories/about-the-data.html", "/stories/how-sanctions-work/index.html",
+    "/stories/chips-into-russia/viz/index.html", "/stories/chips-into-russia/viz/coverage.html",
+    "/stories/chips-into-russia/viz/listing_lag.html", "/stories/chips-into-russia/viz/river.html",
+    "/stories/who-lobbies/influence-network/methods.html", "/stories/who-lobbies/clean-names-graph/index.html", MAP, NETWORK];
+  for (const width of [1280, 375]) {
+    await page.setViewportSize({ width, height: 812 });
+    for (const path of pages) {
+      await page.goto(path, { waitUntil: "domcontentloaded" });
+      const links = page.locator("header .nav-graphs a");
+      await expect(links.nth(0), `${path} @ ${width}`).toBeVisible();
+      await expect(links.nth(1), `${path} @ ${width}`).toBeVisible();
+      const got = await links.evaluateAll((as) => as.map((a) => [new URL(a.href).pathname, a.getAttribute("aria-current")]));
+      expect(got, `${path} @ ${width}`).toEqual([[MAP, path === MAP ? "page" : null], [NETWORK, path === NETWORK ? "page" : null]]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${path} @ ${width}`).toBe(true);
+    }
+  }
+  await page.goto("/index.html");
+  await page.locator("header .nav-graphs a", { hasText: "Influence network" }).click();
+  await expect(page).toHaveURL(new RegExp(NETWORK + "$"));
+  await page.locator("header .nav-graphs a", { hasText: "Shadow fleet map" }).click();
+  await expect(page).toHaveURL(new RegExp(MAP + "$"));
+});

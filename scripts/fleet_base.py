@@ -2,16 +2,20 @@
 
 The nightly builder rebuilds everything the official lists, OpenSanctions and the lobbying filings can
 supply; what only research can supply lives here, in data/fleet-base.json and data/kg-base.json.
-Run `python scripts/fleet_base.py` once to write both from the current story files.
+Run `python scripts/fleet_base.py` once to write both. It reads the story files as they were at SEP25, so a
+rerun after the nightly build has rewritten them still sees the 25 Sep snapshot.
 """
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 GENERATED = "2026-09-25"
+SEP25 = "82a03ea"  # the last commit before the live graphs: its story files are the 25 Sep snapshot
+UA_CURRENT = "Ukraine database (current)"
 
 NODE_RESEARCH_FIELDS = (
     "research_notes", "history", "ua_former_names", "ua_flag_countries",
@@ -54,11 +58,16 @@ def _research_edge(edge: dict) -> dict | None:
 
 def split_fleet(nodes: list[dict], edges: list[dict], meta: dict) -> dict:
     base_edges = [e for e in map(_research_edge, edges) if e]
-    node_fields = {}
+    cited = {x for e in base_edges for x in (e["source"], e["target"])}
+    node_fields, known_names = {}, {}
     for node in nodes:
         if "lists" not in node["angle"]:
             continue
         fields = {k: node[k] for k in NODE_RESEARCH_FIELDS if k in node}
+        if ua := node.get("names_by_source", {}).get(UA_CURRENT):
+            fields["ua_current_name"] = ua
+        if node["type"] == "company" and node["id"] in cited:  # names to scrub should the firm turn generic
+            known_names[node["id"]] = list(dict.fromkeys([node["name"]] + node.get("aliases", [])))
         angle = [a for a in node["angle"] if a != "lists"]
         if angle:
             fields["angle"] = angle
@@ -68,6 +77,7 @@ def split_fleet(nodes: list[dict], edges: list[dict], meta: dict) -> dict:
         "nodes": [n for n in nodes if "lists" not in n["angle"]],
         "edges": base_edges,
         "node_fields": node_fields,
+        "known_names": known_names,
         "meta": {k: meta[k] for k in FLEET_META_KEYS},
         "generated": GENERATED,
     }
@@ -94,15 +104,20 @@ def load_kg_base(path: Path = DATA / "kg-base.json") -> dict:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def sep25_text(path: str) -> str:
+    """A repo file as it was at SEP25; fails rather than read anything newer."""
+    return subprocess.run(["git", "-C", str(ROOT), "show", f"{SEP25}:{path}"], check=True, capture_output=True,
+                          text=True, encoding="utf-8").stdout
+
+
 def _write(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, sort_keys=True, indent=0, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
-    net = ROOT / "stories" / "shadow-fleet" / "network"
-    load = lambda name: json.loads((net / name).read_text(encoding="utf-8"))  # noqa: E731
+    load = lambda name: json.loads(sep25_text("stories/shadow-fleet/network/" + name))  # noqa: E731
     fleet = split_fleet(load("nodes.json"), load("edges.json"), load("meta.json"))
-    js = (ROOT / "stories" / "who-lobbies" / "influence-network" / "kg_data.js").read_text(encoding="utf-8")
+    js = sep25_text("stories/who-lobbies/influence-network/kg_data.js")
     kg = split_kg(json.loads(js.strip().removeprefix("window.KG=").removesuffix(";")))
     DATA.mkdir(exist_ok=True)
     _write(DATA / "fleet-base.json", fleet)

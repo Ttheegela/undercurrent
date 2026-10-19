@@ -5,7 +5,8 @@ list's "Zulu Ships Management" on OFAC's "THE ZULU SHIPS MANAGEMENT AND OPERATIO
 The live builder never guesses. Instead each company the official layer builds today under an id the 25 Sep
 graph did not have is looked up by its exact normalised name among the 25 Sep companies' names and aliases;
 a single hit maps that norm_co key to the 25 Sep co: id. Lobbying-graph (lob:) and generic nodes are not targets.
-Run once, against the 25 Sep stories/shadow-fleet/network/nodes.json (as at commit e9a9d55), with build/raw in place:
+It reads nodes.json as it was at fleet_base.SEP25 (the 25 Sep snapshot), never the live file the nightly build
+rewrites, so a rerun cannot derive the table from the wrong graph. Run with build/raw in place:
     python scripts/fleet_aliases.py
 """
 from __future__ import annotations
@@ -14,6 +15,7 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
+from fleet_base import sep25_text
 from fleet_official import build_official, norm_co
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,7 +43,7 @@ def derive(sep25_nodes: list[dict], official_nodes: list[dict]) -> dict[str, str
 
 
 if __name__ == "__main__":
-    sep25 = json.loads((ROOT / "stories" / "shadow-fleet" / "network" / "nodes.json").read_text(encoding="utf-8"))
+    sep25 = json.loads(sep25_text("stories/shadow-fleet/network/nodes.json"))
     table = derive(sep25, build_official(ROOT / "build" / "raw")["nodes"])
     OUT.write_text(json.dumps(table, indent=1, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
     for key, cid in table.items():

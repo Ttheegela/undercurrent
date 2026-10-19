@@ -1,6 +1,11 @@
 import copy
 import hashlib
 import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
 
 from fleet_base import load_fleet_base
 from fleet_merge import apply_naming_policy, compact, edge_id, load_aliases, merge
@@ -82,9 +87,19 @@ def test_official_wins_for_status():
 
 
 def test_research_only_node_has_no_list_status():
-    g = run(base([GENERIC], [MANAGES]))
-    n = node(g, "co:unlisted-003")
-    assert n["listed_by"] == [] and n["listed"] is False and n["layer"] == "research"
+    frozen = dict(GENERIC, listed_by=["us"], listed=True, listing_dates={"us": "2020-01-01"}, first_listed="2020-01-01")
+    n = node(run(base([frozen], [MANAGES])), "co:unlisted-003")  # the 25 Sep copy says US, but no edge supports it
+    assert n["listed_by"] == [] and n["listed"] is False and n["listing_dates"] == {} and "first_listed" not in n
+    assert n["layer"] == "research"
+
+
+def test_status_from_official_host_research_designation():
+    front = company("co:front", "Front Co", angle=["treasury-iran"], listed_by=[], listed=False)
+    press = edge("co:front", "gov:us", "designated_by", "2024-03-05",
+                 src("treasury-iran", "https://home.treasury.gov/news/press-releases/jy2178"))
+    blog = edge("co:front", "gov:uk", "designated_by", "2024-01-01", src("studies", "https://example.org/blog"))
+    n = node(run(base([front], [press, blog])), "co:front")
+    assert n["listed_by"] == ["us"] and n["listing_dates"] == {"us": "2024-03-05"} and n["first_listed"] == "2024-03-05"
 
 
 def test_generic_ids_not_renumbered():
@@ -96,6 +111,37 @@ def test_generic_ids_not_renumbered():
     stub = node(g, "co:gone-shipping")
     assert (stub["name_policy"], stub["name"], stub["aliases"]) == ("generic", "unlisted ship manager", [])
     assert apply_naming_policy(copy.deepcopy(g)) == g  # idempotent
+
+
+def test_generic_stub_scrubs_real_name():
+    cited = edge("co:gone-shipping", "IMO9408695", "manages", "2023-02",
+                 src("ship-histories", "https://example.org/h", confidence="Lead", quote="Gone Shipping LLC took over"))
+    fields = {"IMO9408695": {
+        "history": [{"date": "2023-02", "kind": "manager", "from": "Old Mgmt", "to": "GONE SHIPPING LLC"}],
+        "research_notes": [{"angle": "ship-histories", "text": "Managed by Gone Shipping LLC since 2023."}]}}
+    b = dict(base(edges=[cited], node_fields=fields), known_names={"co:gone-shipping": ["Gone Shipping LLC", "Gone Ship"]})
+    b["meta"]["findings"] = [{"angle": "studies", "text": "Gone Ship ran it."}]
+    g = run(b)
+    gone = node(g, "co:gone-shipping")
+    assert (gone["name_policy"], gone["name"], gone["aliases"]) == ("generic", "unlisted ship manager", [])
+    text = json.dumps(g).lower()
+    assert "gone ship" not in text and text.count("[unlisted ship manager]") == 5  # quote x2, note, history, finding
+    assert b["edges"][0]["quote"] == "Gone Shipping LLC took over"  # the base itself is not changed
+
+
+def test_name_count_includes_ukraine_former_names():
+    fields = {"IMO9408695": {"ua_former_names": ["BAY GLOBAL", "Tassos"]}}
+    tassos = dict(TASSOS, aliases=["TASSOS"])
+    assert node(run(base(node_fields=fields), {"nodes": [tassos], "edges": []}), "IMO9408695")["name_count"] == 2
+
+
+def test_ukraine_current_name_is_a_name_by_source():
+    pawell = {"id": "IMO8315499", "type": "ship", "name": "PAWELL", "imo": "8315499", "aliases": ["PAWELL"],
+              "programs": ["iran"], "names_by_source": {"US list": "PAWELL"}}
+    fields = {"IMO8315499": {"ua_current_name": "COMETA"}}
+    n = node(run(base(node_fields=fields), {"nodes": [pawell], "edges": []}), "IMO8315499")
+    assert n["names_by_source"] == {"US list": "PAWELL", "Ukraine database (current)": "COMETA"}
+    assert n["aliases"] == ["PAWELL", "COMETA"] and n["name_count"] == 2 and "ua_current_name" not in n
 
 
 def test_node_fields_reattached():
@@ -183,7 +229,23 @@ def test_compact_matches_page_shape():
     assert tassos["gap_days_us_minus_uk"] == -209  # the US listed it 209 days before the UK
 
 
-def test_compact_is_deterministic():
-    b = load_fleet_base()
-    one, two = (json.dumps(compact(run(b), "2026-10-19"), sort_keys=True) for _ in range(2))
-    assert one == two
+RUN_FIXTURES = """
+import json, sys
+from pathlib import Path
+import fleet_official as fo
+from fleet_base import load_fleet_base
+from fleet_merge import compact, merge
+files = {fo.OS_EU_JOURNAL: "os_eu_journal_sample.csv", fo.OS_OFAC: "os_ofac_sample.csv"}
+official = fo.build_official(Path(sys.argv[1]), fetch=lambda url: Path("fixtures/fleet", files[url]).read_text())
+sys.stdout.write(json.dumps(compact(merge(load_fleet_base(), official), "2026-10-19"), sort_keys=True))
+"""
+
+
+def test_compact_is_deterministic(tmp_path):
+    here = Path(__file__).parent
+    shutil.copy(here / "fixtures" / "fleet" / "uk_sample.csv", tmp_path / "uk.csv")
+    shutil.copy(here / "fixtures" / "fleet" / "csl_sample.csv", tmp_path / "us.csv")
+    one, two = (subprocess.run([sys.executable, "-c", RUN_FIXTURES, str(tmp_path)], cwd=here, check=True,
+                               capture_output=True, env={**os.environ, "PYTHONHASHSEED": seed}).stdout
+                for seed in ("1", "2"))
+    assert one == two and b'"IMO9408695"' in one

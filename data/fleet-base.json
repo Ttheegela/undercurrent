@@ -14704,6 +14704,241 @@
 }
 ],
 "generated": "2026-09-25",
+"known_names": {
+"co:algae-ship-charter": [
+"Algae Ship Charter FZCO"
+],
+"co:anika-lines": [
+"ANIKA LINES INC."
+],
+"co:aristos-maritime-incorporated-linked-to-vroom-marine-venture": [
+"ARISTOS MARITIME INCORPORATED; Linked To: VROOM MARINE VENTURE FZE"
+],
+"co:arkadia-maritime-incorporated": [
+"ARKADIA MARITIME INCORPORATED"
+],
+"co:aura-lines": [
+"AURA LINES INC."
+],
+"co:backstreet-palm": [
+"BACKSTREET PALM CORP"
+],
+"co:bagsak-shipping": [
+"Bagsak Shipping Inc"
+],
+"co:britney-ryder": [
+"BRITNEY RYDER LIMITED"
+],
+"co:caravella-llcfz": [
+"Caravella LLCFZ"
+],
+"co:changtai-shipping": [
+"Changtai Shipping Ltd"
+],
+"co:confident-apex": [
+"CONFIDENT APEX LTD"
+],
+"co:eco-max": [
+"Eco Max FZE"
+],
+"co:eko-shipping-liability": [
+"EKO SHIPPING LIMITED LIABILITY COMPANY"
+],
+"co:elevate-marine-management": [
+"ELEVATE MARINE MANAGEMENT PRIVATE LIMITED"
+],
+"co:elite-marine-shipmanagement": [
+"Elite Marine Ship Management"
+],
+"co:elysian-horizon": [
+"Elysian Horizon Corp"
+],
+"co:erst-group": [
+"Erst Group Ltd"
+],
+"co:everest-sea-navigation": [
+"Everest Sea Navigation SA"
+],
+"co:fleet-tanqo": [
+"Fleet Tanqo Pvt Ltd",
+"FLEET TANQO PRIVATE"
+],
+"co:fornax-shipmanagement": [
+"Fornax Ship Management"
+],
+"co:gazpromneft-marine-bunker-liability": [
+"GAZPROMNEFT MARINE BUNKER LIMITED LIABILITY COMPANY",
+"Gazpromneft Marine Bunker Ltd"
+],
+"co:gazpromneft-shipping": [
+"Gazpromneft Shipping LLC"
+],
+"co:hapuka-marine": [
+"HAPUKA MARINE LTD."
+],
+"co:hung-phat-maritime-trading": [
+"Hung Phat Maritime Trading"
+],
+"co:ibex-shipping": [
+"IBEX SHIPPING INC"
+],
+"co:jetee": [
+"Jetee Co Ltd"
+],
+"co:kurdos-shipping": [
+"Kurdos Shipping Inc"
+],
+"co:kylo-shipping": [
+"Kylo Shipping Inc"
+],
+"co:lisboa-shipping": [
+"LISBOA SHIPPING COMPANY LIMITED"
+],
+"co:longevity-shipping": [
+"LONGEVITY SHIPPING LIMITED"
+],
+"co:louis-marine-shipholding-enterprises-s-a": [
+"LOUIS MARINE SHIPHOLDING ENTERPRISES S.A."
+],
+"co:lukoil-bunker": [
+"LUKOIL BUNKER"
+],
+"co:lumen-shipmanagement": [
+"Lumen Ship Management - FZCO"
+],
+"co:magic-shipping": [
+"Magic Shipping Ltd"
+],
+"co:marine-trans-shipping": [
+"Marine Trans Shipping LLC"
+],
+"co:marvise": [
+"MARVISE SMC DMCC"
+],
+"co:meuse-shipping": [
+"Meuse Shipping Inc"
+],
+"co:moonlight-shipmanagement": [
+"Moonlight Shipmanagement LLC"
+],
+"co:nardie-international-s-a": [
+"NARDIE INTERNATIONAL S.A."
+],
+"co:national-iranian-oil": [
+"NATIONAL IRANIAN OIL COMPANY"
+],
+"co:national-iranian-tanker": [
+"NATIONAL IRANIAN TANKER COMPANY"
+],
+"co:neo-shipping": [
+"NEO SHIPPING INC."
+],
+"co:nissho-lines-incorporated": [
+"NISSHO LINES INCORPORATED",
+"Nissho Lines Inc"
+],
+"co:nova-shipmanagement": [
+"Nova Shipmanagement LLC-FZ"
+],
+"co:ocean-dolphin-shipmanagement": [
+"Ocean Dolphin Ship Management"
+],
+"co:oceanlink-maritime": [
+"Oceanlink Maritime DMCC"
+],
+"co:prime-shipping-rus": [
+"Prime Shipping LLC-RUS"
+],
+"co:prominent-shipmanagement": [
+"Prominent Shipmanagement Ltd"
+],
+"co:qi-hang-shipmanagement": [
+"QI HANG SHIP MANAGEMENT LIMITED"
+],
+"co:reel-shipping-l-l-c": [
+"REEL SHIPPING L.L.C"
+],
+"co:rosnefteflot": [
+"ROSNEFTEFLOT JSC"
+],
+"co:sakhalin-shipping": [
+"PUBLIC JOINT STOCK COMPANY SAKHALIN SHIPPING COMPANY"
+],
+"co:sao-viet-petrol-transportation": [
+"Sao Viet Petrol Transportation"
+],
+"co:sapang-shipping": [
+"SAPANG SHIPPING INC"
+],
+"co:scf-management-services-dubai": [
+"SCF Management Services Dubai"
+],
+"co:sea-lead-shipping": [
+"SEA LEAD SHIPPING PTE. LTD."
+],
+"co:seasky-marine": [
+"Seasky Marine Co Ltd"
+],
+"co:shanghai-future-ship-mgmt": [
+"Shanghai Future Ship Mgmt Co"
+],
+"co:shanghai-legendary-ship-mgmt": [
+"Shanghai Legendary Ship Mgmt"
+],
+"co:silver-tetra-marine": [
+"Silver Tetra Marine Co"
+],
+"co:simona-marine-services": [
+"Simona Marine Services Ltd"
+],
+"co:skadi": [
+"Skadi Ltd"
+],
+"co:sovcomflot": [
+"SOVCOMFLOT",
+"PAO SOVCOMFLOT",
+"PJSC SOVCOMFLOT",
+"Public Joint Stock Company Sovcomflot",
+"SCF Group"
+],
+"co:star-ocean-shipmanage": [
+"Star Ocean Shipmanage Ltd"
+],
+"co:state-transportation-leasing": [
+"JOINT STOCK COMPANY STATE TRANSPORTATION LEASING COMPANY",
+"GTLK AO",
+"PJSC STLC"
+],
+"co:stream-shipmanagement": [
+"Stream Ship Management FZCO"
+],
+"co:themis-mai": [
+"Themis Ltd-MAI"
+],
+"co:umbra-navi-shipmanagement": [
+"Umbra Navi Shipmanagement"
+],
+"co:vaigai-lines": [
+"Vaigai Lines Inc"
+],
+"co:vroom-marine-ventures": [
+"Vroom Marine Ventures FZE"
+],
+"co:white-fox-shipmanagement": [
+"White Fox Ship Management FZCO"
+],
+"co:yegua-trading": [
+"YEGUA TRADING LIMITED"
+],
+"co:zale-shipping": [
+"Zale Shipping Inc"
+],
+"co:zulu-ships-management-and-operation-l-l-c": [
+"THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C",
+"Zulu Ships Management",
+"ZULU SHIPS MANAGEMENT"
+]
+},
 "meta": {
 "angles": [
 "company-anatomy",
@@ -15069,6 +15304,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YA QING HAI YANG",
 "ua_flag_countries": [
 "cn",
 "gy",
@@ -15099,6 +15335,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LADY JASMINE",
 "ua_flag_countries": [
 "cn",
 "tg",
@@ -15130,6 +15367,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OCEAN FORTUNE 18",
 "ua_flag_countries": [
 "bz",
 "cn",
@@ -15151,6 +15389,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALIREZA 1",
 "ua_flag_countries": [
 "bz",
 "kh",
@@ -15177,6 +15416,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TRITON",
 "ua_flag_countries": [
 "es",
 "gb",
@@ -15207,6 +15447,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IVAN KIREEV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -15221,6 +15462,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BALTIYSKIY-111",
 "ua_flag_countries": [
 "ru"
 ],
@@ -15238,6 +15480,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MANGAZEYA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -15263,6 +15506,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BEBEK-E",
 "ua_flag_countries": [
 "gi",
 "im",
@@ -15289,6 +15533,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OPHELIA",
 "ua_flag_countries": [
 "ag",
 "bz",
@@ -15315,6 +15560,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARINA VISION",
 "ua_flag_countries": [
 "id",
 "sg"
@@ -15351,6 +15597,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AKADEMIK ALEKSANDR KARPINSKIY",
 "ua_flag_countries": [
 "ru"
 ],
@@ -15365,6 +15612,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VOLGONEFT-251",
 "ua_flag_countries": [
 "ru"
 ],
@@ -15379,6 +15627,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BELOMORSKIY",
 "ua_flag_countries": [
 "pt",
 "ru"
@@ -15397,6 +15646,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "COMETA",
 "ua_flag_countries": [
 "cm",
 "de",
@@ -15428,6 +15678,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BALTIYSK",
 "ua_flag_countries": [
 "fi",
 "no",
@@ -15450,6 +15701,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CAPTAIN YAKUBOVICH",
 "ua_flag_countries": [
 "kh",
 "pa",
@@ -15496,6 +15748,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BAVENIT",
 "ua_flag_countries": [
 "ru"
 ],
@@ -15516,6 +15769,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AKADEMIK LAZAREV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -15530,6 +15784,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ORDOVIK",
 "ua_flag_countries": [
 "pa",
 "ru"
@@ -15554,6 +15809,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FLANDRIA",
 "ua_flag_countries": [
 "bz",
 "nl",
@@ -15575,6 +15831,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VAFA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -15592,6 +15849,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VAFA-1",
 "ua_flag_countries": [
 "ru"
 ],
@@ -15609,6 +15867,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "INZHENER TRUBIN",
 "ua_flag_countries": [
 "cy",
 "gb",
@@ -15629,6 +15888,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "INZHENER VESHNYAKOV",
 "ua_flag_countries": [
 "cy",
 "gb",
@@ -15653,6 +15913,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PROFESSOR RYABINKIN",
 "ua_flag_countries": [
 "ru"
 ],
@@ -15679,6 +15940,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARIA",
 "ua_flag_countries": [
 "kh",
 "mt",
@@ -15710,6 +15972,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PASSAT",
 "ua_flag_countries": [
 "lv",
 "ro",
@@ -15729,6 +15992,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IOHANN MAHMASTAL",
 "ua_flag_countries": [
 "ru",
 "vc"
@@ -15756,6 +16020,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KOMPOZITOR RAKHMANINOV",
 "ua_flag_countries": [
 "mt",
 "ru",
@@ -15776,6 +16041,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KOMPOZITOR ELZA IBRAGIMOVA",
 "ua_flag_countries": [
 "mt",
 "ru",
@@ -15797,6 +16063,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KAPITAN RYNTSYN",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -15831,6 +16098,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FIONA",
 "ua_flag_countries": [
 "bz",
 "hk",
@@ -15852,6 +16120,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SAPFIR",
 "ua_flag_countries": [
 "kh",
 "kn",
@@ -15872,6 +16141,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OLGA",
 "ua_flag_countries": [
 "kn",
 "ru"
@@ -15889,6 +16159,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SONA",
 "ua_flag_countries": [
 "kn",
 "ru"
@@ -15906,6 +16177,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PARTIZANSK",
 "ua_flag_countries": [
 "kh",
 "ru"
@@ -15926,6 +16198,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CELEBES",
 "ua_flag_countries": [
 "id"
 ],
@@ -15940,6 +16213,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RZK CONSTANTA",
 "ua_flag_countries": [
 "bz",
 "ru",
@@ -15959,6 +16233,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ANDREY OSIPOV",
 "ua_flag_countries": [
 "bz",
 "kn",
@@ -15985,6 +16260,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SELENGA",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -16005,6 +16281,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARKADIY CHERNYSHEV",
 "ua_flag_countries": [
 "cy",
 "kh",
@@ -16034,6 +16311,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KAPITAN BEKLEMISHEV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16048,6 +16326,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YUZHMORGEOLOGIYA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16062,6 +16341,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VANINO",
 "ua_flag_countries": [
 "dm",
 "lt",
@@ -16082,6 +16362,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KORSAKOV",
 "ua_flag_countries": [
 "dm",
 "ru"
@@ -16106,6 +16387,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DOBRYNYA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16132,6 +16414,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AKADEMIK CHERSKIY",
 "ua_flag_countries": [
 "gi",
 "ru"
@@ -16155,6 +16438,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AMBAL",
 "ua_flag_countries": [
 "de",
 "fi",
@@ -16177,6 +16461,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BRONCO",
 "ua_flag_countries": [
 "lr",
 "mt",
@@ -16204,6 +16489,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PIZHMA",
 "ua_flag_countries": [
 "kh",
 "pa",
@@ -16238,6 +16524,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NIMBUS SPB",
 "ua_flag_countries": [
 "bz",
 "dk",
@@ -16257,6 +16544,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TAIMYR",
 "ua_flag_countries": [
 "nl",
 "ru"
@@ -16274,6 +16562,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TIKSY",
 "ua_flag_countries": [
 "nl",
 "ru"
@@ -16292,6 +16581,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GELENDZHIK",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16315,6 +16605,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PROFESSOR LOGACHEV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16332,6 +16623,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MUSA JALIL",
 "ua_flag_countries": [
 "cy",
 "kn",
@@ -16353,6 +16645,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SKIF-V",
 "ua_flag_countries": [
 "bz",
 "kh",
@@ -16379,6 +16672,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RASUL GAMZATOV",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -16397,6 +16691,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SANRAYZ",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16414,6 +16709,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VALENTIN EMIROV",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -16433,6 +16729,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VOLGONEFT-160",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16447,6 +16744,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OMSKIY-103",
 "ua_flag_countries": [
 "dm",
 "ru",
@@ -16471,6 +16769,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MEKHANIK YARTSEV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16485,6 +16784,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MEKHANIK MAKARIN",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16499,6 +16799,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MEKHANIK KOTTSOV",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -16514,6 +16815,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MEKHANIK PUSTOSHNYY",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -16529,6 +16831,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MEKHANIK PYATLIN",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -16544,6 +16847,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MEKHANIK KRASKOVSKIY",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -16559,6 +16863,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALEKSEY MARYSHEV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16591,6 +16896,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DAMAS WAVE",
 "ua_flag_countries": [
 "cy",
 "km",
@@ -16613,6 +16919,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RYAZAN",
 "ua_flag_countries": [
 "bs",
 "dk",
@@ -16635,6 +16942,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NOYABRSK",
 "ua_flag_countries": [
 "dk",
 "no",
@@ -16668,6 +16976,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BERGEN T",
 "ua_flag_countries": [
 "bz",
 "no",
@@ -16688,6 +16997,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NAVIK",
 "ua_flag_countries": [
 "dk",
 "gb",
@@ -16711,6 +17021,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MELITO CARRIER",
 "ua_flag_countries": [
 "dk",
 "gb",
@@ -16733,6 +17044,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DVINSKIY ZALIV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16747,6 +17059,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OMSKIY-119",
 "ua_flag_countries": [
 "kn",
 "mn",
@@ -16775,6 +17088,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LAPOMINKA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16789,6 +17103,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TERIBERKA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16809,6 +17124,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SUDAK",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16823,6 +17139,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BEGEY",
 "ua_flag_countries": [
 "ru"
 ],
@@ -16837,6 +17154,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZAKAMSK",
 "ua_flag_countries": [
 "km",
 "ru"
@@ -16872,6 +17190,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BILAL BEY",
 "ua_flag_countries": [
 "tr"
 ],
@@ -16911,6 +17230,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AVENGER BOW",
 "ua_flag_countries": [
 "pa"
 ],
@@ -16948,6 +17268,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FOGAS",
 "ua_flag_countries": [
 "in",
 "jp",
@@ -16984,6 +17305,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TAMBEY",
 "ua_flag_countries": [
 "nl",
 "ru"
@@ -17008,6 +17330,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NORD",
 "ua_flag_countries": [
 "ru"
 ],
@@ -17045,6 +17368,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KORD ARCTIC",
 "ua_flag_countries": [
 "de",
 "ru"
@@ -17062,6 +17386,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NORDSTRAUM",
 "ua_flag_countries": [
 "de",
 "pt",
@@ -17087,6 +17412,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SC CUTTA",
 "ua_flag_countries": [
 "cm",
 "cn",
@@ -17128,6 +17454,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZIRAN",
 "ua_flag_countries": [
 "cm",
 "cy",
@@ -17175,6 +17502,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IMMANUEL",
 "ua_flag_countries": [
 "no",
 "pa",
@@ -17203,6 +17531,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CAMELIA",
 "ua_flag_countries": [
 "kn",
 "lr",
@@ -17235,6 +17564,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ENISEY",
 "ua_flag_countries": [
 "ag",
 "bb",
@@ -17266,6 +17596,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TERIBERKA",
 "ua_flag_countries": [
 "nl",
 "ru"
@@ -17283,6 +17614,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TURUKHAN",
 "ua_flag_countries": [
 "nl",
 "ru"
@@ -17300,6 +17632,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TERSKIY BEREG",
 "ua_flag_countries": [
 "ca",
 "nl",
@@ -17318,6 +17651,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MIKHAIL BRITNEV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -17332,6 +17666,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ASKAR-SARYDZHA",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -17349,6 +17684,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BIRTHE THERESI",
 "ua_flag_countries": [
 "bz",
 "cy",
@@ -17370,6 +17706,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GENRIKH GASANOV",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -17387,6 +17724,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GASRET ALIEV",
 "ua_flag_countries": [
 "kh",
 "mt",
@@ -17406,6 +17744,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TAIBOLA",
 "ua_flag_countries": [
 "nl",
 "ru"
@@ -17423,6 +17762,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OSTROV RUSSKIY",
 "ua_flag_countries": [
 "id",
 "kr",
@@ -17446,6 +17786,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VIRA 1",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -17484,6 +17825,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ITAUGUA",
 "ua_flag_countries": [
 "pa",
 "sa"
@@ -17503,6 +17845,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BORIS KUSTODIEV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -17520,6 +17863,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TAIMYR",
 "ua_flag_countries": [
 "cy",
 "de",
@@ -17539,6 +17883,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KHOLMOGORY",
 "ua_flag_countries": [
 "de",
 "ru"
@@ -17562,6 +17907,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SIMBA V",
 "ua_flag_countries": [
 "dm",
 "pa"
@@ -17580,6 +17926,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MT KONSTANTINOVSK",
 "ua_flag_countries": [
 "cy",
 "kh",
@@ -17618,6 +17965,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NARVAL",
 "ua_flag_countries": [
 "lr",
 "ru"
@@ -17644,6 +17992,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZEYA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -17670,6 +18019,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VELON 1",
 "ua_flag_countries": [
 "de",
 "kn",
@@ -17709,6 +18059,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TONDA SOURCE",
 "ua_flag_countries": [
 "gb",
 "lr",
@@ -17735,6 +18086,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ORION",
 "ua_flag_countries": [
 "cm",
 "im",
@@ -17787,6 +18139,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CARUZO",
 "ua_flag_countries": [
 "ck",
 "cm",
@@ -17824,6 +18177,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KUNASHIR",
 "ua_flag_countries": [
 "ru"
 ],
@@ -17841,6 +18195,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OKEAN",
 "ua_flag_countries": [
 "cy",
 "ru",
@@ -17875,6 +18230,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BODHI",
 "ua_flag_countries": [
 "bd",
 "cm",
@@ -17903,6 +18259,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TAVIAN",
 "ua_flag_countries": [
 "cm",
 "cy",
@@ -17940,6 +18297,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ODIN",
 "ua_flag_countries": [
 "dk",
 "no",
@@ -17958,6 +18316,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SOKOLO",
 "ua_flag_countries": [
 "cm",
 "ga",
@@ -17987,6 +18346,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "THEMIR",
 "ua_flag_countries": [
 "kn",
 "pa"
@@ -18021,6 +18381,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "G.ROSSINI",
 "ua_flag_countries": [
 "cy",
 "de",
@@ -18038,6 +18399,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ERIDAN",
 "ua_flag_countries": [
 "ag",
 "cy",
@@ -18062,6 +18424,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SOLSTRAUM",
 "ua_flag_countries": [
 "ag",
 "cy",
@@ -18085,6 +18448,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SIVUCH",
 "ua_flag_countries": [
 "ru"
 ],
@@ -18105,6 +18469,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PATRIA",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -18124,6 +18489,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SPARTA II",
 "ua_flag_countries": [
 "ag",
 "bz",
@@ -18144,6 +18510,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LADY R",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -18165,6 +18532,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NEREIDA",
 "ua_flag_countries": [
 "cy",
 "pa"
@@ -18182,6 +18550,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARNO BABAJANYAN",
 "ua_flag_countries": [
 "cl",
 "pa",
@@ -18206,6 +18575,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AVIOR",
 "ua_flag_countries": [
 "ru"
 ],
@@ -18220,6 +18590,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "THOTH",
 "ua_flag_countries": [
 "lr",
 "mt",
@@ -18258,6 +18629,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ASTORIA",
 "ua_flag_countries": [
 "ru",
 "se"
@@ -18273,6 +18645,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FT ISLAND",
 "ua_flag_countries": [
 "bs",
 "hn",
@@ -18316,6 +18689,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MURMANSK",
 "ua_flag_countries": [
 "dk",
 "no",
@@ -18374,6 +18748,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZEVS",
 "ua_flag_countries": [
 "bs",
 "cm",
@@ -18392,6 +18767,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MASAL",
 "ua_flag_countries": [
 "ir",
 "pa",
@@ -18411,6 +18787,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CILICIA",
 "ua_flag_countries": [
 "cy",
 "lr",
@@ -18434,6 +18811,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MAYA",
 "ua_flag_countries": [
 "ga",
 "gr",
@@ -18456,6 +18834,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IMPALAS",
 "ua_flag_countries": [
 "gr",
 "mh",
@@ -18482,6 +18861,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CHILTERN",
 "ua_flag_countries": [
 "dk",
 "gm",
@@ -18513,6 +18893,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "UMKA",
 "ua_flag_countries": [
 "cy",
 "no",
@@ -18531,6 +18912,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NARVAL",
 "ua_flag_countries": [
 "no",
 "ru"
@@ -18561,6 +18943,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PUYANG",
 "ua_flag_countries": [
 "cy",
 "gr",
@@ -18593,6 +18976,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARES",
 "ua_flag_countries": [
 "bs",
 "ck",
@@ -18621,6 +19005,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZAMBRA",
 "ua_flag_countries": [
 "cm",
 "de",
@@ -18663,6 +19048,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KATSUYA",
 "ua_flag_countries": [
 "ga",
 "gm",
@@ -18686,6 +19072,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SIMUSHIR",
 "ua_flag_countries": [
 "ru"
 ],
@@ -18703,6 +19090,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ANGARA",
 "ua_flag_countries": [
 "de",
 "gb",
@@ -18728,6 +19116,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ADLER",
 "ua_flag_countries": [
 "de",
 "gb",
@@ -18750,6 +19139,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MALILI",
 "ua_flag_countries": [
 "id"
 ],
@@ -18773,6 +19163,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ASTERIX",
 "ua_flag_countries": [
 "cm",
 "dk",
@@ -18800,6 +19191,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LUMEN",
 "ua_flag_countries": [
 "be",
 "bs",
@@ -18829,6 +19221,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NEON",
 "ua_flag_countries": [
 "ck",
 "cm",
@@ -18854,6 +19247,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NР DUDINKA",
 "ua_flag_countries": [
 "de",
 "im",
@@ -18882,6 +19276,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GELOR",
 "ua_flag_countries": [
 "cm",
 "gq",
@@ -18909,6 +19304,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SANAR",
 "ua_flag_countries": [
 "gr",
 "mh",
@@ -18933,6 +19329,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STAR MM",
 "ua_flag_countries": [
 "ag",
 "bb",
@@ -18956,6 +19353,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MERU",
 "ua_flag_countries": [
 "cm",
 "de",
@@ -18988,6 +19386,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AKADEMIK PRIMAKOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -19063,6 +19462,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KYLO",
 "ua_flag_countries": [
 "ck",
 "cy",
@@ -19088,6 +19488,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GLOBAL ACE",
 "ua_flag_countries": [
 "lr",
 "pa"
@@ -19107,6 +19508,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MYS MANORSKIY",
 "ua_flag_countries": [
 "cy",
 "gi",
@@ -19133,6 +19535,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OXIN",
 "ua_flag_countries": [
 "ru"
 ],
@@ -19149,6 +19552,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AQUILON",
 "ua_flag_countries": [
 "pa",
 "ru"
@@ -19166,6 +19570,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YATEEKA",
 "ua_flag_countries": [
 "cl",
 "ga",
@@ -19215,6 +19620,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ANABAR",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -19243,6 +19649,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DELIVER",
 "ua_flag_countries": [
 "cm",
 "gr",
@@ -19268,6 +19675,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "UMBA",
 "ua_flag_countries": [
 "pa",
 "ru"
@@ -19290,6 +19698,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ELVA",
 "ua_flag_countries": [
 "bs",
 "gm",
@@ -19319,6 +19728,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "HORNET",
 "ua_flag_countries": [],
 "ua_former_names": [
 "Kassos Warrior",
@@ -19348,6 +19758,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GLOBAL STAR",
 "ua_flag_countries": [
 "gr",
 "pa",
@@ -19367,6 +19778,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BATUMI",
 "ua_flag_countries": [
 "cm",
 "gr",
@@ -19393,6 +19805,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ASCALON",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -19416,6 +19829,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MD MIRANDA",
 "ua_flag_countries": [
 "gr",
 "in",
@@ -19439,6 +19853,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PHONIX",
 "ua_flag_countries": [
 "lr",
 "pa"
@@ -19458,6 +19873,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARIA",
 "ua_flag_countries": [
 "mh",
 "mt",
@@ -19478,6 +19894,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KOEN",
 "ua_flag_countries": [
 "dk",
 "lr",
@@ -19498,6 +19915,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TRUGEN",
 "ua_flag_countries": [
 "it",
 "km",
@@ -19514,6 +19932,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BUK",
 "ua_flag_countries": [
 "bh",
 "lv",
@@ -19535,6 +19954,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SEVERNIY PROECT",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -19558,6 +19978,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VORAS",
 "ua_flag_countries": [
 "ck",
 "cm",
@@ -19585,6 +20006,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LEXI",
 "ua_flag_countries": [
 "cm",
 "de",
@@ -19608,6 +20030,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SV KONSTANTIN",
 "ua_flag_countries": [
 "ge",
 "mh",
@@ -19640,6 +20063,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SEATURBO",
 "ua_flag_countries": [
 "de",
 "km"
@@ -19661,6 +20085,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VIKRAM",
 "ua_flag_countries": [
 "bb",
 "bh",
@@ -19690,6 +20115,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BRISK",
 "ua_flag_countries": [
 "bs",
 "cm",
@@ -19714,6 +20140,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VERNAL",
 "ua_flag_countries": [
 "cm",
 "es",
@@ -19785,6 +20212,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STELLAR BEVERLY",
 "ua_flag_countries": [
 "cm",
 "gr",
@@ -19808,6 +20236,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SKY RIDER",
 "ua_flag_countries": [
 "cm",
 "cy",
@@ -19834,6 +20263,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "HONG LU",
 "ua_flag_countries": [
 "ck",
 "gr",
@@ -19869,6 +20299,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TEMIRO",
 "ua_flag_countries": [
 "cm",
 "ga",
@@ -19891,6 +20322,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VIKTOR ZABELIN",
 "ua_flag_countries": [
 "ag",
 "cy",
@@ -19912,6 +20344,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "S. KUZNETSOV",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -19931,6 +20364,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZAL PARS 3",
 "ua_flag_countries": [
 "ir",
 "mt",
@@ -19950,6 +20384,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SOFIA",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -19967,6 +20402,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VICTORIA",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -19985,6 +20421,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ELPIS",
 "ua_flag_countries": [
 "de",
 "mh",
@@ -20022,6 +20459,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALBEDO",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -20059,6 +20497,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARCTIC VOSTOK",
 "ua_flag_countries": [
 "bm",
 "lr",
@@ -20081,6 +20520,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MIKHAIL LOMONOSOV",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -20110,6 +20550,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LOTTA",
 "ua_flag_countries": [
 "hk",
 "mh",
@@ -20132,6 +20573,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ATLANTIS MZ",
 "ua_flag_countries": [
 "km",
 "lr",
@@ -20174,6 +20616,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BALTIC LEADER",
 "ua_flag_countries": [
 "de",
 "gb",
@@ -20200,6 +20643,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LADY MARIIA",
 "ua_flag_countries": [
 "de",
 "gb",
@@ -20227,6 +20671,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BENTLEY",
 "ua_flag_countries": [
 "ck",
 "it",
@@ -20249,6 +20694,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MODESTE",
 "ua_flag_countries": [
 "ck",
 "gm",
@@ -20277,6 +20723,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OCEANA KAI",
 "ua_flag_countries": [
 "ck",
 "dk",
@@ -20302,6 +20749,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ELZA",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -20326,6 +20774,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VOY",
 "ua_flag_countries": [
 "km",
 "kn",
@@ -20353,6 +20802,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CELERIX",
 "ua_flag_countries": [
 "cm",
 "lr",
@@ -20385,6 +20835,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RAINE",
 "ua_flag_countries": [
 "pa",
 "sg"
@@ -20407,6 +20858,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NICHOLA",
 "ua_flag_countries": [
 "gr",
 "mh",
@@ -20430,6 +20882,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NEER 1",
 "ua_flag_countries": [
 "ck",
 "gm",
@@ -20454,6 +20907,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OCTANS",
 "ua_flag_countries": [
 "gr",
 "hn",
@@ -20479,6 +20933,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CAROLINE BEZENGI",
 "ua_flag_countries": [
 "cm",
 "cy",
@@ -20501,6 +20956,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GRUS I",
 "ua_flag_countries": [
 "cm",
 "lr",
@@ -20521,6 +20977,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OLAF 1",
 "ua_flag_countries": [
 "km",
 "lr",
@@ -20557,6 +21014,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OXIS",
 "ua_flag_countries": [
 "cm",
 "gm",
@@ -20593,6 +21051,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARLAN",
 "ua_flag_countries": [
 "ga",
 "mt",
@@ -20613,6 +21072,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DELLA",
 "ua_flag_countries": [
 "gr",
 "hk"
@@ -20633,6 +21093,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALOR 2",
 "ua_flag_countries": [
 "ag",
 "cm",
@@ -20657,6 +21118,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NEW GATE",
 "ua_flag_countries": [
 "bb",
 "it",
@@ -20679,6 +21141,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARCTICA 1",
 "ua_flag_countries": [
 "bz",
 "nl",
@@ -20700,6 +21163,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ODUNE",
 "ua_flag_countries": [
 "cm",
 "gr",
@@ -20721,6 +21185,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CERES I",
 "ua_flag_countries": [
 "hn",
 "jp",
@@ -20761,6 +21226,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARINERA",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -20805,6 +21271,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SKADI",
 "ua_flag_countries": [
 "de",
 "dk",
@@ -20826,6 +21293,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "XANTHOS EOS",
 "ua_flag_countries": [
 "bs",
 "mt",
@@ -20851,6 +21319,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CHIOS",
 "ua_flag_countries": [
 "bb",
 "bz",
@@ -20875,6 +21344,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PING SHUN",
 "ua_flag_countries": [
 "bs",
 "mt",
@@ -20899,6 +21369,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AR MZ",
 "ua_flag_countries": [
 "gr",
 "lr",
@@ -20923,6 +21394,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VERNON",
 "ua_flag_countries": [
 "bb",
 "gr",
@@ -20943,6 +21415,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AILANA",
 "ua_flag_countries": [
 "ck",
 "gm",
@@ -20967,6 +21440,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MAISHA",
 "ua_flag_countries": [
 "ag",
 "cy",
@@ -20991,6 +21465,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MONOLIT",
 "ua_flag_countries": [
 "de",
 "mh",
@@ -21040,6 +21515,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VESNA",
 "ua_flag_countries": [
 "bz",
 "dj",
@@ -21068,6 +21544,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MITZEL",
 "ua_flag_countries": [
 "de",
 "km",
@@ -21096,6 +21573,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AULIS",
 "ua_flag_countries": [
 "mh",
 "pa"
@@ -21115,6 +21593,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RAINIER GLACIER",
 "ua_flag_countries": [
 "ag",
 "cm",
@@ -21147,6 +21626,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STABILLIS I",
 "ua_flag_countries": [
 "hr",
 "lr",
@@ -21174,6 +21654,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KOALA",
 "ua_flag_countries": [
 "ag",
 "lr",
@@ -21199,6 +21680,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ADELINE G",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -21222,6 +21704,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "COATLICUE",
 "ua_flag_countries": [
 "bz",
 "cm",
@@ -21248,6 +21731,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TAVARIS CASSEL",
 "ua_flag_countries": [
 "cm",
 "gr",
@@ -21274,6 +21758,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AMBER 6",
 "ua_flag_countries": [
 "gr",
 "pa"
@@ -21291,6 +21776,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FUGA BLUEMARINE",
 "ua_flag_countries": [
 "gm",
 "gr",
@@ -21309,6 +21795,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YURI",
 "ua_flag_countries": [
 "ck",
 "gr",
@@ -21336,6 +21823,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KAIROS",
 "ua_flag_countries": [
 "gm",
 "gr",
@@ -21357,6 +21845,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VISION",
 "ua_flag_countries": [
 "ag",
 "cy",
@@ -21398,6 +21887,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FENGHUANG",
 "ua_flag_countries": [
 "ck",
 "gr",
@@ -21424,6 +21914,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BLUE",
 "ua_flag_countries": [
 "ag",
 "bs",
@@ -21453,6 +21944,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AZALEA",
 "ua_flag_countries": [
 "ga",
 "gr",
@@ -21477,6 +21969,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ENZO 2",
 "ua_flag_countries": [
 "de",
 "lr",
@@ -21505,6 +21998,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PRIMORYE",
 "ua_flag_countries": [
 "mh",
 "mt",
@@ -21523,6 +22017,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ROBERTA",
 "ua_flag_countries": [
 "dk",
 "lr"
@@ -21540,6 +22035,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZYRA",
 "ua_flag_countries": [
 "lr",
 "sg"
@@ -21582,6 +22078,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SHANGHAI",
 "ua_flag_countries": [
 "im",
 "km",
@@ -21647,6 +22144,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "HANSON",
 "ua_flag_countries": [
 "ga",
 "in",
@@ -21674,6 +22172,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STAR FOREST",
 "ua_flag_countries": [
 "dj",
 "gr",
@@ -21703,6 +22202,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TIMA",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -21727,6 +22227,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FREYA",
 "ua_flag_countries": [
 "bs",
 "pa"
@@ -21746,6 +22247,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MACHO QUEEN",
 "ua_flag_countries": [
 "gr",
 "hk"
@@ -21766,6 +22268,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SIBERIA",
 "ua_flag_countries": [
 "bs",
 "de",
@@ -21794,6 +22297,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CARINA",
 "ua_flag_countries": [
 "bb",
 "gr",
@@ -21814,6 +22318,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SMP ARKHANGELSK",
 "ua_flag_countries": [
 "de",
 "gb",
@@ -21853,6 +22358,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LONGEVITY 7",
 "ua_flag_countries": [
 "dk",
 "hk",
@@ -21881,6 +22387,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NYRA 2",
 "ua_flag_countries": [
 "cy",
 "de",
@@ -21905,6 +22412,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARIGOLD",
 "ua_flag_countries": [
 "de",
 "lr",
@@ -21929,6 +22437,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TIANMA",
 "ua_flag_countries": [
 "de",
 "kn",
@@ -21956,6 +22465,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RENS",
 "ua_flag_countries": [
 "gr",
 "hk",
@@ -21987,6 +22497,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SASCO ANGARA",
 "ua_flag_countries": [
 "nl",
 "pw",
@@ -22005,6 +22516,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARCTIC METAGAZ",
 "ua_flag_countries": [
 "lr",
 "no",
@@ -22030,6 +22542,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YEHOPE",
 "ua_flag_countries": [
 "bb",
 "dk",
@@ -22052,6 +22565,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARCTICA-2",
 "ua_flag_countries": [
 "bz",
 "nl",
@@ -22070,6 +22584,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MYS SHMIDTA",
 "ua_flag_countries": [
 "br",
 "de",
@@ -22094,6 +22609,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AMAK",
 "ua_flag_countries": [
 "gm",
 "kn",
@@ -22124,6 +22640,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SASCO AVACHA",
 "ua_flag_countries": [
 "nl",
 "ru"
@@ -22147,6 +22664,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FLEXI 2",
 "ua_flag_countries": [
 "de",
 "ir",
@@ -22177,6 +22695,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KUNPENG",
 "ua_flag_countries": [
 "pa",
 "sl"
@@ -22194,6 +22713,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARIEL",
 "ua_flag_countries": [
 "gr",
 "lr",
@@ -22219,6 +22739,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TYCHE I",
 "ua_flag_countries": [
 "dk",
 "it",
@@ -22239,6 +22760,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "INDRI",
 "ua_flag_countries": [
 "bs",
 "lr",
@@ -22259,6 +22781,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "REGAL I",
 "ua_flag_countries": [
 "bs",
 "cm",
@@ -22282,6 +22805,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SKIRON",
 "ua_flag_countries": [
 "bs",
 "cm",
@@ -22322,6 +22846,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BREEZ",
 "ua_flag_countries": [
 "dk",
 "mh",
@@ -22344,6 +22869,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TAWANNA",
 "ua_flag_countries": [
 "im",
 "km",
@@ -22366,6 +22892,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CECILA",
 "ua_flag_countries": [
 "cm",
 "im",
@@ -22391,6 +22918,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SAPNA",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -22419,6 +22947,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AVA 10",
 "ua_flag_countries": [
 "ga",
 "km",
@@ -22448,6 +22977,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "URANUS",
 "ua_flag_countries": [
 "cm",
 "im",
@@ -22477,6 +23007,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IRON WAVE",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -22501,6 +23032,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ASCENDANT",
 "ua_flag_countries": [
 "cm",
 "dj",
@@ -22525,6 +23057,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SILVERA",
 "ua_flag_countries": [
 "id",
 "mh",
@@ -22548,6 +23081,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DRACO",
 "ua_flag_countries": [
 "hr",
 "lr"
@@ -22567,6 +23101,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SAKHALIN",
 "ua_flag_countries": [
 "cy",
 "pa",
@@ -22585,6 +23120,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PEACE",
 "ua_flag_countries": [
 "ag",
 "cm",
@@ -22609,6 +23145,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IZOLA",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -22637,6 +23174,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IZUMO",
 "ua_flag_countries": [
 "de",
 "ga",
@@ -22663,6 +23201,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PALLADA",
 "ua_flag_countries": [
 "gi",
 "lu",
@@ -22686,6 +23225,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SIYANIE SEVERA",
 "ua_flag_countries": [
 "bz",
 "nl",
@@ -22710,6 +23250,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ROZMARINE",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -22735,6 +23276,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "INVICTA",
 "ua_flag_countries": [
 "cm",
 "gn",
@@ -22757,6 +23299,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MIKATI",
 "ua_flag_countries": [
 "sg",
 "sl",
@@ -22778,6 +23321,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RANI",
 "ua_flag_countries": [
 "pa",
 "sg"
@@ -22795,6 +23339,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CRIUS",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -22814,6 +23359,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BOLTARIS",
 "ua_flag_countries": [
 "de",
 "mh",
@@ -22840,6 +23386,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SEABASS",
 "ua_flag_countries": [
 "de",
 "km",
@@ -22856,6 +23403,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DAKAR",
 "ua_flag_countries": [
 "es",
 "pa"
@@ -22913,6 +23461,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BLUEBELL",
 "ua_flag_countries": [
 "gq",
 "im",
@@ -22944,6 +23493,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RIESCO",
 "ua_flag_countries": [
 "im",
 "lr",
@@ -22977,6 +23527,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VASLATI",
 "ua_flag_countries": [
 "ag",
 "cm",
@@ -23012,6 +23563,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CELINE",
 "ua_flag_countries": [
 "ck",
 "gm",
@@ -23071,6 +23623,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BRIONT",
 "ua_flag_countries": [
 "gr",
 "mh",
@@ -23093,6 +23646,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YVIKA",
 "ua_flag_countries": [
 "bb",
 "km",
@@ -23117,6 +23671,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "REUS",
 "ua_flag_countries": [
 "sg",
 "sl",
@@ -23139,6 +23694,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SATNA",
 "ua_flag_countries": [
 "cm",
 "ga",
@@ -23163,6 +23719,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MATARI",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -23185,6 +23742,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ROSALIN",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -23206,6 +23764,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DESTAMAR",
 "ua_flag_countries": [
 "ag",
 "cm",
@@ -23231,6 +23790,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JAMES II",
 "ua_flag_countries": [
 "cy",
 "de",
@@ -23258,6 +23818,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CAMILLA",
 "ua_flag_countries": [
 "gr",
 "lr"
@@ -23275,6 +23836,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ADENA",
 "ua_flag_countries": [
 "gr",
 "lr"
@@ -23295,6 +23857,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "WHITE CONDOR I",
 "ua_flag_countries": [
 "cm",
 "lr",
@@ -23317,6 +23880,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ANDREY PERVOZVANNIY",
 "ua_flag_countries": [
 "fi",
 "ru",
@@ -23336,6 +23900,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NP DIKSON",
 "ua_flag_countries": [
 "fi",
 "ru",
@@ -23355,6 +23920,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PIONEER",
 "ua_flag_countries": [
 "fi",
 "no",
@@ -23376,6 +23942,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SASCO ANIVA",
 "ua_flag_countries": [
 "nl",
 "pw",
@@ -23394,6 +23961,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SEAHAKER",
 "ua_flag_countries": [
 "bb",
 "de",
@@ -23412,6 +23980,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SKAUT",
 "ua_flag_countries": [
 "cm",
 "gm",
@@ -23435,6 +24004,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LEBRE",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -23469,6 +24039,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GOLDEN EAGLE",
 "ua_flag_countries": [
 "gm",
 "gr",
@@ -23488,6 +24059,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SEA MARINE 1",
 "ua_flag_countries": [
 "sg",
 "vn"
@@ -23518,6 +24090,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SEGINUS",
 "ua_flag_countries": [
 "cm",
 "cy",
@@ -23540,6 +24113,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NEVSKIY PROSPECT",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -23556,6 +24130,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LIGOVSKY PROSPECT",
 "ua_flag_countries": [
 "lr",
 "ru"
@@ -23571,6 +24146,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LITEYNY PROSPECT",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -23589,6 +24165,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DELFINA",
 "ua_flag_countries": [
 "it",
 "lr",
@@ -23613,6 +24190,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARCTIC PIONEER",
 "ua_flag_countries": [
 "bs",
 "pw",
@@ -23635,6 +24213,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "INDA",
 "ua_flag_countries": [
 "lr",
 "nl",
@@ -23656,6 +24235,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GALLILEO",
 "ua_flag_countries": [
 "ir",
 "lr",
@@ -23681,6 +24261,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ELMO",
 "ua_flag_countries": [
 "ck",
 "lr"
@@ -23700,6 +24281,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CLS",
 "ua_flag_countries": [
 "kr",
 "lr",
@@ -23721,6 +24303,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STAR TWINKLE 6",
 "ua_flag_countries": [
 "kr",
 "pa"
@@ -23738,6 +24321,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PIROP",
 "ua_flag_countries": [
 "dj",
 "ga",
@@ -23784,6 +24368,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MIN HANG",
 "ua_flag_countries": [
 "ck",
 "gr",
@@ -23805,6 +24390,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NESO",
 "ua_flag_countries": [
 "gr",
 "mh",
@@ -23835,6 +24421,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FURIA",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -23856,6 +24443,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AKTROS",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -23881,6 +24469,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AMELL",
 "ua_flag_countries": [
 "ck",
 "gm",
@@ -23903,6 +24492,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KAZAN",
 "ua_flag_countries": [
 "lr",
 "ru"
@@ -23918,6 +24508,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "EDERRA",
 "ua_flag_countries": [
 "cm",
 "mh",
@@ -23941,6 +24532,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AKAR WEST",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -23961,6 +24553,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FOYA",
 "ua_flag_countries": [
 "cm",
 "hk",
@@ -23988,6 +24581,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LAUREN II",
 "ua_flag_countries": [
 "hk",
 "im",
@@ -24014,6 +24608,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NOCTIS",
 "ua_flag_countries": [
 "cm",
 "gq",
@@ -24041,6 +24636,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "UMA",
 "ua_flag_countries": [
 "bb",
 "im",
@@ -24065,6 +24661,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CARCHARODON",
 "ua_flag_countries": [
 "cm",
 "gm",
@@ -24099,6 +24696,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BEIJING",
 "ua_flag_countries": [
 "hk",
 "km",
@@ -24120,6 +24718,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "THALIA III",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -24147,6 +24746,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DAVINA",
 "ua_flag_countries": [
 "jp",
 "pa",
@@ -24167,6 +24767,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NORA",
 "ua_flag_countries": [
 "ir",
 "kn",
@@ -24187,6 +24788,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AKKORD",
 "ua_flag_countries": [
 "im",
 "lr",
@@ -24213,6 +24815,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YI TONG",
 "ua_flag_countries": [
 "cn",
 "lr",
@@ -24243,6 +24846,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ETERNAL PEACE",
 "ua_flag_countries": [
 "cn",
 "lr",
@@ -24262,6 +24866,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BIANCA",
 "ua_flag_countries": [
 "it",
 "lr",
@@ -24282,6 +24887,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PERIDOT",
 "ua_flag_countries": [
 "cm",
 "de",
@@ -24307,6 +24913,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DORIN",
 "ua_flag_countries": [
 "de",
 "gm",
@@ -24332,6 +24939,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OSTRIA",
 "ua_flag_countries": [
 "de",
 "gm",
@@ -24355,6 +24963,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KATRAN",
 "ua_flag_countries": [
 "de",
 "mh",
@@ -24376,6 +24985,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARMADA LEADER",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -24391,6 +25001,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FIESTA",
 "ua_flag_countries": [
 "it",
 "sl",
@@ -24411,6 +25022,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "QUARTZ",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -24436,6 +25048,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "HANNAH",
 "ua_flag_countries": [
 "cm",
 "mh",
@@ -24456,6 +25069,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "C VIKING",
 "ua_flag_countries": [
 "ck",
 "dk",
@@ -24483,6 +25097,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BERG 1",
 "ua_flag_countries": [
 "lr",
 "pa"
@@ -24504,6 +25119,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FIONA II",
 "ua_flag_countries": [
 "pa"
 ],
@@ -24523,6 +25139,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "UTAKI",
 "ua_flag_countries": [
 "gr",
 "mh",
@@ -24547,6 +25164,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SOUTH STAR",
 "ua_flag_countries": [
 "cy",
 "gq",
@@ -24570,6 +25188,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FEI YUN HE",
 "ua_flag_countries": [
 "cm",
 "cy",
@@ -24594,6 +25213,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STORM PEARL",
 "ua_flag_countries": [
 "cm",
 "cy",
@@ -24622,6 +25242,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BIG MAG",
 "ua_flag_countries": [
 "lr",
 "pa"
@@ -24662,6 +25283,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FRUNZE",
 "ua_flag_countries": [
 "ck",
 "hk",
@@ -24690,6 +25312,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "HALCYON",
 "ua_flag_countries": [
 "dk",
 "hk",
@@ -24729,6 +25352,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NAYARA",
 "ua_flag_countries": [
 "hk",
 "lr",
@@ -24750,6 +25374,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OMRA",
 "ua_flag_countries": [
 "jp",
 "km",
@@ -24775,6 +25400,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RESTON",
 "ua_flag_countries": [
 "cm",
 "ga",
@@ -24803,6 +25429,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALTIS",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -24832,6 +25459,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KAMELOT",
 "ua_flag_countries": [
 "ck",
 "cy",
@@ -24856,6 +25484,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SEA MAVERICK",
 "ua_flag_countries": [
 "cy",
 "lr",
@@ -24879,6 +25508,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SAURI",
 "ua_flag_countries": [
 "cm",
 "mh",
@@ -24900,6 +25530,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SEAHORSE",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -24928,6 +25559,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NEW POWER",
 "ua_flag_countries": [
 "im",
 "mh",
@@ -24948,6 +25580,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BIVOLA",
 "ua_flag_countries": [
 "im",
 "mh",
@@ -24968,6 +25601,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PIERRE",
 "ua_flag_countries": [
 "im",
 "mh",
@@ -24990,6 +25624,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BERING",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -25046,6 +25681,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALBA",
 "ua_flag_countries": [
 "bs",
 "ga",
@@ -25069,6 +25705,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SONDOS",
 "ua_flag_countries": [
 "ag",
 "dk",
@@ -25091,6 +25728,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SPARTA",
 "ua_flag_countries": [
 "ag",
 "bz",
@@ -25113,6 +25751,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MURLIKISHAN",
 "ua_flag_countries": [
 "ck",
 "it"
@@ -25131,6 +25770,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CINDY",
 "ua_flag_countries": [
 "ck",
 "cm",
@@ -25152,6 +25792,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KRYMSK",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -25168,6 +25809,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "INTEGRITY RACER",
 "ua_flag_countries": [
 "bs",
 "pa",
@@ -25200,6 +25842,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IRA",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -25225,6 +25868,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VIEW",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -25245,6 +25889,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LBS",
 "ua_flag_countries": [
 "ga",
 "gr",
@@ -25269,6 +25914,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KOMANDER",
 "ua_flag_countries": [
 "ga",
 "km",
@@ -25299,6 +25945,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MOCHA",
 "ua_flag_countries": [
 "cm",
 "gm",
@@ -25325,6 +25972,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FINVAL",
 "ua_flag_countries": [
 "bs",
 "cy",
@@ -25346,6 +25994,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLARIS 1",
 "ua_flag_countries": [
 "bb",
 "ir",
@@ -25368,6 +26017,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GERAN",
 "ua_flag_countries": [
 "ck",
 "ga",
@@ -25397,6 +26047,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SOUFIA 1",
 "ua_flag_countries": [
 "ga",
 "jp",
@@ -25423,6 +26074,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALEXANDRA",
 "ua_flag_countries": [
 "lr",
 "sg"
@@ -25441,6 +26093,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TIFANI",
 "ua_flag_countries": [
 "cm",
 "kn",
@@ -25464,6 +26117,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BLUE EMBER",
 "ua_flag_countries": [
 "bb",
 "cy",
@@ -25490,6 +26144,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TM HAI HA 568",
 "ua_flag_countries": [
 "gb",
 "mh",
@@ -25511,6 +26166,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SAN DAMIAN",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -25531,6 +26187,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MONTE ROSA",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -25552,6 +26209,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SUVEREN",
 "ua_flag_countries": [
 "dj",
 "ga",
@@ -25576,6 +26234,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ADMIRAL",
 "ua_flag_countries": [
 "gr",
 "lr",
@@ -25604,6 +26263,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "APEKS",
 "ua_flag_countries": [
 "cy",
 "lr",
@@ -25628,6 +26288,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ASTRAL",
 "ua_flag_countries": [
 "cy",
 "dj",
@@ -25661,6 +26322,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AEGIS",
 "ua_flag_countries": [
 "gi",
 "im",
@@ -25683,6 +26345,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STARLIGHT",
 "ua_flag_countries": [
 "hk",
 "mh",
@@ -25704,6 +26367,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PEGASUS",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -25726,6 +26390,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ECHO",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -25747,6 +26412,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PETRA",
 "ua_flag_countries": [
 "ck",
 "gm",
@@ -25769,6 +26435,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FABULE",
 "ua_flag_countries": [
 "gr",
 "lr",
@@ -25788,6 +26455,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YFABULOUS",
 "ua_flag_countries": [
 "gr",
 "lr",
@@ -25813,6 +26481,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ROSALIND",
 "ua_flag_countries": [
 "bs",
 "dk",
@@ -25840,6 +26509,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ELISE",
 "ua_flag_countries": [
 "ck",
 "cm",
@@ -25863,6 +26533,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LARK",
 "ua_flag_countries": [
 "cm",
 "cy",
@@ -25887,6 +26558,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SOFOS",
 "ua_flag_countries": [
 "ck",
 "im",
@@ -25909,6 +26581,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BARENTS",
 "ua_flag_countries": [
 "de",
 "gi",
@@ -25928,6 +26601,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DAKUSH",
 "ua_flag_countries": [
 "ck",
 "pa"
@@ -25946,6 +26620,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KAPITAN KOKOVIN",
 "ua_flag_countries": [
 "nl",
 "ru"
@@ -25965,6 +26640,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KAPITAN SAKHAROV",
 "ua_flag_countries": [
 "nl",
 "ru"
@@ -25983,6 +26659,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DING XIANG",
 "ua_flag_countries": [
 "bb",
 "lr"
@@ -26003,6 +26680,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FURY",
 "ua_flag_countries": [
 "gr",
 "pa"
@@ -26021,6 +26699,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "APUS",
 "ua_flag_countries": [
 "gr",
 "pa"
@@ -26038,6 +26717,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JI HANG",
 "ua_flag_countries": [
 "bs",
 "cm",
@@ -26059,6 +26739,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "EKSPANDER",
 "ua_flag_countries": [
 "bs",
 "dj",
@@ -26086,6 +26767,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AQUILA II",
 "ua_flag_countries": [
 "gr",
 "pa"
@@ -26106,6 +26788,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SIRI",
 "ua_flag_countries": [
 "in",
 "km",
@@ -26146,6 +26829,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MEROPE",
 "ua_flag_countries": [
 "lr",
 "pa"
@@ -26206,6 +26890,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KAVIZ",
 "ua_flag_countries": [
 "bs",
 "pa"
@@ -26226,6 +26911,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SIONA",
 "ua_flag_countries": [
 "hk",
 "km",
@@ -26248,6 +26934,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OLINA",
 "ua_flag_countries": [
 "im",
 "mh",
@@ -26311,6 +26998,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TAGOR",
 "ua_flag_countries": [
 "im",
 "mh",
@@ -26331,6 +27019,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ASTERI",
 "ua_flag_countries": [
 "im",
 "mh",
@@ -26356,6 +27045,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CAUVERI",
 "ua_flag_countries": [
 "cm",
 "im",
@@ -26376,6 +27066,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KUSH",
 "ua_flag_countries": [
 "bz",
 "pa"
@@ -26420,6 +27111,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AQUA LIVE",
 "ua_flag_countries": [
 "cm",
 "gr",
@@ -26441,6 +27133,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ATLANTICOS",
 "ua_flag_countries": [
 "dk",
 "mh",
@@ -26473,6 +27166,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DIGNITY",
 "ua_flag_countries": [
 "es",
 "lr",
@@ -26493,6 +27187,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JASKEL",
 "ua_flag_countries": [
 "km",
 "pa",
@@ -26515,6 +27210,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TIBURON",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -26539,6 +27235,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FINA A",
 "ua_flag_countries": [
 "ag",
 "gq",
@@ -26572,6 +27269,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NOVA",
 "ua_flag_countries": [
 "lr",
 "pa"
@@ -26614,6 +27312,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PANDA",
 "ua_flag_countries": [
 "my",
 "vn"
@@ -26631,6 +27330,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OCEAN RIVER",
 "ua_flag_countries": [
 "my",
 "vn"
@@ -26649,6 +27349,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BONIFACY",
 "ua_flag_countries": [
 "cm",
 "hk",
@@ -26670,6 +27371,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NIL 308",
 "ua_flag_countries": [
 "gm",
 "im",
@@ -26690,6 +27392,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BILI",
 "ua_flag_countries": [
 "gm",
 "im",
@@ -26710,6 +27413,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KOUSAI",
 "ua_flag_countries": [
 "bs",
 "ck",
@@ -26738,6 +27442,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SIRIUS 1",
 "ua_flag_countries": [
 "bs",
 "im",
@@ -26763,6 +27468,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AZORIN",
 "ua_flag_countries": [
 "bs",
 "ck",
@@ -26795,6 +27501,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OPAL",
 "ua_flag_countries": [
 "cm",
 "gr",
@@ -26821,6 +27528,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RCELEBRA",
 "ua_flag_countries": [
 "cm",
 "gr",
@@ -26847,6 +27555,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RIEVERIA I",
 "ua_flag_countries": [
 "bs",
 "mh",
@@ -26871,6 +27580,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SAMADHA",
 "ua_flag_countries": [
 "bs",
 "lr",
@@ -26894,6 +27604,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OLANGA",
 "ua_flag_countries": [
 "cw",
 "cy",
@@ -26915,6 +27626,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JUNDAR",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -26938,6 +27650,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARINE SPIRIT",
 "ua_flag_countries": [
 "hk",
 "km",
@@ -26957,6 +27670,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "WEN YAO",
 "ua_flag_countries": [
 "ck",
 "lr",
@@ -26976,6 +27690,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TWENTY ONE",
 "ua_flag_countries": [
 "ck",
 "im",
@@ -26996,6 +27711,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MIRADOR",
 "ua_flag_countries": [
 "ck",
 "cm",
@@ -27017,6 +27733,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AURO",
 "ua_flag_countries": [
 "ck",
 "gr",
@@ -27038,6 +27755,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MELITE",
 "ua_flag_countries": [
 "ck",
 "cm",
@@ -27064,6 +27782,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RORA",
 "ua_flag_countries": [
 "ck",
 "cm",
@@ -27089,6 +27808,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARABESCA",
 "ua_flag_countries": [
 "ck",
 "mt",
@@ -27108,6 +27828,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PLUTON",
 "ua_flag_countries": [
 "dj",
 "ga",
@@ -27135,6 +27856,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TRANSFORMER",
 "ua_flag_countries": [
 "bb",
 "de",
@@ -27161,6 +27883,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VALENTE",
 "ua_flag_countries": [
 "ck",
 "gm",
@@ -27187,6 +27910,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YUG",
 "ua_flag_countries": [
 "bs",
 "gr",
@@ -27210,6 +27934,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NORELLA",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -27233,6 +27958,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PACIFICOS",
 "ua_flag_countries": [
 "dk",
 "mh",
@@ -27256,6 +27982,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "M SOPHIA",
 "ua_flag_countries": [
 "de",
 "hk",
@@ -27276,6 +28003,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BELMA",
 "ua_flag_countries": [
 "bb",
 "bs",
@@ -27298,6 +28026,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DHEZI",
 "ua_flag_countries": [
 "bb",
 "bs",
@@ -27322,6 +28051,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LAVANDA",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -27346,6 +28076,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SAVITRI",
 "ua_flag_countries": [
 "dj",
 "ga",
@@ -27380,6 +28111,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MAISAN",
 "ua_flag_countries": [
 "kn",
 "mh",
@@ -27405,6 +28137,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ROSITA",
 "ua_flag_countries": [
 "cm",
 "im",
@@ -27428,6 +28161,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JUMBO",
 "ua_flag_countries": [
 "ga",
 "gr",
@@ -27450,6 +28184,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SHAN HU",
 "ua_flag_countries": [
 "bb",
 "tr"
@@ -27468,6 +28203,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VELORA",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -27490,6 +28226,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ELBUS",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -27510,6 +28247,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STORMBRINGER",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -27530,6 +28268,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "UNZHA",
 "ua_flag_countries": [
 "cm",
 "cy",
@@ -27559,6 +28298,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DORIN",
 "ua_flag_countries": [
 "cm",
 "ga",
@@ -27583,6 +28323,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VICTORY ARI",
 "ua_flag_countries": [
 "ag",
 "bs",
@@ -27604,6 +28345,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BEAST",
 "ua_flag_countries": [
 "bs",
 "gr",
@@ -27625,6 +28367,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STILGAR",
 "ua_flag_countries": [
 "bb",
 "bs",
@@ -27670,6 +28413,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SILVAR",
 "ua_flag_countries": [
 "bs",
 "cm",
@@ -27690,6 +28434,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TOPAZ",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -27710,6 +28455,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NOVA CREST",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -27729,6 +28475,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TANGO",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -27750,6 +28497,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TALISMAN",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -27771,6 +28519,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TAVA 4",
 "ua_flag_countries": [
 "de",
 "km",
@@ -27793,6 +28542,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BERTHA",
 "ua_flag_countries": [
 "cy",
 "mh",
@@ -27815,6 +28565,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LUNA LUSTER",
 "ua_flag_countries": [
 "bs",
 "sl",
@@ -27834,6 +28585,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALTURA",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -27856,6 +28608,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AMAZON",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -27878,6 +28631,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CRYSTAL ROSE",
 "ua_flag_countries": [
 "cy",
 "lr",
@@ -27902,6 +28656,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TORERO M",
 "ua_flag_countries": [
 "ag",
 "bs",
@@ -27923,6 +28678,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KUBERA",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -27946,6 +28702,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "WYRALON",
 "ua_flag_countries": [
 "cm",
 "mh",
@@ -27971,6 +28728,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LISTIGA",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -27992,6 +28750,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NOBLE WALKER",
 "ua_flag_countries": [
 "my",
 "pa"
@@ -28010,6 +28769,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NASLEDIE",
 "ua_flag_countries": [
 "ga",
 "gr",
@@ -28039,6 +28799,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SUN",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -28104,6 +28865,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BENEDICT",
 "ua_flag_countries": [
 "cm",
 "gm",
@@ -28131,6 +28893,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DUOS",
 "ua_flag_countries": [
 "cm",
 "it",
@@ -28152,6 +28915,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MAGNOLIYA",
 "ua_flag_countries": [
 "it",
 "lr",
@@ -28175,6 +28939,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CHONGCHON",
 "ua_flag_countries": [
 "ck",
 "dj",
@@ -28205,6 +28970,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GALE",
 "ua_flag_countries": [
 "hk",
 "jp",
@@ -28228,6 +28994,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ORION",
 "ua_flag_countries": [
 "pa",
 "ru",
@@ -28294,6 +29061,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LILY",
 "ua_flag_countries": [
 "im",
 "pa"
@@ -28323,6 +29091,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARJORIE",
 "ua_flag_countries": [
 "bb",
 "bs",
@@ -28347,6 +29116,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KOLOSS",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -28376,6 +29146,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RIGEL",
 "ua_flag_countries": [
 "cm",
 "ga",
@@ -28397,6 +29168,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ASTRA",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -28418,6 +29190,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PROMETEI",
 "ua_flag_countries": [
 "mh",
 "pw",
@@ -28438,6 +29211,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KRASNODAR",
 "ua_flag_countries": [
 "pa",
 "ru"
@@ -28455,6 +29229,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NAVISTAR",
 "ua_flag_countries": [
 "cm",
 "id",
@@ -28476,6 +29251,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SAGITTA",
 "ua_flag_countries": [
 "de",
 "lr",
@@ -28497,6 +29273,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "REVANCHE",
 "ua_flag_countries": [
 "it",
 "pa",
@@ -28519,6 +29296,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SALVIA",
 "ua_flag_countries": [
 "ck",
 "gr",
@@ -28540,6 +29318,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NOVATOR",
 "ua_flag_countries": [
 "im",
 "km",
@@ -28567,6 +29346,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VULKAN",
 "ua_flag_countries": [
 "cm",
 "im",
@@ -28594,6 +29374,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DOVE",
 "ua_flag_countries": [
 "gr",
 "mh",
@@ -28613,6 +29394,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MONTE 1",
 "ua_flag_countries": [
 "cm",
 "gr",
@@ -28633,6 +29415,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "WALRUS",
 "ua_flag_countries": [
 "bs",
 "cm",
@@ -28655,6 +29438,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LILIANA",
 "ua_flag_countries": [
 "in",
 "lr"
@@ -28672,6 +29456,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VALENTE",
 "ua_flag_countries": [
 "cy",
 "mh",
@@ -28713,6 +29498,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TOA PAYOH",
 "ua_flag_countries": [
 "it",
 "mh",
@@ -28732,6 +29518,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DORRY",
 "ua_flag_countries": [
 "cm",
 "gm",
@@ -28752,6 +29539,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SOFIA K",
 "ua_flag_countries": [
 "bm",
 "kn",
@@ -28772,6 +29560,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MANDALA",
 "ua_flag_countries": [
 "bm",
 "cm",
@@ -28790,6 +29579,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KORD ATLANTIC",
 "ua_flag_countries": [
 "lu",
 "pa",
@@ -28811,6 +29601,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VELES",
 "ua_flag_countries": [
 "it",
 "lu",
@@ -28833,6 +29624,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BELLAGIO",
 "ua_flag_countries": [
 "dk",
 "gb",
@@ -28853,6 +29645,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PAOLA",
 "ua_flag_countries": [
 "dk",
 "gb",
@@ -28874,6 +29667,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DASHAN",
 "ua_flag_countries": [
 "dj",
 "ga",
@@ -28895,6 +29689,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PRISMA",
 "ua_flag_countries": [
 "ck",
 "gr",
@@ -28916,6 +29711,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CANGJIE",
 "ua_flag_countries": [
 "ck",
 "in",
@@ -28934,6 +29730,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CELT",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -28969,6 +29766,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GUANYIN",
 "ua_flag_countries": [
 "lr"
 ],
@@ -28985,6 +29783,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OTLA",
 "ua_flag_countries": [
 "km",
 "lr",
@@ -29004,6 +29803,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LEONA",
 "ua_flag_countries": [
 "in",
 "lr",
@@ -29029,6 +29829,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NAGARJUNA",
 "ua_flag_countries": [
 "dj",
 "ga",
@@ -29052,6 +29853,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALGORITM",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -29074,6 +29876,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AQUATICA",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -29100,6 +29903,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MIRES",
 "ua_flag_countries": [
 "lr",
 "qa",
@@ -29120,6 +29924,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TENDUA",
 "ua_flag_countries": [
 "cy",
 "ga",
@@ -29143,6 +29948,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VIREL",
 "ua_flag_countries": [
 "cm",
 "mh",
@@ -29166,6 +29972,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JASPER",
 "ua_flag_countries": [
 "mh",
 "pa",
@@ -29187,6 +29994,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PALARA",
 "ua_flag_countries": [
 "ck",
 "gr",
@@ -29212,6 +30020,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DEYNA",
 "ua_flag_countries": [
 "gr",
 "id",
@@ -29232,6 +30041,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SANAR-10",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -29250,6 +30060,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SANAR-9",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -29268,6 +30079,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KOSMOS",
 "ua_flag_countries": [
 "pa",
 "ru",
@@ -29294,6 +30106,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PAVEL CHERNYSH",
 "ua_flag_countries": [
 "cy",
 "lr",
@@ -29311,6 +30124,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KAPITAN KOSTICHEV",
 "ua_flag_countries": [
 "cy",
 "pa",
@@ -29329,6 +30143,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VIKTOR TITOV",
 "ua_flag_countries": [
 "cy",
 "gm",
@@ -29347,6 +30162,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YURI SENKEVICH",
 "ua_flag_countries": [
 "cy",
 "km",
@@ -29365,6 +30181,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VICTOR KONETSKY",
 "ua_flag_countries": [
 "bb",
 "cy",
@@ -29385,6 +30202,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DENEB",
 "ua_flag_countries": [
 "no",
 "sl",
@@ -29404,6 +30222,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SIRTIC",
 "ua_flag_countries": [
 "gq",
 "gr",
@@ -29430,6 +30249,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PUMBA",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -29452,6 +30272,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RAMA 3",
 "ua_flag_countries": [
 "cy",
 "de",
@@ -29475,6 +30296,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ABINSK",
 "ua_flag_countries": [
 "lr",
 "mt",
@@ -29522,6 +30344,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YODAN",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -29547,6 +30370,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CHENG HE",
 "ua_flag_countries": [
 "bz",
 "cm",
@@ -29571,6 +30395,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VERA",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -29607,6 +30432,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SKIPPER",
 "ua_flag_countries": [
 "pa"
 ],
@@ -29625,6 +30451,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JALDHARA",
 "ua_flag_countries": [
 "ga",
 "gw",
@@ -29662,6 +30489,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARVEN",
 "ua_flag_countries": [
 "cm",
 "fi",
@@ -29685,6 +30513,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BREEZE",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -29706,6 +30535,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ANIKA",
 "ua_flag_countries": [
 "gr",
 "pa"
@@ -29728,6 +30558,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RHEIN",
 "ua_flag_countries": [
 "cm",
 "cy",
@@ -29751,6 +30582,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PROGRESS",
 "ua_flag_countries": [
 "dk",
 "mh",
@@ -29779,6 +30611,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KARELIYA",
 "ua_flag_countries": [
 "lr",
 "ru"
@@ -29796,6 +30629,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CAVALIER",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -29817,6 +30651,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LAYLA",
 "ua_flag_countries": [
 "cm",
 "hk",
@@ -29839,6 +30674,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YOGI",
 "ua_flag_countries": [
 "hk",
 "lr",
@@ -29857,6 +30693,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RANTANPLAN",
 "ua_flag_countries": [
 "hk",
 "lr",
@@ -29876,6 +30713,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BIGLI",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -29897,6 +30735,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LNG SOARS",
 "ua_flag_countries": [
 "bb",
 "bm",
@@ -29922,6 +30761,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SCF SAKHALIN",
 "ua_flag_countries": [
 "cy",
 "ru"
@@ -29942,6 +30782,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FLORA 1",
 "ua_flag_countries": [
 "de",
 "dj",
@@ -29972,6 +30813,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TONIL",
 "ua_flag_countries": [
 "pa",
 "sg"
@@ -30011,6 +30853,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "EVENTIN",
 "ua_flag_countries": [
 "bs",
 "no",
@@ -30030,6 +30873,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TYCHE 1",
 "ua_flag_countries": [
 "bs",
 "no",
@@ -30049,6 +30893,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TEMPEST DREAM",
 "ua_flag_countries": [
 "gw",
 "mh",
@@ -30069,6 +30914,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ESTELLA",
 "ua_flag_countries": [
 "cm",
 "pa",
@@ -30087,6 +30933,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "INA",
 "ua_flag_countries": [
 "ag",
 "cn",
@@ -30108,6 +30955,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AMIL",
 "ua_flag_countries": [
 "km",
 "mh",
@@ -30131,6 +30979,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BERRA",
 "ua_flag_countries": [
 "ck",
 "gr",
@@ -30153,6 +31002,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KUSTO",
 "ua_flag_countries": [
 "ck",
 "gr",
@@ -30174,6 +31024,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RYMO",
 "ua_flag_countries": [
 "ck",
 "gr",
@@ -30195,6 +31046,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SEASONS I",
 "ua_flag_countries": [
 "cm",
 "gm",
@@ -30221,6 +31073,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ELIAH",
 "ua_flag_countries": [
 "pa",
 "se"
@@ -30242,6 +31095,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SILVER",
 "ua_flag_countries": [
 "bb",
 "km",
@@ -30262,6 +31116,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SYMPHONY",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -30283,6 +31138,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ANTEY",
 "ua_flag_countries": [
 "ru"
 ],
@@ -30305,6 +31161,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "QENDIL",
 "ua_flag_countries": [
 "dj",
 "ga",
@@ -30333,6 +31190,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AGATE",
 "ua_flag_countries": [
 "mh",
 "pa",
@@ -30356,6 +31214,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GLOBAL ANGEL",
 "ua_flag_countries": [
 "pa",
 "vn"
@@ -30374,6 +31233,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LINDOR",
 "ua_flag_countries": [
 "cm",
 "ga",
@@ -30401,6 +31261,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TORX",
 "ua_flag_countries": [
 "lr",
 "pa"
@@ -30421,6 +31282,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DINASTY",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -30442,6 +31304,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "HITIT",
 "ua_flag_countries": [
 "bs",
 "de",
@@ -30477,6 +31340,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PROVIDER",
 "ua_flag_countries": [
 "bs",
 "hk",
@@ -30500,6 +31364,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KEMEROVO",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -30518,6 +31383,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KRASNOYARSK",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -30536,6 +31402,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TASCA",
 "ua_flag_countries": [
 "jp",
 "lr",
@@ -30557,6 +31424,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZAYNAR 2",
 "ua_flag_countries": [
 "de",
 "id",
@@ -30580,6 +31448,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JACKLYN",
 "ua_flag_countries": [
 "bs",
 "cm",
@@ -30601,6 +31470,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SANAR-14",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -30619,6 +31489,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LYRA",
 "ua_flag_countries": [
 "mt",
 "pa"
@@ -30638,6 +31509,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MAKALU",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -30664,6 +31536,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CYCLONE",
 "ua_flag_countries": [
 "cm",
 "dj",
@@ -30690,6 +31563,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FLINT WIND",
 "ua_flag_countries": [
 "ck",
 "gw",
@@ -30716,6 +31590,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALYSSUM",
 "ua_flag_countries": [
 "cy",
 "lr",
@@ -30736,6 +31611,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OSAR",
 "ua_flag_countries": [
 "cy",
 "mt",
@@ -30757,6 +31633,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RUNA",
 "ua_flag_countries": [
 "cm",
 "ga",
@@ -30781,6 +31658,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PINEGA",
 "ua_flag_countries": [
 "ga",
 "gr",
@@ -30804,6 +31682,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ENDLESS",
 "ua_flag_countries": [
 "ag",
 "gq",
@@ -30828,6 +31707,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TAMIA",
 "ua_flag_countries": [
 "bs",
 "de",
@@ -30860,6 +31740,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SEA HONOR",
 "ua_flag_countries": [
 "bs",
 "lr",
@@ -30880,6 +31761,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARQUISE",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -30904,6 +31786,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DISCOVERY",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -30929,6 +31812,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LUCH",
 "ua_flag_countries": [
 "pa",
 "ru",
@@ -30949,6 +31833,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BASTION",
 "ua_flag_countries": [
 "cy",
 "dj",
@@ -30987,6 +31872,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CHARMINAR",
 "ua_flag_countries": [
 "it",
 "km",
@@ -31007,6 +31893,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SARD",
 "ua_flag_countries": [
 "cm",
 "de",
@@ -31032,6 +31919,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NOSU",
 "ua_flag_countries": [
 "ck",
 "cm",
@@ -31053,6 +31941,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SERENADE",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -31073,6 +31962,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SAGA",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -31096,6 +31986,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NIGHT GLORY",
 "ua_flag_countries": [
 "dj",
 "ga",
@@ -31119,6 +32010,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GAGAT",
 "ua_flag_countries": [
 "mh",
 "pa",
@@ -31143,6 +32035,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SIRAJ",
 "ua_flag_countries": [
 "dk",
 "ga",
@@ -31170,6 +32063,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IZUMRUD",
 "ua_flag_countries": [
 "cm",
 "cy",
@@ -31193,6 +32087,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GEFEST",
 "ua_flag_countries": [
 "ga",
 "gw",
@@ -31221,6 +32116,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LAMD",
 "ua_flag_countries": [
 "lr",
 "pa"
@@ -31239,6 +32135,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SEA OWL I",
 "ua_flag_countries": [
 "bs",
 "km",
@@ -31259,6 +32156,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "EMMA",
 "ua_flag_countries": [
 "kr",
 "mt",
@@ -31284,6 +32182,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MUSSON",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -31313,6 +32212,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DAPHNE V",
 "ua_flag_countries": [
 "no",
 "pa"
@@ -31330,6 +32230,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GLACIA",
 "ua_flag_countries": [
 "ck",
 "hn",
@@ -31354,6 +32255,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BARQ",
 "ua_flag_countries": [
 "dj",
 "ga",
@@ -31376,6 +32278,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LIDER",
 "ua_flag_countries": [
 "ga",
 "gr",
@@ -31415,6 +32318,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ORVI",
 "ua_flag_countries": [
 "gr",
 "lr",
@@ -31435,6 +32339,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AREIA",
 "ua_flag_countries": [
 "lr",
 "pa"
@@ -31461,6 +32366,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SYNDRA",
 "ua_flag_countries": [
 "bs",
 "lr",
@@ -31480,6 +32386,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ASGARD",
 "ua_flag_countries": [
 "gr",
 "lr",
@@ -31503,6 +32410,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ANTARES",
 "ua_flag_countries": [
 "ky",
 "lr",
@@ -31529,6 +32437,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AVANGARD",
 "ua_flag_countries": [
 "ky",
 "lr",
@@ -31554,6 +32463,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PROSPERITY",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -31573,6 +32483,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "HYPERION",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -31594,6 +32505,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ADITYA",
 "ua_flag_countries": [
 "cm",
 "ga",
@@ -31615,6 +32527,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MELISSA",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -31639,6 +32552,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ANEMON",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -31659,6 +32573,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TRANQUIL SEA",
 "ua_flag_countries": [
 "ck",
 "cm",
@@ -31689,6 +32604,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SILVER ICE",
 "ua_flag_countries": [
 "ck",
 "cm",
@@ -31719,6 +32635,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CHARIOT TIDE",
 "ua_flag_countries": [
 "ck",
 "cm",
@@ -31741,6 +32658,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "WHITE CRANE",
 "ua_flag_countries": [
 "hk",
 "pa",
@@ -31763,6 +32681,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NORD STAR",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -31785,6 +32704,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARBLE",
 "ua_flag_countries": [
 "cm",
 "lr",
@@ -31806,6 +32726,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GARASAN",
 "ua_flag_countries": [
 "ga",
 "gw",
@@ -31830,6 +32751,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NOVA ENERGY",
 "ua_flag_countries": [
 "gr",
 "lr",
@@ -31850,6 +32772,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VERONICA III",
 "ua_flag_countries": [
 "gr",
 "lr",
@@ -31873,6 +32796,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MERKURIY",
 "ua_flag_countries": [
 "pa",
 "ru"
@@ -31891,6 +32815,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FULGER",
 "ua_flag_countries": [
 "no",
 "sl",
@@ -31910,6 +32835,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "HERA",
 "ua_flag_countries": [
 "no",
 "vn"
@@ -31928,6 +32854,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TSITADEL",
 "ua_flag_countries": [
 "gr",
 "lr",
@@ -31952,6 +32879,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ANAYA",
 "ua_flag_countries": [
 "mh",
 "no",
@@ -31976,6 +32904,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CROCO",
 "ua_flag_countries": [
 "cy",
 "lr",
@@ -31999,6 +32928,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SOYANA",
 "ua_flag_countries": [
 "cy",
 "dj",
@@ -32027,6 +32957,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KAROL",
 "ua_flag_countries": [
 "lr",
 "mh"
@@ -32061,6 +32992,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AETHER",
 "ua_flag_countries": [
 "kw",
 "lr",
@@ -32080,6 +33012,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SKYWAVE",
 "ua_flag_countries": [
 "km",
 "lr",
@@ -32106,6 +33039,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PROXIMA",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -32125,6 +33059,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PACIFIC",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -32157,6 +33092,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "EAGLE S",
 "ua_flag_countries": [
 "ck",
 "de",
@@ -32181,6 +33117,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "THORIN",
 "ua_flag_countries": [
 "ck",
 "cy",
@@ -32201,6 +33138,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LIDIA",
 "ua_flag_countries": [
 "it",
 "lr",
@@ -32223,6 +33161,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LUMIN",
 "ua_flag_countries": [
 "bs",
 "cm",
@@ -32246,6 +33185,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NACHOS",
 "ua_flag_countries": [
 "bs",
 "lr",
@@ -32266,6 +33206,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RIZVEL",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -32290,6 +33231,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MAYLO",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -32318,6 +33260,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GRIF",
 "ua_flag_countries": [
 "gm",
 "hk",
@@ -32352,6 +33295,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VIRENT",
 "ua_flag_countries": [
 "hk",
 "no",
@@ -32376,6 +33320,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MISHELL",
 "ua_flag_countries": [
 "hk",
 "mh",
@@ -32399,6 +33344,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BELLARIS",
 "ua_flag_countries": [
 "mh",
 "no",
@@ -32420,6 +33366,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AQUA TITAN",
 "ua_flag_countries": [
 "cm",
 "dj",
@@ -32454,6 +33401,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PHOENIX",
 "ua_flag_countries": [
 "dj",
 "ga",
@@ -32485,6 +33433,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NICHOLE",
 "ua_flag_countries": [
 "cm",
 "gm",
@@ -32508,6 +33457,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MYSTERY",
 "ua_flag_countries": [
 "dj",
 "ga",
@@ -32536,6 +33486,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NOBLE",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -32558,6 +33509,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ENIGMA",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -32589,6 +33541,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PHOTON",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -32612,6 +33565,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SOLARIS",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -32644,6 +33598,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARCTIC EXPRESS",
 "ua_flag_countries": [
 "ag",
 "im",
@@ -32668,6 +33623,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MIKHAIL ULYANOV",
 "ua_flag_countries": [
 "cy",
 "ru"
@@ -32683,6 +33639,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KIRILL LAVROV",
 "ua_flag_countries": [
 "cy",
 "ru"
@@ -32698,6 +33655,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SEADAR",
 "ua_flag_countries": [
 "bb",
 "hk",
@@ -32718,6 +33676,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BLUE TALU",
 "ua_flag_countries": [
 "cm",
 "ga",
@@ -32744,6 +33703,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VARG",
 "ua_flag_countries": [
 "bs",
 "cm",
@@ -32765,6 +33725,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SCF ENDEAVOUR",
 "ua_flag_countries": [
 "cy",
 "ru"
@@ -32782,6 +33743,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SCF ENDURANCE",
 "ua_flag_countries": [
 "cy",
 "ru"
@@ -32799,6 +33761,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SCF ENTERPRISE",
 "ua_flag_countries": [
 "cy",
 "ru"
@@ -32816,6 +33779,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SELVA",
 "ua_flag_countries": [
 "bs",
 "kn",
@@ -32857,6 +33821,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MYRA",
 "ua_flag_countries": [
 "cy",
 "lr",
@@ -32878,6 +33843,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "URIEL",
 "ua_flag_countries": [
 "ga",
 "hk",
@@ -32916,6 +33882,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IVY",
 "ua_flag_countries": [
 "my",
 "vn"
@@ -32933,6 +33900,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LOLITE",
 "ua_flag_countries": [
 "hk",
 "lr",
@@ -32953,6 +33921,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "WEST HORIZON",
 "ua_flag_countries": [
 "gw",
 "mh",
@@ -32986,6 +33955,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AGNI",
 "ua_flag_countries": [
 "km",
 "no",
@@ -33005,6 +33975,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TSIRKON",
 "ua_flag_countries": [
 "cm",
 "gr",
@@ -33028,6 +33999,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RIMMA",
 "ua_flag_countries": [
 "cm",
 "dj",
@@ -33054,6 +34026,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "HERMES",
 "ua_flag_countries": [
 "ru"
 ],
@@ -33070,6 +34043,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KRONOS",
 "ua_flag_countries": [
 "ga",
 "gr",
@@ -33092,6 +34066,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LIPETSK",
 "ua_flag_countries": [
 "lr",
 "ru"
@@ -33109,6 +34084,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LADOGA",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -33127,6 +34103,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LEVEL",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -33147,6 +34124,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LAVENDER",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -33171,6 +34149,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DF PEAK",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -33190,6 +34169,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CAMEL",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -33211,6 +34191,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CARMA",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -33231,6 +34212,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KOLOMNA",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -33249,6 +34231,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LADY LUCY",
 "ua_flag_countries": [
 "ga",
 "it",
@@ -33278,6 +34261,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CAPELLA MB",
 "ua_flag_countries": [
 "kn",
 "lr",
@@ -33300,6 +34284,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TRIUM",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -33319,6 +34304,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ELYTE",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -33353,6 +34339,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KIRA K",
 "ua_flag_countries": [
 "gr",
 "mh",
@@ -33373,6 +34360,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PRODUCER",
 "ua_flag_countries": [
 "hk",
 "mt",
@@ -33396,6 +34384,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MA JIN",
 "ua_flag_countries": [
 "mh",
 "mt",
@@ -33419,6 +34408,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ELODIE I",
 "ua_flag_countries": [
 "bs",
 "cm",
@@ -33440,6 +34430,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZENTURO",
 "ua_flag_countries": [
 "bb",
 "it",
@@ -33460,6 +34451,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "UTRENNIY",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -33479,6 +34471,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SABETTA",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -33498,6 +34491,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AURA MARIS",
 "ua_flag_countries": [
 "cm",
 "de",
@@ -33519,6 +34513,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LUCKY FAIRY",
 "ua_flag_countries": [
 "cm",
 "gr",
@@ -33537,6 +34532,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GAUJA",
 "ua_flag_countries": [
 "de",
 "lr",
@@ -33556,6 +34552,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LADY D",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -33581,6 +34578,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ANASTASIIA",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -33625,6 +34623,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RUBY CROSS",
 "ua_flag_countries": [
 "cn",
 "hk",
@@ -33648,6 +34647,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VYCHEGDA",
 "ua_flag_countries": [
 "cm",
 "de",
@@ -33682,6 +34682,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GURU",
 "ua_flag_countries": [
 "cm",
 "de",
@@ -33709,6 +34710,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YUG",
 "ua_flag_countries": [
 "cm",
 "de",
@@ -33737,6 +34739,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MEZEN",
 "ua_flag_countries": [
 "de",
 "ga",
@@ -33768,6 +34771,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "HAKUNA MATATA",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -33787,6 +34791,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JAGGER",
 "ua_flag_countries": [
 "bb",
 "cy",
@@ -33809,6 +34814,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JASMINE",
 "ua_flag_countries": [
 "cy",
 "km",
@@ -33829,6 +34835,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ANHONA",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -33848,6 +34855,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FLURA",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -33868,6 +34876,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALEXANDER NEVSKIY",
 "ua_flag_countries": [
 "nl",
 "ru",
@@ -33913,6 +34922,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MAIA-1",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -33937,6 +34947,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SASCO ALDAN",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -33966,6 +34977,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZALIV BAIKAL",
 "ua_flag_countries": [
 "bb",
 "cy",
@@ -33985,6 +34997,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZALIV VOSTOK",
 "ua_flag_countries": [
 "bb",
 "cy",
@@ -34004,6 +35017,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "INDUS 1",
 "ua_flag_countries": [
 "cy",
 "gq",
@@ -34047,6 +35061,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FLORA",
 "ua_flag_countries": [
 "mh",
 "mt",
@@ -34067,6 +35082,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AMEN",
 "ua_flag_countries": [
 "km",
 "mh",
@@ -34089,6 +35105,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AZELIA",
 "ua_flag_countries": [
 "cy",
 "mh",
@@ -34110,6 +35127,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MYS ZHELANIYA",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -34144,6 +35162,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ACHILLES",
 "ua_flag_countries": [
 "kn",
 "om",
@@ -34164,6 +35183,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NEVAH",
 "ua_flag_countries": [
 "cm",
 "dj",
@@ -34186,6 +35206,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MYS DEZHNEVA",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -34207,6 +35228,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NIZAMI GANJAVI",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -34233,6 +35255,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NECLEUS",
 "ua_flag_countries": [
 "ck",
 "hk",
@@ -34260,6 +35283,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VASILY DINKOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -34274,6 +35298,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KAPITAN GOTSKY",
 "ua_flag_countries": [
 "ru"
 ],
@@ -34288,6 +35313,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TIMOFEY GUZHENKO",
 "ua_flag_countries": [
 "ru"
 ],
@@ -34305,6 +35331,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NERO",
 "ua_flag_countries": [
 "pa",
 "sg",
@@ -34325,6 +35352,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SMP SEVERODVINSK",
 "ua_flag_countries": [
 "nl",
 "ru"
@@ -34343,6 +35371,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARMADA EXPLORER",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -34360,6 +35389,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VOZROZHDENIYE",
 "ua_flag_countries": [
 "gr",
 "lr",
@@ -34381,6 +35411,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PIONER 1",
 "ua_flag_countries": [
 "hk",
 "pa",
@@ -34402,6 +35433,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DALVA",
 "ua_flag_countries": [
 "cm",
 "dj",
@@ -34426,6 +35458,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SINTEZ",
 "ua_flag_countries": [
 "hk",
 "pa",
@@ -34448,6 +35481,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VISUND",
 "ua_flag_countries": [
 "lr",
 "pw"
@@ -34465,6 +35499,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NOVA",
 "ua_flag_countries": [
 "pa",
 "sg"
@@ -34498,6 +35533,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VERSA",
 "ua_flag_countries": [
 "lr",
 "pa"
@@ -34522,6 +35558,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "WENDY",
 "ua_flag_countries": [
 "cn",
 "hk",
@@ -34546,6 +35583,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CUME",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -34585,6 +35623,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BINARY STAR",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -34607,6 +35646,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CENTURION",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -34627,6 +35667,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AKCENT",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -34647,6 +35688,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARKHITEKTOR",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -34682,6 +35724,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "EVERDINE",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -34702,6 +35745,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DENVER",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -34725,6 +35769,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TRUST",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -34746,6 +35791,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SARASWATI",
 "ua_flag_countries": [
 "cm",
 "gr",
@@ -34766,6 +35812,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SALUT",
 "ua_flag_countries": [
 "bb",
 "km",
@@ -34789,6 +35836,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LAZURIT",
 "ua_flag_countries": [
 "cm",
 "gm",
@@ -34812,6 +35860,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RAGNAR",
 "ua_flag_countries": [
 "de",
 "mh",
@@ -34834,6 +35883,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "UNIVERSAL",
 "ua_flag_countries": [
 "bb",
 "cy",
@@ -34856,6 +35906,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BELOMOR",
 "ua_flag_countries": [
 "cy",
 "pa",
@@ -34875,6 +35926,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BARENTS",
 "ua_flag_countries": [
 "cy",
 "pa",
@@ -34896,6 +35948,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ONEGA",
 "ua_flag_countries": [
 "cy",
 "pa",
@@ -34915,6 +35968,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARS 6",
 "ua_flag_countries": [
 "bs",
 "mh",
@@ -34936,6 +35990,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALMOND",
 "ua_flag_countries": [
 "bb",
 "cy",
@@ -34959,6 +36014,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BAYAZE D",
 "ua_flag_countries": [
 "gm",
 "it",
@@ -34983,6 +36039,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LERUO",
 "ua_flag_countries": [
 "bs",
 "mh",
@@ -35008,6 +36065,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SOGLASIYE",
 "ua_flag_countries": [
 "cm",
 "gr",
@@ -35036,6 +36094,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VEXIA",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -35077,6 +36136,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ETHERA",
 "ua_flag_countries": [
 "im",
 "pa"
@@ -35151,6 +36211,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MANASLU",
 "ua_flag_countries": [
 "im",
 "pa"
@@ -35168,6 +36229,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FONDEYA",
 "ua_flag_countries": [
 "dj",
 "ga",
@@ -35194,6 +36256,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TRADER",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -35216,6 +36279,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DESTAN",
 "ua_flag_countries": [
 "mh",
 "om",
@@ -35237,6 +36301,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BAI LU",
 "ua_flag_countries": [
 "mh",
 "pa",
@@ -35259,6 +36324,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "UNITY",
 "ua_flag_countries": [
 "gm",
 "mh",
@@ -35285,6 +36351,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TANGO 2",
 "ua_flag_countries": [
 "gr",
 "ky",
@@ -35304,6 +36371,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TIGER 6",
 "ua_flag_countries": [
 "gr",
 "mt",
@@ -35322,6 +36390,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TRIUMF",
 "ua_flag_countries": [
 "gr",
 "mt",
@@ -35343,6 +36412,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SMYRTOS",
 "ua_flag_countries": [
 "cm",
 "gm",
@@ -35363,6 +36433,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BULLAR",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -35387,6 +36458,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARINSTRAUM",
 "ua_flag_countries": [
 "ru",
 "tr"
@@ -35407,6 +36479,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ONEIROI",
 "ua_flag_countries": [
 "lr",
 "pa"
@@ -35425,6 +36498,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LOTUS",
 "ua_flag_countries": [
 "bs",
 "pa",
@@ -35445,6 +36519,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OSANA",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -35469,6 +36544,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FORTIS",
 "ua_flag_countries": [
 "cm",
 "lr",
@@ -35491,6 +36567,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LAMANTIN",
 "ua_flag_countries": [
 "cy",
 "lr",
@@ -35520,6 +36597,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JUPITER",
 "ua_flag_countries": [
 "bb",
 "cy",
@@ -35541,6 +36619,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARIADNE",
 "ua_flag_countries": [
 "bb",
 "cy",
@@ -35562,6 +36641,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARIA",
 "ua_flag_countries": [
 "bb",
 "cy",
@@ -35583,6 +36663,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SMP NOVODVINSK",
 "ua_flag_countries": [
 "nl",
 "ru"
@@ -35604,6 +36685,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PINOCCHIO",
 "ua_flag_countries": [
 "de",
 "lr",
@@ -35640,6 +36722,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "EVALI",
 "ua_flag_countries": [
 "bs",
 "pa"
@@ -35660,6 +36743,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ASTERAS",
 "ua_flag_countries": [
 "lr",
 "pw",
@@ -35680,6 +36764,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FREDA",
 "ua_flag_countries": [
 "hk",
 "mh",
@@ -35703,6 +36788,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "QASR",
 "ua_flag_countries": [
 "dj",
 "hk",
@@ -35729,6 +36815,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "URAN",
 "ua_flag_countries": [
 "ga",
 "gm",
@@ -35766,6 +36853,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GRANAT",
 "ua_flag_countries": [
 "cm",
 "dj",
@@ -35789,6 +36877,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JUN TONG",
 "ua_flag_countries": [
 "cm",
 "mh",
@@ -35824,6 +36913,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SAMOS",
 "ua_flag_countries": [
 "bb",
 "hk",
@@ -35844,6 +36934,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NELSA",
 "ua_flag_countries": [
 "ck",
 "cm",
@@ -35869,6 +36960,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "EVITA",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -35888,6 +36980,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LING HONG",
 "ua_flag_countries": [
 "gr",
 "mh",
@@ -35907,6 +37000,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "HE BO",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -35926,6 +37020,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZHUO YUAN",
 "ua_flag_countries": [
 "mh",
 "mt"
@@ -35993,6 +37088,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TASSOS",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -36014,6 +37110,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VALIANT",
 "ua_flag_countries": [
 "hk",
 "lr",
@@ -36033,6 +37130,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SPIRIT 2",
 "ua_flag_countries": [
 "cy",
 "mh",
@@ -36055,6 +37153,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PRAVASI",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -36079,6 +37178,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JAYA",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -36100,6 +37200,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AKHILL",
 "ua_flag_countries": [
 "cy",
 "lr",
@@ -36123,6 +37224,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AKSEL",
 "ua_flag_countries": [
 "de",
 "lr",
@@ -36146,6 +37248,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BRATSK",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -36167,6 +37270,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KLEVER",
 "ua_flag_countries": [
 "bb",
 "gm",
@@ -36191,6 +37295,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BOND",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -36211,6 +37316,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LYNX",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -36232,6 +37338,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BELGOROD",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -36250,6 +37357,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TSOIZIT",
 "ua_flag_countries": [
 "gq",
 "gr",
@@ -36273,6 +37381,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ATLANT",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -36337,6 +37446,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "HORAE",
 "ua_flag_countries": [
 "pa"
 ],
@@ -36354,6 +37464,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AMULET",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -36375,6 +37486,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ANTARKTIKA",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -36393,6 +37505,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARROW",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -36414,6 +37527,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARCADIA",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -36435,6 +37549,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TIMON",
 "ua_flag_countries": [
 "de",
 "lr"
@@ -36473,6 +37588,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TANI",
 "ua_flag_countries": [
 "mh",
 "pa"
@@ -36500,6 +37616,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CETUS",
 "ua_flag_countries": [
 "cy",
 "ga",
@@ -36523,6 +37640,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZALIV ANIVA",
 "ua_flag_countries": [
 "cy",
 "km",
@@ -36540,6 +37658,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OMSK",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -36567,6 +37686,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IRKUTSK",
 "ua_flag_countries": [
 "kn",
 "lr",
@@ -36589,6 +37709,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SKIF",
 "ua_flag_countries": [
 "gm",
 "gr",
@@ -36613,6 +37734,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "WU TAI",
 "ua_flag_countries": [
 "gr",
 "lr",
@@ -36635,6 +37757,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FORWARDER",
 "ua_flag_countries": [
 "mh",
 "mt",
@@ -36657,6 +37780,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MORGANIT",
 "ua_flag_countries": [
 "mh",
 "mt",
@@ -36688,6 +37812,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PRIMORYE",
 "ua_flag_countries": [
 "lr",
 "ru"
@@ -36705,6 +37830,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SPARTAN",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -36727,6 +37853,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RESPECT",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -36748,6 +37875,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BOBCAT",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -36770,6 +37898,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GAZPROMNEFT NORDEAST",
 "ua_flag_countries": [
 "cy",
 "ru"
@@ -36794,6 +37923,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ABRAU",
 "ua_flag_countries": [
 "ru",
 "tr"
@@ -36851,6 +37981,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VOLANS",
 "ua_flag_countries": [
 "bb",
 "bs",
@@ -36875,6 +38006,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MANTA",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -36897,6 +38029,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SONA",
 "ua_flag_countries": [
 "ga",
 "kn",
@@ -36923,6 +38056,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GOGLAND",
 "ua_flag_countries": [
 "cm",
 "cy",
@@ -36943,6 +38077,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JIN HUI",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -37014,6 +38149,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "APATE",
 "ua_flag_countries": [
 "lr",
 "mh",
@@ -37034,6 +38170,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MYS FLORA",
 "ua_flag_countries": [
 "ag",
 "de",
@@ -37052,6 +38189,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VOKKI",
 "ua_flag_countries": [
 "bb",
 "ck",
@@ -37076,6 +38214,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AKHTY",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -37093,6 +38232,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VOLGA RIVER",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -37110,6 +38250,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IRTYSH RIVER",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -37127,6 +38268,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GUSTAV",
 "ua_flag_countries": [
 "bb",
 "gm",
@@ -37156,6 +38298,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DG HONG KONG",
 "ua_flag_countries": [
 "cm",
 "lr",
@@ -37183,6 +38326,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CENTURION I",
 "ua_flag_countries": [
 "mh",
 "pa"
@@ -37202,6 +38346,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STAR",
 "ua_flag_countries": [
 "de",
 "km",
@@ -37226,6 +38371,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "INTEGRATOR",
 "ua_flag_countries": [
 "dj",
 "ga",
@@ -37251,6 +38397,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CAI YUN",
 "ua_flag_countries": [
 "it",
 "mh",
@@ -37275,6 +38422,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BHILVA",
 "ua_flag_countries": [
 "it",
 "mt",
@@ -37294,6 +38442,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BOLU",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -37355,6 +38504,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NEMRUT",
 "ua_flag_countries": [
 "hk",
 "lr"
@@ -37385,6 +38535,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VENGERY",
 "ua_flag_countries": [
 "id",
 "lr",
@@ -37409,6 +38560,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FELIKS",
 "ua_flag_countries": [
 "ck",
 "pa",
@@ -37460,6 +38612,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TORVIAN",
 "ua_flag_countries": [
 "bb",
 "mh",
@@ -37485,6 +38638,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AURA 1",
 "ua_flag_countries": [
 "mh",
 "mt",
@@ -37505,6 +38659,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PORT OLYA-2",
 "ua_flag_countries": [
 "bb",
 "ru"
@@ -37522,6 +38677,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PORT OLYA-3",
 "ua_flag_countries": [
 "bb",
 "ru"
@@ -37539,6 +38695,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PORT OLYA-1",
 "ua_flag_countries": [
 "md",
 "ru"
@@ -37556,6 +38713,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PORT OLYA-4",
 "ua_flag_countries": [
 "md",
 "ru"
@@ -37573,6 +38731,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZEAL",
 "ua_flag_countries": [
 "ga",
 "mh"
@@ -37593,6 +38752,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PAXMARIS",
 "ua_flag_countries": [
 "mt",
 "my",
@@ -37616,6 +38776,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SPASATEL KAREV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -37633,6 +38794,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GENERAL SKOBELEV",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -37659,6 +38821,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OASIS",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -37680,6 +38843,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MIRABEL",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -37700,6 +38864,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PRIMAVERA",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -37720,6 +38885,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZODIAK",
 "ua_flag_countries": [
 "km",
 "mh",
@@ -37768,6 +38934,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MIKHAIL NENASHEV",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -37787,6 +38954,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SIERRA",
 "ua_flag_countries": [
 "bb",
 "cm",
@@ -37808,6 +38976,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BELUGA",
 "ua_flag_countries": [
 "bb",
 "gm",
@@ -37833,6 +39002,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SONATA",
 "ua_flag_countries": [
 "gm",
 "gr",
@@ -37860,6 +39030,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VESNA",
 "ua_flag_countries": [
 "bb",
 "gm",
@@ -37884,6 +39055,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MOLLY",
 "ua_flag_countries": [
 "km",
 "kn",
@@ -37903,6 +39075,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FOURACE",
 "ua_flag_countries": [
 "km",
 "mh"
@@ -37925,6 +39098,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GAZPROMNEFT ZUID EAST",
 "ua_flag_countries": [
 "cy",
 "ru"
@@ -37942,6 +39116,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VYACHESLAV TIKHONOV",
 "ua_flag_countries": [
 "bs",
 "ru"
@@ -37959,6 +39134,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "URSA MAJOR",
 "ua_flag_countries": [
 "ag",
 "bz",
@@ -37997,6 +39173,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PERSEY",
 "ua_flag_countries": [
 "gm",
 "it",
@@ -38035,6 +39212,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MATROS KOSHKA",
 "ua_flag_countries": [
 "bb",
 "bs",
@@ -38054,6 +39232,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "XING CHEN",
 "ua_flag_countries": [
 "cm",
 "cy",
@@ -38080,6 +39259,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "COURAGE 7",
 "ua_flag_countries": [
 "ga",
 "mh"
@@ -38097,6 +39277,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VELIX",
 "ua_flag_countries": [
 "kr",
 "pa"
@@ -38116,6 +39297,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "XARON",
 "ua_flag_countries": [
 "kr",
 "pa"
@@ -38192,6 +39374,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MAHADEV",
 "ua_flag_countries": [
 "hk",
 "kr",
@@ -38215,6 +39398,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BALTIYSKIY ISSLEDOVATEL",
 "ua_flag_countries": [
 "mt",
 "ru",
@@ -38239,6 +39423,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MATROS POZYNICH",
 "ua_flag_countries": [
 "mh",
 "pa",
@@ -38258,6 +39443,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PREMIER",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -38278,6 +39464,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GARNET",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -38297,6 +39484,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PERUN",
 "ua_flag_countries": [
 "pa",
 "ru",
@@ -38323,6 +39511,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARLIN",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38337,6 +39526,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KALUGA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38357,6 +39547,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STRATEG",
 "ua_flag_countries": [
 "mh",
 "pa",
@@ -38382,6 +39573,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MEGION",
 "ua_flag_countries": [
 "ru",
 "tr"
@@ -38400,6 +39592,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "JUPITER I",
 "ua_flag_countries": [
 "mt",
 "pa",
@@ -38419,6 +39612,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VENUS III",
 "ua_flag_countries": [
 "mt",
 "pw",
@@ -38442,6 +39636,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NOMAD",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -38463,6 +39658,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GEORGY MASLOV",
 "ua_flag_countries": [
 "ga",
 "lr",
@@ -38479,6 +39675,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ANATOLY KOLODKIN",
 "ua_flag_countries": [
 "lr",
 "pa",
@@ -38495,6 +39692,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VIKTOR BAKAEV",
 "ua_flag_countries": [
 "lr",
 "ru"
@@ -38510,6 +39708,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VITUS BERING",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38524,6 +39723,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALEKSEY CHIRIKOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38541,6 +39741,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARIA E",
 "ua_flag_countries": [
 "bz",
 "gr",
@@ -38561,6 +39762,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FINVAL",
 "ua_flag_countries": [
 "gm",
 "lr",
@@ -38582,6 +39784,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KARAKUZ",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38598,6 +39801,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BAVLY",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38612,6 +39816,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STANISLAV GOVORUKHIN",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -38629,6 +39834,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VASILY LANOVOY",
 "ua_flag_countries": [
 "mh",
 "mt",
@@ -38648,6 +39854,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IVAN SIDORENKO",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38662,6 +39869,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OSTAP SHEREMETA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38676,6 +39884,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AURA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38692,6 +39901,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VALERA",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -38712,6 +39922,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PERLE",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -38733,6 +39944,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CLEAN OCEAN",
 "ua_flag_countries": [
 "mh"
 ],
@@ -38747,6 +39959,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CLEAN PLANET",
 "ua_flag_countries": [
 "mh"
 ],
@@ -38761,6 +39974,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SERGEY TERSKOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38775,6 +39989,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TONG YUAN",
 "ua_flag_countries": [
 "cn"
 ],
@@ -38789,6 +40004,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IVAN KRAMSKOY",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38805,6 +40021,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VELES",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38821,6 +40038,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POSEIDON S",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38837,6 +40055,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SANAR-18",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38853,6 +40072,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VASILY SURIKOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38869,6 +40089,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALEKSEY SAVRASOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38885,6 +40106,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RN SAKHALIN",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38899,6 +40121,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RN AMUR",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38913,6 +40136,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "RN USSURI",
 "ua_flag_countries": [
 "ru"
 ],
@@ -38927,6 +40151,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CLEAN VISION",
 "ua_flag_countries": [
 "mt"
 ],
@@ -38941,6 +40166,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SATURN I",
 "ua_flag_countries": [
 "mt",
 "pa",
@@ -38965,6 +40191,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IRTYSH",
 "ua_flag_countries": [
 "cn",
 "ru"
@@ -39000,6 +40227,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LEGENDA",
 "ua_flag_countries": [
 "bb",
 "gm",
@@ -39024,6 +40252,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TRUVOR",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39040,6 +40269,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MURMAN",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39057,6 +40287,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DMITRY POKROVSKY",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39071,6 +40302,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LADY SEVDA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39085,6 +40317,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LADY LEILA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39108,6 +40341,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STALINGRAD",
 "ua_flag_countries": [
 "bz",
 "ru"
@@ -39125,6 +40359,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARSHAL ZHUKOV",
 "ua_flag_countries": [
 "bz",
 "ru"
@@ -39142,6 +40377,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA SEVASTIANA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39159,6 +40395,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZAID",
 "ua_flag_countries": [
 "im",
 "mh",
@@ -39187,6 +40424,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SIMBA",
 "ua_flag_countries": [
 "cy",
 "lr"
@@ -39204,6 +40442,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZAFAR",
 "ua_flag_countries": [
 "mh",
 "mt",
@@ -39228,6 +40467,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MIDVOLGA-3",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39242,6 +40482,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YAZ",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39256,6 +40497,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SIG",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39270,6 +40512,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "CHRISTOPHE DE MARGERIE",
 "ua_flag_countries": [
 "bb",
 "cy",
@@ -39290,6 +40533,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALARA",
 "ua_flag_countries": [
 "im",
 "pa",
@@ -39310,6 +40554,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GENNADIY NEVELSKOY",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39324,6 +40569,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SPARTA IV",
 "ua_flag_countries": [
 "ru",
 "tg"
@@ -39339,6 +40585,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARTEMIS OFFSHORE",
 "ua_flag_countries": [
 "pw",
 "ru",
@@ -39355,6 +40602,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KUPAVA",
 "ua_flag_countries": [
 "mt",
 "ru"
@@ -39370,6 +40618,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SHTURMAN ALBANOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39384,6 +40633,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SHTURMAN MALYGIN",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39398,6 +40648,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SHTURMAN OVTSYN",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39415,6 +40666,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "FEDOR USHAKOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39429,6 +40681,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YEVGENY PRIMAKOV",
 "ua_flag_countries": [
 "cy",
 "ru"
@@ -39444,6 +40697,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IPSALA",
 "ua_flag_countries": [
 "mt",
 "pa",
@@ -39464,6 +40718,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SHTURMAN SKURATOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39478,6 +40733,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SHTURMAN SHCHERBININ",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39492,6 +40748,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SHTURMAN KOSHELEV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39506,6 +40763,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AUDAX",
 "ua_flag_countries": [
 "cw",
 "lr",
@@ -39522,6 +40780,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PUGNAX",
 "ua_flag_countries": [
 "cw",
 "lr",
@@ -39544,6 +40803,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SANAR 15",
 "ua_flag_countries": [
 "cm",
 "mt",
@@ -39563,6 +40823,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MARSHAL VASILEVSKIY",
 "ua_flag_countries": [
 "pa",
 "ru"
@@ -39578,6 +40839,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ULA",
 "ua_flag_countries": [
 "pa",
 "ru",
@@ -39596,6 +40858,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LADY RANIA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39612,6 +40875,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BAKHTEMIR",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39626,6 +40890,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ELM",
 "ua_flag_countries": [
 "ru",
 "vc"
@@ -39661,6 +40926,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KUMANA",
 "ua_flag_countries": [
 "lk"
 ],
@@ -39675,6 +40941,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "TIS",
 "ua_flag_countries": [
 "ru",
 "vc"
@@ -39721,6 +40988,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GALAXY",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -39745,6 +41013,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BRIGHT OCEAN",
 "ua_flag_countries": [
 "cn",
 "mh",
@@ -39764,6 +41033,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "STRIZH",
 "ua_flag_countries": [
 "bb",
 "gm",
@@ -39787,6 +41057,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PROMETEY",
 "ua_flag_countries": [
 "bb",
 "gm",
@@ -39810,6 +41081,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "MIKHAIL LAZAREV",
 "ua_flag_countries": [
 "cy",
 "ru"
@@ -39828,6 +41100,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VLADIMIR MONOMAKH",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39842,6 +41115,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VLADIMIR VINOGRADOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39858,6 +41132,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "AKADEMIK GUBKIN",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39872,6 +41147,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZVEZDA 131040",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39886,6 +41162,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NURSULTAN NAZARBAYEV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39902,6 +41179,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VOYAGER",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -39922,6 +41200,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA MAKARIA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39936,6 +41215,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA FILOFEIA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39950,6 +41230,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA SOFIA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39964,6 +41245,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA FEODOSIA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39978,6 +41260,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA FIVA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -39992,6 +41275,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LA PEROUSE",
 "ua_flag_countries": [
 "bb",
 "ga",
@@ -40012,6 +41296,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA ANATOLIA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40026,6 +41311,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA ANFISA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40040,6 +41326,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA GALI",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40054,6 +41341,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ARCTIC MULAN",
 "ua_flag_countries": [
 "pa",
 "pw",
@@ -40074,6 +41362,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OKEANSKY PROSPECT",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40088,6 +41377,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VOSTOCHNY PROSPECT",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40102,6 +41392,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NAVIS-6",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40116,6 +41407,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IVAN AIVAZOVSKY",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40130,6 +41422,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALEXEY BOGOLYUBOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40144,6 +41437,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALEXANDER BEGGROV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40158,6 +41452,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VALENTIN PIKUL",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40172,6 +41467,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "DMITRY MENDELEEV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40186,6 +41482,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA HARITA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40200,6 +41497,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA PELAGIA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40214,6 +41512,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALEKSANDR SOKOLOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40230,6 +41529,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA ANASTASIA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40244,6 +41544,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA MARIA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40258,6 +41559,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "OKEANSKY PROSPECT",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40272,6 +41574,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PETROTRANS-5902",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40286,6 +41589,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VLADIMIR ARSENYEV",
 "ua_flag_countries": [
 "cy",
 "km",
@@ -40303,6 +41607,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NIKOLAY ZADORNOV",
 "ua_flag_countries": [
 "bb",
 "cy",
@@ -40322,6 +41627,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA YAROSLAVA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40336,6 +41642,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA VARVARA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40350,6 +41657,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA AGATA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40364,6 +41672,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA ALEXIA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40378,6 +41687,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA MARINA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40392,6 +41702,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "POLA MIROPIA",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40406,6 +41717,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALEKSEY KOSYGIN",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40420,6 +41732,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "PYOTR STOLYPIN",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40436,6 +41749,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SERGEI WITTE",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40452,6 +41766,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZVEZDA 044",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40466,6 +41781,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZVEZDA 045",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40480,6 +41796,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ASTROL-1",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40494,6 +41811,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZVEZDA 131080",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40508,6 +41826,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "YURI BABAEV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40522,6 +41841,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "SAAM FSU",
 "ua_flag_countries": [
 "pa",
 "ru"
@@ -40537,6 +41857,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "KORYAK FSU",
 "ua_flag_countries": [
 "pa",
 "ru"
@@ -40552,6 +41873,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZVEZDA 046",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40566,6 +41888,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZVEZDA 047",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40580,6 +41903,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VLADIMIR LATYSHEV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40594,6 +41918,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VICTOR ANDRYUKHIN",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40608,6 +41933,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "LEONID PESTRIKOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40622,6 +41948,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NIKOLAI LEONOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40636,6 +41963,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALPHA HELIOS",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40650,6 +41978,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ALPHA HERMES",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40664,6 +41993,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "GLORY OCEAN",
 "ua_flag_countries": [
 "cn"
 ],
@@ -40680,6 +42010,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "NIKOLAY ANISHCHENKOV",
 "ua_flag_countries": [
 "ru"
 ],
@@ -40694,6 +42025,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "BURAN",
 "ua_flag_countries": [
 "pa",
 "ru",
@@ -40713,6 +42045,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "VOSKHOD",
 "ua_flag_countries": [
 "pa",
 "ru",
@@ -40740,6 +42073,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "IRIS",
 "ua_flag_countries": [
 "pa",
 "ru",
@@ -40759,6 +42093,7 @@
 "url": "https://www.opensanctions.org/datasets/ua_war_sanctions/"
 }
 ],
+"ua_current_name": "ZARYA",
 "ua_flag_countries": [
 "pa",
 "ru",

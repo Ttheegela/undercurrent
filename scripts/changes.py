@@ -4,12 +4,20 @@ diff() compares yesterday's and today's graph and returns dated Change dicts; su
 English; update_record() files a night's changes into the rolling record that the Updates page, the calendar panel and
 Ask read (data/changes/changes.json).
 
-  * graph "fleet" is fleet_merge.merge()'s long form, "lobby" is kg_build.build_kg()'s window.KG shape.
+  * graph "fleet" is fleet_merge.merge()'s long form, "lobby" is kg_build.build_kg()'s window.KG shape. `prev` must be
+    the graph from before `date` (not one already published that day), and `unavailable` holds this night's names only.
   * The fleet layer is reported once, on graph "fleet" (the network's pages use the same ids). Graph "lobby" holds the
-    lobbying layer's additions and the level ("status") of the fleet nodes the network draws.
+    lobbying layer's additions, the level ("status") of the fleet nodes the network draws, and the listings of the
+    firms only the network shows (kg_only).
   * A node is "added" or "removed" only when an official node enters or leaves the graph; a research item never is. A
-    delisted ship that a research edge keeps on the map stays, and its listing change is a "changed" row: listed_by is
-    compared for every node on both days, whatever its layer. A link changes only when it enters or leaves the graph.
+    ship is on the map because a list names it, so its entering or leaving, and any listed_by change of a ship on both
+    days (whatever its layer), is a listing. A company or person is on the map only while a listed vessel names it
+    (build_official looks up no others), so its entering or leaving the map claims no listing ("New on the map"), and
+    its listed_by is compared only when it was looked up on both days (official on both). A link changes only when it
+    enters or leaves the graph. Company ids are slugs of the lists' own spellings, so a respelling is a removal and an
+    addition; none has happened yet.
+  * A lobby node or link is news only when it carries a filing (kg `fl`) that yesterday's lobby layer did not hold: a
+    registrant renamed in the LDA gets new ids for its whole history, and a link out of yesterday's graph can return.
   * Designations, flags and registrations are node facts (listed_by, flag_now), never links.
   * Nothing a failing source could have caused: a government in `unavailable` is left out of every listing, and an
     item only that government supplied is skipped. "lobbying" covers the whole lobby layer, and lobby links and nodes
@@ -18,6 +26,8 @@ Ask read (data/changes/changes.json).
     real id and its generic id (fleet_merge.generic_id) is the same company, so a naming flip is not a change.
     Lobbyists in exclude_lobbyists (data/lobbying-clients.json, plus `exclude`) are in no change.
   * Identity is the graph's own id or edge key, never an OpenSanctions entity id, so their churn changes nothing.
+  * node_type is the graph's type, except that lobby-layer nodes use a display noun ("lobbyist", "lobbying firm",
+    "agency"), and an edge's node_type is its link type.
 """
 from __future__ import annotations
 
@@ -31,9 +41,11 @@ from normalize import normalize_name
 
 GRAPHS = ("fleet", "lobby")
 GOVS = ("EU", "UK", "UN", "US")
+SOURCES = ("us", "uk", "eu", "un", "lobbying")  # the names `unavailable` may hold
+PRECEDENCE = ("UK", "US", "EU")  # whose name and flag the merged node takes first (fleet_official.build_official)
 FLEET_TYPES = ("ship", "company", "person")
 LOBBY_EDGES = ("hired", "lobbyist_at", "lobbied", "lobbied_on")  # the lobby links that count as news
-LOBBY_NOUN = {"person": "lobbyist", "lobbyfirm": "lobbying firm", "government": "agency"}  # kg `t` of a lobby-layer node
+LOBBY_NOUN = {"lobbyfirm": "lobbying firm", "government": "agency"}  # kg `t` of a lobby-layer node (a person: see _kg_view)
 LDA_LABEL = "US Senate lobbying disclosure (LDA)"
 # edge type -> (label, flipped): a flipped link reads "target → source (label)", e.g. a manager's `manages` edge as
 # "TASSOS → Zulu (managed by)". The lobby types read "source label target" instead.
@@ -51,22 +63,26 @@ def _origin(*labels) -> set:
 
 # ---- one shape for both graphs ----------------------------------------------------------------------
 
-def _node(nid, t, name, *, type_=None, generic=False, official=True, lobby=False, flag="", govs=(), programs=(),
-          status=None) -> dict:
+def _node(nid, t, name, *, type_=None, generic=False, official=True, lobby=False, kg_only=False, flag="", govs=(),
+          programs=(), status=None) -> dict:
     govs = set(govs) & set(GOVS)
     return {"id": nid, "t": t, "type": type_ or t, "name": name, "generic": generic, "official": official,
-            "lobby": lobby, "flag": flag or "", "govs": govs, "programs": set(programs or ()), "status": status,
-            "desig": {}, "src": None, "origin": set(govs)}
+            "lobby": lobby, "kg_only": kg_only, "flag": flag or "", "govs": govs, "programs": set(programs or ()),
+            "status": status, "desig": {}, "src": None, "origin": set(govs), "fl": set()}
 
 
-def _edge(eid, s, t, type_, src, origin, official=True, lobby=False) -> dict:
-    return {"id": eid, "s": s, "t": t, "type": type_, "src": src, "origin": origin, "official": official, "lobby": lobby}
+def _edge(eid, s, t, type_, src, origin, official=True, lobby=False, fl=()) -> dict:
+    """`fl` None means the edge's filings are not known (kg.json from before the change record held six per link)."""
+    return {"id": eid, "s": s, "t": t, "type": type_, "src": src, "origin": origin, "official": official, "lobby": lobby,
+            "fl": None if fl is None else set(fl)}
 
 
 def _link(nodes: dict, edges: list) -> None:
-    """What an official link tells its two ends: the first source to cite, and which governments supplied it."""
+    """What an official link tells its two ends: the first source to cite, which governments supplied it, and (a
+    lobby link) its filings."""
     for e in edges:
         for end in (e["s"], e["t"]):
+            nodes[end]["fl"] |= e["fl"] or set()
             if e["official"]:
                 nodes[end]["src"] = nodes[end]["src"] or e["src"]
                 nodes[end]["origin"] |= e["origin"]
@@ -96,41 +112,46 @@ def _fleet_view(graph: dict) -> tuple[dict, list]:
 def _kg_view(graph: dict) -> tuple[dict, list]:
     """The network's nodes (the fleet layer for its level and as link ends) and its lobby links; the base's team and
     curated links are fixed and left out, and the fleet layer's links are the map's to report."""
+    lobbyists = {e["s"] for e in graph["edges"] if e["L"] == "lobby" and e["y"] == "lobbyist_at"}
     nodes = {}
     for n in graph["nodes"]:
         if n["L"] in ("fleet", "lobby"):
             lobby, info = n["L"] == "lobby", n.get("info") or {}
-            nodes[n["id"]] = _node(n["id"], n["t"], n["n"], type_=LOBBY_NOUN.get(n["t"]) if lobby else None,
-                                   generic=n["id"].startswith("co:unlisted-"), lobby=lobby, flag=info.get("flag_now"),
+            noun = ("lobbyist" if n["id"] in lobbyists else "person") if n["t"] == "person" else LOBBY_NOUN.get(n["t"])
+            nodes[n["id"]] = _node(n["id"], n["t"], n["n"], type_=noun if lobby else None,
+                                   generic=n["id"].startswith("co:unlisted-"), lobby=lobby, kg_only=bool(n.get("kg_only")),
+                                   flag=info.get("flag_now"),
                                    govs=() if lobby else {x[0].split()[0].upper() for x in n["lists"]},
                                    programs=info.get("programs"), status=n["s"])
     edges = [_edge(edge_id(e["s"], e["t"], e["y"]), e["s"], e["t"], e["y"], (e.get("u") or "", e.get("f") or LDA_LABEL),
-                   _origin(e.get("f")), lobby=True)
+                   _origin(e.get("f")), lobby=True, fl=e.get("fl"))
              for e in graph["edges"] if e["L"] == "lobby" and e["s"] in nodes and e["t"] in nodes]
     _link(nodes, edges)
     return nodes, edges
 
 
+def _page(govs) -> tuple[str, str] | None:
+    """The page of the first of `govs` whose list we know."""
+    return next(((LISTS[g.lower()]["page"], LISTS[g.lower()]["label"] + " sanctions list") for g in govs
+                 if g.lower() in LISTS), None)
+
+
 def _source(n: dict, govs) -> tuple[str, str]:
     """Where to read about a node: its designation by the first of `govs` that has one, else that government's list
     page, else the first official link that names it."""
-    for g in govs:
-        if g in n["desig"]:
-            return n["desig"][g]
-    for g in govs:
-        if g.lower() in LISTS:
-            return LISTS[g.lower()]["page"], LISTS[g.lower()]["label"] + " sanctions list"
-    return n["src"] or ("", "")
+    return next((n["desig"][g] for g in govs if g in n["desig"]), None) or _page(govs) or n["src"] or ("", "")
 
 
 def _facts(p: dict, c: dict, down: set) -> dict:
     """What changed in a node's own fields, as {field: (from, to)}. A fact counts only when both days know it (a list
     that starts to give a flag has not re-flagged the ship), and a generic company's name is the policy's, not its own."""
     norm = lambda s: normalize_name(s) or s.casefold().strip()  # noqa: E731
+    first = lambda n: next((g for g in PRECEDENCE if g in n["govs"]), None)  # noqa: E731
     out = {}
-    if not (p["generic"] or c["generic"]) and norm(p["name"]) != norm(c["name"]):
+    # (the name and flag are the first list's: when the list ranking first changed, another's spelling is no rename)
+    if first(p) == first(c) and not (p["generic"] or c["generic"]) and norm(p["name"]) != norm(c["name"]):
         out["name"] = p["name"], c["name"]
-    if p["flag"] and c["flag"] and p["flag"] != c["flag"]:
+    if first(p) == first(c) and p["flag"] and c["flag"] and p["flag"] != c["flag"]:
         out["flag_now"] = CNAME.get(p["flag"], p["flag"]), CNAME.get(c["flag"], c["flag"])
     if p["programs"] and c["programs"] and p["programs"] != c["programs"]:
         out["programs"] = sorted(p["programs"]), sorted(c["programs"])
@@ -144,14 +165,22 @@ def _facts(p: dict, c: dict, down: set) -> dict:
 def diff(prev: dict | None, curr: dict, graph: str, date: str, unavailable: set[str],
          exclude: list[str] | None = None) -> list[dict]:
     """Today's changes to `graph` ("fleet" or "lobby") against yesterday's. `unavailable` holds the sources that kept
-    their previous copy ("us", "uk", "eu", "un", "lobbying"). `exclude` adds lobbyist names to the config's list."""
+    their previous copy ("us", "uk", "eu", "un", "lobbying"; any other name is an error, not a source to ignore).
+    `exclude` adds lobbyist names to the config's list."""
     if graph not in GRAPHS:
         raise ValueError("graph must be one of %s, not %r" % (GRAPHS, graph))
+    unknown = set(unavailable) - set(SOURCES)
+    if unknown:
+        raise ValueError("unknown source name(s) %s; expected some of %s" % (sorted(unknown), SOURCES))
     if prev is None:  # the first run is the baseline
         return []
     view, down = (_fleet_view if graph == "fleet" else _kg_view), {x.upper() for x in unavailable} & set(GOVS)
+    # exclude_lobbyists as the lobbying asset gives them, which kg_build adds to the config's
     excluded = _excluded({"exclude_lobbyists": exclude or []}, None)
     views = [view(g) for g in (prev, curr)]
+    old = {f for e in views[0][1] for f in e["fl"] or ()}  # every filing in yesterday's lobby layer
+    blind = any(e["fl"] is None for e in views[0][1])  # ... unless yesterday's graph did not list them: then nothing
+    # lobbying can be called new, as a renamed registrant would read as new (this happens once, on the night of the switch)
     ids = {i for nodes, _ in views for i in nodes}
     # a company turned generic (or named) has a new id but is the same company
     canon = {generic_id(i): i for i in ids if i.startswith("co:") and not i.startswith("co:unlisted-")}
@@ -171,9 +200,11 @@ def diff(prev: dict | None, curr: dict, graph: str, date: str, unavailable: set[
         company that is generic today is generic in every change."""
         c, p = cn.get(k), pn.get(k)
         return c if c and c["generic"] else min([x for x in ((c, p) if today else (p, c)) if x],
-                                                key=lambda x: not x["official"])
+                                                key=lambda x: (not x["official"], x["name"] == x["id"]))  # not a stub
 
-    def put(kind, item, id_, who, type_, src, **extra):
+    def put(kind, item, id_, who, type_, src, keys=(), govs=(), **extra):
+        if any(cn.get(k) and cn[k]["generic"] for k in keys):  # the record that named a company we no longer name
+            src = _page(govs) or ("", "")  # is not cited for it: the list's page is
         out.append({"date": date, "graph": graph, "kind": kind, "item": item, "id": id_, "name": who, "node_type": type_,
                     **extra, "source_url": src[0], "source_label": src[1]})
 
@@ -182,45 +213,52 @@ def diff(prev: dict | None, curr: dict, graph: str, date: str, unavailable: set[
 
     for k in sorted(pn.keys() | cn.keys()):
         p, c = pn.get(k), cn.get(k)
-        if c and not p and c["official"] and (graph == "fleet" or c["lobby"]):
-            govs = sorted(c["govs"] - down)
-            if not skipped(c["origin"]):
-                put("added", "node", c["id"], pick(k, 1)["name"], c["type"], _source(c, govs or sorted(c["govs"])),
-                    **({"field": "listed_by", "to": govs} if govs else {}))
-        elif p and not c and p["official"] and graph == "fleet":
-            govs = sorted(p["govs"] - down)
-            if not skipped(p["origin"]):
-                put("removed", "node", p["id"], pick(k, 0)["name"], p["type"], _source(p, govs or sorted(p["govs"])),
-                    **({"field": "listed_by", "from": govs} if govs else {}))
+        if c and not p and c["official"] and (graph == "fleet" or c["lobby"]) and not skipped(c["origin"]):
+            if c["lobby"] and (blind or not c["fl"] - old):
+                continue  # a renamed registrant's old filings
+            govs = sorted(c["govs"] - down) if c["t"] == "ship" else []  # only a ship's arrival is a listing
+            put("added", "node", c["id"], pick(k, 1)["name"], c["type"], _source(c, govs), (k,), govs,
+                **({"field": "listed_by", "to": govs} if govs else {}))
+        elif p and not c and p["official"] and graph == "fleet" and not skipped(p["origin"]):
+            govs = sorted(p["govs"] - down) if p["t"] == "ship" else []
+            put("removed", "node", p["id"], pick(k, 0)["name"], p["type"], _source(p, govs), (k,), govs,
+                **({"field": "listed_by", "from": govs} if govs else {}))
         elif p and c and not (p["lobby"] or c["lobby"]):
             now = pick(k, 1)
             before, after = p["govs"] - down, c["govs"] - down
-            if graph == "fleet" and after - before:
-                put("changed", "node", c["id"], now["name"], now["type"], _source(c, sorted(after - before)),
-                    field="listed_by", to=sorted(after - before))
-            if graph == "fleet" and before - after:
-                put("changed", "node", c["id"], now["name"], now["type"], _source(p, sorted(before - after)),
-                    field="listed_by", **{"from": sorted(before - after)})
+            # a ship is looked up in the lists whatever its layer; a company only while a listed vessel names it
+            listing = (c["t"] == "ship" or (p["official"] and c["official"])) and (
+                graph == "fleet" or p["kg_only"] or c["kg_only"])
+            if listing and after - before:
+                put("changed", "node", c["id"], now["name"], now["type"], _source(c, sorted(after - before)), (k,),
+                    sorted(after - before), field="listed_by", to=sorted(after - before))
+            if listing and before - after:
+                put("changed", "node", c["id"], now["name"], now["type"], _source(p, sorted(before - after)), (k,),
+                    sorted(before - after), field="listed_by", **{"from": sorted(before - after)})
             for field, (was, is_) in (_facts(p, c, down) if p["official"] and c["official"] else {}).items():
                 if graph == "fleet" or field == "status":  # the network adds only the level
-                    put("changed", "node", c["id"], now["name"], now["type"], _source(c, sorted(c["govs"])),
-                        field=field, **{"from": was, "to": is_})
+                    put("changed", "node", c["id"], now["name"], now["type"], _source(c, sorted(c["govs"])), (k,),
+                        sorted(c["govs"]), field=field, **{"from": was, "to": is_})
 
     for k in sorted(pe.keys() | ce.keys()):
         p, c = pe.get(k), ce.get(k)
         e, side = (c, 1) if c and not p else (p, 0) if p and not c else (None, 0)
         if e is None or not e["official"] or skipped(e["origin"]):
             continue
-        if e["lobby"] and (side == 0 or e["type"] not in LOBBY_EDGES):
-            continue  # a filing is never deleted, and only some lobby links are news
+        if e["lobby"] and (side == 0 or e["type"] not in LOBBY_EDGES or blind or not (e["fl"] or set()) - old):
+            continue  # a filing is never deleted, only some lobby links are news, and only on a filing not seen before
         a, b = pick(e["s"], side), pick(e["t"], side)
         put("added" if side else "removed", "edge", e["id"], f"{a['name']} → {b['name']}", e["type"], e["src"],
-            endpoints=[a["name"], b["name"]], endpoint_ids=[(cn.get(x) or pn[x])["id"] for x in (e["s"], e["t"])])
+            (e["s"], e["t"]), sorted(e["origin"]), endpoints=[a["name"], b["name"]],
+            endpoint_ids=[(cn.get(x) or pn[x])["id"] for x in (e["s"], e["t"])])
 
     for c in out:
         c["summary"] = summarize(c)
-    return sorted(out, key=lambda c: (c["graph"], c["kind"], c["id"], c.get("field", ""), str(c.get("from", "")),
-                                      str(c.get("to", ""))))
+    return sorted(out, key=_order)
+
+
+def _order(c: dict) -> tuple:
+    return c["graph"], c["kind"], c["id"], c.get("field", ""), str(c.get("from", "")), str(c.get("to", ""))
 
 
 def _join(items: list) -> str:
@@ -249,15 +287,25 @@ def summarize(c: dict) -> str:
         return f"Renamed: {c['from']} → {c['to']}{imo}"
     if field:
         return f"{c['name']} changed {FIELDS[field]}: {_show(c['from'])} → {_show(c['to'])}"
-    return f"{'New' if kind == 'added' else 'Removed'} {type_}: {who}"
+    if c["graph"] == "fleet":  # a company is on the map while a listed vessel names it, which says nothing of its listing
+        return f"{'New on the map' if kind == 'added' else 'No longer on the map'}: {who}"
+    return f"New {type_}: {who}"
 
 
 def update_record(record: dict | None, date: str, changes: list[dict], sources: dict[str, str],
                   keep_days: int = 120) -> dict:
     """File a night in the rolling record: `sources` says which lists were "fresh" or "unavailable" that night. A
-    re-run replaces its own day. Days past `keep_days` go, and `started` is the oldest day held, because a day before
-    it cannot be answered."""
-    days = [d for d in (record or {}).get("days", []) if d["date"] != date]
-    days.append({"date": date, "sources": dict(sources), "changes": list(changes)})
+    re-run on a day already held adds to it and never wipes it (its own diff may find nothing, against a graph already
+    published that day): a change seen again is not doubled (the later run's row wins; a listing and a delisting of one
+    node are two), and a source fresh in either run is fresh. Days past `keep_days` go, and `started` is the oldest day
+    held, because a day before it cannot be answered."""
+    held = (record or {}).get("days", [])
+    same = next((d for d in held if d["date"] == date), {"changes": [], "sources": {}})
+    rows = {(c["graph"], c["kind"], c["item"], c["id"], c.get("field"), "to" in c): c
+            for c in same["changes"] + list(changes)}
+    seen = {k: "fresh" if "fresh" in (same["sources"].get(k), sources.get(k)) else "unavailable"
+            for k in same["sources"].keys() | sources.keys()}
+    today = {"date": date, "sources": seen, "changes": sorted(rows.values(), key=_order)}
+    days = [d for d in held if d["date"] != date] + [today]
     days = sorted(days, key=lambda d: d["date"], reverse=True)[:keep_days]
     return {"started": days[-1]["date"], "days": days}

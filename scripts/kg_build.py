@@ -1,7 +1,9 @@
 """The influence network (window.KG shape) from the live fleet graph, the nightly lobbying asset and the 25 Sep base.
 
 Ported from veil-trace@88dcaa2:research/knowledge-graph/scripts/build_kg.py:78-202: the fleet layer, the lobby layer,
-curated bridges, the bridge flag and the orphan-ship drop and count. Node and edge keys are unchanged. What differs:
+curated bridges, the bridge flag and the orphan-ship drop and count. Node and edge keys are unchanged, but for two
+that the change record (changes.py) reads: `kg_only` on a company only this page shows, and `fl` on a lobby link
+(every filing id, shortened to 8 characters, sorted). What differs:
   * the fleet is merge() output (fleet_merge.py), the lobby layer is build/lobbying.json.gz;
   * the team lobbying nodes ("lob:") and the 30 team and 18 curated edges come from data/kg-base.json, which holds
     them as the original left them: already merged through LOB_ALIAS, typed and hubbed (HUBS, LOB_TYPE), and with
@@ -89,7 +91,8 @@ def _fleet_node(n: dict, live: dict) -> dict:
             "s": live.get(n["id"], ""),
             "lists": _lists(n),
             "info": info, "notes": notes[:3],
-            "unverified_person": n["type"] == "person" and not (n.get("named_by") or n.get("listed"))}
+            "unverified_person": n["type"] == "person" and not (n.get("named_by") or n.get("listed")),
+            **({"kg_only": True} if n.get("kg_only") else {})}  # looked up in the lists for this page; not on the map
 
 
 def _fleet_edge(e: dict) -> dict:
@@ -108,7 +111,8 @@ def _lobby_edge(e: dict) -> dict:
     return {"s": e["source"], "t": e["target"], "y": e["type"], "c": "D",
             "d": "%s" % yrs[0] if yrs else "", "d2": "%s" % yrs[-1] if yrs else "",
             "u": e["source_url"], "r": "%d filing%s" % (e["n_filings"], "" if e["n_filings"] == 1 else "s"),
-            "ids": e["filings"][:6], "a": e.get("amount", 0), "q": " | ".join(e.get("texts", []))[:300],
+            "ids": e["filings"][:6], "fl": sorted(f[:8] for f in e["filings"]),  # every filing, for the change record
+            "a": e.get("amount", 0), "q": " | ".join(e.get("texts", []))[:300],
             "pct": e.get("ownership_pct", ""), "sa": e.get("sub_amount", 0), "sub": e.get("subcontract", False),
             "L": "lobby"}
 

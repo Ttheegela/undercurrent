@@ -15,9 +15,9 @@ SAMPLE = json.loads((Path(__file__).parent / "fixtures" / "lobbying_sample.json"
 ZULU = "co:zulu-ships-management-and-operation-l-l-c"
 GENERIC = "co:unlisted-003"
 NODE_KEYS = {"id", "t", "n", "L", "g", "s", "lists", "info", "notes", "k", "br", "unverified_person", "hub", "src",
-             "live", "nolobby"}
+             "live", "nolobby", "kg_only"}
 EDGE_KEYS = {"fleet": {"s", "t", "y", "c", "d", "u", "f", "r", "q", "L", "br"},
-             "lobby": {"s", "t", "y", "c", "d", "d2", "u", "r", "ids", "a", "q", "pct", "sa", "sub", "L", "br"}}
+             "lobby": {"s", "t", "y", "c", "d", "d2", "u", "r", "ids", "fl", "a", "q", "pct", "sa", "sub", "L", "br"}}
 
 
 @pytest.fixture(autouse=True)
@@ -170,6 +170,20 @@ def test_node_and_edge_keys_keep_the_old_shape():
             assert set(e) <= EDGE_KEYS[e["L"]], e
     lobby_edge = next(e for e in kg["edges"] if e["L"] == "lobby" and e["y"] == "hired")
     assert set(lobby_edge) - {"br"} == EDGE_KEYS["lobby"] - {"br"}
+
+
+def test_lobby_links_carry_all_their_filing_ids_in_a_fixed_order():
+    asset = lobby()
+    edge = next(e for e in asset["edges"] if len(e["filings"]) > 1)
+    kg = build_kg(make_fleet(), asset, load_kg_base(), None, DAY)
+    built = next(e for e in kg["edges"] if e["L"] == "lobby" and (e["s"], e["t"], e["y"]) == (
+        edge["source"], edge["target"], edge["type"]))
+    assert built["fl"] == sorted(f[:8] for f in edge["filings"]) and len(built["fl"]) == len(edge["filings"])
+    shuffled = lobby()  # the asset lists a link's filings in no fixed order; the page's filing ids follow that order
+    next(e for e in shuffled["edges"] if (e["source"], e["target"], e["type"]) == (
+        edge["source"], edge["target"], edge["type"]))["filings"].reverse()
+    again = build_kg(make_fleet(), shuffled, load_kg_base(), None, DAY)
+    assert [e["fl"] for e in again["edges"] if e["L"] == "lobby"] == [e["fl"] for e in kg["edges"] if e["L"] == "lobby"]
 
 
 def test_bridge_flags_on_links_between_the_two_sides():
@@ -501,5 +515,7 @@ def test_extra_company_is_blocked_on_the_network_and_out_of_the_map_payload():
     kg = build_kg(fleet, lobby(), make_base([old, arctic], [link]), None, DAY)
     assert (get(kg, "co:zara-shipholding")["s"], get(kg, "co:zara-shipholding")["lists"]) == (
         "blocked", [["US", "", "2024-08-23"]])
+    assert get(kg, "co:zara-shipholding")["kg_only"] is True  # the change record needs to know the map does not show it
+    assert not any("kg_only" in n for n in kg["nodes"] if n["id"] != "co:zara-shipholding")
     ids = {n["id"] for n in compact(fleet, DAY)["nodes"]}
     assert not ids & {"co:zara-shipholding", "cc:ae"}

@@ -1,12 +1,20 @@
+import csv
+import io
 import json
 import random
+import shutil
+from pathlib import Path
 
 import pytest
 
+import fleet_official as fo
 import kg_build
 from changes import diff, summarize, update_record
-from fleet_merge import edge_id, generic_id
+from fleet_merge import edge_id, generic_id, merge
 from lists import LISTS
+
+FIX = Path(__file__).parent / "fixtures" / "fleet"
+DOWNLOADS = {fo.OS_EU_JOURNAL: "os_eu_journal_sample.csv", fo.OS_OFAC: "os_ofac_sample.csv"}
 
 DAY = "2026-10-20"
 UK_URL = "https://search-uk-sanctions-list.service.gov.uk/designations/RUS3483/Ship"
@@ -59,6 +67,23 @@ def only(changes):
     return changes[0]
 
 
+def map_on(tmp_path, night, drop=(), research=(), known=None):
+    """A night's merged long form, through the real build_official and merge, on a night when the US list no longer
+    carries the rows named in `drop` (vessels, here)."""
+    raw = tmp_path / night
+    raw.mkdir()
+    shutil.copy(FIX / "uk_sample.csv", raw / "uk.csv")
+    rows = list(csv.DictReader(io.StringIO((FIX / "csl_sample.csv").read_text(encoding="utf-8-sig"))))
+    with open(raw / "us.csv", "w", newline="", encoding="utf-8") as f:
+        out = csv.DictWriter(f, fieldnames=list(rows[0]))
+        out.writeheader()
+        out.writerows(r for r in rows if r["name"] not in drop)
+    official = fo.build_official(raw, fetch=lambda url: (FIX / DOWNLOADS[url]).read_text(encoding="utf-8"))
+    base = {"nodes": [], "edges": list(research), "node_fields": {}, "meta": {}, "generated": "2026-09-25",
+            "known_names": known or {}}
+    return merge(base, official, aliases={}, eu_records=[])
+
+
 def test_first_run_is_baseline_without_changes():
     g = fleet(ship(), listing(TASSOS, "uk"), *GOV_NODES)
     assert diff(None, g, "fleet", DAY, set()) == []
@@ -108,6 +133,8 @@ def test_edge_change_carries_endpoint_ids():
     prev = fleet(*base, shown, fedge(REAL, TASSOS, "owns", url="https://example.gov/owns"))
     gone = only(diff(prev, fleet(*base, generic), "fleet", DAY, set()))
     assert gone["endpoint_ids"] == [gen, TASSOS] and REAL not in json.dumps(gone)
+    # the record that named the company is not cited for a company we no longer name: the list's page is
+    assert (gone["source_url"], gone["source_label"]) == (LISTS["uk"]["page"], "United Kingdom sanctions list")
     new = only(diff(fleet(*base), fleet(*base, generic, fedge(gen, TASSOS, "owns")), "fleet", DAY, set())[1:])
     assert new["endpoint_ids"] == [gen, TASSOS]
     # and on the network, where a lobby link can end on a fleet-layer company
@@ -174,19 +201,62 @@ def test_delisted_ship_that_research_keeps_is_a_listing_change_not_a_removal():
                                                                  "EU removed ADISA (IMO 9341279)")
 
 
+def test_company_leaving_map_is_not_a_delisting(tmp_path):
+    # TRANS-FLOT JSC (on the US list) and ARTEMOV (a listed person) are on the map only while a listed vessel names them
+    today = map_on(tmp_path, "today")
+    gone = diff(today, map_on(tmp_path, "tomorrow", drop={"MARSHAL ZHUKOV", "ZEPHYR I"}), "fleet", DAY, set())
+    summaries = {c["summary"] for c in gone}
+    assert {"US removed MARSHAL ZHUKOV (IMO 9690224)", "US removed ZEPHYR I (IMO 9255880)"} <= summaries  # real delistings
+    assert {"No longer on the map: TRANS-FLOT JSC", "No longer on the map: ARTEMOV, Viktor Sergiyovich"} <= summaries
+    assert not [c for c in gone if c["id"] in ("co:trans-flot", "p:artemov-viktor-sergiyovich") and "field" in c]
+    assert not [x for x in summaries if "removed TRANS-FLOT" in x or "removed ARTEMOV" in x]
+
+
+def test_company_joining_map_is_not_a_listing(tmp_path):
+    # the other way round (Gazprom and Novatek on 25 Sep): the lists did not change, a vessel just names the firm now
+    before = map_on(tmp_path, "before", drop={"MARSHAL ZHUKOV", "ZEPHYR I"})
+    came = diff(before, map_on(tmp_path, "after"), "fleet", DAY, set())
+    summaries = {c["summary"] for c in came}
+    assert {"US listed MARSHAL ZHUKOV (IMO 9690224)", "New on the map: TRANS-FLOT JSC"} <= summaries
+    assert not [x for x in summaries if "listed TRANS-FLOT" in x or "listed ARTEMOV" in x]
+    new = next(c for c in came if c["id"] == "co:trans-flot")
+    assert (new["kind"], "field" in new, new["source_url"]) == ("added", False, new["source_url"]) and new["source_url"]
+
+
+def test_research_company_no_longer_looked_up_is_not_a_delisting(tmp_path):
+    # research keeps TRANS-FLOT JSC on the map once the vessel is gone, but nothing looks it up in the lists any more
+    cite = {"url": "https://home.treasury.gov/news/x", "file": "study.csv", "quote": "q", "record": "",
+            "angle": "studies", "confidence": "Documented"}
+    held = {"source": "co:trans-flot", "target": "co:sovfracht", "type": "controls", "date": "", "source_url": cite["url"],
+            "source_file": cite["file"], "quote": "q", "record": "", "angle": "studies", "confidence": "Documented",
+            "sources": [cite]}
+    today = map_on(tmp_path, "today", research=[held], known={"co:trans-flot": ["TRANS-FLOT JSC"]})
+    tomorrow = map_on(tmp_path, "tomorrow", drop={"MARSHAL ZHUKOV"}, research=[held],
+                      known={"co:trans-flot": ["TRANS-FLOT JSC"]})
+    assert next(n for n in tomorrow["nodes"] if n["id"] == "co:trans-flot")["layer"] == "research"
+    gone = diff(today, tomorrow, "fleet", DAY, set())
+    assert "US removed MARSHAL ZHUKOV (IMO 9690224)" in {c["summary"] for c in gone}
+    assert not [c for c in gone if c["item"] == "node" and c["id"] == "co:trans-flot"]
+    assert not [c for c in gone if "TRANS-FLOT" in c["summary"] and "removed" in c["summary"] and c["item"] == "node"]
+
+
 def test_research_known_ship_newly_listed_is_reported():
     known = ship(ADISA, "ADISA", [], layer="research")  # on the map since 25 Sep as research, on no list
     prev = fleet(known, ZULU_NODE, fedge(ZULU, ADISA, "owns", layer="research"), *GOV_NODES)
     curr = fleet(ship(ADISA, "ADISA", ["uk"]), ZULU_NODE, fedge(ZULU, ADISA, "owns", layer="research"),
                  listing(ADISA, "uk"), *GOV_NODES)
     c = only(diff(prev, curr, "fleet", DAY, set()))
-    assert (c["kind"], c["field"], c["to"], c["summary"]) == ("changed", "listed_by", ["UK"], "UK listed ADISA (IMO 9341279)")
+    assert (c["kind"], c["field"], c["to"], c["summary"]) == ("changed", "listed_by", ["UK"],
+                                                              "UK listed ADISA (IMO 9341279)")
     assert (c["source_url"], c["source_label"]) == (UK_URL, "UK Sanctions List")  # its official designation
     assert diff(prev, curr, "fleet", DAY, {"uk"}) == []  # the UK list failed
-    # a node on both days is compared whatever its layer, by the merged listed_by
-    both = fleet(fnode("co:acme", "company", "Acme", layer="research", listed_by=["eu"]))
-    assert only(diff(fleet(fnode("co:acme", "company", "Acme", layer="research")), both, "fleet", DAY, set()))[
-        "summary"] == "EU listed Acme"
+    # a ship on both days is compared whatever its layer, by the merged listed_by
+    both = fleet(ship(ADISA, "ADISA", ["eu"], layer="research"))
+    assert only(diff(fleet(ship(ADISA, "ADISA", [], layer="research")), both, "fleet", DAY, set()))[
+        "summary"] == "EU listed ADISA (IMO 9341279)"
+    # a company is not: it is looked up in the lists only while it is official
+    acme = fnode("co:acme", "company", "Acme", layer="research")
+    assert diff(fleet(acme), fleet(dict(acme, listed_by=["eu"])), "fleet", DAY, set()) == []
 
 
 def test_research_known_ship_delisted_is_reported():
@@ -257,7 +327,7 @@ def test_generic_company_is_named_by_its_generic_name():
     base = [ship(), listing(TASSOS, "uk"), *GOV_NODES]
     changes = diff(fleet(*base), fleet(*base, node, fedge(gen, TASSOS, "manages")), "fleet", DAY, set())
     link, added = sorted(changes, key=lambda c: c["item"])
-    assert added["summary"] == "New company: unlisted Kazakhstan ship manager"
+    assert added["summary"] == "New on the map: unlisted Kazakhstan ship manager"
     assert link["endpoints"] == ["unlisted Kazakhstan ship manager", "TASSOS"]
     assert link["summary"] == "New link: TASSOS → unlisted Kazakhstan ship manager (managed by)"
 
@@ -287,6 +357,17 @@ def test_generic_company_that_gets_named_is_one_listing_change():
     assert (c["id"], c["summary"], c["source_url"]) == (REAL, "US listed Real Ltd", "https://ofac/2")
 
 
+def test_fallback_to_another_list_is_not_a_rename():
+    # UK and US drop TANI and the EU record, which names it differently, becomes the name we show
+    prev = fleet(ship("IMO9417464", "TANI", ["eu", "uk", "us"], flag_now="lr"), *GOV_NODES)
+    curr = fleet(ship("IMO9417464", "ANIKA", ["eu"], flag_now="pa"), *GOV_NODES)
+    assert only(diff(prev, curr, "fleet", DAY, set()))["summary"] == "UK and US removed ANIKA (IMO 9417464)"
+    # a rename on a night the lists that rank first did not change is still a rename
+    prev = fleet(ship("IMO9417464", "TANI", ["eu", "uk"]), *GOV_NODES)
+    curr = fleet(ship("IMO9417464", "ANIKA", ["eu", "uk", "us"]), *GOV_NODES)
+    assert "Renamed: TANI → ANIKA (IMO 9417464)" in {c["summary"] for c in diff(prev, curr, "fleet", DAY, set())}
+
+
 def test_source_falls_back_to_the_list_page():
     c = only(diff(fleet(*GOV_NODES), fleet(ship(), *GOV_NODES), "fleet", DAY, set()))
     assert (c["source_url"], c["source_label"]) == (LISTS["uk"]["page"], "United Kingdom sanctions list")
@@ -307,9 +388,10 @@ def knode(nid, t, name, L="lobby", s="", lists=(), **info):
             "notes": []}
 
 
-def kedge(s, t, y, L="lobby", **kw):
+def kedge(s, t, y, L="lobby", fl=None, **kw):
+    fl = fl or [edge_id(s, t, y)[2:10]]  # a filing of its own, unless the test says which
     return {"s": s, "t": t, "y": y, "c": "D", "d": "2025", "u": "https://lda.gov/filings/public/filing/f1/print/",
-            "r": "1 filing", "q": "", "L": L, **kw}
+            "r": "1 filing", "q": "", "L": L, **({"fl": fl} if L == "lobby" else {}), **kw}
 
 
 def kg(*parts):
@@ -326,6 +408,7 @@ def test_new_lobbying_links_and_nodes():
               knode("gov:us-senate", "government", "US Senate"),
               knode("co:sberbank", "company", "Sberbank", s="restricted", lists=[["US SSI", "", ""]]),  # hand-checked list
               kedge(NS2["id"], CAPITOL["id"], "hired"), kedge("p:john-doe", CAPITOL["id"], "lobbyist_at"),
+              kedge("co:sberbank", CAPITOL["id"], "hired"),
               kedge(CAPITOL["id"], "bill:eo1", "lobbied_on"), kedge(CAPITOL["id"], "gov:us-senate", "lobbied"),
               kedge("p:john-doe", NS2["id"], "lobbied_for"))  # not one of the four reported types
     changes = diff(prev, curr, "lobby", DAY, set())
@@ -333,13 +416,74 @@ def test_new_lobbying_links_and_nodes():
         "Nord Stream 2 AG hired Capitol Counsel LLC", "John Doe is a lobbyist at Capitol Counsel LLC",
         "Capitol Counsel LLC lobbied on EO 14024", "Capitol Counsel LLC lobbied US Senate",
         "New lobbying firm: Capitol Counsel LLC", "New lobbyist: John Doe", "New bill: EO 14024",
-        "New agency: US Senate", "New company: Sberbank"}
-    hired = next(c for c in changes if c["node_type"] == "hired")
-    assert (hired["graph"], hired["kind"], hired["item"], hired["id"]) == (
-        "lobby", "added", "edge", edge_id(NS2["id"], CAPITOL["id"], "hired"))
+        "New agency: US Senate", "New company: Sberbank", "Sberbank hired Capitol Counsel LLC"}
+    # a US list outage says nothing of lobbying: the hand-checked US list entry on Sberbank is not its source
+    assert {c["summary"] for c in diff(prev, curr, "lobby", DAY, {"us"})} == {c["summary"] for c in changes}
+    hired = next(c for c in changes if c["id"] == edge_id(NS2["id"], CAPITOL["id"], "hired"))
+    assert (hired["graph"], hired["kind"], hired["item"], hired["node_type"]) == ("lobby", "added", "edge", "hired")
     assert hired["endpoints"] == ["Nord Stream 2 AG", "Capitol Counsel LLC"]
     assert hired["source_url"] == "https://lda.gov/filings/public/filing/f1/print/"
     assert hired["source_label"]
+
+
+def test_lda_registrant_rename_is_not_new_lobbying():
+    def firm(fid, name, extra=()):
+        return kg(NS2, knode(fid, "lobbyfirm", name), knode("p:john-doe", "person", "John Doe"),
+                  kedge(NS2["id"], fid, "hired", fl=["aaaa1111", "bbbb2222", *extra]),
+                  kedge("p:john-doe", fid, "lobbyist_at", fl=["aaaa1111"]))
+    prev = firm("lf:miller-chevalier-chtd", "Miller & Chevalier Chtd")
+    curr = firm("lf:miller-chevalier-chartered", "Miller & Chevalier Chartered")
+    assert diff(prev, curr, "lobby", DAY, set()) == []  # the same filings under the firm's new name
+    again = firm("lf:miller-chevalier-chartered", "Miller & Chevalier Chartered", extra=["cccc3333"])
+    summaries = {c["summary"] for c in diff(prev, again, "lobby", DAY, set())}
+    assert "Nord Stream 2 AG hired Miller & Chevalier Chartered" in summaries  # a filing nobody had seen is news
+    assert not [x for x in summaries if "lobbyist" in x]  # its only filing is an old one
+
+
+def test_returning_lobby_link_is_not_new():
+    john = knode("p:john-doe", "person", "John Doe")
+    prev = kg(NS2, CAPITOL, john, kedge("p:john-doe", CAPITOL["id"], "lobbyist_at", fl=["aaaa1111"]))
+    back = kg(NS2, CAPITOL, john, kedge("p:john-doe", CAPITOL["id"], "lobbyist_at", fl=["aaaa1111"]),
+              kedge(NS2["id"], CAPITOL["id"], "hired", fl=["aaaa1111"]))  # the link was out of yesterday's graph
+    assert diff(prev, back, "lobby", DAY, set()) == []
+    new = kg(NS2, CAPITOL, john, kedge("p:john-doe", CAPITOL["id"], "lobbyist_at", fl=["aaaa1111"]),
+             kedge(NS2["id"], CAPITOL["id"], "hired", fl=["aaaa1111", "cccc3333"]))
+    assert [c["summary"] for c in diff(prev, new, "lobby", DAY, set())] == ["Nord Stream 2 AG hired Capitol Counsel LLC"]
+
+
+def test_yesterday_without_filing_ids_cannot_say_what_lobbying_is_new():
+    old = kedge(NS2["id"], CAPITOL["id"], "hired")
+    del old["fl"]  # kg.json from before the change record: the first six filing ids of a link, not all of them
+    prev = kg(NS2, CAPITOL, old, knode(TASSOS, "ship", "TASSOS", L="fleet", s="blocked", lists=[["US", "", ""]]))
+    curr = kg(NS2, CAPITOL, knode("p:john-doe", "person", "John Doe"), kedge(NS2["id"], CAPITOL["id"], "hired"),
+              kedge("p:john-doe", CAPITOL["id"], "lobbyist_at"),
+              knode(TASSOS, "ship", "TASSOS", L="fleet", s="restricted", lists=[["US", "", ""]]))
+    # a renamed registrant would read as new, so nothing is called new that night; the level still is reported
+    assert [c["summary"] for c in diff(prev, curr, "lobby", DAY, set())] == ["TASSOS changed status: blocked → restricted"]
+
+
+def test_client_person_is_not_called_a_lobbyist():
+    curr = kg(NS2, CAPITOL, knode("p:oleg", "person", "Oleg Deripaska"), knode("p:john-doe", "person", "John Doe"),
+              kedge("p:oleg", CAPITOL["id"], "hired"), kedge("p:john-doe", CAPITOL["id"], "lobbyist_at"))
+    summaries = {c["summary"] for c in diff(kg(NS2), curr, "lobby", DAY, set())}
+    assert {"New person: Oleg Deripaska", "New lobbyist: John Doe"} <= summaries
+
+
+def test_kg_only_firm_listing_is_reported_on_the_network():
+    def net(*governments, kg_only=True, level="blocked"):
+        zara = knode("co:zara", "company", "Zara Shipholding", L="fleet", s=level, lists=[[g, "", ""] for g in governments])
+        return kg(zara | ({"kg_only": True} if kg_only else {}))
+    c = only(diff(net("US"), net("US", "UK"), "lobby", DAY, set()))
+    assert (c["graph"], c["field"], c["to"], c["summary"]) == ("lobby", "listed_by", ["UK"], "UK listed Zara Shipholding")
+    assert only(diff(net("US", "UK"), net("US"), "lobby", DAY, set()))["summary"] == "UK removed Zara Shipholding"
+    assert diff(net("US"), net("US", "UK"), "lobby", DAY, {"uk"}) == []
+    assert diff(net("US", kg_only=False), net("US", "UK", kg_only=False), "lobby", DAY, set()) == []  # the map's to report
+
+
+def test_network_level_row_uses_the_ships_name():
+    named = kg(knode(TASSOS, "ship", "TASSOS", L="fleet", s="blocked", lists=[["US", "", ""]]))
+    bare = kg(knode(TASSOS, "ship", TASSOS, L="fleet", s="", lists=[]))  # delisted: only a research edge keeps it
+    assert only(diff(named, bare, "lobby", DAY, set()))["summary"] == "TASSOS changed status: blocked → none"
 
 
 def test_lobby_edges_and_nodes_never_removed():
@@ -442,6 +586,14 @@ def test_summaries_have_the_fixed_forms():
         "Nord Stream 2 AG hired Capitol Counsel LLC")
 
 
+def test_unknown_unavailable_name_raises():
+    with pytest.raises(ValueError, match="eu_journal"):
+        diff(fleet(), fleet(), "fleet", DAY, {"uk", "eu_journal"})
+    with pytest.raises(ValueError):
+        diff(None, {}, "lobby", DAY, {"UK"})  # the baseline night is checked too, and the names are the lowercase ones
+    assert diff(fleet(), fleet(), "fleet", DAY, {"us", "uk", "eu", "un", "lobbying"}) == []
+
+
 def test_unknown_graph_is_an_error():
     with pytest.raises(ValueError):
         diff(None, {}, "chat", DAY, set())
@@ -462,18 +614,32 @@ def test_changes_are_deterministic():
     assert diff(prev, shuffled, "fleet", DAY, set()) == first  # input order does not matter
 
 
-def test_record_trims_and_replaces_same_day():
+def test_record_trims_old_days():
     record = None
     for day in range(1, 11):
         record = update_record(record, f"2026-10-{day:02d}", [change(summary=str(day))], {"uk": "fresh"}, keep_days=5)
     assert [d["date"] for d in record["days"]] == ["2026-10-10", "2026-10-09", "2026-10-08", "2026-10-07", "2026-10-06"]
     assert record["started"] == "2026-10-06"  # days before the oldest one held cannot be answered
-    again = update_record(record, "2026-10-08", [], {"uk": "unavailable"}, keep_days=5)  # a re-run replaces its day
-    assert [d["date"] for d in again["days"]] == [d["date"] for d in record["days"]]
-    assert next(d for d in again["days"] if d["date"] == "2026-10-08") == {
-        "date": "2026-10-08", "sources": {"uk": "unavailable"}, "changes": []}
-    assert again["days"][0] == record["days"][0]
-    assert record["days"][2]["changes"][0]["summary"] == "8"  # (input record is left as it was)
+    assert record["days"][2]["changes"][0]["summary"] == "8"
+    before = json.dumps(record, sort_keys=True)
+    update_record(record, "2026-10-08", [change(summary="again", id=ADISA)], {"uk": "fresh"}, keep_days=5)
+    assert json.dumps(record, sort_keys=True) == before  # (the input record is left as it was)
+
+
+def test_same_day_rerun_keeps_first_runs_changes():
+    first = [change(summary="a", id="IMO1"), change(summary="b", id="IMO2", field="listed_by", to=["UK"]),
+             change(summary="c", id="IMO2", field="listed_by", **{"from": ["EU"]})]
+    record = update_record(None, DAY, first, {"uk": "fresh", "us": "unavailable"})
+    # the re-run's prev is the graph already published today, so it finds nothing: it must not wipe the day
+    again = update_record(record, DAY, [], {"uk": "fresh", "us": "fresh"})
+    assert [c["summary"] for c in again["days"][0]["changes"]] == ["a", "b", "c"]
+    assert again["days"][0]["sources"] == {"uk": "fresh", "us": "fresh"}  # a source that was fresh in either run was
+    kept = update_record(record, DAY, [], {"uk": "unavailable"})
+    assert kept["days"][0]["sources"] == {"uk": "fresh", "us": "unavailable"}
+    assert update_record(record, DAY, first, {"uk": "fresh", "us": "unavailable"}) == record  # identical runs: same record
+    # the same change again is not doubled (the later run's row wins); a listing and a delisting of one node both stay
+    later = update_record(record, DAY, [change(summary="a2", id="IMO1"), change(summary="d", id="IMO3")], {})
+    assert [c["summary"] for c in later["days"][0]["changes"]] == ["a2", "b", "c", "d"]  # (in the diff's order)
 
 
 def test_record_keeps_its_first_day_while_it_fits():

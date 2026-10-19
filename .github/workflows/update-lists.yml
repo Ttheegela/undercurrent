@@ -148,6 +148,7 @@ jobs:
 
       # The smoke check is a quality gate, not a security boundary; the staged-path allowlist below is.
       - name: Commit changes
+        id: commit
         if: needs.build.outputs.smoke == 'success'
         run: |
           git config user.name "undercurrent-nightly"
@@ -159,7 +160,12 @@ jobs:
             echo "No changes."
           else
             git commit -m "data: nightly lists $(date -u +%F)"
-            git push
+            # main may have moved while the build ran (a merge or another run): replay this data commit on top.
+            for attempt in 1 2 3; do
+              if git pull --rebase --no-autostash origin main && git push; then break; fi
+              if [ "$attempt" = 3 ]; then exit 1; fi
+              sleep 10
+            done
           fi
 
       - name: Open or update the failure issue
@@ -173,6 +179,7 @@ jobs:
           LOB_UPLOAD: ${{ steps.lobupload.outcome }}
           CHIPS_BUILD: ${{ needs.build.outputs.chips }}
           DL: ${{ steps.dl.outcome }}
+          COMMIT: ${{ steps.commit.outcome }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           up=""
@@ -191,6 +198,7 @@ jobs:
           fi
           what="${failed}${up}"
           what="${what#, }"
+          [ "$COMMIT" = "failure" ] && what="${what:+${what}, }commit/push to main"
           [ "$DL" = "failure" ] && what="artifact missing"
           title="Nightly lists: ${what:-smoke check} failed $(date -u +%F)"
           body="Run: ${RUN_URL}. The site keeps serving the previous copy. Details in data/lists/meta.json, data/opensanctions-meta.json, data/connections-meta.json, data/lobbying-meta.json and stories/chips-into-russia/data/chips-meta.json."

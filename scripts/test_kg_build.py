@@ -375,6 +375,21 @@ def test_curated_lists_keep_live_listings_of_other_governments():
     assert novatek["lists"] == SSI_GAZPROM["lists"] + [["EU", "", "2026-10-01"]]  # the US entry is the curated one
 
 
+def test_curated_entries_drop_when_live_listing_ends():
+    # a curated entry is the hand-checked detail of a listing; once the government no longer lists the fleet node, it goes
+    status = {"co:gazprom": SSI_GAZPROM, "co:gazpromneft": SSI_GAZPROM,
+              "co:nord-stream-2": {"s": "blocked", "lists": [["US SDN", "1", "PEESA"]]}}
+    delisted = fnode("co:gazprom", "company", "PJSC GAZPROM")  # no longer on the US list
+    eu_only = fnode("co:gazpromneft", "company", "Gazprom Neft", **listed_by("eu", eu="2026-10-01"))
+    edges = [fedge("co:gazprom", "IMO9408695", "owns"), fedge("co:gazpromneft", "IMO9408695", "owns"),
+             fedge("co:gazpromneft", "gov:eu", "designated_by", eu_reg="833")]
+    kg = build_kg(make_fleet(delisted, eu_only, extra_edges=edges), lobby(), make_base(status=status), None, DAY)
+    assert (get(kg, "co:gazprom")["s"], get(kg, "co:gazprom")["lists"]) == ("", [])
+    assert (get(kg, "co:gazpromneft")["s"], get(kg, "co:gazpromneft")["lists"]) == ("restricted", [["EU", "", "2026-10-01"]])
+    # a company with no fleet node keeps its curated entries
+    assert get(kg, "co:nord-stream-2")["lists"] == status["co:nord-stream-2"]["lists"]
+
+
 def test_lists_keep_the_25_sep_order():
     # ships were UK, US, EU; companies and people US, EU, UK. Listed by edge order (the long form is sorted) it was EU, UK, US.
     def desig(nid):

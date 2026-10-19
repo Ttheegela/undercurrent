@@ -198,10 +198,15 @@ def build_kg(fleet: dict, lobby: dict | None, base: dict, previous_kg: dict | No
             if n["L"] == "fleet":  # no ship names it and no list holds it today: 25 Sep's list status is not today's
                 nodes[nid].update(s="", lists=[])
     for nid, st in base.get("status", {}).items():  # hand-checked: "restricted" (sectoral) is not "blocked"
-        n = nodes.get(nid)
+        n, curated = nodes.get(nid), st["lists"]
+        if nid in fleet_ids:  # a live node keeps a curated entry, and the level, only while that government lists it
+            now = {x[0].split()[0] for x in n["lists"]}
+            curated = [x for x in curated if x[0].split()[0] in now]
+            if not curated:
+                continue
         if n and LEVELS.index(st["s"]) >= LEVELS.index(n["s"]):  # a stronger live listing keeps its own level and lists
-            named = {x[0].split()[0] for x in st["lists"]}  # the curated entries describe their governments' listings;
-            n.update(s=st["s"], lists=st["lists"] + [x for x in n["lists"] if x[0].split()[0] not in named])  # a new one shows
+            named = {x[0].split()[0] for x in curated}  # the curated entries describe their governments' listings;
+            n.update(s=st["s"], lists=curated + [x for x in n["lists"] if x[0].split()[0] not in named])  # a new one shows
     for nid, seen in base["live_flags"].items():
         if nid in nodes:
             nodes[nid]["live"] = seen

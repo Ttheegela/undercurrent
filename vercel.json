@@ -1,6 +1,58 @@
 {
   "framework": null,
   "installCommand": "true",
+  "redirects": [
+    {
+      "source": "/stories/chips-into-russia/FINDINGS.md",
+      "destination": "/stories/chips-into-russia/FINDINGS.html",
+      "permanent": true
+    },
+    {
+      "source": "/stories/shadow-fleet/FINDINGS.md",
+      "destination": "/stories/shadow-fleet/FINDINGS.html",
+      "permanent": true
+    },
+    {
+      "source": "/stories/shadow-fleet/METHOD.md",
+      "destination": "/stories/shadow-fleet/METHOD.html",
+      "permanent": true
+    },
+    {
+      "source": "/stories/shadow-fleet/README.md",
+      "destination": "/stories/shadow-fleet/README.html",
+      "permanent": true
+    },
+    {
+      "source": "/stories/shadow-fleet/network/METHOD.md",
+      "destination": "/stories/shadow-fleet/network/METHOD.html",
+      "permanent": true
+    },
+    {
+      "source": "/stories/sources/METHODS_LOG.md",
+      "destination": "/stories/sources/METHODS_LOG.html",
+      "permanent": true
+    },
+    {
+      "source": "/stories/sources/RESEARCH_AND_SOURCES.md",
+      "destination": "/stories/sources/RESEARCH_AND_SOURCES.html",
+      "permanent": true
+    },
+    {
+      "source": "/stories/who-lobbies/FINDINGS.md",
+      "destination": "/stories/who-lobbies/FINDINGS.html",
+      "permanent": true
+    },
+    {
+      "source": "/stories/who-lobbies/clean-names-graph/FINDINGS.md",
+      "destination": "/stories/who-lobbies/clean-names-graph/FINDINGS.html",
+      "permanent": true
+    },
+    {
+      "source": "/stories/who-lobbies/influence-network/README.md",
+      "destination": "/stories/who-lobbies/influence-network/README.html",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/data/(.*)",

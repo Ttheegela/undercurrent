@@ -300,7 +300,8 @@ test("every page with the main header links to both graphs, on desktop and phone
   const pages = ["/index.html", "/stories/about-the-data.html", "/stories/how-sanctions-work/index.html",
     "/stories/chips-into-russia/viz/index.html", "/stories/chips-into-russia/viz/coverage.html",
     "/stories/chips-into-russia/viz/listing_lag.html", "/stories/chips-into-russia/viz/river.html",
-    "/stories/who-lobbies/influence-network/methods.html", "/stories/who-lobbies/clean-names-graph/index.html", MAP, NETWORK];
+    "/stories/who-lobbies/influence-network/methods.html", "/stories/who-lobbies/clean-names-graph/index.html",
+    "/stories/shadow-fleet/network/METHOD.html", "/stories/sources/METHODS_LOG.html", MAP, NETWORK];
   for (const width of [1280, 375]) {
     await page.setViewportSize({ width, height: 812 });
     for (const path of pages) {

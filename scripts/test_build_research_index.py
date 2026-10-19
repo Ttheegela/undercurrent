@@ -101,5 +101,5 @@ def test_chip_sources_are_official_and_page_link_only_for_firms_on_it(entries):
         "Federal Register: Entity List additions")]
     for e in entries.values():
         if e["id"].startswith("chip:"):
-            assert all("FINDINGS.md" not in s["url"] for s in e["sources"])
+            assert all("FINDINGS" not in s["url"] for s in e["sources"])
             assert all(r <= len(e["sources"]) for f in e["facts"] for r in f["refs"])

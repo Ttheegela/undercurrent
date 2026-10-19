@@ -27,10 +27,10 @@ FLEET_STORY = {"label": "Open on the shadow-fleet map", "url": "stories/shadow-f
 CHIPS_STORY = {"label": "Open the semiconductors-into-Russia story", "url": "stories/chips-into-russia/viz/index.html"}
 CHIPS_LAG_STORY = {"label": "Open the time-to-list page", "url": "stories/chips-into-russia/viz/listing_lag.html"}
 LOBBY_STORY = {"label": "Open the lobbying network", "url": "stories/who-lobbies/clean-names-graph/index.html"}
-FLEET_FINDINGS = ("stories/shadow-fleet/FINDINGS.md", "VeilTrace shadow-fleet findings")
+FLEET_FINDINGS = ("stories/shadow-fleet/FINDINGS.html", "VeilTrace shadow-fleet findings")
 CHIPS_LAG_PAGE = ("stories/chips-into-russia/viz/listing_lag.html", "Semiconductors into Russia: time to list (official dates)")
 CSL_PAGE = ("https://www.trade.gov/consolidated-screening-list", "US Consolidated Screening List (list home; search the name)")
-LOBBY_FINDINGS = ("stories/who-lobbies/FINDINGS.md", "VeilTrace lobbying findings")
+LOBBY_FINDINGS = ("stories/who-lobbies/FINDINGS.html", "VeilTrace lobbying findings")
 
 GOVERNMENTS = {"gov:us": "United States", "gov:eu": "European Union", "gov:uk": "United Kingdom"}
 SOURCE_LABELS = {

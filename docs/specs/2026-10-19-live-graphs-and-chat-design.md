@@ -1,6 +1,6 @@
 # Live graphs, daily updates and the Ask chat
 
-Date: 2026-10-19 · Status: approved 2026-10-19 · Owner: Tarun Theegela
+Date: 2026-10-19 · Status: approved 2026-10-19; Part 2 model route changed from Vercel AI Gateway to OpenRouter by the owner on 2026-10-19 · Owner: Tarun Theegela
 
 ## Intent
 
@@ -134,7 +134,11 @@ The graphs must also never:
 
 ### Decided
 
-- **Model:** Claude Haiku 5.5 through Vercel AI Gateway (`anthropic/claude-haiku-5.5`; priced at $0.10 / $0.50 per million input/output tokens on 2026-10-19). There is no API key in the repo or in Vercel env. The function authenticates to AI Gateway with Vercel's OIDC token. The builder should consult the `vercel:ai-gateway` and `claude-api` skills for current request shapes.
+- **Model:** Claude Haiku 5.5 through **OpenRouter** (owner's decision 2026-10-19, replacing Vercel AI Gateway).
+  - The model id is `anthropic/claude-haiku-5.5`, called at `https://openrouter.ai/api/v1/chat/completions`.
+  - Price: $0.10 / $0.50 per million input/output tokens, from OpenRouter's model list on 2026-10-19. That list also shows the model supports `tools` and `tool_choice`.
+  - **The API key:** an OpenRouter key kept only in the Vercel environment variable `OPENROUTER_API_KEY`. The owner enters it, and it never appears in the repo, logs, tests or chat.
+  - **Provider data:** every request sends `provider: {"data_collection": "deny"}`.
 - **Where it lives:** an "Ask" button in the bottom corner of every page that opens a chat panel (right-side drawer on desktop, full-height sheet on phones). It doesn't cover the graphs' controls. The panel shows 3–4 starter questions:
   - "What changed this week?"
   - "Is TASSOS sanctioned?"
@@ -161,17 +165,23 @@ The graphs must also never:
   - About the data gets one plain paragraph saying so.
 - **Cost and abuse limits:**
   - **Budget: $5 a month (owner's decision).**
-    - **Free tier doesn't cover it:** Haiku 5.5 is not in AI Gateway's free tier (checked 2026-10-19), so Ask runs on purchased AI Gateway credits.
-    - **The cap:** an AI Gateway **project budget** of $5 with a monthly refresh on the `undercurrent` project. It covers requests made with the project's OIDC token. AI Gateway rejects requests with HTTP 402 `quota_for_entity_exceeded` once spend reaches the limit, and resets on the 1st (UTC). The budget is a soft cap, so the request that crosses it still completes.
-    - **No datastore:** Ask maps that 402 to "Ask is resting until next month", and the rest of the site is unaffected.
-    - **Owner's one-time steps:** buy AI Gateway credits (for example $5–10) with auto top-up left **off**, and approve setting the project budget (`vercel ai-gateway budgets set project undercurrent --limit 5 --refresh-period monthly`) with spend alerts at 50% and 100%.
-    - **Roughly 5,000 answers a month at about $0.001 each.**
+    - **The cap:** Ask uses a dedicated OpenRouter key with a **credit limit of $5** and `limit_reset: monthly`. OpenRouter resets the limit at midnight UTC.
+      - Once the limit is spent, OpenRouter rejects requests with HTTP 402 or 403, with `error.metadata.limit_source` set to `openrouter_key_limit`.
+      - An empty account balance gives `openrouter_credits` instead.
+      - The request that crosses the limit may still complete.
+    - **No datastore:** Ask maps those errors to "Ask is resting" with the reset date, and the rest of the site is unaffected.
+    - **Owner's one-time steps:**
+      - Buy OpenRouter credits (for example $5–10) with auto top-up left **off**. OpenRouter adds a 5.5% fee to credit purchases.
+      - Create the key "undercurrent-ask" with the $5 monthly limit.
+      - Check that input/output logging is off in OpenRouter's privacy settings.
+      - Add the key to Vercel production with `vercel env add OPENROUTER_API_KEY production`, typing it at the hidden prompt.
+    - **Roughly 3,000 answers a month at about $0.0017 each.** That assumes up to three model calls of about 4,000 input tokens each and about 1,000 output tokens per answer.
   - A per-visitor cap on questions per hour, enforced server-side without storing content (best effort per function instance is acceptable, since the budget is the hard backstop).
   - A max conversation length, and a max output length per answer.
   - The existing `/api/` rate limit applies.
   - The Firewall's "read-only methods" rule must be updated to allow POST on the chat path only.
 - **Failure:**
-  - If AI Gateway or a tool fails, Ask says so plainly and offers the site search.
+  - If OpenRouter or a tool fails, Ask says so plainly and offers the site search.
   - It never answers from the model's general knowledge instead.
 - **Accessibility:** keyboard-operable panel, focus moves into the panel on open and back on close, live region for new answers, visible labels, works at 320 px.
 
@@ -180,7 +190,7 @@ The graphs must also never:
 - Streaming versus one-shot responses. Streaming is nicer if it stays simple under the CSP.
 - How the claim-checking step works: a structured answer format with claims and their source ids is the expected route.
 - The per-visitor limit mechanism within Hobby-plan limits.
-- Whether the AI SDK is worth adding as a runtime dependency for the chat function, versus calling AI Gateway's API directly. The rest of the site stays dependency-free.
+- Whether an SDK is worth adding as a runtime dependency for the chat function, versus calling OpenRouter's API directly with `fetch`. The rest of the site stays dependency-free.
 - An evaluation set of at least 40 questions. How it runs (designer's call):
   - **In CI:** the set runs on every PR with **recorded** tool results **and recorded model outputs**. This tests the server-side claim checker, the refusals and the answer format without calling the model, and needs no new secret.
   - **Live pass:** the same questions run against the real model through a deployed endpoint, by hand before launch and after any prompt or model change. It costs a few cents, and the owner runs it, or a helper does in a session, from a script.

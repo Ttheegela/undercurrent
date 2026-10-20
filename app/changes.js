@@ -5,6 +5,7 @@
 import { escapeHtml, safeUrl, formatDate } from "./render.js";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
+const KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown", "Escape", "Enter", " "]);
 const DAY_MS = 864e5;
 const pad = (n) => String(n).padStart(2, "0");
 const utc = (s) => { const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d); };
@@ -12,6 +13,7 @@ const toISO = (ms) => new Date(ms).toISOString().slice(0, 10);
 const addDays = (s, n) => toISO(utc(s) + n * DAY_MS);
 const weekday = (s) => (new Date(utc(s)).getUTCDay() + 6) % 7; // 0 = Monday: weeks run Monday to Sunday
 const dMon = (s) => formatDate(s).slice(0, -5); // "23 Oct"
+const isDate = (s) => typeof s === "string" && ISO.test(s) && toISO(utc(s)) === s; // a day that exists: not 2026-11-31
 
 /** The same day of the month n months on, or the month's last day when it is shorter. */
 function shiftMonth(s, n) {
@@ -70,8 +72,9 @@ export function gapText({ source, date }) {
 
 function changeItem(c, i) {
   const kind = Object.hasOwn(KINDS, c.kind) ? c.kind : "changed";
-  const src = c.source_url
-    ? `<a class="chg-src" href="${escapeHtml(safeUrl(c.source_url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(c.source_label || "Source")}</a>`
+  const href = c.source_url && safeUrl(c.source_url); // "#" is what safeUrl answers for a url it rejects: no link then
+  const src = href && href !== "#"
+    ? `<a class="chg-src" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(c.source_label || "Source")}</a>`
     : c.source_label ? `<span class="chg-src">${escapeHtml(c.source_label)}</span>` : "";
   // data-i is the change's index in the list given, for a click handler to look it up
   return `<li class="chg-item" data-kind="${kind}"><button type="button" class="chg-pick" data-i="${i}"><span class="chg-kind">${KINDS[kind]}</span><span class="chg-sum">${escapeHtml(c.summary)}</span><span class="chg-date">${escapeHtml(dMon(c.date))}</span></button>${src}</li>`;
@@ -131,7 +134,7 @@ export function mountChangesPanel(root, { record, graph, today, limit = 50, upda
   const min = record?.started || todayISO; // the first day with a record; earlier days are disabled
   const marked = daysWithChanges(record, graph);
   const clamp = (d) => (d < min ? min : d > todayISO ? todayISO : d);
-  let since, preset, cursor, open = false, destroyed = false, changes = [];
+  let since, preset, cursor, open = false, destroyed = false, pending = false, changes = [];
 
   root.classList.add("chg");
   root.innerHTML = `
@@ -161,7 +164,8 @@ export function mountChangesPanel(root, { record, graph, today, limit = 50, upda
     toggle.classList.toggle("is-on", !preset);
     if (!open) return;
     const ym = cursor.slice(0, 7); // the month shown is the cursor's
-    month.textContent = formatDate(ym, true);
+    const label = formatDate(ym, true);
+    if (month.textContent !== label) month.textContent = label; // a live region: written only when the month changes
     prev.disabled = ym <= min.slice(0, 7);
     next.disabled = ym >= todayISO.slice(0, 7);
     grid.innerHTML = renderCalendar(`${ym}-01`, { min, max: todayISO, since, cursor, marked });
@@ -180,8 +184,10 @@ export function mountChangesPanel(root, { record, graph, today, limit = 50, upda
     notes.innerHTML = lines.map((t) => `<li>${escapeHtml(t)}</li>`).join("");
     root.querySelectorAll("[data-preset]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.preset === preset)));
     paintCalendar();
-    const notify = () => { if (!destroyed) onWindow?.(since, changes); }; // reads the window as it is when it runs
-    if (defer) queueMicrotask(notify); else notify();
+    const notify = () => { if (!destroyed) onWindow?.(since, changes); };
+    pending = defer;
+    if (!defer) notify();
+    else queueMicrotask(() => { if (pending) { pending = false; notify(); } }); // a window set before it runs takes its place
   }
 
   const focusCursor = () => grid.querySelector('[tabindex="0"]')?.focus();
@@ -197,13 +203,13 @@ export function mountChangesPanel(root, { record, graph, today, limit = 50, upda
   }
 
   function onKey(e) {
+    if (KEYS.has(e.key)) e.stopPropagation(); // from any control here: the host page steps its story and clears focus on these keys
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key === "Escape" && open) { open = false; paintCalendar(); toggle.focus(); e.stopPropagation(); return; }
+    if (e.key === "Escape" && open) { open = false; paintCalendar(); toggle.focus(); return; }
     const day = e.target.closest(".chg-day");
     const to = day && moveDay(day.dataset.date, e.key, min, todayISO);
     if (!to) return;
     e.preventDefault();
-    e.stopPropagation(); // the influence network steps its story with the arrow keys
     cursor = to;
     paintCalendar();
     focusCursor();
@@ -215,10 +221,11 @@ export function mountChangesPanel(root, { record, graph, today, limit = 50, upda
 
   return {
     setSince(date) {
-      if (ISO.test(date)) setWindow(date, Object.keys(PRESETS).find((p) => presetSince(p, todayISO) === date) ?? null);
+      if (isDate(date)) setWindow(date, Object.keys(PRESETS).find((p) => presetSince(p, todayISO) === date) ?? null);
     },
     destroy() {
       destroyed = true;
+      pending = false;
       root.removeEventListener("click", onClick);
       root.removeEventListener("keydown", onKey);
       root.classList.remove("chg");

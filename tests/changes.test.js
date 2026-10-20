@@ -113,8 +113,11 @@ test("renderChangeList escapes names, summaries, labels and urls", () => {
   const html = renderChangeList([ship({ name: hostile, summary: `${hostile} listed`, source_label: hostile, source_url: "javascript:alert(1)" })]);
   assert.ok(!html.includes("<img"), html);
   assert.ok(html.includes("&lt;img"), html);
-  assert.ok(html.includes('href="#"'), html); // safeUrl turns a script url into #
+  assert.ok(!html.includes("href="), html); // safeUrl rejects the url: its label is plain text, never a "#" link
+  assert.ok(html.includes('<span class="chg-src">&lt;img'), html);
+  assert.ok(!html.includes("<a "), html);
   assert.ok(!html.includes("javascript:"), html);
+  assert.ok(!renderChangeList([ship({ source_url: "data:text/html,x", source_label: "" })]).includes("chg-src")); // no label either: nothing
   const quoted = renderChangeList([ship({ source_url: 'https://example.gov/a"onmouseover="x' })]);
   assert.ok(!quoted.includes('"onmouseover'), quoted);
 });
@@ -207,16 +210,28 @@ test("moveDay moves by day and week, Home/End go to the week's edges, all clampe
   assert.equal(to("2026-10-14", "a"), null);
 });
 
-// A root with just enough of the DOM for mountChangesPanel to render into: every selector gets one inert element.
+// A root with just enough of the DOM for mountChangesPanel to render into: every selector gets one inert element
+// (counting its textContent writes), and the panel's own listeners are kept so a test can fire events at them.
 function stubRoot() {
-  const part = () => ({ hidden: true, textContent: "", innerHTML: "", dataset: {}, classList: { toggle() {} }, setAttribute() {}, focus() {} });
-  const parts = new Map();
+  const part = () => {
+    let text = "";
+    return { hidden: true, innerHTML: "", dataset: {}, sets: 0, classList: { toggle() {} }, setAttribute() {}, focus() {}, querySelector: () => null,
+      get textContent() { return text; }, set textContent(v) { text = v; this.sets++; } };
+  };
+  const parts = new Map(), handlers = {};
   return {
-    classList: { add() {}, remove() {} }, innerHTML: "", textContent: "", addEventListener() {}, removeEventListener() {},
+    classList: { add() {}, remove() {} }, innerHTML: "", textContent: "", contains: () => true, handlers,
+    addEventListener: (type, fn) => { handlers[type] = fn; }, removeEventListener() {},
     querySelector: (sel) => (parts.has(sel) ? parts : parts.set(sel, part())).get(sel), querySelectorAll: () => [],
   };
 }
 const tick = () => new Promise((resolve) => setTimeout(resolve));
+const key = (k, over = {}) => ({
+  key: k, ctrlKey: false, metaKey: false, altKey: false, stopped: false, prevented: false, target: { closest: () => null },
+  stopPropagation() { this.stopped = true; }, preventDefault() { this.prevented = true; }, ...over,
+});
+const onDay = (date) => ({ closest: (sel) => (sel === ".chg-day" ? { dataset: { date } } : null) });
+const clickPick = (root) => root.handlers.click({ target: { closest: () => ({ dataset: {}, hasAttribute: (a) => a === "data-pick" }) } });
 
 test("mountChangesPanel calls onWindow after it returns, so the callback can use the handle", async () => {
   const seen = [];
@@ -227,14 +242,63 @@ test("mountChangesPanel calls onWindow after it returns, so the callback can use
   assert.deepEqual(seen, [["2026-10-20", 3, "function"]]); // 7 days back from 23 Oct, clamped to the record start
 });
 
-test("a setSince straight after mount still ends with the latest window; destroy cancels the first call", async () => {
+test("a setSince straight after mount is the only onWindow call; destroy cancels the first call", async () => {
   const seen = [];
   const panel = mountChangesPanel(stubRoot(), { record: RECORD, graph: "fleet", onWindow: (since) => seen.push(since) });
   panel.setSince("2026-10-21");
   await tick();
-  assert.equal(seen.at(-1), "2026-10-21");
+  assert.deepEqual(seen, ["2026-10-21"]); // the pending opening call was overtaken, not repeated
   const quiet = [];
   mountChangesPanel(stubRoot(), { record: RECORD, graph: "fleet", onWindow: (since) => quiet.push(since) }).destroy();
   await tick();
   assert.deepEqual(quiet, []);
+});
+
+test("setSince ignores dates that do not exist and keeps the current window", async () => {
+  const seen = [], root = stubRoot();
+  const panel = mountChangesPanel(root, { record: RECORD, graph: "fleet", onWindow: (since) => seen.push(since) });
+  await tick();
+  for (const bad of ["2026-11-31", "2026-02-30", "2026-13-01", "2026-10-00", "not a date", "", null, undefined, 20261021]) panel.setSince(bad);
+  assert.deepEqual(seen, ["2026-10-20"]);
+  assert.equal(root.querySelector(".chg-title").textContent, "Since 20 Oct · 3 changes");
+  panel.setSince("2026-10-21");
+  assert.deepEqual(seen, ["2026-10-20", "2026-10-21"]);
+  assert.equal(root.querySelector(".chg-title").textContent, "Since 21 Oct · 3 changes");
+});
+
+test("every navigation key stops at the panel, from any control; other keys and the key's own action are left alone", () => {
+  const root = stubRoot();
+  mountChangesPanel(root, { record: RECORD, graph: "fleet" });
+  for (const k of ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown", "Escape", "Enter", " "]) {
+    const e = key(k); // the target is a control that is not a calendar day
+    root.handlers.keydown(e);
+    assert.equal(e.stopped, true, k);
+    assert.equal(e.prevented, false, `${k} keeps its default action off a day`);
+  }
+  const withCtrl = key("ArrowLeft", { ctrlKey: true });
+  root.handlers.keydown(withCtrl);
+  assert.equal(withCtrl.stopped, true); // the host page's handler must not step its story on ctrl+arrow either
+  assert.equal(withCtrl.prevented, false);
+  for (const k of ["a", "/", "0", "Tab"]) {
+    const e = key(k);
+    root.handlers.keydown(e);
+    assert.equal(e.stopped, false, k);
+  }
+});
+
+test("a day's arrow key moves the cursor, and the month's live region is written only when the month changes", () => {
+  const root = stubRoot();
+  mountChangesPanel(root, { record: RECORD, graph: "fleet" });
+  const month = root.querySelector(".chg-month");
+  assert.equal(month.sets, 0); // closed: nothing to announce
+  clickPick(root);
+  assert.equal(month.textContent, "October 2026");
+  assert.equal(month.sets, 1);
+  for (const [from, k] of [["2026-10-20", "ArrowRight"], ["2026-10-21", "ArrowDown"], ["2026-10-22", "ArrowLeft"], ["2026-10-21", "Home"]]) {
+    const e = key(k, { target: onDay(from) });
+    root.handlers.keydown(e);
+    assert.equal(e.prevented, true, k); // a day handled it
+    assert.equal(e.stopped, true, k);
+  }
+  assert.equal(month.sets, 1); // four moves inside October: still one write
 });

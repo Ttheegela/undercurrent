@@ -1,3 +1,4 @@
+import json
 import re
 
 import pytest
@@ -103,3 +104,10 @@ def test_chip_sources_are_official_and_page_link_only_for_firms_on_it(entries):
         if e["id"].startswith("chip:"):
             assert all("FINDINGS" not in s["url"] for s in e["sources"])
             assert all(r <= len(e["sources"]) for f in e["facts"] for r in f["refs"])
+
+
+def test_a_rebuild_gives_the_committed_index_byte_for_byte():
+    # the search and dossier snapshot stays at 25 September: the map files the nightly rewrites are not read
+    built = json.dumps({"entries": b.build()}, ensure_ascii=False, separators=(",", ":"))
+    same = built == b.OUT.read_text(encoding="utf-8")  # (not asserted directly: pytest would diff megabytes)
+    assert same, "a rebuild of data/research-index.json differs from the committed file"

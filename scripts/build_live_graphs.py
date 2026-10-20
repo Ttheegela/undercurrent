@@ -3,7 +3,7 @@
 Runs the pieces in order: fleet_official.build_official (the lists, with the companies the network asks about),
 fleet_merge.merge and compact, kg_build.build_kg, changes.diff and update_record. Writes, all as plain .json:
   stories/shadow-fleet/network/fleet-data.json   the map's payload (compact)
-  stories/shadow-fleet/network/nodes.json, edges.json   the same graph in long form (build_research_index reads them)
+  stories/shadow-fleet/network/nodes.json, edges.json   the same graph in long form (the next night diffs against it)
   stories/who-lobbies/influence-network/kg.json  the network
   data/changes/changes.json                      the rolling change record
   data/site-stats.json                           the counts the pages show

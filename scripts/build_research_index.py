@@ -4,6 +4,10 @@ One entry per ship, company and person in the shadow-fleet network, per
 officially listed company from the chip research, and per listed company or
 intermediary in the lobbying graph. Every fact carries numbered source
 references.
+
+The search and dossier snapshot stays at 25 September 2026: the shadow-fleet
+nodes and edges are read as they were then (fleet_base.sep25_text), never the
+map files the nightly build rewrites.
 """
 from __future__ import annotations
 
@@ -14,10 +18,11 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
+from fleet_base import sep25_text
 from normalize import normalize_name
 
 ROOT = Path(__file__).resolve().parent.parent
-FLEET_DIR = ROOT / "stories" / "shadow-fleet" / "network"
+FLEET_DIR = "stories/shadow-fleet/network/"  # read at the 25 Sep commit
 CHIPS_FILE = ROOT / "stories" / "chips-into-russia" / "official_listings.json"
 LAG_FILE = ROOT / "stories" / "chips-into-russia" / "data" / "listing_lag.json"
 LOBBY_FILE = ROOT / "stories" / "who-lobbies" / "clean-names-graph" / "nodes.json"
@@ -309,8 +314,8 @@ def lobby_entries(nodes: list) -> list[dict]:
 
 
 def build() -> list[dict]:
-    nodes = json.loads((FLEET_DIR / "nodes.json").read_text(encoding="utf-8"))
-    edges = json.loads((FLEET_DIR / "edges.json").read_text(encoding="utf-8"))
+    nodes = json.loads(sep25_text(FLEET_DIR + "nodes.json"))
+    edges = json.loads(sep25_text(FLEET_DIR + "edges.json"))
     entries = fleet_entries(nodes, edges)
     lag_ids = {x["ofac_id"] for x in json.loads(LAG_FILE.read_text(encoding="utf-8"))["firms"]}
     entries += chip_entries(json.loads(CHIPS_FILE.read_text(encoding="utf-8")), lag_ids)

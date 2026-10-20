@@ -608,6 +608,13 @@ function hideTip(){ tip.style.display = "none"; }
 // http, https or relative only (as safeUrl in app/render.js): the file is rebuilt nightly
 function safeUrl(u){ try { const p = new URL(u, "https://undercurrent.invalid/"); if (p.protocol === "https:" || p.protocol === "http:") return u; } catch (e) {} return "#"; }
 function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+const NEW_YORK = new Intl.DateTimeFormat("en-US", {timeZone: "America/New_York", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true});
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function nyTime(iso){   // (New York time, as the site shows every time)
+  const d = new Date(iso); if (isNaN(d)) return String(iso);
+  const p = Object.fromEntries(NEW_YORK.formatToParts(d).map(x => [x.type, x.value]));
+  return `${p.day} ${MON[p.month - 1]} ${p.year}, ${p.hour}:${p.minute} ${p.dayPeriod} ET`;
+}
 
 // ================= focus helpers =================
 function neighborhood(ids, hops, fams){
@@ -711,7 +718,7 @@ function renderSide(n){
   let h = `<div class="kicker">${TYPE[n.t]}${n.L === "bridge" ? " · joins the two sides" : ""}</div><h3>${esc(n.n)}</h3>`;
   if (n.s) h += `<span class="badge b-${n.s}">${statusText(n)}</span>`;
   if (n.nolobby) h += `<span class="badge b-nolobby">No US lobbying filings found</span>`;
-  if (n.live) h += `<span class="badge b-live">Seen live on ship tracking (AIS): ${esc(n.live.area)}, ${esc(n.live.at.replace("T", " ").replace("Z", " UTC"))}</span>`;
+  if (n.live) h += `<span class="badge b-live">Seen live on ship tracking (AIS): ${esc(n.live.area)}, ${esc(nyTime(n.live.at))}</span>`;
   if (n.src) h += `<span class="badge b-unv">From the team's lobbying research</span>`;
   if (!n.s && n.L !== "lobby" && (n.t === "company" || n.t === "person")) h += `<span class="badge b-unv">On no sanctions list we checked</span>`;
   if (n.unverified_person) h += `<span class="badge b-unv">Named in official text, not yet re-checked</span>`;
@@ -865,7 +872,7 @@ addEventListener("keydown", e => {
 
 // ================= counts =================
 const m = KG.meta.counts;
-if (KG.meta.live) $("liveKey").textContent = `Pulsing ring: seen live on AIS (God's Eye, ${KG.meta.live.taken_utc.replace("T", " ").replace("Z", " UTC")})`;
+if (KG.meta.live) $("liveKey").textContent = `Pulsing ring: seen live on AIS (God's Eye, ${nyTime(KG.meta.live.taken_utc)})`;
 $("counts").innerHTML = `${m.nodes.toLocaleString()} nodes · ${m.edges.toLocaleString()} links (${m.lead_edges} leads)<br>${m.lda_filings_kept.toLocaleString()} lobbying filings used · ${m.ships_hidden_no_owner_link} listed ships not drawn (no list names an owner)<br>People named only where an official list, release or their own lobbying disclosure names them.`;
 
 // ================= changes =================

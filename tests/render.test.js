@@ -52,7 +52,10 @@ test("formatDate and formatUpdated", () => {
   assert.equal(formatDate("2025-07-30", true), "30 July 2025");
   assert.equal(formatDate("2023-02"), "Feb 2023");
   assert.equal(formatDate("n/a"), "");
-  assert.equal(formatUpdated(new Date("2026-10-13T04:00:00Z")), "13 Oct 2026, 04:00 UTC");
+  // New York time, with daylight saving: EDT in October, EST in December (where 04:00 UTC is still the day before)
+  assert.equal(formatUpdated(new Date("2026-10-13T04:00:00Z")), "13 Oct 2026, 12:00 AM ET");
+  assert.equal(formatUpdated(new Date("2026-10-20T15:48:00Z")), "20 Oct 2026, 11:48 AM ET");
+  assert.equal(formatUpdated(new Date("2026-12-01T04:00:00Z")), "30 Nov 2026, 11:00 PM ET");
 });
 
 test("timelinePositions: ordered, start at 0, end at most 86, no overlaps", () => {

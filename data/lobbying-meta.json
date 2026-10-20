@@ -1,8 +1,8 @@
 {
   "label": "US lobbying (LDA)",
   "source_url": "https://lda.gov/api/redoc/v1/",
-  "checked_at": "2026-10-20T08:58:19Z",
+  "checked_at": "2026-10-20T15:58:06Z",
   "status": "fresh",
-  "updated_at": "2026-10-20T08:58:19Z",
-  "record_count": 1500
+  "updated_at": "2026-10-20T15:58:06Z",
+  "record_count": 1502
 }

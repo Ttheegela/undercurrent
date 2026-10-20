@@ -799,6 +799,14 @@ const nodeMarks = (page, mark) => page.evaluate((m) => [...window.__kg.chg.node]
 const ghostIds = (page) => page.evaluate(() => window.__kg.chg.ghostNodes.map((g) => g.id).sort());
 const ghostLinkIds = (page) => page.evaluate(() => window.__kg.chg.ghostLinks.map((g) => g.id).sort());
 const netState = (page) => page.evaluate(() => window.__kg.state());
+// is a screen point clear of the drawers that are open (the changes drawer and the details drawer)?
+const clearOfDrawers = (page, p) => page.evaluate(([x, y]) => {
+  const open = ["chgPop", "side"].map((id) => document.getElementById(id)).filter((e) => !e.hidden && (e.id !== "side" || e.classList.contains("open")));
+  return open.every((e) => { const r = e.getBoundingClientRect(); return x < r.left || x > r.right || y < r.top || y > r.bottom; });
+}, [p.x, p.y]);
+// the screen position of everything the view was fitted to (the chosen node and its neighbours)
+const litScreen = (page) => page.evaluate(() => (window.__kg.state().hl || []).map((id) => { const n = window.__kg.nodeById.get(id), p = window.__kg.Graph.graph2ScreenCoords(n.x, n.y); return { x: p.x, y: p.y }; }));
+const nodeScreen = (page, id) => page.evaluate((nid) => { const n = window.__kg.nodeById.get(nid), p = window.__kg.Graph.graph2ScreenCoords(n.x, n.y); return { x: p.x, y: p.y }; }, id);
 // where a ghost is on screen, and whether that is inside the free area (under the bar)
 const ghostScreen = (page, id) => page.evaluate((gid) => {
   const p = window.__kg.chg.at(gid), s = window.__kg.Graph.graph2ScreenCoords(p.x, p.y), bar = document.getElementById("bar").offsetHeight;
@@ -834,21 +842,33 @@ test("since window rings new lobbying firm", async ({ page }) => {
   const errors = watchErrors(page);
   await stubNet(page);
   await netReady(page);
-  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 12 changes"); // both graphs' changes, off-network ones listed too
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 10 changes"); // both graphs' changes that touch the network (12 in the record)
   expect(await nodeMarks(page, "new")).toEqual(["IMO1000003", "lf:newfirm"]); // the off-network ship gets no ring
   expect(await nodeMarks(page, "changed")).toEqual(["IMO1000002", "IMO1000004"]); // a fleet listing change and a status level change
   expect(await linkKeys(page, "new")).toEqual(["co:acme IMO1000003 operates", "co:acme lf:newfirm hired"]);
-  // a new link also gets particles, in the same green; an ordinary fleet link has none
+  // a new link also gets particles (drawn: the graph holds photons for it), in the same green; an ordinary fleet link has none
   const look = await page.evaluate(() => {
-    const G = window.__kg.Graph, byKey = (k) => G.graphData().links.find((l) => [l.s, l.t, l.y].join(" ") === k);
-    return { fresh: G.linkDirectionalParticles()(byKey("co:acme IMO1000003 operates")), colour: G.linkDirectionalParticleColor()(byKey("co:acme IMO1000003 operates")) === window.__kg.chgColour,
-      old: G.linkDirectionalParticles()(byKey("co:acme IMO1000004 operates")) };
+    const G = window.__kg.Graph, byKey = (k) => G.graphData().links.find((l) => [l.s, l.t, l.y].join(" ") === k), photons = (k) => (byKey(k).__photons || []).length;
+    return { fresh: photons("co:acme IMO1000003 operates") > 0, colour: G.linkDirectionalParticleColor()(byKey("co:acme IMO1000003 operates")) === window.__kg.chgColour, old: photons("co:acme IMO1000004 operates") };
   });
-  expect(look).toEqual({ fresh: 2, colour: true, old: 0 });
+  expect(look).toEqual({ fresh: true, colour: true, old: 0 });
   await page.getByRole("button", { name: "What changed" }).click();
   await page.getByRole("button", { name: "Yesterday" }).click(); // choosing a shorter window drops what it no longer holds
-  await expect(page.locator(".chg-title")).toHaveText("Since 18 Oct · 12 changes");
+  await expect(page.locator(".chg-title")).toHaveText("Since 18 Oct · 10 changes");
   expect(errors).toEqual([]);
+});
+
+test("network: a new link's particles stop when the window no longer holds it", async ({ page }) => {
+  const fresh = change({ ...EDGE_ENDS("co:acme", "IMO1000003", "ACME SHIPPING", "CHARLIE"), id: edgeId(3), date: "2026-10-15", name: "ACME SHIPPING → CHARLIE", summary: "New link: CHARLIE → ACME SHIPPING (operated by)" });
+  const record = { started: "2026-10-10", days: [{ date: "2026-10-19", sources: {}, changes: [] }, { date: "2026-10-15", sources: {}, changes: [fresh] }] };
+  await stubNet(page, { record });
+  await netReady(page);
+  const photons = () => page.evaluate(() => (window.__kg.Graph.graphData().links.find((l) => [l.s, l.t, l.y].join(" ") === "co:acme IMO1000003 operates").__photons || []).length);
+  expect(await photons()).toBeGreaterThan(0); // 7 days reaches back to the 12th
+  await page.getByRole("button", { name: "What changed" }).click();
+  await page.getByRole("button", { name: "Yesterday" }).click();
+  await expect(page.locator(".chg-title")).toHaveText("Since 18 Oct · 0 changes");
+  expect(await photons()).toBe(0);
 });
 
 test("network: rings are painted on the canvas, green for new and grey for changed", async ({ page }) => {
@@ -889,7 +909,7 @@ test("network: a link is matched by its ends and type, nothing else", async ({ p
     change({ ...EDGE_ENDS("co:acme", "IMO1000004", "ACME SHIPPING", "DELTA"), id: edgeId(7), name: "x", summary: "a fleet link by its ends" })]; // and another
   await stubNet(page, { record: recordFixture(rows) });
   await netReady(page);
-  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 5 changes");
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 2 changes"); // the three that match no link are not listed
   expect(await linkKeys(page, "new")).toEqual(["co:acme IMO1000004 operates", "lf:newfirm gov:us-senate lobbied"]);
   expect(await ghostLinkIds(page)).toEqual([]);
   expect(errors).toEqual([]);
@@ -964,7 +984,7 @@ test("deep link focus works", async ({ page }) => {
   const st = await netState(page);
   expect([st.selected, st.storyActive]).toEqual(["IMO1000003", false]);
   await expect(page.locator("#side")).toHaveClass(/open/);
-  await expect(page.locator(".chg-title")).toHaveText("Since 19 Oct · 12 changes");
+  await expect(page.locator(".chg-title")).toHaveText("Since 19 Oct · 10 changes");
   expect(await nodeMarks(page, "new")).toEqual(["IMO1000003", "lf:newfirm"]);
   expect(errors).toEqual([]);
 });
@@ -990,7 +1010,7 @@ test("network: hashchange re-focuses", async ({ page }) => {
   await netReady(page);
   await page.evaluate(() => { location.hash = "#focus=IMO1000002&since=2026-10-15"; });
   await expect.poll(async () => (await netState(page)).selected).toBe("IMO1000002");
-  await expect(page.locator(".chg-title")).toHaveText("Since 15 Oct · 12 changes");
+  await expect(page.locator(".chg-title")).toHaveText("Since 15 Oct · 10 changes");
   await page.evaluate(() => { location.hash = "#focus=lf:newfirm"; });
   await expect.poll(async () => (await netState(page)).selected).toBe("lf:newfirm");
   expect(errors).toEqual([]);
@@ -1000,13 +1020,13 @@ test("network: junk in the hash is ignored", async ({ page }) => {
   const errors = watchErrors(page);
   await stubNet(page);
   await netReady(page, "#focus=%3Cimg%20src%3Dx%3E&since=2026-13-45&x=%E0%A4%A");
-  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 12 changes");
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 10 changes");
   expect((await netState(page)).selected).toBeNull();
   for (const hash of ["#focus=constructor", "#focus=__proto__&since=20261019", "#focus=toString", "#focus=hasOwnProperty&since=2026-02-30"]) {
     await page.evaluate((h) => { location.hash = h; }, hash);
     await page.waitForTimeout(150);
     expect((await netState(page)).selected).toBeNull();
-    await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 12 changes");
+    await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 10 changes");
   }
   expect(errors).toEqual([]);
 });
@@ -1014,7 +1034,7 @@ test("network: junk in the hash is ignored", async ({ page }) => {
 test("network: one broken pair in the hash does not lose the others", async ({ page }) => {
   await stubNet(page);
   await netReady(page, "#x=%E0%A4%A&since=2026-10-19&y=%");
-  await expect(page.locator(".chg-title")).toHaveText("Since 19 Oct · 12 changes");
+  await expect(page.locator(".chg-title")).toHaveText("Since 19 Oct · 10 changes");
 });
 
 test("network shows retry when data fails", async ({ page }) => {
@@ -1032,7 +1052,7 @@ test("network shows retry when data fails", async ({ page }) => {
   await page.waitForFunction(() => document.getElementById("loading").style.display === "none" && window.__kg);
   await expect(page.getByText("Network data unavailable right now")).toBeHidden();
   await expect(page.locator("#chgBtn")).toBeVisible();
-  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 12 changes");
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 10 changes");
   expect(await nodeMarks(page, "new")).toEqual(["IMO1000003", "lf:newfirm"]);
 });
 
@@ -1065,7 +1085,7 @@ test("network: change record failure says unavailable, not no changes, and Retry
   expect(await ghostIds(page)).toEqual([]);
   down = false;
   await root.getByRole("button", { name: "Retry" }).click();
-  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 12 changes");
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 10 changes");
   expect(await nodeMarks(page, "new")).toEqual(["IMO1000003", "lf:newfirm"]);
   expect(await ghostIds(page)).toContain("IMO1000099");
   expect([record, code]).toEqual([2, 2]);
@@ -1089,7 +1109,7 @@ test("network full outage: Retry reloads the change record too", async ({ page }
   await expect(page.getByText("Network data unavailable right now")).toBeVisible();
   down = false;
   await page.getByRole("button", { name: "Retry" }).click();
-  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 12 changes");
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 10 changes");
   expect(await nodeMarks(page, "new")).toEqual(["IMO1000003", "lf:newfirm"]);
   expect(record).toBe(2);
 });
@@ -1103,27 +1123,63 @@ test("network: if the panel's code fails to load the graph still works", async (
   expect(await page.evaluate(() => window.__kg.Graph.graphData().nodes.length)).toBe(10);
 });
 
-test("network: choosing a change row shows the item, or its ghost, or nothing", async ({ page }) => {
+test("network: choosing a change row shows the item or its ghost, clear of the open drawers", async ({ page }) => {
   const errors = watchErrors(page);
   await stubNet(page);
   await netReady(page);
   await page.getByRole("button", { name: "What changed" }).click();
+  const shown = async (...pts) => { for (const p of pts) if (!(await clearOfDrawers(page, p) && p.x > 0 && p.y > 0 && p.x < 1280 && p.y < 720)) return false; return true; };
   await page.locator(".chg-pick", { hasText: "EU removed GONE SHIP" }).click();
-  await expect.poll(async () => (await ghostScreen(page, "IMO1000099")).inside).toBe(true);
+  await expect.poll(async () => shown(await ghostScreen(page, "IMO1000099"), await nodeScreen(page, "co:acme"))).toBe(true); // the ghost and the company it sat beside
   expect((await netState(page)).selected).toBeNull(); // no details for a ghost
   await page.locator(".chg-pick", { hasText: "No longer on the map: LOOSE CO" }).click();
-  await expect.poll(async () => (await ghostScreen(page, "co:loose")).inside).toBe(true);
-  await page.locator(".chg-pick", { hasText: "New lobbying firm: NEW FIRM" }).click();
-  expect((await netState(page)).selected).toBe("lf:newfirm");
+  await expect.poll(async () => shown(await ghostScreen(page, "co:loose"))).toBe(true);
+  // a node: its details open on the right while the changes drawer is open on the left, and it is framed between them
+  for (const [row, id] of [["New lobbying firm: NEW FIRM", "lf:newfirm"], ["US listed CHARLIE", "IMO1000003"], ["ACME SHIPPING hired NEW FIRM", "co:acme"]]) { // (a link: the node it starts at)
+    await page.locator(".chg-pick", { hasText: row }).click();
+    expect((await netState(page)).selected).toBe(id);
+    await expect(page.locator("#side")).toHaveClass(/open/);
+    await expect(page.locator("#chgPop")).toBeVisible();
+    expect(await shown(...(await litScreen(page))), id).toBe(true); // the node and all it is lit with, between the two drawers
+  }
+  // a ghost chosen while a node's details are open: those details close, and it is shown
+  await page.locator(".chg-pick", { hasText: "EU removed GONE SHIP" }).click();
+  expect((await netState(page)).selected).toBeNull();
+  await expect(page.locator("#side")).not.toHaveClass(/open/);
+  expect((await netState(page)).hl).toBeNull(); // (nothing stays lit)
+  await expect.poll(async () => shown(await ghostScreen(page, "IMO1000099"), await nodeScreen(page, "co:acme"))).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("network: only changes the page can show are listed", async ({ page }) => {
+  await stubNet(page);
+  await netReady(page);
+  await page.getByRole("button", { name: "What changed" }).click();
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 10 changes");
+  const rows = page.locator(".chg-pick");
+  await expect(rows).toHaveCount(10);
+  await expect(rows.filter({ hasText: "OFFNET SHIP" })).toHaveCount(0); // a ship the network does not draw
+  await expect(rows.filter({ hasText: "ALPHA → OLD CO" })).toHaveCount(0); // a link with an end that is not here, so it cannot be drawn
+  for (const t of ["GONE SHIP", "LOOSE CO", "BRAVO → ACME SHIPPING (owned by)", "NEW FIRM", "US listed CHARLIE", "DELTA changed status"]) await expect(rows.filter({ hasText: t }).first()).toBeVisible(); // what is here, or was
+  await expect(page.locator(".chg-notes")).toContainText("UK list was unavailable on 18 Oct"); // the notes about sources that were down survive the filter
+  await page.locator(".chg-pick", { hasText: "US listed CHARLIE" }).click();
+  await page.evaluate(() => { location.hash = "#focus=IMO1000050"; }); // and a link to one that is not listed goes nowhere
+  await page.waitForTimeout(150);
+  expect((await netState(page)).selected).toBe("IMO1000003");
+});
+
+test("network: at a narrow desktop width the changes drawer steps aside for what it chose", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 720 });
+  await stubNet(page);
+  await netReady(page);
+  await page.getByRole("button", { name: "What changed" }).click();
   await page.locator(".chg-pick", { hasText: "US listed CHARLIE" }).click();
   expect((await netState(page)).selected).toBe("IMO1000003");
-  await page.locator(".chg-pick", { hasText: "ACME SHIPPING hired NEW FIRM" }).click(); // a link: the node it starts at
-  expect((await netState(page)).selected).toBe("co:acme");
-  await page.locator(".chg-pick", { hasText: "US listed OFFNET SHIP" }).click(); // not on the network: listed, but nothing to show
-  expect((await netState(page)).selected).toBe("co:acme");
-  await page.locator(".chg-pick", { hasText: "ALPHA → OLD CO" }).click(); // its end is unknown
-  expect((await netState(page)).selected).toBe("co:acme");
-  expect(errors).toEqual([]);
+  await expect(page.locator("#chgPop")).toBeHidden(); // the strip between the two drawers is too narrow to frame anything in
+  for (const p of await litScreen(page)) {
+    expect(await clearOfDrawers(page, p)).toBe(true);
+    expect(p.x > 0 && p.x < 1024 && p.y > 0 && p.y < 720).toBe(true);
+  }
 });
 
 test("network: the drawer's keys do not step the story, and Escape closes it", async ({ page }) => {
@@ -1152,6 +1208,25 @@ test("network: the drawer's keys do not step the story, and Escape closes it", a
   await expect(btn).toBeFocused();
   expect((await netState(page)).step).toBe(before);
   expect(errors).toEqual([]);
+});
+
+test("network: story step 1 counts the ships a list names, and never says an unlisted one is listed", async ({ page }) => {
+  const kg = kgFixture();
+  const echo = kgShip(9, "ECHO", { s: "", lists: [] }); // research keeps a ship a list has dropped
+  echo.k = 1;
+  kg.nodes.push(echo);
+  kg.edges.push(kgEdge("co:acme", echo.id, "operates", "fleet"));
+  await stubNet(page, { kg });
+  await netReady(page);
+  const text = await page.locator("#stepx").innerText();
+  expect(text).toContain("4 of the 5 tankers and cargo ships");
+  expect(text).not.toContain("Every ship here is listed");
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+  await stubNet(page); // all four listed: the plain count
+  await netReady(page);
+  const plain = await page.locator("#stepx").innerText();
+  expect(plain).toContain("4 tankers and cargo ships");
+  expect(plain).not.toMatch(/Every ship|of the 4/);
 });
 
 test("network: change text is escaped and never becomes markup", async ({ page }) => {
@@ -1213,6 +1288,11 @@ test("network: the new fields are never printed", async ({ page }) => {
   });
   expect(shown).toContain("KGONLY CO");
   expect(shown).not.toMatch(/kg_only|\blk\b|\bfl\b|\bfr\b|b1111111|a1111111/);
+  // ACME's links carry filing ids (fl, fr): the details of the company that hired the firms must not print them either
+  await page.evaluate(() => { window.__kg.select(window.__kg.nodeById.get("co:acme")); });
+  const acme = await page.locator("#side").textContent();
+  expect(acme).toContain("OLD FIRM");
+  expect(acme).not.toMatch(/\bfl\b|\bfr\b|b1111111|a1111111|a2222222/);
 });
 
 test("network: story figures are dated or computed, and a step whose names have left still shows the graph", async ({ page }) => {
@@ -1242,4 +1322,9 @@ test("network on a phone: the drawer fits and the page does not scroll sideways"
   expect(box.y + box.height).toBeLessThanOrEqual(812);
   await page.locator(".chg-pick", { hasText: "US listed CHARLIE" }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  // opened over details that are already open (a sheet over the lower half of the screen), the drawer is in front and its lower rows can be pressed
+  await expect(page.locator("#chgPop")).toBeHidden(); // (it stepped aside for CHARLIE)
+  await page.getByRole("button", { name: "What changed" }).click();
+  await page.locator(".chg-pick", { hasText: "No longer on the map: LOOSE CO" }).click({ timeout: 3000 });
+  await expect.poll(async () => (await ghostScreen(page, "co:loose")).inside).toBe(true);
 });

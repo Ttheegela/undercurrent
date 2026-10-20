@@ -72,7 +72,7 @@ a.btn { text-decoration: none; display: inline-block; }
 .k-ctrl { stroke: var(--kg-ctrl); stroke-width: 1.5; } .k-money { stroke: var(--kg-infl); stroke-width: 2; stroke-dasharray: 5 3; }
 .k-govl { stroke: var(--kg-gov); stroke-width: 1.5; stroke-dasharray: 4 2; } .k-lead { stroke: var(--kg-lead); stroke-width: 1.5; stroke-dasharray: 1 3; }
 .k-bridge { stroke: var(--color-ink); stroke-width: 2.2; }
-/* Change marks: --chg-new is the changes panel's own token (app/style.css); the page copies it onto :root so the key can use it */
+/* Change marks: --chg-new is the panel's token (app/style.css), copied onto :root for the key */
 .k-new { fill: none; stroke: var(--chg-new); stroke-width: 2; } .k-chg { fill: none; stroke: var(--color-neutral); stroke-width: 2; }
 .k-gone { fill: none; stroke: var(--color-neutral); stroke-width: 1.5; stroke-dasharray: 2.5 2; } .k-gone-l { stroke: var(--color-neutral); stroke-width: 2; stroke-dasharray: 1.5 3.5; opacity: .7; }
 
@@ -112,8 +112,8 @@ a.btn { text-decoration: none; display: inline-block; }
 #side .close, #chgPop .close { position: absolute; top: var(--space-xs); right: var(--space-xs); background: none; border: 0; color: var(--color-neutral); font-size: var(--text-xl); line-height: 1; padding: var(--space-2xs) var(--space-xs); cursor: pointer; }
 #side .close:hover, #chgPop .close:hover { color: var(--color-ink); }
 
-/* What changed: a drawer down the left side under the top bar, opened from its button (the details drawer is on the right) */
-#chgPop { top: calc(var(--bar-h, 3.5rem) + var(--space-xs)); left: var(--page-gutter); z-index: 7; width: min(26rem, calc(100vw - 2 * var(--page-gutter))); max-height: calc(100% - var(--bar-h, 3.5rem) - 2 * var(--space-sm)); overflow-y: auto; padding: var(--space-md); }
+/* What changed: a drawer down the left, under the top bar (the details drawer is on the right) */
+#chgPop { top: calc(var(--bar-h, 3.5rem) + var(--space-xs)); left: var(--page-gutter); z-index: 8; width: min(26rem, calc(100vw - 2 * var(--page-gutter))); max-height: calc(100% - var(--bar-h, 3.5rem) - 2 * var(--space-sm)); overflow-y: auto; padding: var(--space-md); }
 #chgPop .intro { margin: var(--space-2xs) 0 var(--space-sm); padding-right: var(--space-lg); color: var(--color-muted); font-size: var(--text-xs); }
 #chgBtn[hidden] { display: none; } #chgBtn[aria-expanded=true] { border-color: var(--color-muted); }
 
@@ -130,7 +130,7 @@ a.btn { text-decoration: none; display: inline-block; }
   .spacer { display: none; }
   .qbox { flex: 1 1 100%; order: 1; } .qbox input { width: 100%; }
   #pathBtn, #fitBtn, #chgBtn { order: 2; }
-  .toggles { order: 3; flex: 1 1 100%; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }   /* (its own row: the three buttons before it leave it no room) */
+  .toggles { order: 3; flex: 1 1 100%; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   #bar .nav-graphs { order: 4; flex-basis: 100%; }
   /* the key: a chip under the bar, opening as a sheet over the story card */
   #legend:not(.is-collapsed) { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 60%; z-index: 9; border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
@@ -180,7 +180,7 @@ a.btn { text-decoration: none; display: inline-block; }
 <aside id="chgPop" class="card" aria-label="What changed" hidden>
   <button class="close" id="chgClose" aria-label="Close">×</button>
   <div class="kicker">What changed</div>
-  <p class="intro">New lobbying filings and sanctions-list changes to the ships, companies and people on this page. Rebuilt every night.</p>
+  <p class="intro">New lobbying filings and sanctions-list changes to the ships, companies and people on this page, rebuilt nightly.</p>
   <div id="chg-root" class="chg"></div>
 </aside>
 
@@ -241,10 +241,8 @@ a.btn { text-decoration: none; display: inline-block; }
 <div id="tip"></div>
 
 <script>
-/* Start the downloads now, so they overlap with the graph library below: the network data (kg.json, rebuilt nightly), the change record
-   and the code for the changes panel. The record and the panel are optional: a failure of either (or a record of the wrong shape)
-   resolves to null, and the page then says "Changes unavailable right now" with a Retry; a failure of the data is reported by the
-   page. retry() asks again for what failed. */
+/* Start the downloads now so they overlap the graph library: kg.json, the change record and the panel's code. The record and the panel are
+   optional (a failure, or a wrong-shaped record, resolves to null and the drawer says so, with a Retry). retry() asks again for what failed. */
 (function(){
   function get(url){ return fetch(url).then(function(r){ if(!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
   var obj = function(x){ return !!x && typeof x === 'object'; };
@@ -269,15 +267,15 @@ a.btn { text-decoration: none; display: inline-block; }
 <script>
 (function(){
 "use strict";
-/* The data arrives by fetch (see the script above). While it loads the page shows its loading veil; if it fails, a message and Retry. */
-const setBarH = () => document.documentElement.style.setProperty("--bar-h", document.getElementById("bar").offsetHeight + "px");   // panels sit under the bar, which wraps to two or three rows on narrow screens
+/* The data arrives by fetch (script above): a loading veil meanwhile, a message and Retry if it fails. */
+const setBarH = () => document.documentElement.style.setProperty("--bar-h", document.getElementById("bar").offsetHeight + "px");
 setBarH(); new ResizeObserver(setBarH).observe(document.getElementById("bar"));
-let reloadToRetry = false;   // the data came, but the graph could not start (its library is missing): only a reload helps
+let reloadToRetry = false;   // (the graph itself could not start)
 function loadNetwork(again){
   const loading = document.getElementById("loading"), fail = document.getElementById("fail"), chgBtn = document.getElementById("chgBtn");
   function down(){ loading.style.display = "none"; fail.hidden = false; chgBtn.hidden = true; document.getElementById("chgPop").hidden = true; document.getElementById("retry").focus(); }
   fail.hidden = true; chgBtn.hidden = false; loading.style.display = "";
-  if (again) window.__load.retry();   // the record and the panel's code too, if they failed
+  if (again) window.__load.retry();
   (again ? window.__load.data() : window.__load.first).then(D => {
     if (!D || !Array.isArray(D.nodes) || !Array.isArray(D.edges) || !D.meta || !D.meta.counts) throw new Error("kg.json has the wrong shape");
     return D;
@@ -292,7 +290,7 @@ window.KG = KG;
 const TOKEN = (() => { const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue("--" + k).trim();
   return {paper:v("color-paper"), neutral:v("color-neutral"), muted:v("color-muted"), ink:v("color-ink"), accent:v("color-accent"),
           corp:v("kg-corp"), infl:v("kg-infl"), gov:v("kg-gov"), ctrl:v("kg-ctrl"), lead:v("kg-lead"),
-          chgNew:getComputedStyle(document.getElementById("chg-root")).getPropertyValue("--chg-new").trim()}; })();   // (the panel's token, read off its root so the value lives once)
+          chgNew:getComputedStyle(document.getElementById("chg-root")).getPropertyValue("--chg-new").trim()}; })();
 document.documentElement.style.setProperty("--chg-new", TOKEN.chgNew);   // for the key
 const alpha = (c, a) => c.replace(/\)$/, ` / ${a})`);   // oklch(L C H) -> oklch(L C H / a)
 const C = {corp:TOKEN.corp, infl:TOKEN.infl, gov:TOKEN.gov, sanc:TOKEN.accent, live:TOKEN.ink};
@@ -318,8 +316,7 @@ const nodes = KG.nodes.map(n => ({...n}));
 const nodeById = new Map(nodes.map(n => [n.id, n]));
 const adj = new Map(nodes.map(n => [n.id, []]));
 links.forEach(l => { adj.get(l.s).push(l); adj.get(l.t).push(l); });
-// A change names a link by its ends and type (links have no id): (endpoint_ids[0], endpoint_ids[1], node_type) = (s, t, y), in both layers.
-// Two links can share all three (a pair lobbied on in two periods), so each key holds a list.
+// A change names a link by (endpoint_ids[0], endpoint_ids[1], node_type) = (s, t, y), in both layers. Links can share all three (two periods), so a key holds a list.
 const edgeByKey = new Map();
 links.forEach(l => { const k = l.s + "|" + l.t + "|" + l.y; if (!edgeByKey.has(k)) edgeByKey.set(k, []); edgeByKey.get(k).push(l); });
 
@@ -379,8 +376,7 @@ nodes.forEach(n => {
 // ================= state =================
 let hlNodes = null, hlLinks = null, hover = null, selected = null, pathLinks = null, storyActive = true;
 const vis = {lead:true, prog:{russia:true, iran:true, china:true, other:true}};
-// What the changes window (chosen in the "What changed" drawer) marks: node id -> "new" | "changed", link id -> "new", and the ghosts of removed items.
-// Ghosts are not nodes or links of the graph: they are drawn on their own, so they are never selected, lit, laid out or framed.
+// What the chosen window marks: node id -> "new" | "changed", link id -> "new", and ghosts (drawn on their own: never selected, lit, laid out or framed).
 const chg = {changes:[], node:new Map(), link:new Map(), ghostNodes:[], ghostLinks:[], index:new Map(), focus:null, row:null, at:null};
 function nodeVisible(n){
   if (!n.prog) return true;              // lobbyists, firms, government: always shown
@@ -519,8 +515,7 @@ function drawHeadings(ctx, scale){
   for (const [g, v] of Object.entries(gal)){ if (GALAXY[g] && isFinite(v.y)) ctx.fillText(GALAXY[g].title.toUpperCase(), GALAXY[g].x, v.y - 30 / scale); }
   if (chg.row && chg.ghostNodes.some(g => !g.anchor)) ctx.fillText("REMOVED", chg.row.x, chg.row.y - 30 / scale);
 }
-// ---- removed items: faint dashed outlines, under the graph. A ghost sits beside a node still drawn that one of its removed links names
-// (it follows that node), else in a row below the graph. It has no force, no pointer area, and is in no neighbourhood.
+// ---- removed items: faint dashed outlines beside a node a removed link names (they follow it) or in a row below the graph. No force, no pointer area.
 const ghostShown = g => !g.anchor || nodeVisible(nodeById.get(g.anchor));
 function ghostAt(id){
   const g = chg.index.get(id);
@@ -533,7 +528,7 @@ function drawGhosts(ctx, scale){
   if (!chg.ghostNodes.length && !chg.ghostLinks.length) return;
   const shown = id => chg.index.has(id) ? ghostShown(chg.index.get(id)) : nodeVisible(nodeById.get(id));
   ctx.save();
-  ctx.strokeStyle = TOKEN.neutral; ctx.lineWidth = Math.max(1.2, 1.5 / scale); ctx.globalAlpha = 0.45; ctx.setLineDash([2 / scale, 6 / scale]);   // (a lead link is 1 3 at 0.7: this is fainter and sparser)
+  ctx.strokeStyle = TOKEN.neutral; ctx.lineWidth = Math.max(1.2, 1.5 / scale); ctx.globalAlpha = 0.45; ctx.setLineDash([2 / scale, 6 / scale]);   // (fainter than a lead link)
   for (const l of chg.ghostLinks){
     if (!shown(l.a) || !shown(l.b)) continue;
     const a = chg.at(l.a), b = chg.at(l.b);
@@ -609,7 +604,7 @@ function showTip(n){
   tip.style.left = Math.min(innerWidth - 330, p.x + 14) + "px"; tip.style.top = (p.y + 12) + "px";
 }
 function hideTip(){ tip.style.display = "none"; }
-// http, https or relative only (the same rule as safeUrl in app/render.js): the links come from a file rebuilt every night
+// http, https or relative only (as safeUrl in app/render.js): the file is rebuilt nightly
 function safeUrl(u){ try { const p = new URL(u, "https://undercurrent.invalid/"); if (p.protocol === "https:" || p.protocol === "http:") return u; } catch (e) {} return "#"; }
 function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
@@ -651,8 +646,8 @@ function flyTo(ids, pad, maxK){
     const r = leg.getBoundingClientRect(), l2 = r.right + 10, r2 = r.left - 10;
     if (r.left + r.right < W){ if (R - l2 > W / 2) L = l2; } else if (r2 - L > W / 2) R = Math.min(R, r2);
   }
-  const pop = $("chgPop");   // and of the changes drawer on the left, unless that leaves too little room
-  if (!pop.hidden && innerWidth > 760){ const r = pop.getBoundingClientRect().right + 10; if (R - r > W / 2) L = Math.max(L, r); }
+  const pr = popRight();   // and of the changes drawer on the left, unless that leaves too little room (the caller then closes the drawer)
+  if (pr && R - pr >= STRIP) L = Math.max(L, pr);
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   pts.forEach(n => { x0 = Math.min(x0, n.x); x1 = Math.max(x1, n.x); y0 = Math.min(y0, n.y); y1 = Math.max(y1, n.y); });
   const m = 70 * (pad || 1), bw = Math.max(60, x1 - x0), bh = Math.max(60, y1 - y0);
@@ -660,6 +655,10 @@ function flyTo(ids, pad, maxK){
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, ax = (L + R) / 2, ay = (T + B) / 2;
   tweenCamera(k, cx - (ax - W/2) / k, cy - (ay - H/2) / k, 850);
 }
+// (the narrowest strip worth framing in)
+const STRIP = 280;
+function popRight(){ return !$("chgPop").hidden && innerWidth > 760 ? $("chgPop").getBoundingClientRect().right + 10 : 0; }
+const stripLeft = () => innerWidth - ($("side").classList.contains("open") ? $("side").offsetWidth + 30 : 20) - popRight();
 // One tween for zoom + pan (two separate animated calls cancel each other).
 let camAnim = 0;
 function tweenCamera(k1, x1, y1, ms){
@@ -744,9 +743,15 @@ function renderSide(n){
 }
 
 // ================= story =================
+// (research keeps ships a list has dropped: count the ones a list names)
+function shipCount(){
+  const ships = KG.nodes.filter(n => n.t === "ship"), listed = ships.filter(n => (n.lists || []).length).length, f = n => n.toLocaleString();
+  return listed === ships.length ? `<b>${f(listed)} tankers and cargo ships</b> on US, UK or EU sanctions lists,`
+    : `<b>${f(listed)} of the ${f(ships.length)} tankers and cargo ships</b> here are on US, UK or EU sanctions lists (research keeps the others),`;
+}
 const STEPS = [
-  {t:"The shadow fleet", x:`<b>${KG.nodes.filter(n => n.t === "ship").length.toLocaleString()} tankers and cargo ships</b> on US, UK or EU sanctions lists, joined by their permanent hull number to the companies that own, manage or operate them. Every ship here is listed; a red ring on a company or person means a government froze its assets.`,
-   s:`UK, US and EU sanctions lists, rebuilt nightly (this build: ${KG.meta.generated}). Research as of 25 Sep 2026: US Commerce lists, Ukraine's war-sanctions database.`, fleet:true},
+  {t:"The shadow fleet", x:`${shipCount()} joined by their permanent hull number to the companies that own, manage or operate them. A red ring on a company or person means a government froze its assets.`,
+   s:`UK, US and EU sanctions lists, rebuilt nightly (this build: ${KG.meta.generated}). Hand-checked links and research as of 25 Sep 2026, including Ukraine's war-sanctions database.`, fleet:true},
   {t:"New name, same hull", x:"A ship's name is paperwork; its hull number is for life. The UK listed <b>CLYDE NOBLE</b> in May 2025. Its manager closed the next month, and the US later listed the same hull as <b>AQUA LIVE</b>.",
    s:"UK list; US Treasury (OFAC) list.", focus:["IMO9282792"], hops:2},
   {t:"The Sovcomflot hub", x:"Russia's state tanker company, <b>Sovcomflot</b>, anchors the Russian cluster. Treasury says it \"sought to circumvent sanctions by transferring the management of tankers to Fornax and Stream\", two Dubai firms.",
@@ -790,10 +795,10 @@ function go(i, keepSide){
   } else {
     const ids = (typeof st.focus === "function" ? st.focus() : st.focus).filter(id => nodeById.has(id));
     if (ids.length){ const nb = neighborhood(ids, st.hops, st.fams); hlNodes = nb.ns; hlLinks = nb.ls; fit = [...hlNodes]; }
-    else { hlNodes = hlLinks = null; fit = nodes.filter(nodeVisible).map(n => n.id); }   // the lists change nightly: if every name this step shows has left, show the graph, not a faded one
+    else { hlNodes = hlLinks = null; fit = nodes.filter(nodeVisible).map(n => n.id); }   // (all names left the lists)
   }
   if (st.path && hlNodes){ const p = shortestPath(st.path[0], st.path[1]); if (p){ pathLinks = new Set(p.links); p.nodes.forEach(x => hlNodes.add(x)); p.links.forEach(x => hlLinks.add(x)); } }
-  setTimeout(() => { if (storyActive) flyTo(fit, st.fleet ? 0.3 : 1); }, 0);   // (unless a link to one item has taken the view since)
+  setTimeout(() => { if (storyActive) flyTo(fit, st.fleet ? 0.3 : 1); }, 0);
 }
 $("prev").onclick = () => go(step - 1);
 $("next").onclick = () => go(step + 1);
@@ -863,14 +868,13 @@ if (KG.meta.live) $("liveKey").textContent = `Pulsing ring: seen live on AIS (Go
 $("counts").innerHTML = `${m.nodes.toLocaleString()} nodes · ${m.edges.toLocaleString()} links (${m.lead_edges} leads)<br>${m.lda_filings_kept.toLocaleString()} lobbying filings used · ${m.ships_hidden_no_owner_link} listed ships not drawn (no list names an owner)<br>People named only where an official list, release or their own lobbying disclosure names them.`;
 
 // ================= changes =================
-// The panel (app/changes.js) calls applyWindow with what changed since the day chosen: the fleet layer (the lists' changes to ships, companies and
-// people) and the lobbying layer. A change is marked only where it touches something drawn here. Links have no id: a change names its link by its ends and
-// type. Added = a green ring (a new link is green and carries particles), changed = a grey ring, removed = a faint dashed ghost beside what is left.
+// The panel (app/changes.js) calls applyWindow with the changes since the chosen day (fleet layer and lobbying layer). Links have no id: a change names its
+// link by its ends and type. Added = green ring (a new link is green, with particles), changed = grey ring, removed = a faint dashed ghost.
 const chgRoot = $("chg-root"), chgPop = $("chgPop"), chgBtn = $("chgBtn");
 const chgById = new Map(), ghostLinkById = new Map(), DAY = /^\d{4}-\d{2}-\d{2}$/;
 let chgPanel = null, ready = false, pendingFocus = null;
-const edgesOf = c => { const ep = c.endpoint_ids; return Array.isArray(ep) ? edgeByKey.get(ep[0] + "|" + ep[1] + "|" + c.node_type) : undefined; };   // (a removed link is edgesOf(c) === undefined)
-const redraw = () => Graph.zoom(Graph.zoom());   // (the canvas is redrawn when it is moved; a property change would re-run the layout)
+const edgesOf = c => { const ep = c.endpoint_ids; return Array.isArray(ep) ? edgeByKey.get(ep[0] + "|" + ep[1] + "|" + c.node_type) : undefined; };
+const redraw = () => Graph.zoom(Graph.zoom());   // (moving the canvas redraws it; most setters re-run the layout)
 function markChanges(){
   const node = new Map(), link = new Map(), lost = new Map(), lostLinks = [];
   for (const c of chg.changes){
@@ -882,7 +886,7 @@ function markChanges(){
       if (c.kind === "added") node.set(c.id, "new"); else if (c.kind === "changed" && node.get(c.id) !== "new") node.set(c.id, "changed");   // (new wins over changed)
     } else if (c.kind === "removed" && !lost.has(c.id)) lost.set(c.id, c);
   }
-  // A removed link is drawn between its ends when each is a node drawn here or the ghost of a removed one; a link with an end we cannot place is skipped.
+  // A removed link is drawn between two ends that are nodes here or ghosts; any other is skipped.
   const end = id => nodeById.has(id) || lost.has(id) ? id : null, near = new Map(), around = new Map(), seen = new Set();
   chg.ghostLinks = []; ghostLinkById.clear();
   for (const c of lostLinks){
@@ -901,6 +905,7 @@ function markChanges(){
     chg.ghostNodes.push(g); chg.index.set(id, g);
   });
   chg.node = node; chg.link = link;
+  Graph.linkDirectionalParticles(Graph.linkDirectionalParticles());   // (rebuilds the particles: new links get theirs; no re-layout)
   placeLoose();
 }
 // Ghosts with no node to sit beside stand in a row under the graph, headed REMOVED.
@@ -920,25 +925,25 @@ function focusOn(id){ const n = nodeById.get(id); if (!nodeVisible(n)) setAllPro
 function centreGhost(id){
   const g = chg.index.get(id), l = ghostLinkById.get(id), ends = g ? [id] : l ? [l.a, l.b] : [];
   if (ends.some(e => chg.index.has(e) ? !ghostShown(chg.index.get(e)) : !nodeVisible(nodeById.get(e)))) setAllProg();   // (hidden by a filter)
+  if (selected) clearFocus();
   chg.focus = g ? id : null;
   flyTo((g ? [chg.at(id), g.anchor && nodeById.get(g.anchor)] : [chg.at(l.a), chg.at(l.b)]).filter(Boolean), 1.4, 2.5);
 }
-// An item named by a change row or the hash: a node (or the start of a link) drawn here is selected, a removed one is centred on its ghost, anything
-// else is left alone. From the hash (leave) the story steps aside, as for a search.
+// An item named by a row or the hash: a node (or a link's start) is selected, a removed one centred on its ghost, anything else ignored. From the hash the story steps aside.
 function goTo(id, leave, given){
   const c = given || chgById.get(id), ls = c && c.item === "edge" ? edgesOf(c) : null;
   const node = nodeById.has(id) ? id : ls ? ls[0].s : null, ghost = !node && (chg.index.has(id) || ghostLinkById.has(id));
   if (!node && !ghost) return false;
   if (leave) leaveStory();
   if (node) focusOn(node); else centreGhost(id);
+  if (!chgPop.hidden && (matchMedia("(max-width: 760px)").matches || stripLeft() < STRIP)){ const held = chgPop.contains(document.activeElement); openChg(false); if (held) chgBtn.focus(); }   // (it covers the graph, or leaves no room beside the details)
   return true;
 }
-// A link to a removed item can only be followed once the first view is laid out and the panel has chosen its window.
+// A link to a removed item waits for the first view and the panel's window.
 function settle(){
   if (pendingFocus && ready && chgPanel){ const f = pendingFocus; pendingFocus = null; if (chgById.has(f)) goTo(f, true); }
 }
-// The change record (checked for its shape by the early script) and the panel's code arrive separately; if either is missing the drawer says so,
-// which is not the same as "no changes", and its Retry asks again for what failed.
+// If the record or the panel's code is missing the drawer says so (not "no changes"), and its Retry asks again for what failed.
 function loadChanges(refocus){
   Promise.all([window.__load.rec, window.__load.mod]).then(r => {
     if (r[0] && r[1]){ mountPanel(r[0], r[1]); return; }
@@ -952,15 +957,28 @@ chgRoot.addEventListener("click", ev => {
   window.__load.retry();
   loadChanges(true);
 });
-function mountPanel(rec, mod){
+// The panel gets what this page can show: changes to nodes or links drawn here, or to ones that left (a ghost; a removed link needs both ends here or removed
+// that day). Every day keeps its sources, so the notes about lists that were down survive.
+function onNetwork(rec){
+  return {...rec, days:rec.days.map(d => {
+    const gone = new Set(d.changes.filter(c => c.item !== "edge" && c.kind === "removed" && !nodeById.has(c.id)).map(c => c.id)), here = id => nodeById.has(id) || gone.has(id);
+    return {...d, changes:d.changes.filter(c => {
+      if (c.item !== "edge") return nodeById.has(c.id) || gone.has(c.id);
+      const ep = Array.isArray(c.endpoint_ids) ? c.endpoint_ids : [];
+      return !!edgesOf(c) || (c.kind === "removed" && ep[0] !== ep[1] && here(ep[0]) && here(ep[1]));
+    })};
+  })};
+}
+function mountPanel(all, mod){
+  const rec = onNetwork(all);
   rec.days.forEach(d => d.changes.forEach(c => { if (!chgById.has(c.id)) chgById.set(c.id, c); }));
   chgPanel = mod.mountChangesPanel(chgRoot, {record:rec, graph:["fleet", "lobby"], today:String(KG.meta.generated || "").slice(0, 10), updatesHref:"../../updates/index.html",
-    onWindow:applyWindow, onSelect:c => { if (c && goTo(c.id, false, c) && matchMedia("(max-width: 760px)").matches){ openChg(false); chgBtn.focus(); } }});   // (on a phone the drawer covers the graph)
+    onWindow:applyWindow, onSelect:c => { if (c) goTo(c.id, false, c); }});
   const since = parseHash().since;
   if (DAY.test(since || "")) chgPanel.setSince(since);
 }
 loadChanges(false);
-// The drawer: opened from the top bar, closed by its button, by Escape (once the calendar inside is closed) or by choosing the button again.
+// The drawer: opened from the top bar; closed by its button, by Escape (after the calendar inside) or by the bar button.
 function openChg(open){
   chgPop.hidden = !open; chgBtn.setAttribute("aria-expanded", open);
   if (!open) return;
@@ -968,7 +986,7 @@ function openChg(open){
 }
 chgBtn.onclick = () => openChg(chgPop.hidden);
 $("chgClose").onclick = () => { openChg(false); chgBtn.focus(); };
-chgPop.addEventListener("keydown", e => {   // (capture: the panel stops Escape from leaving its root, so this runs first and steps aside while its calendar is open)
+chgPop.addEventListener("keydown", e => {   // (capture: runs before the panel stops Escape)
   if (e.key !== "Escape") return;
   const pick = chgRoot.querySelector("[data-pick]");
   if (pick && pick.getAttribute("aria-expanded") === "true") return;
@@ -976,7 +994,7 @@ chgPop.addEventListener("keydown", e => {   // (capture: the panel stops Escape 
 }, true);
 
 // ================= deep links =================
-// #focus=<id>&since=YYYY-MM-DD: focus is a node drawn here, or the id of a change in the record (a link, or an item that has left); since is the first day of the window.
+// #focus=<id>&since=YYYY-MM-DD: a node here, or the id of a change in the record (a link, or an item that left); since: the window's first day.
 function parseHash(){
   const hp = Object.create(null);
   String(location.hash || "").replace(/^#/, "").split("&").forEach(kv => {
@@ -1001,7 +1019,7 @@ let settled = false;
 Graph.onEngineStop(() => {
   if (settled) return;
   settled = true; placeLoose();
-  if (storyActive) go(step, true); else if (bootFocus && selected && selected.id === bootFocus) flyTo([...hlNodes]);   // (the layout has moved a little since the link was followed)
+  if (storyActive) go(step, true); else if (bootFocus && selected && selected.id === bootFocus) flyTo([...hlNodes]);   // (the layout moved a little)
 });
 setTimeout(() => {
   $("loading").style.display = "none";

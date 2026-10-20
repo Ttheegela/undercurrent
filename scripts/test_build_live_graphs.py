@@ -452,6 +452,16 @@ def test_malformed_lobbying_asset_does_not_take_the_map_down(world):
     assert record_day(world, "2026-10-20")["sources"]["lobbying"] == "unavailable"
 
 
+def test_malformed_lobbying_asset_on_a_first_run_builds_the_map_alone(world):
+    for name in ("fleet_data", "nodes", "edges", "kg", "changes", "stats", "meta"):
+        getattr(world, name).unlink()
+    world.lobbying.write_bytes(gzip.compress(b'{"filings": 3}'))  # (fresh by the meta, but not an asset) and no network to carry a layer from
+    assert not world.kg_js.exists()
+    assert blg.build(DAY2, fake_fetch, world) == 0
+    assert load(world.fleet_data)["nodes"] and not world.kg.exists()
+    assert record_day(world, "2026-10-20")["sources"]["lobbying"] == "unavailable"
+
+
 def test_network_is_kept_when_the_stored_firms_are_lost(world):
     meta = load(world.meta)
     del meta["kg_only"]  # (the meta file was lost): the network cannot be rebuilt around a map without them

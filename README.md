@@ -54,7 +54,7 @@ Every night at 04:00 UTC, `.github/workflows/update-lists.yml` refreshes:
 
 - **build:** downloads and parses all outside data with a read-only token and no secrets, then hands the results to `publish` as a short-lived artifact.
 - **publish:** runs none of the project's Python. It:
-  - rejects the artifact if it holds hidden files or links
+  - rejects the artifact if it holds hidden files, links, or file names with anything but letters, digits, `.`, `_`, `-` and `/`
   - copies the expected files into place and attaches the release assets
   - commits to `main` only if the smoke check passed
   - opens the failure issue

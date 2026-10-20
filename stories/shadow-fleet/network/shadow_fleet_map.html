@@ -342,17 +342,27 @@ abbr { text-decoration: underline dotted; cursor: help; }
 
 <script src="../../../app/legend.js"></script>
 <script>
-/* Start the downloads now, so they overlap with the map library below: the map data, the change record and the code for
-   the changes panel. The record and the panel are optional, so a failure of either becomes null; a failure of the data is reported by the map. */
+/* Start the downloads now, so they overlap with the map library below: the map data, the change record and the code for the changes
+   panel. The record and the panel are optional: a failure of either (or a record of the wrong shape) resolves to null, and the page then
+   says "Changes unavailable right now" with a Retry; a failure of the data is reported by the map. retry() asks again for what failed. */
 (function(){
   function get(url){ return fetch(url).then(function(r){ if(!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
+  var obj = function(x){ return !!x && typeof x === 'object'; };
   var L = window.__load = {
     data: function(){ return get('fleet-data.json'); },
-    record: get('../../../data/changes/changes.json').catch(function(){ return null; }),
-    panel: import('../../../app/changes.js').catch(function(){ return null; })
+    record: function(){
+      return get('../../../data/changes/changes.json').then(function(r){
+        if(!r || !Array.isArray(r.days) || !r.days.every(function(d){ return obj(d) && Array.isArray(d.changes) && d.changes.every(obj); })) throw new Error('wrong shape');
+        return r;
+      }).catch(function(){ return null; });
+    },
+    panel: function(again){ return import('../../../app/changes.js' + (again ? '?again=' + Date.now() : '')).catch(function(){ return null; }); }, /* (a failed import may be remembered, so ask under a new name) */
+    retry: function(){ L.rec = L.rec.then(function(r){ return r || L.record(); }); L.mod = L.mod.then(function(m){ return m || L.panel(true); }); }
   };
   L.first = L.data();
   L.first.catch(function(){});
+  L.rec = L.record();
+  L.mod = L.panel();
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js" integrity="sha384-IWROdLKRsN1UuJywMlWl7/blXQ8GEooN2n7dzTxfEPd7ybYIKCUJ2Ol/1Gpf3YV4" crossorigin="anonymous"></script>
@@ -363,15 +373,18 @@ abbr { text-decoration: underline dotted; cursor: help; }
 (function(){
 'use strict';
 /* The map data arrives by fetch (see the script above). While it loads the page shows its loading state; if it fails, a message and Retry. */
+var reloadToRetry = false; /* the data came, but the map itself could not start (its library is missing): only a reload helps */
 function loadFleet(again){
-  var busy = document.getElementById('busy'), fail = document.getElementById('fail');
-  fail.hidden = true; busy.firstElementChild.textContent = 'LOADING MAP DATA…'; busy.classList.add('on');
+  var busy = document.getElementById('busy'), fail = document.getElementById('fail'), changes = document.getElementById('changes');
+  function down(){ busy.classList.remove('on'); fail.hidden = false; changes.hidden = true; document.getElementById('retry').focus(); }
+  fail.hidden = true; changes.hidden = false; busy.firstElementChild.textContent = 'LOADING MAP DATA…'; busy.classList.add('on');
+  if(again) window.__load.retry(); /* the record and the panel's code too, if they failed */
   (again ? window.__load.data() : window.__load.first).then(function(D){
     if(!D || !Array.isArray(D.nodes) || !Array.isArray(D.edges)) throw new Error('fleet-data.json has the wrong shape');
     return D;
-  }).then(start, function(){ busy.classList.remove('on'); fail.hidden = false; });
+  }).then(start, down).catch(function(e){ reloadToRetry = true; down(); throw e; });
 }
-document.getElementById('retry').addEventListener('click', function(){ loadFleet(true); });
+document.getElementById('retry').addEventListener('click', function(){ if(reloadToRetry) location.reload(); else loadFleet(true); });
 loadFleet(false);
 
 function start(D){
@@ -647,7 +660,7 @@ function buildStyle(z){
     /* changed links (grey) and new links (green; wins when a link is both); the node rings are drawn on the overlay canvas */
     {selector:'edge.chg-changed', style:{'line-color':C('neutral'),'width':ew,'opacity':0.9}},
     {selector:'edge.chg-new', style:{'line-color':C('chg-new'),'width':ew,'opacity':0.95}},
-    {selector:'edge.ghost', style:{'line-style':'dashed','line-dash-pattern':[5,4],'line-color':C('neutral'),'width':Math.max(1.2, Math.min(8, 1.5 / z)),'opacity':0.85,'events':'no'}},
+    {selector:'edge.ghost', style:{'line-style':'dashed','line-dash-pattern':[2,6],'line-color':C('neutral'),'width':Math.max(1.2, Math.min(8, 1.5 / z)),'opacity':0.45,'events':'no'}}, /* not a lead link: short dashes, long gaps, fainter */
     {selector:'node.future', style:{'opacity':0.12}},
     {selector:'edge.future', style:{'display':'none'}},
     {selector:'.hid', style:{'display':'none'}},
@@ -942,7 +955,7 @@ function applyFilters(noPlace){
       el.toggleClass('future', e._m != null && e._m > S.t);
     });
   });
-  if(!noPlace) placeNew();
+  if(!noPlace){ placeNew(); markChanges(); } /* ghosts follow the filters */
   updateCounts();
   drawOverlay();
 }
@@ -992,7 +1005,11 @@ function flyTo(eles, maxZ, animate){
   if(animate === false || REDUCED){ cy.viewport(c); syncZoom(true); return; }
   cy.animate({zoom:c.zoom, pan:c.pan}, {duration:350, easing:'ease-in-out-cubic', complete:function(){ syncZoom(true); }});
 }
-function flyHome(animate){ var v = cy.elements().not('.hid'); if(v.length) flyTo(v, 1.4, animate); }
+function flyHome(animate){
+  var v = cy.elements().not('.hid');
+  if(S.view && S.view.focus) v = v.not(cy.nodes('.ghost').filter(function(n){ return !n.degree(false); })); /* a focus view is about its own neighbourhood: the loose ghosts under it stay out of the fit */
+  if(v.length) flyTo(v, 1.4, animate);
+}
 function resizeCanvas(){ var w = document.getElementById('cy').offsetWidth; cy.resize(); drawOverlay(); return w; }
 
 /* ---------- selection + highlighting ---------- */
@@ -1003,7 +1020,10 @@ function clearSelection(silent, noFly){
   renderCrumbs();
   drawOverlay();
 }
+/* the elements with what is connected to them now: closedNeighborhood() less the removed links, and so less the nodes only they led to */
+function nowAround(eles){ var links = eles.connectedEdges().not('.ghost'); return eles.union(links).union(links.connectedNodes()); }
 function markFocus(nb){
+  nb = nb.not('.ghost'); /* a removed item is never lit by choosing its neighbour: it is not part of what is there now */
   cy.batch(function(){
     cy.elements().not('.grp').addClass('dim');
     nb.removeClass('dim').addClass('hl');
@@ -1020,7 +1040,7 @@ function selectNode(id, opts){
   if(!opts.fromHist) pushHist(id);
   var target = null;
   if(el.length && !el.hasClass('grp')){
-    var nb = el.closedNeighborhood().filter(function(x){ return !x.hasClass('hid'); });
+    var nb = nowAround(el).filter(function(x){ return !x.hasClass('hid'); });
     markFocus(nb);
     el.addClass('sel');
     if(cy.getElementById('grp:' + id).length) cy.getElementById('grp:' + id).removeClass('grpdim').addClass('grpon');
@@ -1035,7 +1055,7 @@ function selectNode(id, opts){
   if(target && target.length < 4){
     var par = el.parent();
     if(par.length && par.children().length <= 30) target = target.union(par.children().not('.hid'));
-    else target = target.union(target.neighborhood('node').filter(function(x){ return !x.hasClass('hid') && !x.hasClass('country') && !x.hasClass('government') && !x.hasClass('grp'); }));
+    else target = target.union(nowAround(target).nodes().filter(function(x){ return !x.hasClass('hid') && !x.hasClass('country') && !x.hasClass('government') && !x.hasClass('grp'); }));
   }
   if(target && opts.fly !== false) flyTo(target, target.length < 4 ? 1.1 : 1.35, true);
   renderCrumbs();
@@ -1200,6 +1220,7 @@ function paintOverlay(){
   cy.nodes('.chg-new, .chg-changed, .ghost').not('.hid').forEach(function(el){
     var p = el.renderedPosition();
     if(p.x < -30 || p.y < -30 || p.x > W+30 || p.y > H+30) return;
+    if(el.hasClass('ghost') && el.renderedWidth() > 14) return; /* a ghost is dashed already; the ring only keeps it findable when zoomed out */
     octx.globalAlpha = el.hasClass('dim') ? 0.2 : el.hasClass('future') ? 0.3 : 1;
     octx.strokeStyle = el.hasClass('chg-new') ? C('chg-new') : C('neutral'); octx.lineWidth = 2.5;
     octx.setLineDash(el.hasClass('ghost') ? [4, 3] : []);
@@ -1392,9 +1413,9 @@ function showPattern(pid){
     var els = cy.collection();
     ex.forEach(function(id){ var el = cy.getElementById(id); if(el.length) els = els.union(el); });
     if(!els.length) return;
-    var nb = els.closedNeighborhood();
+    var nb = nowAround(els);
     markFocus(nb); els.addClass('pat');
-    var fitTo = els.length === 1 && byId[ex[0]].type!=='country' ? nb.nodes() : els.union(els.filter(function(x){ return byId[x.id()].type!=='country'; }).neighborhood('node'));
+    var fitTo = els.length === 1 && byId[ex[0]].type!=='country' ? nb.nodes() : els.union(nowAround(els.filter(function(x){ return byId[x.id()].type!=='country'; })).nodes());
     flyTo(fitTo, 1.5, true);
     S.highlight = pid; drawOverlay();
   };
@@ -1511,7 +1532,7 @@ function setType(t, v, quiet){
   S.types[t] = v;
   if(typeTog[t]){ typeTog[t]._input.checked = v; typeTog[t].classList.toggle('on', v); }
   if(quiet) return;
-  if(t==='government'){ if(v){ addGovernments(true); applyFilters(); placeGovernments(); } else { removeGovernments(); applyFilters(); } return; }
+  if(t==='government'){ if(v){ addGovernments(true); applyFilters(); placeGovernments(); markChanges(); } else { removeGovernments(); applyFilters(); } return; }
   if(t==='country' && v && S.viewIds){
     var have = new Set(real().map(function(n){ return n.id(); }));
     var s = new Set(have); flagCountries(s);
@@ -1521,7 +1542,6 @@ function setType(t, v, quiet){
     s.forEach(function(id){ if(have.has(id)) return; adj[id].forEach(function(e){ if(!seen[e.i] && s.has(e.s) && s.has(e.t) && !cy.getElementById(e.i).length){ seen[e.i]=1; cy.add(edgeEl(e)); } }); });
   }
   applyFilters();
-  if(t==='country' && v) markChanges(); /* the flag links just added may be new */
 }
 
 /* time */
@@ -1584,7 +1604,7 @@ function keySvg(shape, col, fill, dashed){
     line:'<line x1="1" y1="11" x2="21" y2="11" stroke="'+s+'" stroke-width="2" '+(dashed?'stroke-dasharray="4 3"':'')+'/>',
     dot:'<rect x="4" y="4" width="14" height="14" rx="2" fill="'+f+'" stroke="'+s+'" stroke-width="1.6"/>',
     halo:'<polygon points="11,6 16,11 11,16 6,11" fill="'+f+'" stroke="'+C('ink')+'" stroke-width="1.2"/><circle cx="11" cy="11" r="9" fill="none" stroke="'+s+'" stroke-width="2.2"/>',
-    ghost:'<polygon points="11,2 20,11 11,20 2,11" fill="none" stroke="'+s+'" stroke-width="1.6" stroke-dasharray="3 2.5"/>',
+    ghost:'<polygon points="6.5,5 12,11 6.5,17 1,11" fill="none" stroke="'+s+'" stroke-width="1.5" stroke-dasharray="2.5 2"/><line x1="13" y1="11" x2="21" y2="11" stroke="'+s+'" stroke-width="2" stroke-dasharray="1.5 3.5" opacity=".7"/>',
     badge:'<rect x="1.5" y="6" width="19" height="10" fill="'+C('accent-dim')+'" stroke="'+C('accent')+'" stroke-width=".8"/><text x="11" y="13.8" font-size="7.5" font-family="JetBrains Mono,monospace" font-weight="700" fill="'+C('ink')+'" text-anchor="middle">US</text>'
   }[shape];
   return '<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">'+inner+'</svg>';
@@ -1643,7 +1663,7 @@ function markChanges(){
    names, else in a row under the graph. */
 function drawGhosts(gone){
   var nodes = Object.create(null), near = Object.create(null), seen = Object.create(null), around = Object.create(null), nodeEls = [], edgeEls = [];
-  gone.forEach(function(c){ if(c.item !== 'edge') nodes[c.id] = c; });
+  gone.forEach(function(c){ if(c.item !== 'edge' && S.types[c.node_type] !== false) nodes[c.id] = c; }); /* (a hidden kind of node has no ghost either) */
   function end(id){ var el = id && cy.getElementById(id); return el && el.length && !el.hasClass('hid') ? id : id && nodes[id] ? 'ghost:' + id : null; }
   gone.forEach(function(c){
     if(c.item !== 'edge' || seen[c.id]) return;
@@ -1675,11 +1695,10 @@ function centreGhost(id){
 function showStage(){ if(matchMedia('(max-width: 760px)').matches) document.getElementById('stage').scrollIntoView({behavior: REDUCED ? 'auto' : 'smooth', block: 'start'}); }
 /* an item named by a change row or the hash: a node or link on the map is focused, a removed one is centred on its ghost (if it has one) */
 function goTo(id){
-  showStage();
   var c = chgById.get(id), e = c && c.item === 'edge' ? edgeOf(c) : null; /* a link's id is a change's, as the payload has none */
-  if(byId[id]) focusNode(id);
-  else if(e) focusNode(e.s);
-  else centreGhost(id);
+  if(byId[id]){ showStage(); focusNode(id); }
+  else if(e){ showStage(); focusNode(e.s); }
+  else if(centreGhost(id)) showStage();
 }
 function known(id){ return !!id && !!(byId[id] || chgById.has(id)); }
 /* a link to a removed item can only be followed once the first view is laid out and the panel has chosen its window */
@@ -1687,22 +1706,38 @@ function settle(){
   var f = S.pendingFocus;
   if(f && S.ready && chgPanel){ S.pendingFocus = null; if(chgById.has(f)) goTo(f); }
 }
+/* The change record (checked for its shape by the early script) and the panel's code arrive separately; if either is missing the panel
+   says so, which is not the same as "no changes", and its Retry asks again for what failed. */
+var chgRoot = document.getElementById('chg-root');
+function loadChanges(refocus){
+  Promise.all([window.__load.rec, window.__load.mod]).then(function(r){
+    if(r[0] && r[1]) { mountPanel(r[0], r[1]); return; }
+    chgRoot.innerHTML = '<p class="chg-empty" role="status">Changes unavailable right now.</p><button type="button" class="btn small" data-chg-retry>Retry</button>';
+    if(refocus) chgRoot.querySelector('[data-chg-retry]').focus();
+  });
+}
+chgRoot.addEventListener('click', function(ev){
+  if(!ev.target.closest('[data-chg-retry]')) return;
+  chgRoot.textContent = 'Loading changes…';
+  window.__load.retry();
+  loadChanges(true);
+});
 function mountPanel(rec, mod){
-  var root = document.getElementById('chg-root');
-  if(!mod){ root.textContent = 'The list of changes is unavailable right now.'; return; }
-  if(!rec || !Array.isArray(rec.days) || !rec.days.every(function(d){ return d && Array.isArray(d.changes); })) rec = null;
-  if(rec) rec.days.forEach(function(d){ d.changes.forEach(function(c){ if(c.graph === 'fleet' && !chgById.has(c.id)) chgById.set(c.id, c); }); });
-  chgPanel = mod.mountChangesPanel(root, {record:rec, graph:'fleet', today:String(META.generated || '').slice(0, 10), updatesHref:'../../updates/index.html',
+  rec.days.forEach(function(d){ d.changes.forEach(function(c){ if(c.graph === 'fleet' && !chgById.has(c.id)) chgById.set(c.id, c); }); });
+  chgPanel = mod.mountChangesPanel(chgRoot, {record:rec, graph:'fleet', today:String(META.generated || '').slice(0, 10), updatesHref:'../../updates/index.html',
     onWindow:applyWindow, onSelect:function(c){ if(c) goTo(c.id); }});
   var since = parseHash().since;
   if(DAY.test(since || '')) chgPanel.setSince(since);
 }
-Promise.all([window.__load.record, window.__load.panel]).then(function(r){ mountPanel(r[0], r[1]); });
+loadChanges(false);
 
 /* ---------- deep links ---------- */
 function parseHash(){
   var hp = {};
-  try{ String(location.hash||'').replace(/^#/,'').split('&').forEach(function(kv){ var i = kv.indexOf('='); if(i>0) hp[decodeURIComponent(kv.slice(0,i))] = decodeURIComponent(kv.slice(i+1)); }); }catch(e){}
+  String(location.hash||'').replace(/^#/,'').split('&').forEach(function(kv){
+    var i = kv.indexOf('=');
+    if(i > 0) try{ hp[decodeURIComponent(kv.slice(0,i))] = decodeURIComponent(kv.slice(i+1)); }catch(e){} /* a broken % loses its own pair only */
+  });
   return hp;
 }
 /* optional deep link: #view=big&select=IMO9282792&tab=patterns&pattern=names&focus=IMO9282792&since=2026-10-12

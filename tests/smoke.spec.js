@@ -487,6 +487,12 @@ test("map: junk in the hash is ignored", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("map: one broken pair in the hash does not lose the others", async ({ page }) => {
+  await stubMap(page);
+  await mapReady(page, "#x=%E0%A4%A&since=2026-10-19&y=%");
+  await expect(page.locator(".chg-title")).toHaveText("Since 19 Oct · 7 changes");
+});
+
 test("200 changes highlight without timeout", async ({ page }) => {
   const errors = watchErrors(page);
   const added = Array.from({ length: 200 }, (_, i) => change({ id: `IMO${1000100 + i}`, name: `BULK ${i}`, summary: `US listed BULK ${i}` }));
@@ -530,12 +536,74 @@ test("map: change text is escaped and never becomes markup", async ({ page }) =>
   expect(errors).toEqual([]);
 });
 
-test("map: without a change record the map still works and the panel says no changes", async ({ page }) => {
-  await stubMap(page, { record: null });
+test("changes record failure says unavailable, not no changes", async ({ page }) => {
+  const bad = [{ status: 404, body: "" }, { json: { days: "nope" } }, { json: { started: "2026-10-10", days: [{ date: "2026-10-19", sources: {}, changes: [null] }] } }];
+  await page.route(FLEET_JSON, (r) => r.fulfill({ json: fleetFixture() }));
+  for (const answer of bad) {
+    await page.route(CHANGES_JSON, (r) => r.fulfill(answer));
+    await mapReady(page);
+    const root = page.locator("#chg-root");
+    await expect(root).toContainText("Changes unavailable right now");
+    await expect(root.getByRole("button", { name: "Retry" })).toBeVisible();
+    await expect(root).not.toContainText("No changes since");
+    await expect(page.locator(".chg-title")).toHaveCount(0);
+    expect(await page.evaluate(() => window.__fleet.cy.nodes().length)).toBeGreaterThan(3); // the map itself is fine
+    await page.unroute(CHANGES_JSON);
+  }
+  // a record that loaded and holds nothing for the window is a different thing: that one does say so
+  await page.route(CHANGES_JSON, (r) => r.fulfill({ json: recordFixture([]) }));
   await mapReady(page);
   await expect(page.locator(".chg-empty")).toContainText("No changes since");
-  expect(await page.evaluate(() => window.__fleet.cy.nodes().length)).toBeGreaterThan(3);
+});
+
+test("retry restores the change panel and rings", async ({ page }) => {
+  let down = true, record = 0, code = 0;
+  await page.route(FLEET_JSON, (r) => r.fulfill({ json: fleetFixture() }));
+  await page.route(CHANGES_JSON, (r) => { record++; return down ? r.abort() : r.fulfill({ json: recordFixture(STD_CHANGES) }); });
+  await page.route(/\/app\/changes\.js/, (r) => { code++; return down ? r.abort() : r.continue(); }); // the panel's own code fails too
+  await mapReady(page);
+  const root = page.locator("#chg-root");
+  await expect(root).toContainText("Changes unavailable right now");
   expect(await cyIds(page, ".chg-new, .chg-changed, .chg-removed")).toEqual([]);
+  down = false;
+  await root.getByRole("button", { name: "Retry" }).click();
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 7 changes");
+  await expect.poll(() => cyIds(page, "node.chg-new")).toEqual(["IMO1000003"]);
+  expect(await cyIds(page, ".chg-removed")).toContain("ghost:IMO1000099");
+  expect([record, code]).toEqual([2, 2]);
+  // and a Retry that fails again says so again, with the button kept
+  const again = await page.context().newPage();
+  down = true;
+  await again.route(FLEET_JSON, (r) => r.fulfill({ json: fleetFixture() }));
+  await again.route(CHANGES_JSON, (r) => r.abort());
+  await again.goto(MAP);
+  await again.locator("html[data-ready]").waitFor({ state: "attached" });
+  await again.locator("#chg-root").getByRole("button", { name: "Retry" }).click();
+  await expect(again.locator("#chg-root")).toContainText("Changes unavailable right now");
+  await expect(again.locator("#chg-root").getByRole("button", { name: "Retry" })).toBeFocused();
+});
+
+test("map retry after a full outage reloads the change record too", async ({ page }) => {
+  let down = true, record = 0;
+  await page.route(FLEET_JSON, (r) => (down ? r.abort() : r.fulfill({ json: fleetFixture() })));
+  await page.route(CHANGES_JSON, (r) => { record++; return down ? r.abort() : r.fulfill({ json: recordFixture(STD_CHANGES) }); });
+  await page.route(/\/app\/changes\.js/, (r) => (down ? r.abort() : r.continue()));
+  await page.goto(MAP);
+  await expect(page.getByText("Map data unavailable right now")).toBeVisible();
+  down = false;
+  await page.getByRole("button", { name: "Retry" }).click();
+  await page.locator("html[data-ready]").waitFor({ state: "attached" });
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 7 changes");
+  await expect.poll(() => cyIds(page, "node.chg-new")).toEqual(["IMO1000003"]);
+  expect(record).toBe(2);
+});
+
+test("map shows retry when the map library fails to load", async ({ page }) => {
+  await page.route(/cytoscape\.min\.js/, (r) => r.abort());
+  await stubMap(page);
+  await page.goto(MAP);
+  await expect(page.getByText("Map data unavailable right now")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry" })).toBeFocused();
 });
 
 test("map: an item removed and then back on the map is neither a ghost nor a ring", async ({ page }) => {
@@ -557,6 +625,18 @@ test("map: on a phone choosing a change brings the map into view", async ({ page
   await page.locator(".chg-pick", { hasText: "US listed CHARLIE" }).click();
   await expect.poll(stageTop).toBeLessThan(300);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("map: on a phone a row with nothing to show does not scroll the page", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await stubMap(page);
+  await mapReady(page);
+  await page.locator("#changes > summary").click();
+  await page.locator(".chg-pick", { hasText: "ALPHA → OLD CO" }).click(); // its ends are not on the map: no ghost, no focus
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => Math.round(scrollY))).toBeLessThan(40); // only the opening of the fold moved it, if anything
+  const top = await page.evaluate(() => Math.round(document.getElementById("stage").getBoundingClientRect().top));
+  expect(top).toBeGreaterThan(500);
 });
 
 test("map: a deep link to a new link focuses the ship it starts at", async ({ page }) => {
@@ -591,6 +671,43 @@ test("map: a link is matched by its ends and type, nothing else", async ({ page 
   expect(errors).toEqual([]);
 });
 
+// ACME has a removed link to BULK 0, which stands alone: a ghost link between two ships on screen
+const GHOST_LINK = [change({ ...EDGE_ENDS("co:acme", "IMO1000100", "ACME SHIPPING", "BULK 0"), node_type: "owns", kind: "removed", id: edgeId(95), name: "ACME SHIPPING → BULK 0", summary: "Link removed: BULK 0 → ACME SHIPPING (owned by)" })];
+
+test("selecting a node does not frame its removed-link ghost", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubMap(page, { fleet: fleetFixture(3), record: recordFixture(GHOST_LINK) });
+  await mapReady(page);
+  const ghostLink = `ghost:${edgeId(95)}`;
+  expect(await cyIds(page, "edge.chg-removed")).toEqual([ghostLink]);
+  // a removed link is not a lead link: its own dash pattern, and fainter
+  const look = await page.evaluate((id) => { const g = window.__fleet.cy.getElementById(id); return [g.style("line-dash-pattern"), +g.style("opacity")]; }, ghostLink);
+  expect(look[0]).not.toBe("5 4"); // a lead link's dashes
+  expect(look[1]).toBeLessThan(0.55); // a lead link's opacity is 0.6
+  // BULK 0 is moved far from ACME (but not past the lowest zoom, so framing it would show it); selecting ACME must neither frame it nor light the ghost link
+  await page.evaluate(() => { window.__fleet.cy.getElementById("IMO1000100").position({ x: 2000, y: 2000 }); window.__fleet.selectNode("co:acme", { fly: true }); });
+  await page.waitForTimeout(800); // the camera takes 350 ms
+  const after = await page.evaluate((id) => {
+    const cy = window.__fleet.cy, g = cy.getElementById(id), far = cy.getElementById("IMO1000100").renderedPosition(), box = document.getElementById("cy").getBoundingClientRect();
+    return { lit: g.hasClass("hl"), dim: g.hasClass("dim"), farInView: far.x > 0 && far.y > 0 && far.x < box.width && far.y < box.height, selected: window.__fleet.S.selected.id };
+  }, ghostLink);
+  expect(after).toEqual({ lit: false, dim: true, farInView: false, selected: "co:acme" });
+  expect(errors).toEqual([]);
+});
+
+test("ghosts follow the type filter and come back with it", async ({ page }) => {
+  await stubMap(page);
+  await mapReady(page);
+  expect(await cyIds(page, "node.ghost")).toContain("ghost:IMO1000099");
+  await page.locator("#filters > summary").click();
+  await page.locator("#f-type label", { hasText: "Ships" }).click();
+  await expect.poll(() => cyIds(page, "node.ghost")).toEqual([]);
+  expect(await cyIds(page, "edge.ghost")).not.toContain(`ghost:${edgeId(90)}`); // its end is gone
+  await page.locator("#f-type label", { hasText: "Ships" }).click();
+  await expect.poll(() => cyIds(page, "node.ghost")).toContain("ghost:IMO1000099");
+  expect(await cyIds(page, "edge.ghost")).toContain(`ghost:${edgeId(90)}`);
+});
+
 test("map: the key names new, changed and removed", async ({ page }) => {
   await stubMap(page);
   await mapReady(page);
@@ -604,10 +721,13 @@ test("map shows retry when data fails", async ({ page }) => {
   await page.route(CHANGES_JSON, (r) => r.fulfill({ json: recordFixture(STD_CHANGES) }));
   await page.goto(MAP);
   await expect(page.getByText("Map data unavailable right now")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry" })).toBeFocused();
+  await expect(page.locator("#changes")).toBeHidden(); // an empty "What changed" would only confuse
   down = false;
   await page.getByRole("button", { name: "Retry" }).click();
   await page.locator("html[data-ready]").waitFor({ state: "attached" });
   await expect(page.getByText("Map data unavailable right now")).toBeHidden();
+  await expect(page.locator("#changes")).toBeVisible();
   await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 7 changes");
 });
 

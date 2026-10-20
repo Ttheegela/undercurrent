@@ -114,7 +114,10 @@ const DOCS = {
     section("graphs", "How the graphs rebuild", "The graphs now show {{stat:fleet.ships}} ships and {{stat:fleet.companies}} companies, rebuilt every night from the lists. Last build: {{stat:generated}}. Unknown: {{stat:nope.nothing}}."),
     section("reproduce", "Reproduce", "Rebuild the graphs: run the build. " + "graphs rebuild ".repeat(40), "stories/shadow-fleet/network/METHOD.html"),
     section("matching", "How matching works", "Names are compared after removing accents and punctuation. A seven-digit number is treated as an IMO number."),
-    section("lanterns", "Lantern facts", `Overview. The U.S. Treasury acted on 1 May. ${Array.from({ length: 15 }, (_, i) => `Lantern fact ${i + 1} is recorded here.`).join(" ")}`),
+    section("lanterns", "Lantern facts", `Overview. The U.S. Treasury acted on 1 May. ${Array.from({ length: 25 }, (_, i) => `Lantern fact ${i + 1} is recorded here.`).join(" ")}`),
+    // the real findings' shape: listings that name an entity (or point at one) beside a sentence that doesn't
+    section("rusal", "Rusal's removal from the US list", "6 April 2018: OFAC listed Oleg Deripaska, En+, Rusal and EuroSibEnergo. Deripaska himself stayed on the US list, and the EU added him on 8 April 2022. The US listed it in July 2023. 19 December 2018 OFAC told Congress it would remove the companies. Contested: Treasury negotiated the deal, and the vote split largely along party lines.", "stories/who-lobbies/FINDINGS.html"),
+    section("tools", "The main tools", "Asset freeze (also called blocking). \"An asset freeze means nobody may pay a blocked person.\" Names are compared after removing endings such as LLC or OOO. Companies owned by a listed party can be blocked without being named. Hollow shapes run listed ships but are on no list themselves.", "stories/how-sanctions-work/index.html"),
   ],
 };
 const CHIPS = {
@@ -468,7 +471,9 @@ test("check_lists: the search item says when each official list was downloaded",
 // ---- changes ---------------------------------------------------------------------------------------------------
 
 test("changes clamps to started and caps at 30 with total", async () => {
+  // a range that starts before the first run and ends after it is clamped to the record, not "before the start"
   const out = await run("changes", { since: "2026-01-01", until: "2030-01-01" });
+  assert.ok(ev.every((e) => e.before_start === undefined));
   assert.equal(out.from, "2026-10-12");
   assert.equal(out.to, "2026-10-20");
   assert.equal(out.total, 38);
@@ -518,11 +523,22 @@ test("changes: an empty range is one change item that says so, with the range, p
   assert.deepEqual(ev.map((e) => [e.kind, e.found]), [["change", false]]);
 });
 
-test("changes: a range before the record began is reported as asked, with when the record starts", async () => {
+test("changes: a range wholly before the first run is one before_start item, never 'no changes'", async () => {
   const out = await run("changes", { since: "2025-01-01", until: "2025-02-01" });
   assert.deepEqual([out.total, out.from, out.to], [0, "2025-01-01", "2025-02-01"]);
   assert.equal(ev.length, 1);
-  assert.match(ev[0].text, /record starts on 12 Oct 2026/);
+  const { kind, found, before_start: before, from, to, first_run: first } = ev[0];
+  assert.deepEqual({ kind, found, before, from, to, first }, { kind: "change", found: false, before: true, from: "2025-01-01", to: "2025-02-01", first: "2026-10-12" });
+  assert.match(ev[0].text, /^Daily updates started on 12 Oct 2026 \(2026-10-12\), so there is no record before then\./);
+  assert.doesNotMatch(ev[0].text, /No changes were recorded/);
+  assert.deepEqual(ev[0].quotes, []);
+  // the day before the first run is still before it; the first run's own day is in the record
+  ev = [];
+  await run("changes", { since: "2026-10-01", until: "2026-10-11" });
+  assert.equal(ev[0].before_start, true);
+  ev = [];
+  await run("changes", { since: "2026-10-01", until: "2026-10-12" });
+  assert.deepEqual(ev.map((e) => [e.kind, e.found, e.before_start, e.from, e.to]), [["change", false, undefined, "2026-10-12", "2026-10-12"]]);
 });
 
 test("changes: query and graph narrow the list; a changed field is spelled out", async () => {
@@ -1033,11 +1049,14 @@ test("quotes: sentences of doc, chips, connection and lobbying text; none for li
   await everyTool();
   const kinds = new Set(ev.map((e) => e.kind));
   for (const k of ["search", "list", "opensanctions", "research", "connection", "lobbying", "change", "gap", "chips", "doc"]) assert.ok(kinds.has(k), k);
+  // every kind that quotes has items with quotes (an item can have none: a table whose every row names a listed firm)
+  for (const k of QUOTED) assert.ok(ev.some((e) => e.kind === k && e.quotes.length > 0), k);
+  // an always-allowed name is not a listing word: "OpenSanctions" holds "sanction", but this sentence is about connections
+  assert.match(ev.find((e) => e.kind === "connection" && /connections data/.test(e.text)).quotes[0], /^OpenSanctions connections data: TASSOS \(Vessel, IMO 9408695\)/);
   for (const e of ev) {
     assert.ok(Array.isArray(e.quotes), e.id);
     if (["list", "opensanctions", "search", "change", "gap"].includes(e.kind)) assert.deepEqual(e.quotes, [], `${e.id} ${e.kind}`);
-    if (QUOTED.has(e.kind)) assert.ok(e.quotes.length > 0, `${e.id} ${e.kind}`);
-    assert.ok(e.quotes.length <= 12, e.id);
+    assert.ok(e.quotes.length <= (["doc", "chips"].includes(e.kind) ? 20 : 12), e.id);
     let at = -1;
     for (const q of e.quotes) {
       assert.match(q, /^\S.*[.!?]["”’)]*$/s, `${e.id}: ${q}`); // a whole sentence, trimmed, ending as one
@@ -1050,24 +1069,55 @@ test("quotes: sentences of doc, chips, connection and lobbying text; none for li
   }
 });
 
-test("quotes: a doc's sentences are filled, whole across initialisms, at most 12, headings left out", async () => {
+test("quotes: a doc's sentences are filled, whole across initialisms, at most 20, headings left out", async () => {
   await run("site_docs", { query: "how do the graphs rebuild" });
   assert.match(ev[0].quotes[0], /^The graphs now show 1,747 ships and 1,037 companies, rebuilt every night from the lists\.$/);
   ev = [];
   await run("site_docs", { query: "lantern facts" });
   const doc = ev.find((e) => e.label === "Lantern facts");
-  assert.equal(doc.quotes.length, 12);
+  assert.equal(doc.quotes.length, 20); // doc and chips items quote up to 20, the rest up to 12
   assert.equal(doc.quotes[0], "The U.S. Treasury acted on 1 May."); // not "The U.S." and "Treasury acted on 1 May."
-  assert.equal(doc.quotes[11], "Lantern fact 11 is recorded here.");
+  assert.equal(doc.quotes[19], "Lantern fact 19 is recorded here.");
   assert.ok(!doc.quotes.includes("Overview."));
 });
 
 test("quotes: a chips table row is a sentence, its lead-in line is not", async () => {
+  await run("chips", { topic: "coverage" });
+  const table = ev.find((e) => /one year per line/.test(e.text));
+  assert.deepEqual(table.quotes, ["2024: Netherlands.", "2025: none."]);
+});
+
+test("quote naming an entity with listing language is not offered", async () => {
+  await run("site_docs", { query: "Rusal removal from the US list" });
+  const rusal = ev.find((e) => e.label === "Rusal's removal from the US list");
+  assert.match(rusal.text, /OFAC listed Oleg Deripaska, En\+, Rusal/); // still in the text the model reads
+  // the listing of Rusal, Deripaska's (a name at the start of a sentence is still a name), "listed it" (an entity named elsewhere),
+  // and a removal beside a name ("remove" is listing language as much as "removed")
+  assert.deepEqual(rusal.quotes, ["Contested: Treasury negotiated the deal, and the vote split largely along party lines."]);
+  ev = [];
+  // chips: every row of the post-invasion table names a firm beside "listed", and a press release's title names its targets
   await run("chips", { topic: "listing_lag" });
-  const table = ev.find((e) => /shortest first/.test(e.text));
-  assert.deepEqual(table.quotes, [
-    "Milur Electronics (Armenia): founded 1 Aug 2022 (2022-08-01), listed 14 Feb 2023 (2023-02-14), 6.1 months.",
-    "Allparts Trading (United Arab Emirates): founded 1 Oct 2022 (2022-10-01), listed 30 Oct 2024 (2024-10-30), 24.9 months; on the BIS Entity List from 12 Apr 2023 (2023-04-12) (88 FR 23332).",
+  assert.deepEqual(ev.find((e) => /shortest first/.test(e.text)).quotes, []);
+  ev = [];
+  await run("chips", { topic: "firms" });
+  for (const release of ev) {
+    assert.ok(release.quotes.length > 0, release.label);
+    assert.ok(release.quotes.every((q) => !/Treasury (Sanctions|Takes Aim)/.test(q)), release.label);
+  }
+  // the summary names no firm: its sentences are offered, listing words and all
+  ev = [];
+  await run("chips", { topic: "summary" });
+  assert.match(ev[0].quotes[0], /^Time to list new chip suppliers \(US Treasury OFAC\): the median is 20\.3 months/);
+});
+
+test("explainer sentence with listing language and no entity is offered", async () => {
+  await run("site_docs", { query: "main tools asset freeze" });
+  assert.deepEqual(ev.find((e) => e.label === "The main tools").quotes, [
+    "Asset freeze (also called blocking).",
+    '"An asset freeze means nobody may pay a blocked person."', // the opening word may follow a quotation mark
+    "Names are compared after removing endings such as LLC or OOO.", // "removing" is not a removal from a list
+    "Companies owned by a listed party can be blocked without being named.",
+    "Hollow shapes run listed ships but are on no list themselves.", // "Hollow" opens the sentence; the site never uses it as a name
   ]);
 });
 

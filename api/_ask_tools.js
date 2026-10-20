@@ -30,6 +30,7 @@ const US_NOTE = "This is the US Consolidated Screening List, which also carries 
 
 const files = new Map();
 let docs = null;
+let prose = null;
 
 const data = (rel) => {
   if (!files.has(rel)) files.set(rel, JSON.parse(readFileSync(join(process.cwd(), rel), "utf8")));
@@ -39,6 +40,7 @@ const data = (rel) => {
 export function resetAskCache() {
   files.clear();
   docs = null;
+  prose = null;
 }
 
 // ---- small helpers --------------------------------------------------------------------------------------------
@@ -57,14 +59,59 @@ const show = (v) => (Array.isArray(v) ? v.join(", ") : v || "none");
 const sentence = (...parts) => parts.filter(Boolean).join(" ");
 
 // ---- quotes: the only sentences an answer can carry in the site's own words ------------------------------------------
-// Doc, chips, connection and lobbying items quote the sentences of their text; a research item only the facts that say nothing
-// about a listing (a listing is the server's `listed` claim); lists, searches, changes and gaps nothing (the server writes those).
+// Doc, chips, connection and lobbying items quote the sentences of their text, except one that could read as a listing claim out
+// of context; a research item only the facts that say nothing about a listing (a listing is the server's `listed` claim); lists,
+// searches, changes and gaps nothing (the server writes those).
 const QUOTED = new Set(["doc", "chips", "connection", "lobbying"]);
-const QUOTE_MAX = 12;
+const quoteMax = (kind) => (kind === "doc" || kind === "chips" ? 20 : 12);
 const SENTENCES = new Intl.Segmenter("en", { granularity: "sentence" });
 const INITIALISM = /(?:^|\s)(?:[A-Za-z]\.){2,}$/; // "U.S.", "e.g.", "E.O." end a segment, not a sentence
-// A sentence about a listing, or naming the authority behind one ("Role: linked company (OFAC).")
-const LISTING = /\b(?:\w*sanction\w*|\w*list\w*|designat\w*|target(?:s|ed|ing)?|freez\w*|frozen|blocked|penalis\w*|penaliz\w*|penalt\w*|embargo\w*|prohibit\w*|(?:de)?barred|restrict\w*|ban(?:s|ned)?|fine[sd]?|punish\w*|removed|lifted|revoked|OFAC|SDN|Treasury|OFSI|BIS)\b|\bappear(?:s|ed|ing)?\s+on\b/i;
+const LISTING = /\b(?:\w*sanction\w*|\w*list\w*|designat\w*|target(?:s|ed|ing)?|freez\w*|frozen|blocked|penalis\w*|penaliz\w*|penalt\w*|embargo\w*|prohibit\w*|(?:de)?barred|restrict\w*|ban(?:s|ned)?|fine[sd]?|punish\w*|remov(?:e[sd]?|als?)|lift(?:s|ed)?|revok\w*)\b|\bappear(?:s|ed|ing)?\s+on\b/i;
+const AUTHORITY = /\b(?:OFAC|SDN|Treasury|OFSI|BIS)\b/i; // in research, the authority behind a listing ("Role: linked company (OFAC).")
+
+// An explainer may use listing words ("An asset freeze means nobody may pay a blocked person"); a sentence that also names an
+// entity may not be quoted, since out of context "6 April 2018: OFAC listed … Rusal …" reads as a listing today. A name is a run of
+// capitalised words outside the always-allowed ones; a sentence's opening word is capitalised by position, so it counts only when
+// the site uses it as a name (capitalised inside a sentence and never in lower case: "Deripaska", not "Nobody" or "Hollow").
+const MONTHS = "January February March April May June July August September October November December".split(" ");
+const ALLOWED = new RegExp(`(?<![\\p{L}\\p{N}])(?:${[...Object.values(LIST_LABELS), "OpenSanctions", "Undercurrent", "Treasury", "Commission", "Council", "OFAC", "SDN", "IMO", "US", "UK", "EU", "UN", ...MONTHS, ...MONTHS.map((m) => m.slice(0, 3)), "Sept"].join("|")})(?![\\p{L}\\p{N}])`, "gu");
+const CAPS_RUN = /\p{Lu}[\p{L}\p{N}'’&.\-]*(?:\s+\p{Lu}[\p{L}\p{N}'’&.\-]*)*/gu; // capitalised words in a row
+const MID_CAPS = /(?<=[\p{L}\p{N},;:)\]-]\s+)\p{Lu}[\p{L}\p{N}'’&-]*/gu; // a capitalised word inside a sentence
+const LOWER = /(?<![\p{L}\p{N}])\p{Ll}[\p{Ll}'’-]*/gu;
+// a pronoun standing for an entity named in another sentence, as what is listed: "The US listed it in July 2023."
+const POINTS_AT = /\b(?:list(?:s|ed)?|delist(?:s|ed)?|designat(?:es|ed)|sanction(?:s|ed)|target(?:s|ed)|block(?:s|ed)|remov(?:es|ed))\s+(?:it|him|her|them)\b|\b(?:it|he|she|they)\s+(?:is|was|are|were|has been|have been|had been)\s+(?:\w+\s+)?(?:listed|delisted|designated|sanctioned|targeted|blocked|removed)\b/i;
+const namesIn = (text) => new Set([...text.matchAll(MID_CAPS)].map((m) => m[0].replace(/['’]s$/, "")));
+
+/** The site's explainer prose, once: the words it uses in lower case and the words it capitalises inside a sentence. */
+function proseWords() {
+  if (!prose) {
+    let texts = [];
+    try { texts = data("data/ask-docs.json").sections.map((s) => s.text); } catch { /* no index: only the item's own text says what is a name */ }
+    // section by section, so one section's last word never makes the next one's first word look mid-sentence
+    prose = { lower: new Set(texts.flatMap((t) => t.match(LOWER) ?? [])), names: new Set(texts.flatMap((t) => [...namesIn(t)])) };
+  }
+  return prose;
+}
+
+/** Whether a sentence names an entity, or points at one named elsewhere. `local`: the names inside the item's own text. */
+function namesEntity(sentence, local) {
+  if (POINTS_AT.test(sentence)) return true;
+  const { lower, names } = proseWords();
+  const opening = /^[\s"“'‘(\[]*/.exec(sentence)[0].length; // the opening word may follow a quotation mark
+  for (const m of sentence.replace(ALLOWED, ",").matchAll(CAPS_RUN)) {
+    const words = m[0].replace(/[.'’&-]+$/, "").replace(/['’]s$/, "").split(/\s+/);
+    const name = (w) => (names.has(w) || local.has(w)) && !lower.has(w.toLowerCase());
+    if (m.index === opening && words.length === 1 && !name(words[0])) continue; // "An", "Nobody", "Hollow" open a sentence
+    return true;
+  }
+  return false;
+}
+
+function quotesOf(kind, text) {
+  const local = namesIn(text);
+  // (the allowed names are not listing words: "OpenSanctions connections data: TASSOS …" is not about a listing)
+  return sentencesOf(text).filter((s) => !(LISTING.test(s.replace(ALLOWED, ",")) && namesEntity(s, local))).slice(0, quoteMax(kind));
+}
 
 /** The whole sentences of a text in reading order: a table row (a line) is one, a heading or a lead-in line ("…:") is not. */
 function sentencesOf(text) {
@@ -83,7 +130,7 @@ function sentencesOf(text) {
 }
 
 function add(ev, item) {
-  const e = { id: `S${ev.length + 1}`, ...item, quotes: item.quotes ?? (QUOTED.has(item.kind) ? sentencesOf(item.text).slice(0, QUOTE_MAX) : []) };
+  const e = { id: `S${ev.length + 1}`, ...item, quotes: item.quotes ?? (QUOTED.has(item.kind) ? quotesOf(item.kind, item.text) : []) };
   ev.push(e);
   return e;
 }
@@ -256,7 +303,7 @@ function researchItems(e, s, q, how) {
     ...e.facts.filter((f) => !removed.some((d) => f.text.includes(d))).map((f) => f.text),
   ];
   const entity = { id: e.id, name: e.name, ...(e.imo && { imo: e.imo }) };
-  const quotes = profile.filter(Boolean).flatMap(sentencesOf).filter((q) => !LISTING.test(q)).slice(0, QUOTE_MAX);
+  const quotes = profile.filter(Boolean).flatMap(sentencesOf).filter((q) => !LISTING.test(q) && !AUTHORITY.test(q)).slice(0, quoteMax("research"));
   return (e.listings.length ? e.listings : [null]).map((l) => {
     const gone = l && delisted(l);
     const plain = l && (!l.date || PLAIN_DATE.test(l.date)); // an empty date is still a listing; "2018-04-06 (delisted 2019-01)" is not a current one
@@ -446,6 +493,18 @@ function changesTool(args, ev, ctx) {
   const rec = data("data/changes/changes.json");
   const started = isDate(rec.started) ? rec.started : since;
   const to = until === undefined || until > today ? today : until;
+  const updates = (f, t, g) => `${UPDATES}?from=${f}&to=${t}&graph=${g}`;
+  // A range wholly before the baseline night has no record at all: never "no changes were recorded". (A range that starts before
+  // it and ends after it is clamped to the record below.)
+  const firstRun = isDate(rec.first_run) ? rec.first_run : started;
+  if (to < firstRun) {
+    const item = {
+      kind: "change", found: false, before_start: true, from: since, to, first_run: firstRun,
+      text: `Daily updates started on ${dt(firstRun)}, so there is no record before then. The range asked about (${since} to ${to}) is wholly before it.`,
+      label: `No record before ${formatDate(firstRun)}`, url: updates(since, to, "all"), link: updates(since, to, "all"),
+    };
+    return { from: since, to, total: 0, range_total: 0, shown: 0, gaps: 0, gap_days: 0, missing_nights: 0, items: addAll(ev, [item]).map(view) };
+  }
   const from = since > started ? since : started;
   const inRecord = from <= to;
   const shownFrom = inRecord ? from : since; // a range wholly before the record is reported as asked, not moved
@@ -468,7 +527,6 @@ function changesTool(args, ev, ctx) {
   const gapDays = sourceDays.length;
   const shown = all.slice(0, CAP.changes);
 
-  const updates = (f, t, g) => `${UPDATES}?from=${f}&to=${t}&graph=${g}`;
   // (the words asked for are never repeated here: see check_lists)
   const scope = `${graph ? ` for the ${GRAPH_NAME[graph]}` : ""}${query ? " among those matching the words asked for" : ""}`;
   const within = shownFrom === to ? `On ${dt(to)}` : `Between ${formatDate(shownFrom)} and ${formatDate(to)} (${shownFrom} to ${to})`;

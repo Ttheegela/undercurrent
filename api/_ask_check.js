@@ -5,7 +5,7 @@
 // is plain text plus {label, url} / {label, href} taken from the evidence: the panel escapes it.
 import { LIST_LABELS, formatDate } from "../app/render.js";
 
-// ---- fixed copy (global-constraints.md, verbatim; the range, OpenSanctions and clarify forms by ruling) --------------------
+// ---- fixed copy (global-constraints.md, verbatim; the range, OpenSanctions, clarify and before-start forms by ruling) -------
 
 const REFUSAL = "I can only answer questions about what's on Undercurrent: sanctions lists, ship and company connections, lobbying, the semiconductor data, the research and the daily updates. I can't give legal or compliance advice.";
 const FALLBACK = "I couldn't check an answer to that against the site's data, so I won't guess. Try the search on the home page.";
@@ -13,6 +13,7 @@ const CLARIFY = "Which of these did you mean?";
 const day = (iso) => formatDate(iso) || iso; // d MMM yyyy; a bare year stays as it is
 const NOT_FOUND = (name) => `${name} is not on the lists we check (US, UK, EU, UN, OpenSanctions). Not being found isn't proof.`;
 const NO_CHANGES = (from, to) => `No changes were recorded between ${day(from)} and ${day(to)}.`;
+const BEFORE_START = (first) => `Daily updates started on ${day(first)}, so there is no record before then.`;
 const SOURCE_GAP = (g) => (g.date || g.from === g.to
   ? `${g.source} was unavailable on ${day(g.date ?? g.from)}, so changes from it that day aren't recorded.`
   : `${g.source} was unavailable from ${day(g.from)} to ${day(g.to)}, so changes from it on those days aren't recorded.`);
@@ -47,6 +48,7 @@ const RENDER = {
   // "No changes" only from the change record's own item, followed by every gap of its range; never from an empty list
   change: (items, s, all) => (items.every((e) => e.kind === "change" || e.kind === "gap")
     ? items.flatMap((e) => (e.kind === "gap" ? [{ text: SOURCE_GAP(e), items: [e] }]
+      : e.before_start ? [{ text: BEFORE_START(e.first_run), items: [e] }] // a range wholly before the record: never "no changes"
       : e.found === false ? [{ text: NO_CHANGES(e.from, e.to), items: [e] }, ...all.filter((g) => g.kind === "gap" && g.from <= e.to && g.to >= e.from).map((g) => ({ text: SOURCE_GAP(g), items: [g] }))]
         : [{ text: `${e.summary} · ${day(e.date)}`, items: [e] }]))
     : null),

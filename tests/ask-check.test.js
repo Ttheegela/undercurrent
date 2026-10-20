@@ -339,12 +339,17 @@ test("NO_CHANGES comes only from the change item that says so", () => {
   const changes = E.week.filter((e) => e.kind === "change");
   assert.ok(changes.length > 0 && changes.every((c) => c.found === undefined));
   assert.deepEqual(texts(checkAnswer(answer(claim("change", ...changes.map((c) => c.id))), E.week)), changes.map((c) => `${c.summary} · ${formatDate(c.date)}`));
-  // a range before the record starts
-  const none = find(E.early, (e) => e.kind === "change" && e.found === false);
-  assert.deepEqual(texts(checkAnswer(answer(claim("change", none.id)), E.early)), ["No changes were recorded between 1 Jan 2026 and 31 Jan 2026."]);
   // a change claim on anything but change or gap items falls back; change and gap items have nothing to quote
   assert.deepEqual(checkAnswer(answer(claim("change", tassosList("uk").id)), E.tassos), FALLBACK_ANSWER);
   assert.deepEqual(checkAnswer(answer(quote(changes[0].id, 0), quote(find(E.stalled, (e) => e.kind === "gap").id, 0)), E.week), FALLBACK_ANSWER);
+});
+
+test("a range wholly before the first run renders BEFORE_START, never NO_CHANGES (review M3)", () => {
+  const before = find(E.early, (e) => e.kind === "change" && e.before_start === true);
+  assert.deepEqual([before.found, before.from, before.to, before.first_run], [false, "2026-01-01", "2026-01-31", "2026-10-20"]);
+  const out = checkAnswer(answer(claim("change", before.id)), E.early);
+  assert.deepEqual(out.sentences, [{ text: "Daily updates started on 20 Oct 2026, so there is no record before then.", sources: [{ n: 1, label: before.label, url: before.url }] }]);
+  assert.doesNotMatch(JSON.stringify(out), /No changes/);
 });
 
 test("a clarify is the fixed question and the cited entities or near names, nothing the model wrote", () => {

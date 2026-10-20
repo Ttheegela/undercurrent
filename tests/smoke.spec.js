@@ -497,6 +497,19 @@ test("map loads data by fetch and shows Data built date", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("map: the patterns are labelled as the 25 September research, and the data panel names tonight's sources", async ({ page }) => {
+  const errors = watchErrors(page);
+  const { generated } = JSON.parse(fs.readFileSync("stories/shadow-fleet/network/fleet-data.json", "utf8")).meta;   // the real file, not a stub
+  await mapReady(page);
+  await page.locator("#h-pat").click();
+  await expect(page.locator("#p-pat")).toContainText("(as of 25 September 2026)");
+  await page.locator("#h-about").click();
+  const covers = page.locator("#p-about .box", { hasText: "What the data covers" });
+  await expect(covers).toContainText(`The build of ${generated} used the UK Sanctions List`);
+  await expect(covers).not.toContainText(/downloaded \d+ \w+ 2026|report of \d+ \w+ 2026/);
+  expect(errors).toEqual([]);
+});
+
 // the added ship and link get green rings, the changed ship a grey one, removed items dashed ghosts (never clickable for details)
 test("since window highlights added ship and draws removed ghost", async ({ page }) => {
   const errors = watchErrors(page);

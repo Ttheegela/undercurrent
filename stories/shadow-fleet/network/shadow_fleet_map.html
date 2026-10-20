@@ -1399,7 +1399,7 @@ document.getElementById('side').addEventListener('click', function(ev){
 
 /* ---------- patterns + about ---------- */
 function renderPatterns(){
-  var h = '<p class="meta-line" style="margin:0">Five ways the shadow fleet stays at sea, as the records show them. Press <b>Show me</b> to light up an example on the map.</p>';
+  var h = '<p class="meta-line" style="margin:0">Five ways the shadow fleet stays at sea, as the records show them (as of 25 September 2026). Press <b>Show me</b> to light up an example on the map.</p>';
   (META.patterns||[]).forEach(function(p, i){
     h += '<div class="card"><span class="hud">Pattern '+(i+1)+'</span><h2>'+txt(p.title)+'</h2><p>'+txt(p.text)+'</p>'+
       ((p.examples||[]).length ? '<button class="btn" data-pattern="'+esc(p.id)+'">Show me</button>' : '')+'</div>';

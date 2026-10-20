@@ -19,15 +19,15 @@ they disclose) and marks the ships seen live on our God's Eye globe. Every line 
 1. **The front companies don't lobby; their owners do.** As of 25 September 2026 we found zero US lobbying reports for the 18 ship
    managers, front companies and oil traders we searched, including Sovcomflot, Zulu, Fleet Tanqo, Lukoil and
    Rosneft. The lobbying comes from parent companies, banks and state-linked firms.
-2. **Nord Stream 2 paid Washington firms $13.87 million (2016 to 2022)**, much of it on Russia-sanctions
+2. **Nord Stream 2 paid Washington firms $13.87 million (2016 to 2022)** (as of 25 September 2026), much of it on Russia-sanctions
    legislation such as S.722. The total is counted once per firm, client and quarter, with amendments and
    subcontracts not double-counted, and was checked by hand.
 3. **Sanctioned Russian banks lobbied on the scope of sanctions.** Sberbank's US arm, VTB and Gazprombank hired
    firms after 2014; one stated issue was "clarifying scope of sanctions imposed by Executive Order 13660". All three
-   are now fully blocked.
+   are fully blocked (as of 25 September 2026).
 4. **Only 14 records join the two sides** (as of 25 September 2026). Examples: the Russian state owns Sovcomflot (Treasury); Gazprom owns
    Gazprom Neft, whose subsidiary runs listed tankers (Treasury); Rosneft controls its tanker company Rosnefteflot
-   (Treasury); the US list links seven shipping companies to Arctic LNG 2, which hired a Washington firm in 2023.
+   (Treasury); the US list, as of 25 September 2026, links seven shipping companies to Arctic LNG 2, which hired a Washington firm in 2023.
 5. **The revolving door is on the record.** {{stat:kg.lobbyists_with_posts}} lobbyists on these accounts disclose past government posts,
    including former senators and a former counselor to the Secretary of the Treasury.
 6. **Some listed ships are sailing right now.** Of 27 listed ships broadcasting positions in our God's Eye snapshot of 25 September 2026,
@@ -56,7 +56,7 @@ join the lobbying side to the fleet. A pulsing green ring means the ship was see
 |---|---|
 | UK sanctions list (21 Sep 2026 for the research, then refreshed nightly) | Listed ships, hull numbers, owners and operators, flags |
 | US Treasury SDN list and US Consolidated Screening List | Blocked and restricted entities; ships' "Linked To" companies |
-| EU asset-freeze list | EU listings and dates |
+| EU asset-freeze list and ship bans | Asset freezes (Reg. 269/2014) and ship bans from ports and services (Reg. 833/2014), with dates |
 | Ukraine war-sanctions database | Former names and flags only (not a sanctions list) |
 | US Lobbying Disclosure Act database ([lda.gov API](https://lda.gov/api/redoc/v1/)) | Clients, firms, fees, issues, bills, lobbyists and their past posts |
 | Foreign Agents Registration Act filings ([En+ Group exhibit](https://efile.fara.gov/docs/6170-Exhibit-AB-20200316-80.pdf), [Hikvision statement](https://efile.fara.gov/docs/3731-Supplemental-Statement-20250430-53.pdf)) | Two foreign-agent contracts (En+ Group, Hikvision) |
@@ -93,7 +93,7 @@ Full detail, in plain language: [`methods.html`](methods.html).
 - En+ Group cannot be searched by name on the lobbying API (the "+" is ignored); it comes from earlier targeted pulls.
 - Bills are limited to key bills and those named in three or more reports ({{stat:kg.bills}}).
 - Live AIS is a moment in time: sanctioned tankers often switch off or spoof their transponders.
-- Six people from the shadow-fleet research await re-checking and are marked "(?)".
+- As of 25 September 2026, six people from the shadow-fleet research await re-checking and are marked "(?)".
 
 ## Rebuilding
 

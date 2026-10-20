@@ -29,10 +29,11 @@ export function fillStats(root = document, stats) {
 
 let loading;
 
-/** Fetches the stats once (a failure is remembered, and changes nothing) and fills everything under root. */
+/** Fetches the stats once and fills everything under root. A failure changes nothing and is not kept: the next call asks again. */
 export function loadAndFill(root = document) {
-  loading ??= fetch(STATS_URL).then((res) => (res.ok ? res.json() : null)).catch(() => null);
-  return loading.then((stats) => (stats ? fillStats(root, stats) : 0));
+  const request = loading ??= fetch(STATS_URL).then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+    .catch(() => { if (loading === request) loading = undefined; return null; });
+  return request.then((stats) => (stats ? fillStats(root, stats) : 0));
 }
 
 if (typeof document !== "undefined") loadAndFill();

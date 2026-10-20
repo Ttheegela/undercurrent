@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { fillStats } from "../app/stats.js";
+import { fillStats, loadAndFill } from "../app/stats.js";
 
 // A page is anything with querySelectorAll; an element is { dataset.stat, textContent } (the text is the fallback).
 const el = (stat, text = "fallback") => ({ dataset: { stat }, textContent: text });
@@ -49,4 +49,29 @@ test("fillStats ignores a value that is not a number or a string", () => {
   assert.equal(fillStats(page(e), { kg: { nodes: null } }), 0);
   assert.equal(fillStats(page(e), { kg: { nodes: { x: 1 } } }), 0);
   assert.equal(e.textContent, "3,235");
+});
+
+test("loadAndFill retries after a failed fetch, then fetches once", async () => {
+  const real = globalThis.fetch;
+  const replies = [async () => { throw new TypeError("offline"); }, async () => ({ ok: false }),
+    async () => ({ ok: true, json: async () => { throw new SyntaxError("not json"); } }), async () => ({ ok: true, json: async () => STATS })];
+  let calls = 0;
+  globalThis.fetch = (url) => { assert.equal(url, "/data/site-stats.json"); return replies[calls++](); };
+  try {
+    for (let i = 0; i < 3; i++) {
+      const e = el("kg.nodes", "3,235");
+      assert.equal(await loadAndFill(page(e)), 0);   // each failure changes nothing...
+      assert.equal(e.textContent, "3,235");
+    }
+    assert.equal(calls, 3);                          // ...and the next call asks again
+    const filled = el("kg.nodes", "3,235");
+    assert.equal(await loadAndFill(page(filled)), 1);
+    assert.equal(filled.textContent, "3,183");
+    const later = el("fleet.ships", "1,747");
+    assert.equal(await loadAndFill(page(later)), 1);   // a later call (the Wider check note) reuses what was fetched
+    assert.equal(later.textContent, "1,747");
+    assert.equal(calls, 4);
+  } finally {
+    globalThis.fetch = real;
+  }
 });

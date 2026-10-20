@@ -2,6 +2,7 @@ import csv
 import gzip
 import json
 import os
+import re
 import shutil
 from dataclasses import replace
 from pathlib import Path
@@ -47,7 +48,8 @@ def seed(paths: Paths) -> None:
     shutil.copy(FIX / "uk_sample.csv", paths.raw / "uk.csv")
     shutil.copy(FIX / "csl_sample.csv", paths.raw / "us.csv")
     paths.lists.mkdir(parents=True)
-    meta = {g: {"status": "fresh", "record_count": n} for g, n in (("us", 55000), ("uk", 12000), ("eu", 24000), ("un", 3700))}
+    meta = {g: {"status": "fresh", "record_count": n, "updated_at": f"2026-10-{d}T04:00:00Z"}
+            for g, n, d in (("us", 55000, 17), ("uk", 12000, 18), ("eu", 24000, 19), ("un", 3700, 19))}
     (paths.lists / "meta.json").write_text(json.dumps({"lists": meta}), encoding="utf-8")
     (paths.lists / "eu.json").write_text(json.dumps({"list": "eu", "records": []}), encoding="utf-8")
     sample = json.loads((HERE / "fixtures" / "lobbying_sample.json").read_text(encoding="utf-8"))
@@ -165,6 +167,35 @@ def test_stats_match_payload(baseline):
     assert kg_stats["documented_edges"] + kg_stats["reported_edges"] + kg_stats["lead_edges"] == kg_stats["edges"]
     assert stats["lists"] == {"us": 55000, "uk": 12000, "eu": 24000, "un": 3700}
     assert stats["opensanctions_sources"] == 95
+
+
+RESEARCH_DATES = re.compile(r"downloaded \d+ \w+ 2026|report of \d+ \w+ 2026|25 Sep")
+
+
+def test_coverage_names_tonights_sources_not_the_25_sep_download(baseline):
+    coverage = load(make_paths(baseline[0]).fleet_data)["meta"]["coverage"]
+    assert not RESEARCH_DATES.search(" ".join(coverage))
+    # the map's "What the data covers" opens with what this build used, each list as it was updated
+    assert "build of 2026-10-19" in coverage[0]
+    assert "UK Sanctions List (updated 2026-10-18)" in coverage[0]
+    assert "US Consolidated Screening List (updated 2026-10-17)" in coverage[0]
+    assert "EU financial-sanctions file (updated 2026-10-19)" in coverage[0]
+    # the research notes that still hold are kept, in order, and the base's own entry on the 25 Sep download is the one replaced
+    base = load(REAL / "fleet-base.json")["meta"]["coverage"]
+    assert coverage[1:] == [c for c in base if "downloaded 25 Sep" not in c] and len(coverage) == len(base)
+
+
+def test_the_committed_map_data_does_not_describe_the_25_sep_download():
+    meta = load(HERE.parent / "stories" / "shadow-fleet" / "network" / "fleet-data.json")["meta"]
+    assert meta["coverage"] and not RESEARCH_DATES.search(" ".join(meta["coverage"]))
+    assert f"build of {meta['generated']}" in meta["coverage"][0]
+
+
+def test_a_night_that_keeps_the_map_keeps_its_coverage(world):
+    before = load(world.fleet_data)["meta"]["coverage"]
+    set_list(world, "uk", "stale")
+    assert blg.build(DAY2, fake_fetch, world) == 1
+    assert load(world.fleet_data)["meta"]["coverage"] == before   # (it describes the build the map still shows)
 
 
 def test_outputs_are_plain_json_paths(baseline):

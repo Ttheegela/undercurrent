@@ -39,6 +39,7 @@ from __future__ import annotations
 import gzip
 import json
 import os
+import re
 import sys
 from collections import Counter
 from dataclasses import dataclass
@@ -226,6 +227,25 @@ def _fleet(paths: Paths, fetch, stale: set, prev: dict | None) -> tuple[dict | N
     return merged, set(), []
 
 
+# The base's own note on the 25 Sep downloads ("... report of 21 Sep 2026 ... downloaded 25 Sep 2026"): the map shows
+# tonight's sources in its place.
+RESEARCH_DOWNLOAD = re.compile(r"downloaded \d+ \w+ 2026")
+COVERAGE_LISTS = (("uk", "the UK Sanctions List"), ("us", "the US Consolidated Screening List"),
+                  ("eu", "the EU financial-sanctions file"))
+
+
+def _coverage(date: str, lists: dict, base: list) -> list:
+    """The map's "What the data covers": the lists this build used, each as of its last update, then the base's research
+    notes that still hold."""
+    named = [name + (f" (updated {day})" if (day := str((lists.get(gov) or {}).get("updated_at") or "")[:10]) else "")
+             for gov, name in COVERAGE_LISTS]
+    used = ", ".join(named[:-1]) + " and " + named[-1]
+    return [f"Ships and companies are rebuilt every night from the official lists. The build of {date} used {used}, with "
+            "the EU Official Journal ship list and the OFAC listing dates read from OpenSanctions exports. "
+            "All are joined by IMO number.",
+            *(c for c in base if not RESEARCH_DOWNLOAD.search(c))]
+
+
 def _stats(date: str, payload: dict, kg: dict, lists: dict, opensanctions: dict) -> dict:
     counts, kc = payload["meta"]["counts"], kg["meta"]["counts"]
     by = lambda layer, type_: sum(1 for n in kg["nodes"] if n["L"] == layer and n["t"] == type_)  # noqa: E731
@@ -289,6 +309,8 @@ def build(now: str | None = None, fetch=fetch_text, paths: Paths = DEFAULT_PATHS
 
     shown = _map_graph(merged) if merged is not None else None
     payload = compact(merged, date) if merged is not None else _read(paths.fleet_data)
+    if merged is not None:
+        payload["meta"]["coverage"] = _coverage(date, lists, payload["meta"].get("coverage", []))
     hidden = last.get("kg_only") or {"nodes": [], "edges": []}
     if merged is not None:  # what the map leaves out; the network draws it, and a night that keeps the map needs it
         on_map = {n["id"] for n in shown["nodes"]}, {e["id"] for e in shown["edges"]}

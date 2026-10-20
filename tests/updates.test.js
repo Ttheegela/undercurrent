@@ -217,14 +217,14 @@ test("renderUpdates dates the start from first_run and says when older days have
   assert.ok(renderUpdates(rec({ first_run: "2026-10-01" }), { ...ALL, from: "2026-10-05" }).includes("no longer kept"));
 });
 
-test("renderUpdates names the item on each Show link", () => {
+test("renderUpdates names the item on each Show link, after the text it shows", () => {
   const html = renderUpdates(RECORD, ALL);
-  assert.ok(html.includes('aria-label="Show TASSOS on the map">Show on map</a>'), html);
-  assert.ok(html.includes('aria-label="Show Acme Lobbying LLC on the network">Show on network</a>'), html);
+  assert.ok(html.includes('aria-label="Show on map: TASSOS">Show on map</a>'), html);
+  assert.ok(html.includes('aria-label="Show on network: Acme Lobbying LLC">Show on network</a>'), html);
   const odd = { started: "2026-10-20", days: [{ date: "2026-10-20", sources: FRESH, changes: [
     ship({ name: '<b>"x"</b>' }), ship({ name: "", summary: "A summary" }), ship({ name: undefined, summary: undefined })] }] };
   const out = renderUpdates(odd, { ...ALL, to: "2026-10-20" });
-  assert.ok(out.includes('aria-label="Show &lt;b&gt;&quot;x&quot;&lt;/b&gt; on the map"'), out);
-  assert.ok(out.includes('aria-label="Show A summary on the map"'), out);
-  assert.ok(out.includes('aria-label="Show on the map"'), out);
+  assert.ok(out.includes('aria-label="Show on map: &lt;b&gt;&quot;x&quot;&lt;/b&gt;"'), out);
+  assert.ok(out.includes('aria-label="Show on map: A summary"'), out);
+  assert.ok(out.includes('aria-label="Show on map"'), out);
 });

@@ -1435,16 +1435,16 @@ test("Show on map link carries focus and since", async ({ page }) => {
   const errors = watchErrors(page);
   await stubUpdates(page);
   await updReady(page);
-  const map = rowOf(page, "US listed CHARLIE").getByRole("link", { name: "Show CHARLIE on the map" }); // a link's accessible name says which item
+  const map = rowOf(page, "US listed CHARLIE").getByRole("link", { name: "Show on map: CHARLIE" }); // a link's accessible name says which item
   await expect(map).toHaveAttribute("href", "../shadow-fleet/network/shadow_fleet_map.html#focus=IMO1000003&since=2026-10-19");
   await expect(map).toHaveText("Show on map");
-  const edge = rowOf(page, "New link: CHARLIE").getByRole("link", { name: "Show ACME SHIPPING → CHARLIE on the map" });
+  const edge = rowOf(page, "New link: CHARLIE").getByRole("link", { name: "Show on map: ACME SHIPPING → CHARLIE" });
   await expect(edge).toHaveAttribute("href", `../shadow-fleet/network/shadow_fleet_map.html#focus=${edgeId(3)}&since=2026-10-19`);
-  const net = rowOf(page, "New lobbyist: Someone").getByRole("link", { name: "Show Someone on the network" }); // a lobby change goes to the network
+  const net = rowOf(page, "New lobbyist: Someone").getByRole("link", { name: "Show on network: Someone" }); // a lobby change goes to the network
   await expect(net).toHaveAttribute("href", "../who-lobbies/influence-network/index.html#focus=p:someone&since=2026-10-19");
   await expect(net).toHaveText("Show on network");
-  expect(await page.getByRole("link", { name: / on the network$/ }).count()).toBe(1);
-  expect(await page.getByRole("link", { name: / on the map$/ }).count()).toBe(7);
+  expect(await page.getByRole("link", { name: /^Show on network/ }).count()).toBe(1);
+  expect(await page.getByRole("link", { name: /^Show on map/ }).count()).toBe(7);
   expect(errors).toEqual([]);
 });
 
@@ -1464,7 +1464,7 @@ test("updates: Show on map focuses a ship, a link and a removed ship on the real
   await stubMap(page, { record: CROSS });
   const open = async (text) => {
     await updReady(page, "?graph=fleet");
-    await rowOf(page, text).getByRole("link", { name: / on the map$/ }).click();
+    await rowOf(page, text).getByRole("link", { name: /^Show on map/ }).click();
     await expect(page).toHaveURL(new RegExp(MAP));
     await page.locator("html[data-ready]").waitFor({ state: "attached" });
     await expect(page.locator(".chg-title")).toContainText("Since 19 Oct"); // the window starts on the day the link names
@@ -1485,7 +1485,7 @@ test("updates: Show on network focuses a firm, a link and a removed ship on the 
   await stubNet(page, { record: CROSS });
   const open = async (text) => {
     await updReady(page, "?graph=lobby");
-    await rowOf(page, text).getByRole("link", { name: / on the network$/ }).click();
+    await rowOf(page, text).getByRole("link", { name: /^Show on network/ }).click();
     await expect(page).toHaveURL(new RegExp(NETWORK));
     await page.waitForFunction(() => document.getElementById("loading").style.display === "none" && window.__kg && window.__kg.state().ready);
   };
@@ -1551,7 +1551,7 @@ test("updates: the filters live in the URL, and bad values fall back", async ({ 
   await page.locator("select[name=graph]").selectOption("lobby");
   await expect(page).toHaveURL(/graph=lobby/);
   await expect(page.locator(".upd-item")).toHaveCount(1);
-  await expect(page.getByRole("link", { name: / on the network$/ })).toHaveCount(1);
+  await expect(page.getByRole("link", { name: /^Show on network/ })).toHaveCount(1);
   await page.locator("input[name=from]").fill("2026-10-19");
   await expect(page).toHaveURL(/from=2026-10-19/);
   await expect(page.locator(".upd-day")).toHaveCount(1);

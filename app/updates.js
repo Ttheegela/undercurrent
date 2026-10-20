@@ -9,8 +9,8 @@ const GRAPHS = { all: ["fleet", "lobby"], fleet: ["fleet"], lobby: ["lobby"] };
 const EMPTY = { fleet: "No changes on the lists.", lobby: "No new lobbying filings.", all: "No changes recorded." };
 // The page that draws each graph's changes, from stories/updates/.
 const SHOW = {
-  fleet: ["Show on map", "../shadow-fleet/network/shadow_fleet_map.html", "the map"],
-  lobby: ["Show on network", "../who-lobbies/influence-network/index.html", "the network"],
+  fleet: ["Show on map", "../shadow-fleet/network/shadow_fleet_map.html"],
+  lobby: ["Show on network", "../who-lobbies/influence-network/index.html"],
 };
 const DAY_CAP = 50; // rows shown for a day before "+N more on this day"; a busy day can hold thousands
 const DEFAULT_DAYS = 10;
@@ -33,11 +33,11 @@ export function parseQuery(search, today) {
 // A link carries the change's id and the day it was recorded: the graph page opens its window on that day.
 function row(c, day) {
   const kind = Object.hasOwn(KINDS, c.kind) ? c.kind : "changed";
-  const [label, page, where] = SHOW[c.graph];
-  const what = ["Show", c.name || c.summary, `on ${where}`].filter(Boolean).join(" "); // (the link's name says which item)
+  const [label, page] = SHOW[c.graph];
+  const name = c.name || c.summary ? `${label}: ${c.name || c.summary}` : label; // (the link's name says which item, after the text it shows)
   const id = c.id ? `focus=${encodeURIComponent(c.id).replace(/%3A/gi, ":")}&` : "";
   return `<li class="chg-item upd-item" data-kind="${kind}"><span class="chg-kind">${KINDS[kind]}</span><span class="chg-sum">${escapeHtml(c.summary)}</span>`
-    + `<span class="upd-links">${sourceLink(c)}<a class="upd-show" href="${escapeHtml(`${page}#${id}since=${day}`)}" aria-label="${escapeHtml(what)}">${label}</a></span></li>`;
+    + `<span class="upd-links">${sourceLink(c)}<a class="upd-show" href="${escapeHtml(`${page}#${id}since=${day}`)}" aria-label="${escapeHtml(name)}">${label}</a></span></li>`;
 }
 
 function renderDay(day, changes, gaps, graph, relevant) {

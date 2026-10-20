@@ -871,6 +871,41 @@ test("network: a new link's particles stop when the window no longer holds it", 
   expect(await photons()).toBe(0);
 });
 
+// the links that carry particles now, and whether the new link (ACME's to CHARLIE) is one of them
+const particles = (page) => page.evaluate(() => {
+  const links = window.__kg.Graph.graphData().links, has = (l) => (l.__photons || []).length > 0;
+  return { n: links.filter(has).length, fresh: has(links.find((l) => [l.s, l.t, l.y].join(" ") === "co:acme IMO1000003 operates")) };
+});
+
+test("money and bridge particles survive a window change during a selection", async ({ page }) => {
+  await stubNet(page);
+  await netReady(page);
+  const before = await particles(page);
+  expect(before.n).toBeGreaterThan(1); // the two hired links (money; one a bridge) and the new link
+  expect(before.fresh).toBe(true);
+  await page.evaluate(() => window.__kg.select(window.__kg.nodeById.get("IMO1000001"))); // lights only ALPHA's links
+  await page.getByRole("button", { name: "What changed" }).click();
+  await page.getByRole("button", { name: "10 days" }).click(); // a new window, chosen while something is lit
+  await expect(page.locator(".chg-title")).toHaveText("Since 10 Oct · 10 changes");
+  expect(await particles(page)).toEqual(before);
+  await page.evaluate(() => window.__kg.clearFocus());
+  expect(await particles(page)).toEqual(before);
+});
+
+test("late change record on a deep link keeps particles", async ({ page }) => {
+  await stubNet(page);
+  await netReady(page);
+  const plain = await particles(page);
+  const late = await page.context().newPage();
+  await late.addInitScript(() => { window.__noAnim = true; });
+  await late.route(KG_JSON, (r) => r.fulfill({ json: kgFixture() }));
+  await late.route(CHANGES_JSON, async (r) => { await new Promise((done) => setTimeout(done, 400)); await r.fulfill({ json: recordFixture(NET_CHANGES) }); }); // after the page has started and focused
+  await late.goto(NETWORK + "#focus=IMO1000001");
+  await expect(late.locator(".chg-title")).toHaveText("Since 12 Oct · 10 changes", { timeout: 10_000 });
+  expect((await late.evaluate(() => window.__kg.state())).selected).toBe("IMO1000001");
+  expect(await particles(late)).toEqual(plain);
+});
+
 test("network: rings are painted on the canvas, green for new and grey for changed", async ({ page }) => {
   await stubNet(page);
   await netReady(page);

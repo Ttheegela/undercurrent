@@ -905,7 +905,9 @@ function markChanges(){
     chg.ghostNodes.push(g); chg.index.set(id, g);
   });
   chg.node = node; chg.link = link;
-  Graph.linkDirectionalParticles(Graph.linkDirectionalParticles());   // (rebuilds the particles: new links get theirs; no re-layout)
+  const lit = [hlLinks, pathLinks]; hlLinks = pathLinks = null;   // (the particles are built once, so build them as when nothing is lit)
+  Graph.linkDirectionalParticles(Graph.linkDirectionalParticles());   // (new links get theirs; no re-layout)
+  [hlLinks, pathLinks] = lit;
   placeLoose();
 }
 // Ghosts with no node to sit beside stand in a row under the graph, headed REMOVED.

@@ -40,6 +40,7 @@ import gzip
 import json
 import os
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -228,13 +229,17 @@ def _fleet(paths: Paths, fetch, stale: set, prev: dict | None) -> tuple[dict | N
 def _stats(date: str, payload: dict, kg: dict, lists: dict, opensanctions: dict) -> dict:
     counts, kc = payload["meta"]["counts"], kg["meta"]["counts"]
     by = lambda layer, type_: sum(1 for n in kg["nodes"] if n["L"] == layer and n["t"] == type_)  # noqa: E731
+    sure = Counter(e["c"] for e in kg["edges"])  # D documented, R reported, L lead
     sources = opensanctions.get("sources")
     return {"generated": date,
             "fleet": {k: counts[k] for k in ("ships", "companies", "people", "countries", "edges", "lead_edges")},
             "kg": {"nodes": kc["nodes"], "edges": kc["edges"], "lead_edges": kc["lead_edges"],
                    "ships": kc["by_type"].get("ship", 0), "companies": kc["by_type"].get("company", 0),
                    "lobbyists": by("lobby", "person"), "lobby_firms": by("lobby", "lobbyfirm"),
-                   "filings_kept": kc["lda_filings_kept"], "filings_scanned": kc["lda_filings_scanned"]},
+                   "filings_kept": kc["lda_filings_kept"], "filings_scanned": kc["lda_filings_scanned"],
+                   "documented_edges": sure["D"], "reported_edges": sure["R"], "bills": kc["by_type"].get("bill", 0),
+                   "lobbyists_with_posts": len({e["s"] for e in kg["edges"] if e["y"] == "formerly_served_in"}),
+                   "ships_hidden": kc["ships_hidden_no_owner_link"]},
             "lists": {g: lists.get(g, {}).get("record_count", 0) for g in ("us", "uk", "eu", "un")},
             "opensanctions_sources": sources if isinstance(sources, int) else DEFAULT_OPENSANCTIONS_SOURCES}
 

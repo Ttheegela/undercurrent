@@ -155,7 +155,14 @@ def test_stats_match_payload(baseline):
         "nodes": len(kg["nodes"]), "edges": len(kg["edges"]), "lead_edges": sum(1 for e in kg["edges"] if e["c"] == "L"),
         "ships": sum(1 for n in kg["nodes"] if n["t"] == "ship"), "companies": sum(1 for n in kg["nodes"] if n["t"] == "company"),
         "lobbyists": kind("lobby", "person"), "lobby_firms": kind("lobby", "lobbyfirm"),
-        "filings_kept": kg["meta"]["counts"]["lda_filings_kept"], "filings_scanned": kg["meta"]["counts"]["lda_filings_scanned"]}
+        "filings_kept": kg["meta"]["counts"]["lda_filings_kept"], "filings_scanned": kg["meta"]["counts"]["lda_filings_scanned"],
+        # what the methods page and the notes state: the lines by how sure we are, bills, lobbyists with past posts, hidden ships
+        "documented_edges": sum(1 for e in kg["edges"] if e["c"] == "D"), "reported_edges": sum(1 for e in kg["edges"] if e["c"] == "R"),
+        "bills": sum(1 for n in kg["nodes"] if n["t"] == "bill"),
+        "lobbyists_with_posts": len({e["s"] for e in kg["edges"] if e["y"] == "formerly_served_in"}),
+        "ships_hidden": kg["meta"]["counts"]["ships_hidden_no_owner_link"]}
+    kg_stats = stats["kg"]
+    assert kg_stats["documented_edges"] + kg_stats["reported_edges"] + kg_stats["lead_edges"] == kg_stats["edges"]
     assert stats["lists"] == {"us": 55000, "uk": 12000, "eu": 24000, "un": 3700}
     assert stats["opensanctions_sources"] == 95
 

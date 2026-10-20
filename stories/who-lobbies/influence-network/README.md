@@ -10,13 +10,13 @@ they disclose) and marks the ships seen live on our God's Eye globe. Every line 
 | | |
 |---|---|
 | **Open** | [`index.html`](index.html), the map · [`methods.html`](methods.html), methods and sources in plain language |
-| **Scale** | 3,183 nodes · 3,708 links · 1,547 sanctioned ships · 1,513 US lobbying reports · 421 lobbyists |
-| **Data as of** | 25 September 2026 |
+| **Scale** | {{stat:kg.nodes}} nodes · {{stat:kg.edges}} links · {{stat:kg.ships}} sanctioned ships · {{stat:kg.filings_kept}} US lobbying reports · {{stat:kg.lobbyists}} lobbyists |
+| **Data as of** | {{stat:generated}}, rebuilt nightly. The hand-checked links and the research figures below are as of 25 September 2026. |
 | **Built at** | Trace the Unseen: Climate Intelligence Build Day, Microsoft Garage NYC (sanctions and evasion track) |
 
 ## Key findings
 
-1. **The front companies don't lobby; their owners do.** We found zero US lobbying reports for the 18 ship
+1. **The front companies don't lobby; their owners do.** As of 25 September 2026 we found zero US lobbying reports for the 18 ship
    managers, front companies and oil traders we searched, including Sovcomflot, Zulu, Fleet Tanqo, Lukoil and
    Rosneft. The lobbying comes from parent companies, banks and state-linked firms.
 2. **Nord Stream 2 paid Washington firms $13.87 million (2016 to 2022)**, much of it on Russia-sanctions
@@ -25,12 +25,12 @@ they disclose) and marks the ships seen live on our God's Eye globe. Every line 
 3. **Sanctioned Russian banks lobbied on the scope of sanctions.** Sberbank's US arm, VTB and Gazprombank hired
    firms after 2014; one stated issue was "clarifying scope of sanctions imposed by Executive Order 13660". All three
    are now fully blocked.
-4. **Only 14 records join the two sides.** Examples: the Russian state owns Sovcomflot (Treasury); Gazprom owns
+4. **Only 14 records join the two sides** (as of 25 September 2026). Examples: the Russian state owns Sovcomflot (Treasury); Gazprom owns
    Gazprom Neft, whose subsidiary runs listed tankers (Treasury); Rosneft controls its tanker company Rosnefteflot
    (Treasury); the US list links seven shipping companies to Arctic LNG 2, which hired a Washington firm in 2023.
-5. **The revolving door is on the record.** 176 lobbyists on these accounts disclose past government posts,
+5. **The revolving door is on the record.** {{stat:kg.lobbyists_with_posts}} lobbyists on these accounts disclose past government posts,
    including former senators and a former counselor to the Secretary of the Treasury.
-6. **Some listed ships are sailing right now.** Of 27 listed ships broadcasting positions in our God's Eye snapshot,
+6. **Some listed ships are sailing right now.** Of 27 listed ships broadcasting positions in our God's Eye snapshot of 25 September 2026,
    24 are on the map; six connect through state-owned Sovcomflot to the lobbying side.
 
 ## Using the map
@@ -54,7 +54,7 @@ join the lobbying side to the fleet. A pulsing green ring means the ship was see
 
 | Source | Used for |
 |---|---|
-| UK sanctions list (21 Sep 2026) | Listed ships, hull numbers, owners and operators, flags |
+| UK sanctions list (21 Sep 2026 for the research, then refreshed nightly) | Listed ships, hull numbers, owners and operators, flags |
 | US Treasury SDN list and US Consolidated Screening List | Blocked and restricted entities; ships' "Linked To" companies |
 | EU asset-freeze list | EU listings and dates |
 | Ukraine war-sanctions database | Former names and flags only (not a sanctions list) |
@@ -67,7 +67,7 @@ join the lobbying side to the fleet. A pulsing green ring means the ship was see
 ## Method in brief
 
 1. Ships are joined across lists by their permanent IMO hull number; the lists supply owners and operators.
-2. Lobbying reports were pulled in full (every page) for the clients in our story: 3,232 scanned, 1,513 kept after
+2. Lobbying reports were pulled in full (every page) for the clients in our story: {{stat:kg.filings_scanned}} scanned, {{stat:kg.filings_kept}} kept after
    exact client matching.
 3. Fees count each firm, client and quarter once (latest version stating an amount); subcontracted fees are shown
    but not added to client totals.
@@ -80,18 +80,18 @@ Full detail, in plain language: [`methods.html`](methods.html).
 
 ## Confidence and naming
 
-- **Documented** (3,676 links): an official record states it directly. **Reported** (1): an official filing seen in
-  summary only. **Lead** (31): our inference, drawn dotted, hideable with the Leads filter.
+- **Documented** ({{stat:kg.documented_edges}} links): an official record states it directly. **Reported** ({{stat:kg.reported_edges}}): an official filing seen in
+  summary only. **Lead** ({{stat:kg.lead_edges}}): our inference, drawn dotted, hideable with the Leads filter.
 - We describe documented conduct with its source and make no legal findings; "charged" is never "convicted".
 - People are named only where an official list or release names them, or in their own lobbying disclosure, in that
-  role. Unlisted firms known only from non-official sources appear as a description (12).
+  role. Unlisted firms known only from non-official sources appear as a description (12 as of 25 September 2026).
 
 ## Limitations
 
 - "No path found" and "no lobbying found" are not proof of no relationship or no influence.
 - US lobbying only, plus a few EU register entries from team research; fees are self-reported and rounded to $10,000.
 - En+ Group cannot be searched by name on the lobbying API (the "+" is ignored); it comes from earlier targeted pulls.
-- Bills are limited to key bills and those named in three or more reports (125).
+- Bills are limited to key bills and those named in three or more reports ({{stat:kg.bills}}).
 - Live AIS is a moment in time: sanctioned tankers often switch off or spoof their transponders.
 - Six people from the shadow-fleet research await re-checking and are marked "(?)".
 

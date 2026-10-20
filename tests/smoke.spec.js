@@ -251,6 +251,68 @@ test("home chips card reads the median from data, keeps 20 when the file is miss
   await expect(page.locator("#chips-months")).toHaveText("20");
 });
 
+const stubStats = (page, body) => page.route("**/data/site-stats.json", (r) =>
+  body ? r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) }) : r.fulfill({ status: 404, body: "" }));
+
+test("home cards read their counts from site-stats.json and keep their text when it is missing", async ({ page }) => {
+  const errors = watchErrors(page);
+  const ships = page.locator('.story:has([data-stat="fleet.ships"]) .big');
+  const reports = page.locator('.story:has([data-stat="kg.filings_kept"]) .big');
+  await stubStats(page, { generated: "2030-01-02", fleet: { ships: 4321 }, kg: { filings_kept: 1234 }, opensanctions_sources: 77 });
+  await page.goto("/");
+  await expect(ships).toHaveText("4,321 ships");
+  await expect(reports).toHaveText("1,234 reports");
+  await search(page, "TASSOS");   // the dossier's "Wider check" note is drawn later and filled from the same file
+  await expect(page.locator("#wider")).toContainText("Sanctions lists from 77 sources worldwide");
+  expect(errors).toEqual([]);
+  await page.unroute("**/data/site-stats.json");
+  await stubStats(page, null);
+  await page.goto("/");
+  await expect(page.locator("#lists-date")).toContainText(/Official lists|out of date|unavailable/);   // (the page has finished loading)
+  await expect(ships).toHaveText(/^1,\d{3} ships$/);
+  await expect(reports).toHaveText(/^1,\d{3} reports$/);
+  await search(page, "TASSOS");
+  await expect(page.locator("#wider")).toContainText(/Sanctions lists from \d+ sources worldwide/);
+});
+
+test("about the data, the methods page and the notes read their counts from site-stats.json", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubStats(page, { generated: "2030-01-02", fleet: { ships: 4321, companies: 2222 }, opensanctions_sources: 77,
+    kg: { ships: 1111, companies: 3333, filings_kept: 1234, filings_scanned: 5678, lobbyists: 99, edges: 8888, lead_edges: 7 } });
+  await page.goto("/stories/about-the-data.html");
+  await expect(page.locator('[data-stat="opensanctions_sources"]')).toHaveText("77");
+  await expect(page.locator('[data-stat="fleet.ships"]')).toHaveText("4,321");
+  await page.goto("/stories/who-lobbies/influence-network/methods.html");
+  await expect(page.locator(".stat").first()).toContainText("1,111");
+  await expect(page.locator(".as-of")).toContainText("2030-01-02");
+  await expect(page.locator('[data-stat="kg.filings_scanned"]').first()).toHaveText("5,678");
+  await page.goto("/stories/who-lobbies/influence-network/README.html");
+  await expect(page.locator('[data-stat="kg.lobbyists"]').first()).toHaveText("99");
+  await expect(page.locator('[data-stat="generated"]').first()).toHaveText("2030-01-02");
+  expect(errors).toEqual([]);
+});
+
+test("figures are filled under the content security policies in vercel.json", async ({ page }) => {
+  const headers = JSON.parse(fs.readFileSync("vercel.json", "utf8")).headers;
+  const policy = (source) => headers.find((h) => h.source === source).headers.find((h) => h.key === "Content-Security-Policy").value.replace("; upgrade-insecure-requests", "");
+  await stubStats(page, { generated: "2030-01-02", fleet: { ships: 4321, companies: 2222 }, opensanctions_sources: 77, kg: { filings_kept: 1234, lobbyists: 99 } });
+  for (const [path, csp, stat, text] of [
+    ["/index.html", policy("/((?!stories/).*)"), "fleet.ships", "4,321"],   // the strict app policy (script-src 'self')
+    ["/stories/about-the-data.html", policy("/stories/(.*)"), "opensanctions_sources", "77"],
+    ["/stories/who-lobbies/influence-network/README.html", policy("/stories/(.*)"), "generated", "2030-01-02"],
+  ]) {
+    const errors = watchErrors(page);
+    await page.route(`**${path}`, async (route) => {
+      const res = await route.fetch();
+      await route.fulfill({ response: res, headers: { ...res.headers(), "content-security-policy": csp } });
+    });
+    await page.goto(path);
+    await expect(page.locator(`[data-stat="${stat}"]`).first()).toHaveText(text);
+    expect(errors, csp).toEqual([]);
+    await page.unroute(`**${path}`);
+  }
+});
+
 test("chip dossiers: RM Design links the time-to-list page, ELEM GROUP does not", async ({ page }) => {
   await page.goto("/");
   await search(page, "RM Design and Development");

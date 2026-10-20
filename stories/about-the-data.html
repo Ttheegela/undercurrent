@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../app/style.css">
+<script type="module" src="../app/stats.js"></script>
 <style>
   /* Page styles on the main site's system (app/style.css tokens only) · hero + Long Document body */
   .doc { max-width: 46rem; padding-bottom: var(--space-3xl); }
@@ -39,12 +40,12 @@
 <div class="doc">
   <h2>What we check</h2>
   <ul>
-    <li><strong>Our research</strong>: 1,724 ships, 1,007 companies and 25 people in the shadow-fleet network, 8 officially listed companies from our semiconductor chip research and the listed companies and intermediaries in our lobbying research. A snapshot from the VeilTrace build day, 25 September 2026.</li>
+    <li><strong>Our research</strong>: 1,724 ships, 1,007 companies and 25 people in the shadow-fleet network, 8 officially listed companies from our semiconductor chip research and the listed companies and intermediaries in our lobbying research. A snapshot from the VeilTrace build day, 25 September 2026. The shadow-fleet map is rebuilt every night and now shows <span data-stat="fleet.ships">1,747</span> ships and <span data-stat="fleet.companies">1,037</span> companies.</li>
     <li><strong>United States</strong>: the Consolidated Screening List, which includes the Treasury's OFAC sanctions list and Commerce export-control lists.</li>
     <li><strong>United Kingdom</strong>: the UK Sanctions List.</li>
     <li><strong>European Union</strong>: the consolidated list of persons, groups and entities subject to EU financial sanctions.</li>
     <li><strong>United Nations</strong>: the Security Council consolidated list.</li>
-    <li><strong>OpenSanctions</strong>: consolidated sanctions data from 95 sources worldwide, refreshed nightly from OpenSanctions' free bulk data. CC BY-NC 4.0.</li>
+    <li><strong>OpenSanctions</strong>: consolidated sanctions data from <span data-stat="opensanctions_sources">95</span> sources worldwide, refreshed nightly from OpenSanctions' free bulk data. CC BY-NC 4.0.</li>
     <li><strong>Connections</strong>: owners, managers and linked companies from the official sanctions lists (via OpenSanctions' relationship data), and US lobbying from Lobbying Disclosure Act filings (<a href="https://lda.gov/api/redoc/v1/">lda.gov API</a>) for a tracked list of companies, both refreshed nightly. Lobbyists are named only from their own disclosures. No filing found is not proof of no influence.</li>
   </ul>
 

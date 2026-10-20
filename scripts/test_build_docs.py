@@ -12,10 +12,15 @@ def html_of(base, md):
     return "".join(b.Converter(base).blocks(md.splitlines()))
 
 
+def without_fallbacks(html):
+    """The text inside a data-stat span is a fallback the nightly run need not regenerate: leave it out of comparisons."""
+    return re.sub(r'(<span data-stat="[^"]*">)[^<]*', r"\1", html)
+
+
 @pytest.mark.parametrize("md", DOCS, ids=lambda p: str(p.relative_to(b.ROOT)))
 def test_page_is_up_to_date(md):
     page = md.with_suffix(".html")
-    assert page.exists() and page.read_text(encoding="utf-8") == b.render(md), \
+    assert page.exists() and without_fallbacks(page.read_text(encoding="utf-8")) == without_fallbacks(b.render(md)), \
         f"{page.relative_to(b.ROOT)} is out of date: run python scripts/build_docs.py"
 
 
@@ -59,3 +64,29 @@ def test_blocks(tmp_path):
     assert "<thead>" not in table and "<td>1</td><td><code>x|y</code> &lt;z&gt;</td>" in table
     assert 'class="tablebox"' in table and 'tabindex="0"' in table
     assert html_of(tmp_path, "```\n<b>&\n```\n---") == '<pre tabindex="0"><code>&lt;b&gt;&amp;</code></pre><hr>'
+
+
+def test_stat_token_becomes_a_span_with_the_current_figure_as_fallback(tmp_path, monkeypatch):
+    stats = tmp_path / "site-stats.json"
+    stats.write_text('{"generated": "2026-10-20", "kg": {"nodes": 3235}}', encoding="utf-8")
+    monkeypatch.setattr(b, "STATS_FILE", stats)
+    out = html_of(tmp_path, "**{{stat:kg.nodes}}** nodes, built {{stat:generated}}; in code `{{stat:kg.nodes}}`.")
+    assert '<strong><span data-stat="kg.nodes">3,235</span></strong> nodes' in out
+    assert 'built <span data-stat="generated">2026-10-20</span>;' in out
+    assert "<code>{{stat:kg.nodes}}</code>" in out
+    assert html_of(tmp_path, "```\n{{stat:kg.nodes}}\n```") == '<pre tabindex="0"><code>{{stat:kg.nodes}}</code></pre>'
+
+
+@pytest.mark.parametrize("path", ["kg.nope", "kg", "nope", "kg.nodes.deeper"])
+def test_stat_token_that_names_no_figure_stops_the_build(tmp_path, monkeypatch, path):
+    stats = tmp_path / "site-stats.json"
+    stats.write_text('{"kg": {"nodes": 3235}}', encoding="utf-8")
+    monkeypatch.setattr(b, "STATS_FILE", stats)
+    with pytest.raises(ValueError, match=re.escape("{{stat:" + path + "}}")):
+        html_of(tmp_path, f"x {{{{stat:{path}}}}}")
+
+
+def test_a_note_with_a_figure_loads_stats_js_and_one_without_does_not():
+    with_figures = b.STORIES / "who-lobbies" / "influence-network" / "README.md"
+    assert '<script type="module" src="../../../app/stats.js"></script>' in b.render(with_figures)
+    assert "stats.js" not in b.render(b.STORIES / "shadow-fleet" / "FINDINGS.md")

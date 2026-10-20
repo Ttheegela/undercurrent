@@ -7,10 +7,15 @@ other story pages. The .md files stay the source; run this after editing one
 Only the Markdown the notes use is supported: headings, paragraphs, lists
 (nested), tables, code spans and blocks, links, bold, italic, blockquotes and
 horizontal rules. All text is HTML-escaped before any markup is added.
+
+A count the nightly build changes is written {{stat:kg.nodes}} (a dotted path into data/site-stats.json). It becomes
+<span data-stat="kg.nodes">3,235</span>: the figure as of this run is the fallback text, and app/stats.js, which a
+page with such a span loads, replaces it with the latest nightly figure.
 """
 from __future__ import annotations
 
 import html
+import json
 import re
 import sys
 from pathlib import Path
@@ -19,6 +24,7 @@ from urllib.parse import urljoin, urlparse
 
 ROOT = Path(__file__).resolve().parent.parent
 STORIES = ROOT / "stories"
+STATS_FILE = ROOT / "data" / "site-stats.json"
 
 FENCE = re.compile(r"^\s*```")
 HEAD = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
@@ -31,10 +37,21 @@ CODE = re.compile(r"(`+)(.+?)(?<!`)\1(?!`)")
 BOLD = re.compile(r"\*\*(?=\S)(.+?)(?<=\S)\*\*", re.S)
 ITALIC = re.compile(r"(?<![\w*])\*(?=[^\s*])(.+?)(?<=[^\s*])\*(?![\w*])", re.S)
 HOLD = re.compile(r"\x00(\d+)\x01")
+STAT = re.compile(r"\{\{stat:([A-Za-z0-9_.]+)\}\}")
 
 
 def esc(text: str) -> str:
     return html.escape(text, quote=True)
+
+
+def stat_span(path: str) -> str:
+    """{{stat:kg.nodes}}: the figure from site-stats.json as of this run, as the fallback text of a span stats.js fills."""
+    value = json.loads(STATS_FILE.read_text(encoding="utf-8"))
+    for key in path.split("."):
+        value = value.get(key) if isinstance(value, dict) else None
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise ValueError(f"{{{{stat:{path}}}}} is not a figure in {STATS_FILE.name}")
+    return f'<span data-stat="{esc(path)}">{esc(f"{value:,}" if isinstance(value, int) else value)}</span>'
 
 
 def indent(line: str) -> int:
@@ -109,6 +126,7 @@ class Converter:
 
         s = esc(text.replace("\x00", "").replace("\x01", ""))
         s = CODE.sub(lambda m: hold(f"<code>{m[2]}</code>"), s)
+        s = STAT.sub(lambda m: hold(stat_span(m[1])), s)
         s = LINK.sub(link, s)
         s = emph(URL.sub(bare, s))
         while "\x00" in s:
@@ -247,7 +265,7 @@ PAGE = Template("""<!DOCTYPE html>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="${root}app/style.css">
+<link rel="stylesheet" href="${root}app/style.css">$stats
 <style>
   /* Research notes rendered from Markdown · main site tokens only (app/style.css) */
   .hero { padding-block: var(--space-2xl) var(--space-xl); }
@@ -326,9 +344,11 @@ def render(md: Path) -> str:
     lead, sep, rest = conv.title.partition(": ")   # "Method: following hulls" -> muted second half
     h1 = conv.inline(lead + ":") + f" <span>{conv.inline(rest)}</span>" if sep else conv.inline(lead)
     depth = len(md.parent.relative_to(ROOT).parts)
+    root = "../" * depth or "./"
+    stats = f'\n<script type="module" src="{root}app/stats.js"></script>' if 'data-stat="' in body else ""
     return PAGE.substitute(
         source=md.name, plain_title=esc(re.sub(r"[`*]", "", conv.title)), h1=h1, body=body,
-        root="../" * depth or "./")
+        root=root, stats=stats)
 
 
 def sources() -> list[Path]:

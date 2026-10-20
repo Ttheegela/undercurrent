@@ -95,6 +95,7 @@ const CHANGES = {
     { date: "2026-10-19", sources: FRESH, changes: Array.from({ length: 35 }, (_, i) => ship(i, "2026-10-19")) },
     { date: "2026-10-18", sources: { ...FRESH, us: "unavailable", un: "unavailable" }, changes: [lobbyEdge(1, "2026-10-18"), lobbyEdge(2, "2026-10-18")] },
     { date: "2026-10-17", sources: { ...FRESH, lobbying: "unavailable" }, changes: [ship(99, "2026-10-17", { kind: "changed", field: "listed_by", from: ["UK"], to: ["UK", "EU"], id: "IMO1000099", name: "TASSOS", summary: "EU listed TASSOS (IMO 9408695)" })] },
+    { date: "2026-10-13", sources: FRESH, changes: [] },
     { date: "2026-10-12", sources: FRESH, changes: [] },
   ],
 };
@@ -851,6 +852,45 @@ test("minors: an empty date keeps the government, a year or month reads 'in', a 
   await run("check_lists", { query: "LUKOIL" });
   r = ofKind("research")[0];
   assert.equal(r.url, "/stories/who-lobbies/FINDINGS.html");
+});
+
+test("M7: nights absent from the record are gap runs by 'The nightly update', and never read as 'no changes'", async () => {
+  const day = (date, changes = []) => ({ date, sources: FRESH, changes });
+  // the nightly run skipped the 13th and 14th, and the 17th is simply not run yet (it is after the latest day held)
+  write(root, "data/changes/changes.json", { ...CHANGES, days: [day("2026-10-16", [ship(1, "2026-10-16")]), day("2026-10-15"), day("2026-10-12")] });
+  try {
+    resetAskCache();
+    const out = await run("changes", { since: "2026-10-12", until: "2026-10-20" });
+    const gaps = ofKind("gap");
+    assert.deepEqual(gaps.map((g) => [g.source, g.from, g.to, g.date]), [["The nightly update", "2026-10-13", "2026-10-14", undefined]]);
+    assert.equal(gaps[0].text, "The nightly update was unavailable from 13 Oct 2026 (2026-10-13) to 14 Oct 2026 (2026-10-14), so changes from it on those days aren't recorded.");
+    assert.equal(gaps[0].url, "/stories/updates/index.html?from=2026-10-13&to=2026-10-14&graph=all");
+    assert.deepEqual([out.gaps, out.missing_nights, out.gap_days, out.total], [1, 2, 0, 1]);
+    // a graph filter does not hide a night that did not run
+    ev = [];
+    await run("changes", { since: "2026-10-12", until: "2026-10-20", graph: "lobby" });
+    assert.deepEqual(ofKind("gap").map((g) => g.source), ["The nightly update"]);
+    // one missing night keeps the single-day wording and a date
+    ev = [];
+    await run("changes", { since: "2026-10-14", until: "2026-10-16" });
+    assert.deepEqual(ofKind("gap").map((g) => [g.from, g.to, g.date]), [["2026-10-14", "2026-10-14", "2026-10-14"]]);
+    assert.match(ofKind("gap")[0].text, /^The nightly update was unavailable on 14 Oct 2026 \(2026-10-14\), so changes from it that day aren't recorded\.$/);
+    // a range with nothing in it and a night missing says the night is missing, not that there were no changes
+    ev = [];
+    const empty = await run("changes", { since: "2026-10-13", until: "2026-10-14" });
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.source]), [["gap", undefined, "The nightly update"]]);
+    assert.deepEqual([empty.total, empty.missing_nights], [0, 2]);
+    // and when every night in the range is held, it is "no changes" as before
+    ev = [];
+    await run("changes", { since: "2026-10-15", until: "2026-10-15" });
+    assert.deepEqual(ev.map((e) => [e.kind, e.found]), [["change", false]]);
+    // after the latest night held, and before the first, nothing is missing
+    ev = [];
+    await run("changes", { since: "2026-10-17", until: "2026-10-20" });
+    assert.deepEqual(ev.map((e) => [e.kind, e.found]), [["change", false]]);
+  } finally {
+    write(root, "data/changes/changes.json", CHANGES);
+  }
 });
 
 // ---- arguments, tool list, invariants --------------------------------------------------------------------------

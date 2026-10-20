@@ -1,4 +1,5 @@
 import json
+import re
 
 import build_ask_docs as b
 import build_docs
@@ -12,8 +13,8 @@ def test_sections_have_title_url_and_text():
     html = ('<main><h2 id="first-id">First</h2><p>One <b>bold</b> two.</p>'
             '<h2 id="second">Second</h2><ul><li>a</li><li>b</li></ul></main>')
     assert sections(html) == [
-        {"id": "page.html#first-id", "page": "page.html", "url": "page.html#first-id", "title": "First", "text": "One bold two."},
-        {"id": "page.html#second", "page": "page.html", "url": "page.html#second", "title": "Second", "text": "a b"},
+        {"id": "page.html#first-id", "page": "page.html", "url": "/page.html#first-id", "title": "First", "text": "One bold two."},
+        {"id": "page.html#second", "page": "page.html", "url": "/page.html#second", "title": "Second", "text": "a b"},
     ]
 
 
@@ -31,23 +32,33 @@ def test_blocks_do_not_glue_words_together():
     assert sections(html)[0]["text"] == "one two three four five"
 
 
-def test_heading_without_id_gets_slug():
+def test_heading_without_id_gets_a_slug_id_but_a_bare_url():
     html = ("<h2>How it works: 50%</h2><p>a</p><h2>Same</h2><p>b</p><h2>Same</h2><p>c</p>"
             '<h2>Foo</h2><p>d</p><p id="foo">x</p><h2 id="kept">Other title</h2><p>e</p>')
-    anchors = [s["url"].split("#")[1] for s in sections(html)]
-    assert anchors == ["how-it-works-50", "same", "same-2", "foo-2", "kept"]  # foo-2: a non-heading id foo exists
+    found = sections(html)
+    # foo-2: a non-heading id foo exists. The slug names the section; it is not an anchor, so the url has none.
+    assert [s["id"].split("#")[1] for s in found] == ["how-it-works-50", "same", "same-2", "foo-2", "kept"]
+    assert [s["url"] for s in found] == ["/page.html"] * 4 + ["/page.html#kept"]
+
+
+def test_a_repeated_heading_id_is_only_an_anchor_once():
+    found = sections('<h2 id="a">x</h2><p>1</p><h2 id="a">y</h2><p>2</p>')
+    assert [s["id"] for s in found] == ["page.html#a", "page.html#a-2"]
+    assert [s["url"] for s in found] == ["/page.html#a", "/page.html"]
 
 
 def test_first_heading_in_a_section_with_an_id_uses_that_id():
     html = ('<section id="how"><h2>How</h2><p>a</p><h3>Sub</h3><p>b</p></section>'
             '<section><h2>Plain</h2><p>c</p></section><section id="own"><h2 id="mine">Mine</h2><p>d</p></section>')
-    assert [s["url"].split("#")[1] for s in sections(html)] == ["how", "sub", "plain", "mine"]
+    found = sections(html)
+    assert [s["id"].split("#")[1] for s in found] == ["how", "sub", "plain", "mine"]
+    assert [s["url"] for s in found] == ["/page.html#how", "/page.html", "/page.html", "/page.html#mine"]
 
 
 def test_slug_is_the_same_on_every_run_and_never_empty():
     html = "<h2>???</h2><p>a</p>"
     assert sections(html) == sections(html)
-    assert sections(html)[0]["url"] == "page.html#section"
+    assert sections(html)[0]["id"] == "page.html#section"
 
 
 def test_data_stat_becomes_token():
@@ -57,7 +68,7 @@ def test_data_stat_becomes_token():
     assert s["title"] == "The {{stat:fleet.ships}} ships"
     assert s["text"] == "We hold {{stat:kg.nodes}} nodes, of which {{stat:kg.ships}} are ships."
     assert "1,747" not in s["title"] and "3,235" not in s["text"]
-    assert s["url"] == "page.html#the-stat-fleet-ships-ships"  # the slug does not move when the nightly figure does
+    assert s["id"] == "page.html#the-stat-fleet-ships-ships"  # the slug does not move when the nightly figure does
 
 
 def test_script_and_nav_text_skipped():
@@ -76,10 +87,10 @@ def test_script_and_nav_text_skipped():
     assert s["text"] == "kept shown fact. More. Diagram A bank refuses."
 
 
-def test_every_page_is_indexed_with_unique_urls():
+def test_every_page_is_indexed_with_unique_ids():
     doc = b.build()
-    urls = [s["url"] for s in doc["sections"]]
-    assert len(urls) == len(set(urls))
+    ids = [s["id"] for s in doc["sections"]]
+    assert len(ids) == len(set(ids))
     by_page = {}
     for s in doc["sections"]:
         by_page.setdefault(s["page"], []).append(s)
@@ -90,6 +101,21 @@ def test_every_page_is_indexed_with_unique_urls():
     assert list(by_page) == sorted(by_page)                   # sorted by page, in page order
     assert all(s["text"] and s["title"] for s in doc["sections"])
     assert not any("Loading updates" in s["text"] for s in by_page["stories/updates/index.html"])
+
+
+def test_every_url_fragment_exists_on_its_page():
+    doc = b.build()
+    notes = {md.with_suffix(".html").relative_to(build_docs.ROOT).as_posix() for md in build_docs.sources()}
+    for page in {s["page"] for s in doc["sections"]}:
+        on_page = [s for s in doc["sections"] if s["page"] == page]
+        ids = set(re.findall(r'\bid="([^"]+)"', (build_docs.ROOT / page).read_text(encoding="utf-8")))
+        for s in on_page:
+            path, _, fragment = s["url"].partition("#")
+            assert path == "/" + page
+            assert not fragment or fragment in ids, f"{s['url']} has no such id on the page"
+        if page in notes:   # build_docs puts an id on every h2/h3, so only the h1 lead can have a bare url
+            bare = [s for s in on_page if "#" not in s["url"]]
+            assert bare in ([], on_page[:1])
 
 
 def test_committed_index_is_fresh():

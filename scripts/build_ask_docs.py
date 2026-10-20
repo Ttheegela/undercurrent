@@ -2,9 +2,10 @@
 
 A section runs from an h1, h2 or h3 to the next one (an h2 with h3s under it keeps only the text before the first h3).
 The text under a page's h1 is its lead: the updates page has no other static text, since the rest renders from
-data/changes/changes.json at runtime. A section's url is its page plus #<id>: the heading's own id, else the id of
-the <section> it opens (how-sanctions-work/index.html), else a slug of the heading text. A slug is only a name, not
-an anchor on the page: build_docs.py's notes pages put no ids on headings. Text is whitespace-normalised plain text.
+data/changes/changes.json at runtime. A section's url is site-absolute: /<page>#<id> where the heading has an id on
+the page (its own, else that of the <section> it opens, as in how-sanctions-work/index.html), else just /<page>, so a
+link never carries a fragment the page lacks. Its id is page#<anchor> and is always unique: a slug of the heading text
+stands in for a missing or repeated anchor. Text is whitespace-normalised plain text.
 
 Left out: script, style, nav, header, footer, noscript, hidden and aria-hidden elements, the footnote numbers (sup) and
 the text labels inside diagrams (svg <text>; the diagrams' <title>/<desc> stay), and #upd-results, which the updates
@@ -14,7 +15,6 @@ page fills at runtime. A count the nightly build changes (<span data-stat="kg.no
 from __future__ import annotations
 
 import json
-import re
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
@@ -93,10 +93,6 @@ class Parser(HTMLParser):
         self.add(data)
 
 
-def slug(title: str) -> str:
-    return re.sub(r"[\W_]+", "-", title.lower()).strip("-") or "section"
-
-
 def sections_of(html: str, page: str) -> list[dict]:
     parser = Parser()
     parser.feed(html)
@@ -106,14 +102,14 @@ def sections_of(html: str, page: str) -> list[dict]:
         title, text = " ".join("".join(title).split()), " ".join("".join(text).split())
         if not (title and text):
             continue
-        base = anchor = heading_id or slug(title)
+        base = anchor = heading_id or build_docs.slug(title)
         n = 1
         while anchor in used or (not heading_id and anchor in parser.ids):   # a slug must not shadow another element's id
             n += 1
             anchor = f"{base}-{n}"
         used.add(anchor)
-        url = f"{page}#{anchor}"
-        out.append({"id": url, "page": page, "url": url, "title": title, "text": text})
+        url = f"/{page}#{anchor}" if anchor == heading_id else f"/{page}"   # a slug names a section; it is not an anchor
+        out.append({"id": f"{page}#{anchor}", "page": page, "url": url, "title": title, "text": text})
     return out
 
 

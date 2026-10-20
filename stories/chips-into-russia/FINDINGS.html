@@ -75,7 +75,7 @@ the data-availability list (<code>/public/v1/getDA/C/A/HS</code>). Used under th
 (<a href="https://uncomtrade.org/docs/policy-on-comtrade-data-use/">https://uncomtrade.org/docs/policy-on-comtrade-data-use/</a>); the site publishes a small selection only.</li><li>Eurostat Comext, dataset DS-045409, EU27 exports of HS 8542, in euros (CC BY 4.0).</li><li>US Treasury (OFAC) SDN advanced XML (<a href="https://ofac.treasury.gov/sanctions-list-service">https://ofac.treasury.gov/sanctions-list-service</a>), for listing dates,
 &quot;Organization Established Date&quot; and addresses.</li><li>Consolidated Screening List (<a href="https://www.trade.gov/consolidated-screening-list">https://www.trade.gov/consolidated-screening-list</a>), for BIS Entity List dates.</li><li>US Treasury press releases jy1102, jy1402, jy1636, jy2546 and jy2700
 (https://home.treasury.gov/news/press-releases/&lt;id&gt;), for which firms were named for chips or electronics.</li></ul>
-<h2>1. Who reported sending chips to Russia</h2>
+<h2 id="1-who-reported-sending-chips-to-russia">1. Who reported sending chips to Russia</h2>
 <p>Sum of every country&#x27;s declared chip exports to Russia: $1,025M (2019), $1,110M (2020), $1,384M (2021),
 $616M (2022), $562M (2023), $300M (2024), $260M (2025). Fewer countries report each recent year, so the
 latest years are incomplete (section 3).</p>
@@ -90,7 +90,7 @@ $4.8M (2022), $2.1M (2023), no report since.</li><li><strong>EU exports to the s
 Turkey EUR 203M (2021) to EUR 371M (2023).</li><li><strong>Russia&#x27;s own figures stop.</strong> Russia reported chip imports of $1,166M (2019), $1,254M (2020) and
 $1,555M (2021) and has published none since. Partner declarations are not the same as Russia&#x27;s imports:
 in 2021 they add up to less than Russia&#x27;s own figure.</li></ul>
-<h2>2. How long the US took to list new chip suppliers</h2>
+<h2 id="2-how-long-the-us-took-to-list-new-chip-suppliers">2. How long the US took to list new chip suppliers</h2>
 <p>A hand-checked set of 64 firms outside Russia and Belarus that one of five US Treasury press releases
 (November 2022 to October 2024) names for sending chips, microelectronics or electronic components to
 Russia (<code>data/chips-firms.json</code>, joined to the OFAC list by OFAC id). Months = (OFAC listing date minus
@@ -105,7 +105,7 @@ BIS Entity List on 12 April 2023 (88 FR 23332), about 18 months before OFAC list
 and based outside Russia and Belarus: median 18.2 months (middle half 12.3 to 23.6).</li><li><strong>Limits.</strong> No official list says what goods a firm was listed for, so the set rests on the press
 releases; it is not every chip supplier. One firm from the releases (RRG Engineering Technologies, India)
 was not found on the current OFAC list and is not in the set.</li></ul>
-<h2>3. What the records cannot see</h2>
+<h2 id="3-what-the-records-cannot-see">3. What the records cannot see</h2>
 <p>In UN Comtrade&#x27;s availability list, a country either reported a chip export row to Russia, reported its
 trade with no such row, or did not report that year. Countries with a chip row: 56 (2019), 64 (2021),
 55 (2022), 37 (2023), 18 (2024), 11 (2025 so far). Part of the fall is real (EU and US exports stopped)

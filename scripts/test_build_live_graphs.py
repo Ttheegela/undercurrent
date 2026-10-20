@@ -1,6 +1,7 @@
 import csv
 import gzip
 import json
+import os
 import shutil
 from dataclasses import replace
 from pathlib import Path
@@ -8,6 +9,7 @@ from pathlib import Path
 import pytest
 
 import build_live_graphs as blg
+import fleet_merge as fm
 import fleet_official as fo
 import kg_build
 from build_live_graphs import Paths
@@ -189,7 +191,8 @@ def test_stale_input_keeps_previous_graphs(world):
     assert [c for c in day["changes"] if c["graph"] == "fleet"] == []
     meta = load(world.meta)
     assert meta["status"] == "kept-previous" and "UK list" in meta["error"] and meta["unavailable"] == ["uk"]
-    assert meta["updated_at"] == DAY2 and meta["record_count"] == len(load(world.fleet_data)["edges"])
+    assert (meta["checked_at"], meta["updated_at"]) == (DAY2, DAY1)  # (updated_at: when the map was last rebuilt)
+    assert meta["record_count"] == len(load(world.fleet_data)["edges"])
     kg = load(world.kg)  # rebuilt around yesterday's map, including the firms the map leaves out
     assert kg["meta"]["counts"]["lda_filings_scanned"] == kg_before["meta"]["counts"]["lda_filings_scanned"] + 7
     assert kg["nodes"] == kg_before["nodes"] and kg["edges"] == kg_before["edges"]
@@ -216,7 +219,8 @@ def test_failed_opensanctions_download_marks_its_list(world, url, gov):
 def test_shrink_guard_rejects(world):
     edges = load(world.edges)  # yesterday's map held far more official links than tonight's
     official = next(e for e in edges if e["layer"] == "official")
-    edges += [dict(official, id="e:fake%d" % i) for i in range(len(edges))]
+    other = [dict(official["sources"][0], file="some other record")]  # (no source family shrinks, only the whole)
+    edges += [dict(official, id="e:fake%d" % i, sources=other) for i in range(len(edges))]
     world.edges.write_text(json.dumps(edges), encoding="utf-8")
     before = fleet_bytes(world)
     assert blg.build(DAY2, fake_fetch, world) == 1
@@ -248,11 +252,12 @@ def test_lobbying_unavailable_carries_the_lobby_layer(world):
 
 
 def test_both_graphs_kept_when_nothing_can_update(world):
-    before = {p: (world.__dict__[p]).read_bytes() for p in ("fleet_data", "nodes", "edges", "kg", "stats")}
+    names = ("fleet_data", "nodes", "edges", "kg", "stats")
+    before = {p: getattr(world, p).read_bytes() for p in names}
     set_list(world, "us", "kept-previous")
     world.lobbying_meta.write_text(json.dumps({"status": "kept-previous"}), encoding="utf-8")
     assert blg.build(DAY2, fake_fetch, world) == 1
-    assert {p: (world.__dict__[p]).read_bytes() for p in before} == before  # (no stats claim of a new build either)
+    assert {p: getattr(world, p).read_bytes() for p in names} == before  # (no stats claim of a new build either)
     day = record_day(world, "2026-10-20")
     assert day["changes"] == [] and day["sources"]["us"] == day["sources"]["lobbying"] == "unavailable"
 
@@ -286,6 +291,153 @@ def test_first_run_without_lobbying_carries_the_25_sep_layer(world):
     record = load(world.changes)  # a baseline: the first night has no yesterday
     assert record["started"] == "2026-10-20" and record["days"][0]["changes"] == []
     assert record["days"][0]["sources"]["lobbying"] == "unavailable"
+
+
+# ---- each source fails alone: a short or empty download, a family of links that shrinks ---------------
+
+def header_only(url):
+    return fake_fetch(url).split("\n", 1)[0] + "\n"
+
+
+def test_header_only_eu_journal_keeps_previous_and_marks_eu_unavailable(world):
+    before = fleet_bytes(world)
+    fetch = lambda url: header_only(url) if url == fo.OS_EU_JOURNAL else fake_fetch(url)  # noqa: E731
+    assert blg.build(DAY2, fetch, world) == 1  # (without this, every EU journal ship reads as delisted)
+    assert fleet_bytes(world) == before
+    sources = record_day(world, "2026-10-20")["sources"]
+    assert {g for g, s in sources.items() if s == "unavailable"} == {"eu"}
+    assert "EU" in load(world.meta)["error"] and "no rows" in load(world.meta)["error"]
+    assert [c for c in record_day(world, "2026-10-20")["changes"] if c["graph"] == "fleet"] == []
+
+
+def test_empty_opensanctions_download_keeps_previous_and_marks_its_list(world):
+    before = fleet_bytes(world)
+    assert blg.build(DAY2, lambda url: "" if url == fo.OS_OFAC else fake_fetch(url), world) == 1
+    assert fleet_bytes(world) == before and load(world.meta)["unavailable"] == ["us"]
+
+
+def test_links_are_counted_by_the_file_their_sources_cite():
+    def link(*files, layer="official"):
+        return {"layer": layer, "source": "a", "target": "b", "type": "operates",
+                "sources": [{"file": f} for f in files]}
+    graph = {"nodes": [], "edges": [
+        link(fo.UK_FILE), link(fo.UK_FILE, fo.OFAC_OS_FILE), link(fo.CSL_FILE), link(fo.CSL_OS_DATE_FILE),
+        link(fo.EU_FILE), link(fm.EU_FILE), link(fo.UK_FILE, layer="research"), link("some research file")]}
+    assert blg._family_counts(graph) == {
+        "UK list": 2, "US consolidated screening list": 2, "OFAC list via OpenSanctions": 1,
+        "EU journal via OpenSanctions": 1, "EU financial sanctions list": 1}
+
+
+def inflate(paths, family, extra):
+    """Make yesterday's map hold `extra` more official links of one family (clones of one that is there)."""
+    files = blg.FAMILIES[family][0]
+    edges = load(paths.edges)
+    clone = next(e for e in edges if e["layer"] == "official" and files & {s["file"] for s in e["sources"]})
+    edges += [dict(clone, id="e:fake%d" % i) for i in range(extra)]
+    paths.edges.write_text(json.dumps(edges), encoding="utf-8")
+    return blg._family_counts({"nodes": [], "edges": edges})[family] - extra
+
+
+@pytest.mark.parametrize("family", ["UK list", "US consolidated screening list", "OFAC list via OpenSanctions",
+                                    "EU journal via OpenSanctions"])
+def test_family_shrink_over_20_percent_rejects(world, family):
+    held = inflate(world, family, extra=0)  # tonight's count
+    inflate(world, family, extra=held // 4 + 1)  # yesterday's: just over a quarter more, so tonight's is under 80%
+    before = fleet_bytes(world)
+    assert blg.build(DAY2, fake_fetch, world) == 1
+    assert fleet_bytes(world) == before
+    meta = load(world.meta)
+    assert meta["status"] == "kept-previous" and family in meta["error"] and "shrank" in meta["error"]
+    assert meta["unavailable"] == [blg.FAMILIES[family][1]]  # (only that list's government)
+    assert [c for c in record_day(world, "2026-10-20")["changes"] if c["graph"] == "fleet"] == []
+
+
+def test_family_shrink_under_20_percent_passes(world):
+    family = "EU journal via OpenSanctions"
+    held = inflate(world, family, extra=0)
+    assert held >= 4  # (so that a fifth more is at least one link)
+    inflate(world, family, extra=held // 4)  # yesterday's: a quarter more, so tonight's is exactly 80%
+    assert blg.build(DAY2, fake_fetch, world) == 0
+    assert load(world.meta)["status"] == "fresh" and load(world.meta)["unavailable"] == []
+
+
+def test_sample_needs_an_official_link():
+    def graph(layer):
+        return {"nodes": [{"id": "IMO9408695", "name": "TASSOS"}, {"id": "co:z", "name": "Zulu Ships Management"}],
+                "edges": [{"id": "e:1", "source": "co:z", "target": "IMO9408695", "type": "manages", "layer": layer,
+                           "sources": []}]}
+    assert blg._rejected(graph("official"), None) is None
+    reason, down = blg._rejected(graph("research"), None)  # (a research link survives even if the lists are misread)
+    assert "sample check failed" in reason and down == {"uk", "us", "eu"}
+
+
+def test_unreadable_eu_list_keeps_the_fleet(world):
+    before = fleet_bytes(world)
+    (world.lists / "eu.json").write_text("not json", encoding="utf-8")
+    assert blg.build(DAY2, fake_fetch, world) == 1
+    assert fleet_bytes(world) == before and load(world.meta)["unavailable"] == ["eu"]
+
+
+def test_crash_while_building_keeps_the_fleet(world, monkeypatch):
+    before = fleet_bytes(world)
+
+    def broken(*args, **kwargs):
+        raise KeyError("schema")
+
+    monkeypatch.setattr(blg, "merge", broken)
+    assert blg.build(DAY2, fake_fetch, world) == 1
+    assert fleet_bytes(world) == before
+    meta = load(world.meta)
+    assert "crashed" in meta["error"] and meta["unavailable"] == ["eu", "uk", "us"]
+
+
+def test_malformed_lobbying_asset_does_not_take_the_map_down(world):
+    kg_before = load(world.kg)
+    world.lobbying.write_bytes(gzip.compress(b'{"filings": 3}'))  # (the meta says fresh, the asset is something else)
+    assert blg.build(DAY2, fake_fetch, world) == 0
+    kg = load(world.kg)
+    assert [e for e in kg["edges"] if e["L"] == "lobby"] == [e for e in kg_before["edges"] if e["L"] == "lobby"]
+    assert record_day(world, "2026-10-20")["sources"]["lobbying"] == "unavailable"
+
+
+def test_network_is_kept_when_the_stored_firms_are_lost(world):
+    meta = load(world.meta)
+    del meta["kg_only"]  # (the meta file was lost): the network cannot be rebuilt around a map without them
+    world.meta.write_text(json.dumps(meta), encoding="utf-8")
+    kg_before = world.kg.read_bytes()
+    set_list(world, "uk", "kept-previous")
+    assert blg.build(DAY2, fake_fetch, world) == 1
+    assert world.kg.read_bytes() == kg_before
+    assert record_day(world, "2026-10-20")["sources"]["lobbying"] == "unavailable"
+
+
+# ---- an interrupted run ------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("crash_at", range(1, 8))
+def test_interrupted_run_never_files_a_change_twice(world, monkeypatch, crash_at):
+    # The seven files are renamed into place one after another; the run dies at the crash_at'th rename.
+    add_vessel(world, "9111111", "FIRST LIGHT")
+    root, real, renamed = str(world.meta.parents[1]), os.replace, []
+
+    def flaky(src, dst):
+        if str(dst).startswith(root):
+            renamed.append(Path(dst).name)
+            if len(renamed) == crash_at:
+                raise OSError("killed")
+        real(src, dst)
+
+    with monkeypatch.context() as m:
+        m.setattr(blg.os, "replace", flaky)
+        with pytest.raises(OSError):
+            blg.build(DAY2, fake_fetch, world)
+    days = lambda: load(world.changes)["days"]  # noqa: E731
+    filed = lambda: [d["date"] for d in days() for c in d["changes"] if "FIRST LIGHT" in c["summary"]]  # noqa: E731
+    if filed():  # the record is never ahead of the graphs it describes
+        assert "IMO9111111" in {n["id"] for n in load(world.nodes)}
+        assert "IMO9111111" in {n["id"] for n in load(world.fleet_data)["nodes"]}
+        assert load(world.kg)["meta"]["generated"] == "2026-10-20"
+    assert blg.build(DAY3, fake_fetch, world) == 0  # the next night
+    assert len(filed()) <= 1  # a night's news may be lost, but is never filed under two days
 
 
 # ---- re-runs and the record --------------------------------------------------------------------------

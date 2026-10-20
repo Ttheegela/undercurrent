@@ -20,7 +20,7 @@ const LISTS = {
     rec("AREN SHIP MANAGEMENT", "Iran", "", "53099", "6088476"),
     ...Array.from({ length: 8 }, (_, i) => rec(`QUARTZ ${i}`, "Russia", "2024-01-0" + (i + 1), `Q${i}`)),
   ],
-  uk: [rec("TASSOS", "Russia", "2026-02-24", "RUS3483", "9408695"), ...Array.from({ length: 8 }, (_, i) => rec(`QUARTZ UK ${i}`, "Russia", "2024-02-0" + (i + 1), `QU${i}`))],
+  uk: [rec("TASSOS", "Russia", "2026-02-24", "RUS3483", "9408695"), rec("Orion Ship Management", "Russia", "2025-03-03", "RUS777"), ...Array.from({ length: 8 }, (_, i) => rec(`QUARTZ UK ${i}`, "Russia", "2024-02-0" + (i + 1), `QU${i}`))],
   eu: [rec("Zulu Ships Management", "Russia", "2025-10-24", "EU-9", "", "https://eur-lex.europa.eu/example")],
   un: [rec("Unrelated Group", "Somalia", "2010-01-01", "SOe.001")],
 };
@@ -58,6 +58,9 @@ const RESEARCH = [
     id: "co:bucket", name: "Bucket Trader", kind: "Company", listings: [{ by: "European Union", date: "2026-07-23", program: "Both", ref: 1 }, { by: "United Kingdom", date: "2026-07-24", program: "Other", ref: 1 }],
     facts: [{ text: "Listed by the European Union on 23 July 2026 (Both).", refs: [1] }], sources: [{ n: 1, label: "EU Official Journal", url: "https://eur-lex.europa.eu/x" }],
   }),
+  entry({ id: "co:orion", name: "Orion Ship Management Partners", kind: "Company", keys: ["ORION SHIP MANAGEMENT PARTNERS", "HIDDEN FORMER MGMT SHIP"] }),
+  entry({ id: "co:unlisted-777", name: "unlisted ship manager", kind: "Company", keys: ["UNLISTED SHIP MANAGER"] }),
+  ...Array.from({ length: 7 }, (_, i) => entry({ id: `co:pearl${i}`, name: `Pearl Ship Management ${i}`, kind: "Company" })),
   entry({ id: "co:unlisted", name: "Nobody Holdings", kind: "Company", facts: [{ text: "Linked to 2 ships in our research.", refs: [1] }], sources: [{ n: 1, label: "Findings", url: "https://example.org/f" }] }),
   ...Array.from({ length: 5 }, (_, i) => entry({ id: `IMO70000${i}`, name: `AMBER ${i}`, listings: [], sources: [] })),
 ];
@@ -131,6 +134,8 @@ const osIndex = {
     ["NK-k837moN9ssPZedvkRUrexG", "Vessel", "9408695", "Canada, EU, UK, Switzerland, US", ["TASSOS"]],
     ["NK-x1", "Vessel", "1111111", "US", ["TASSOS STAR"]],
     ["NK-x2", "Company", "", "EU", ["Sovcomflot PJSC", "SCF Group"]],
+    ["NK-orion", "Company", "", "EU", ["Orion Ship Management Holdings"]],
+    ["NK-ua", "Company", "", "Ukraine", ["Orion Ship Management Group"]], // known only from Ukraine's database: its name is never offered
   ],
 };
 const T = "NK-k837moN9ssPZedvkRUrexG";
@@ -250,6 +255,48 @@ test("check_lists unknown name gives one search item with found:false", async ()
   assert.equal(ev[0].query, "Gatik Ship Management");
   assert.match(ev[0].text, /Gatik Ship Management/);
   assert.equal(out.found, false);
+  assert.deepEqual(ev[0].near, []); // ATLAS SHIP MANAGEMENT shares two words but GATIK is not a spelling of ATLAS
+  assert.equal("near" in out.items[0], false);
+});
+
+test("check_lists returns near names for an abbreviated query", async () => {
+  const out = await run("check_lists", { query: "Orion Ship Mgmt" });
+  assert.equal(ev.length, 1); // near names are never evidence items
+  assert.equal(ev[0].found, false);
+  // research, official list and OpenSanctions, shortest first; the entry known only from Ukraine's database is not offered
+  assert.deepEqual(ev[0].near, ["Orion Ship Management", "Orion Ship Management Holdings", "Orion Ship Management Partners"]);
+  assert.deepEqual(out.items[0].near, ev[0].near);
+  // the names are in the field only, so no sentence can cite them as a fact
+  assert.doesNotMatch(ev[0].text, /Management/);
+  assert.match(ev[0].text, /not matches/);
+  // a misspelling of a word in a longer name finds the same names
+  ev = [];
+  await run("check_lists", { query: "Orion Ship Managment" });
+  assert.equal(ev[0].near.length, 3);
+  assert.equal(ev[0].near[0], "Orion Ship Management");
+});
+
+test("check_lists: near names are the published name, never the alias that matched", async () => {
+  await run("check_lists", { query: "Hidden Former Mgmt Shp" });
+  assert.deepEqual(ev[0].near, ["Orion Ship Management Partners"]);
+  assert.doesNotMatch(ev[0].near.join(" "), /hidden|former/i); // the alias the words matched on stays out
+});
+
+test("check_lists: near never offers a generic-company placeholder, and holds at most 5", async () => {
+  await run("check_lists", { query: "Unlisted Ship Mgr" }); // would be two words plus an abbreviation of "unlisted ship manager"
+  assert.deepEqual([ev[0].found, ev[0].near], [false, []]);
+  ev = [];
+  await run("check_lists", { query: "Pearl Ship Mgmt" });
+  assert.equal(ev[0].near.length, 5);
+  assert.ok(ev[0].near.every((n) => /^Pearl Ship Management \d$/.test(n)));
+});
+
+test("near is empty for a nonsense name, and for a strong match", async () => {
+  await run("check_lists", { query: "Qwxzv Plmk" });
+  assert.deepEqual([ev[0].found, ev[0].near], [false, []]);
+  ev = [];
+  await run("check_lists", { query: "Atlas Ship Management" });
+  assert.deepEqual([ev[0].found, ev[0].near], [true, []]);
 });
 
 test("check_lists: a research entry no government lists is context, not a listing", async () => {

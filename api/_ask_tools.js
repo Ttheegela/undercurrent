@@ -59,7 +59,7 @@ function add(ev, item) {
   return e;
 }
 const addAll = (ev, items) => items.map((item) => add(ev, item));
-const view = ({ id, kind, found, text }) => ({ id, kind, ...(found === undefined ? {} : { found }), text });
+const view = ({ id, kind, found, text, near }) => ({ id, kind, ...(found === undefined ? {} : { found }), text, ...(near?.length ? { near } : {}) });
 
 // How strong a hit is: 3 the IMO number or the exact name, 2 every word of the query is in the name, 0 anything weaker.
 // The site's search also shows weaker, partial matches; Ask does not cite them, because "SHIP MANAGEMENT" alone would match any ship manager.
@@ -69,6 +69,51 @@ function strength(q, keys, imo) {
   return s >= 2 ? s : 0;
 }
 const matchNote = (q, keys, imo) => (strength(q, keys, imo) === 2 ? "Match: every word of the query is in the name, but it is not the exact name." : q.imo ? "Match: IMO number." : "Match: exact name.");
+
+// ---- near names -------------------------------------------------------------------------------------------------
+// A search item also carries `near`: up to 5 names that are close to the query but are not matches, so the reader can be asked
+// which one they meant. They come from the site search's partial matches (60% of the words) and are only offered when the
+// words that do not match are a typing or abbreviation of a word in the name ("Mgmt" for "Management"): "SHIP MANAGEMENT" alone
+// would otherwise offer every ship manager. Names only: never evidence, never in `text`, never evidence of a listing.
+const NEAR_MAX = 5;
+
+const subsequence = (a, b) => {
+  let i = 0;
+  for (const c of b) if (c === a[i]) i++;
+  return i === a.length;
+};
+function editDistance(a, b) {
+  let row = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const next = [i];
+    for (let j = 1; j <= b.length; j++) next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    row = next;
+  }
+  return row[b.length];
+}
+const similar = (a, b) =>
+  a === b || (a[0] === b[0] && Math.min(a.length, b.length) >= 3 && (subsequence(a, b) || subsequence(b, a) || editDistance(a, b) <= (Math.max(a.length, b.length) > 6 ? 2 : 1)));
+
+// The naming policy: a firm known only from Ukraine's database is shown by description, and a placeholder such as
+// "unlisted ship manager" stands for a firm whose name is withheld, so offering it next to a name someone typed would hint at who it is.
+const placeholder = (e) => e.id.startsWith("co:unlisted") || /^unlisted\b/i.test(e.name);
+const ukraineOnly = (e) => e.by !== "" && e.by.split(", ").every((a) => a === "Ukraine" || /^ua_/i.test(a));
+
+/** candidates: [{name, keys}] (the published name, and the normalised names it can be found by); taken: names already cited. */
+function nearNames(q, candidates, taken) {
+  const seen = new Set(taken.map(normalizeName));
+  const out = [];
+  const byLength = [...candidates].sort((a, b) => a.name.length - b.name.length || a.name.localeCompare(b.name));
+  for (const { name, keys } of byLength) {
+    const shown = name.replace(/\s+/g, " ").trim();
+    const key = normalizeName(shown);
+    if (!key || seen.has(key) || !keys.some((k) => q.tokens.every((t) => k.split(" ").some((w) => similar(t, w))))) continue;
+    seen.add(key);
+    out.push(shown);
+    if (out.length === NEAR_MAX) break;
+  }
+  return out;
+}
 
 // ---- check_lists ----------------------------------------------------------------------------------------------
 
@@ -155,17 +200,29 @@ async function checkLists(args, ev) {
   const attempt = (what, fn) => {
     try { return fn(); } catch { down.push(what); return []; }
   };
-  const research = attempt("Undercurrent research", () => searchResearch(data("data/research-index.json").entries, q).filter((e) => strength(q, e.keys, e.imo)).slice(0, CAP.research));
-  const lists = LIST_IDS.map((id) => attempt(`the ${LIST_LABELS[id]} list`, () => searchLists({ [id]: data(`data/lists/${id}.json`) }, q).filter((h) => strength(q, [normalizeName(h.name)], h.imo)).slice(0, CAP.list)));
-  let os = [];
+  // every hit of the site's search, strong or partial: the strong ones are cited, the partial ones can only become near names
+  const rawResearch = attempt("Undercurrent research", () => searchResearch(data("data/research-index.json").entries, q));
+  const rawLists = LIST_IDS.map((id) => attempt(`the ${LIST_LABELS[id]} list`, () => searchLists({ [id]: data(`data/lists/${id}.json`) }, q)));
+  let rawOs = [];
   try {
     const entities = await loadIndex();
-    os = searchIndex(entities, query)
+    rawOs = searchIndex(entities, query)
       .map((r) => ({ r, e: entities.find((x) => x.id === decodeURIComponent(/\/entities\/([^/]+)\/$/.exec(r.url)?.[1] ?? "")) }))
-      .filter(({ e }) => e && strength(q, e.keys, e.imo)).slice(0, CAP.opensanctions);
+      .filter(({ e }) => e);
   } catch {
     down.push("OpenSanctions");
   }
+  const strongResearch = rawResearch.filter((e) => strength(q, e.keys, e.imo));
+  const strongLists = rawLists.map((hits) => hits.filter((h) => strength(q, [normalizeName(h.name)], h.imo)));
+  const strongOs = rawOs.filter(({ e }) => strength(q, e.keys, e.imo));
+  const research = strongResearch.slice(0, CAP.research);
+  const lists = strongLists.map((hits) => hits.slice(0, CAP.list));
+  const os = strongOs.slice(0, CAP.opensanctions);
+  const near = nearNames(q, [
+    ...rawResearch.filter((e) => !strongResearch.includes(e) && !placeholder(e)).map((e) => ({ name: e.name, keys: e.keys })),
+    ...rawLists.flatMap((hits, i) => hits.filter((h) => !strongLists[i].includes(h)).map((h) => ({ name: h.name, keys: [normalizeName(h.name)] }))),
+    ...rawOs.filter((x) => !strongOs.includes(x) && !ukraineOnly(x.e)).map(({ r, e }) => ({ name: r.name, keys: e.keys })),
+  ], [...strongResearch.map((e) => e.name), ...strongLists.flat().map((h) => h.name), ...strongOs.map(({ r }) => r.name)]);
 
   const hits = research.length + lists.flat().length + os.length;
   // Found means a government listing: a research entry that no government lists (a lobbying client, say) is context, not a listing.
@@ -181,10 +238,11 @@ async function checkLists(args, ev) {
   ].filter(Boolean).join(", ") : "No record matched";
   const items = [
     {
-      kind: "search", query, found,
+      kind: "search", query, found, near,
       text: sentence(
         `Searched for "${query}" in the US, UK, EU and UN official lists, Undercurrent research and OpenSanctions.`, `${hits ? `Found: ${counts}` : counts}.`,
         hits && !found && "None of them is a government listing.", freshness(), down.length && `${joinAnd(down)} could not be checked just now.`,
+        near.length && "Names similar to the query exist (listed in near); they are not matches and say nothing about whether anything is listed.",
       ),
       label: `Search for “${query}”`, url: "/",
     },

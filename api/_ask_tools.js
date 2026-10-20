@@ -30,7 +30,6 @@ const US_NOTE = "This is the US Consolidated Screening List, which also carries 
 
 const files = new Map();
 let docs = null;
-let prose = null;
 
 const data = (rel) => {
   if (!files.has(rel)) files.set(rel, JSON.parse(readFileSync(join(process.cwd(), rel), "utf8")));
@@ -40,7 +39,6 @@ const data = (rel) => {
 export function resetAskCache() {
   files.clear();
   docs = null;
-  prose = null;
 }
 
 // ---- small helpers --------------------------------------------------------------------------------------------
@@ -65,68 +63,42 @@ const sentence = (...parts) => parts.filter(Boolean).join(" ");
 const QUOTED = new Set(["doc", "chips", "connection", "lobbying"]);
 const quoteMax = (kind) => (kind === "doc" || kind === "chips" ? 20 : 12);
 const SENTENCES = new Intl.Segmenter("en", { granularity: "sentence" });
-const INITIALISM = /(?:^|\s)(?:[A-Za-z]\.){2,}$/; // "U.S.", "e.g.", "E.O." end a segment, not a sentence
+// a segment ending in an initialism ("U.S.", "e.g.", "J.") or a common abbreviation ("St.", "Co.", "LTD.") is not a sentence's end
+const ABBREVIATION = /(?:^|[\s(])(?:(?:[A-Za-z]\.){2,}|[A-Z]\.|(?:St|Co|Ltd|LTD|PTE|Inc|Rep|Sen|No|Mr|Ms|Dr)\.)$/;
 const LISTING = /\b(?:\w*sanction\w*|\w*list\w*|designat\w*|target(?:s|ed|ing)?|freez\w*|frozen|blocked|penalis\w*|penaliz\w*|penalt\w*|embargo\w*|prohibit\w*|(?:de)?barred|restrict\w*|ban(?:s|ned)?|fine[sd]?|punish\w*|remov(?:e[sd]?|als?)|lift(?:s|ed)?|revok\w*)\b|\bappear(?:s|ed|ing)?\s+on\b/i;
 const AUTHORITY = /\b(?:OFAC|SDN|Treasury|OFSI|BIS)\b/i; // in research, the authority behind a listing ("Role: linked company (OFAC).")
 
-// An explainer may use listing words ("An asset freeze means nobody may pay a blocked person"); a sentence that also names an
-// entity may not be quoted, since out of context "6 April 2018: OFAC listed … Rusal …" reads as a listing today. A name is a run of
-// capitalised words outside the always-allowed ones; a sentence's opening word is capitalised by position, so it counts only when
-// the site uses it as a name (capitalised inside a sentence and never in lower case: "Deripaska", not "Nobody" or "Hollow").
+// A quote with listing words could read, next to a claim about some entity, as a claim about it. So it is offered only when every
+// capitalised word in it, the first included, is an always-allowed name or a generic starter, and nothing in it points at an
+// entity named elsewhere ("All three are fully blocked", "The company is not on the UK or EU list by name"). "Nobody may pay,
+// hold or move the target's money or property." passes; "MISHELL is on the US list only." and "Hollow shapes run listed ships" don't.
 const MONTHS = "January February March April May June July August September October November December".split(" ");
 const ALLOWED = new RegExp(`(?<![\\p{L}\\p{N}])(?:${[...Object.values(LIST_LABELS), "OpenSanctions", "Undercurrent", "Treasury", "Commission", "Council", "OFAC", "SDN", "IMO", "US", "UK", "EU", "UN", ...MONTHS, ...MONTHS.map((m) => m.slice(0, 3)), "Sept"].join("|")})(?![\\p{L}\\p{N}])`, "gu");
-const CAPS_RUN = /\p{Lu}[\p{L}\p{N}'’&.\-]*(?:\s+\p{Lu}[\p{L}\p{N}'’&.\-]*)*/gu; // capitalised words in a row
-const MID_CAPS = /(?<=[\p{L}\p{N},;:)\]-]\s+)\p{Lu}[\p{L}\p{N}'’&-]*/gu; // a capitalised word inside a sentence
-const LOWER = /(?<![\p{L}\p{N}])\p{Ll}[\p{Ll}'’-]*/gu;
-// a pronoun standing for an entity named in another sentence, as what is listed: "The US listed it in July 2023."
-const POINTS_AT = /\b(?:list(?:s|ed)?|delist(?:s|ed)?|designat(?:es|ed)|sanction(?:s|ed)|target(?:s|ed)|block(?:s|ed)|remov(?:es|ed))\s+(?:it|him|her|them)\b|\b(?:it|he|she|they)\s+(?:is|was|are|were|has been|have been|had been)\s+(?:\w+\s+)?(?:listed|delisted|designated|sanctioned|targeted|blocked|removed)\b/i;
-const namesIn = (text) => new Set([...text.matchAll(MID_CAPS)].map((m) => m[0].replace(/['’]s$/, "")));
+const STARTERS = new Set(("A An The Nobody No Anyone Any Every Most Many Some Companies Governments Banks Exporters Ships Vessels Owners Firms " +
+  "Lists Sanctions Asset Export Secondary Sectoral If When Once Under In For To Because Where While").split(" "));
+const CAPITALISED = /(?<![\p{L}\p{N}])\p{Lu}[\p{L}\p{N}'’-]*/gu;
+const NUMBER_WORDS = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty thirty forty fifty sixty seventy eighty ninety hundred";
+const POINTS_AT = new RegExp(String.raw`\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both)\b|\ball\s+(?:\d+|${NUMBER_WORDS.split(" ").join("|")})\b|\bthe\s+(?:company|firm|ship|vessel|tanker|person|entity|bank|group|owner|manager|operator)\b`, "i");
+const generic = (s) => !POINTS_AT.test(s) && (s.replace(ALLOWED, ",").match(CAPITALISED) ?? []).every((w) => STARTERS.has(w.replace(/['’]s$/, "")));
+// (the allowed names are not listing words: "OpenSanctions connections data: TASSOS …" is not about a listing)
+const quotable = (s) => !LISTING.test(s.replace(ALLOWED, ",")) || generic(s);
+const quotesOf = (kind, text) => sentencesOf(text).filter(quotable).slice(0, quoteMax(kind));
 
-/** The site's explainer prose, once: the words it uses in lower case and the words it capitalises inside a sentence. */
-function proseWords() {
-  if (!prose) {
-    let texts = [];
-    try { texts = data("data/ask-docs.json").sections.map((s) => s.text); } catch { /* no index: only the item's own text says what is a name */ }
-    // section by section, so one section's last word never makes the next one's first word look mid-sentence
-    prose = { lower: new Set(texts.flatMap((t) => t.match(LOWER) ?? [])), names: new Set(texts.flatMap((t) => [...namesIn(t)])) };
-  }
-  return prose;
-}
-
-/** Whether a sentence names an entity, or points at one named elsewhere. `local`: the names inside the item's own text. */
-function namesEntity(sentence, local) {
-  if (POINTS_AT.test(sentence)) return true;
-  const { lower, names } = proseWords();
-  const opening = /^[\s"“'‘(\[]*/.exec(sentence)[0].length; // the opening word may follow a quotation mark
-  for (const m of sentence.replace(ALLOWED, ",").matchAll(CAPS_RUN)) {
-    const words = m[0].replace(/[.'’&-]+$/, "").replace(/['’]s$/, "").split(/\s+/);
-    const name = (w) => (names.has(w) || local.has(w)) && !lower.has(w.toLowerCase());
-    if (m.index === opening && words.length === 1 && !name(words[0])) continue; // "An", "Nobody", "Hollow" open a sentence
-    return true;
-  }
-  return false;
-}
-
-function quotesOf(kind, text) {
-  const local = namesIn(text);
-  // (the allowed names are not listing words: "OpenSanctions connections data: TASSOS …" is not about a listing)
-  return sentencesOf(text).filter((s) => !(LISTING.test(s.replace(ALLOWED, ",")) && namesEntity(s, local))).slice(0, quoteMax(kind));
-}
-
-/** The whole sentences of a text in reading order: a table row (a line) is one, a heading or a lead-in line ("…:") is not. */
+/** The whole sentences of a text in reading order: a table row (a line) is one; a heading, a lead-in line ("…:") and a fragment
+ * (starting in lower case or with "(") are not. */
 function sentencesOf(text) {
   const out = [];
   let open = "";
   for (const { segment } of SENTENCES.segment(text)) {
     open += segment;
-    if (INITIALISM.test(open.trimEnd())) continue;
+    if (ABBREVIATION.test(open.trimEnd())) continue;
     out.push(open.trim());
     open = "";
   }
   out.push(open.trim());
   return out
     .map((x) => (/[\p{L}\p{N})]$/u.test(x) ? `${x}.` : x))
-    .filter((x) => /[.!?]["”’)]*$/.test(x) && x.split(/\s+/).length >= 2 && !x.includes("(figure unavailable)"));
+    .filter((x) => /[.!?]["”’)]*$/.test(x) && !/^[\p{Ll}(]/u.test(x) && x.split(/\s+/).length >= 2 && !x.includes("(figure unavailable)"));
 }
 
 function add(ev, item) {
@@ -513,16 +485,15 @@ function changesTool(args, ev, ctx) {
   const hay = (c) => normalizeName([c.name, c.summary, ...(c.endpoints || [])].join(" "));
   const inRange = inRecord ? changesSince(rec, ["fleet", "lobby"], from, to) : [];
   const all = inRecord ? changesSince(rec, graphs, from, to).filter((c) => words.every((w) => hay(c).includes(w))) : [];
-  const sourceDays = inRecord ? sourceGaps(rec, graphs, from, to) : [];
-  // A night from the first day the record holds to yesterday (UTC) that it does not hold is a run that did not complete: not "no
-  // changes". That includes the nights after the latest day held, so a stalled job shows. Today is never flagged: its run (04:00 UTC)
-  // may not have happened yet.
+  // every source's outages whatever the graph: the network's listing statuses come from the lists too
+  const sourceDays = inRecord ? sourceGaps(rec, ["fleet", "lobby"], from, to) : [];
+  // A night from the first run to yesterday (UTC) that the record does not hold is a run that did not complete: not "no changes".
+  // That includes the nights after the latest day held, so a stalled job shows, and nights before the first one held. Today is
+  // never flagged: its run (04:00 UTC) may not have happened yet.
   const held = new Set((rec.days ?? []).map((d) => d.date).filter(isDate));
-  const days = [...held].sort();
-  const first = days[0];
   const yesterday = addDays(today, -1);
   const missing = [];
-  if (inRecord && first) for (let d = from > first ? from : first; d <= to && d <= yesterday; d = addDays(d, 1)) if (!held.has(d)) missing.push(d);
+  if (inRecord) for (let d = from > firstRun ? from : firstRun; d <= to && d <= yesterday; d = addDays(d, 1)) if (!held.has(d)) missing.push(d);
   const runs = inRecord ? gapRuns([...sourceDays, ...missing.map((date) => ({ source: "nightly", date }))]) : [];
   const gapDays = sourceDays.length;
   const shown = all.slice(0, CAP.changes);
@@ -601,7 +572,7 @@ function sanctionItems(s) {
   const head = {
     kind: "connection", entity: { id: s.id, name: f.name, ...(f.imo && { imo: f.imo }) },
     text: sentence(
-      `OpenSanctions connections data: ${f.name} (${f.schema}${f.imo ? `, IMO ${f.imo}` : ""}), recorded under ${f.authorities.join(", ") || "no authority stated"}.`,
+      `OpenSanctions connections data: ${f.name} (${f.schema}${f.imo ? `, IMO ${f.imo}` : ""}).`,
       total ? `${total} direct ${total === 1 ? "link" : "links"}${shown.length < total ? `, the first ${shown.length} shown` : ""}.` : "No direct links are recorded.",
       s.others && `${s.others} other ${s.others === 1 ? "entity shares" : "entities share"} this exact name in the data; this is the one with the most links.`,
     ),
@@ -617,7 +588,7 @@ function sanctionItems(s) {
     return {
       kind: "connection",
       text: sentence(
-        `OpenSanctions records the relationship: "${a}" — ${k.role} — "${b}"${k.authorities?.length ? ` (recorded under ${k.authorities.join(", ")})` : ""}.`,
+        `OpenSanctions records the relationship: "${a}" — ${k.role} — "${b}".`, // no government named: whether a party is listed is check_lists' answer
         `Type of ${k.name}: ${k.schema}.`, hops.length && `${k.name} is also linked in the data to: ${hops.join("; ")}.`,
       ),
       label: `Connections: ${f.name} and ${k.name}`, url, ...(link && { link }),
@@ -732,7 +703,8 @@ function lagStats() {
   const { curated_new: c, wider_base: w, curated_total: total, curated_founded_before_invasion: before, curated_without_founding_date: undated } = lag.summary;
   const dates = Object.values(lag.releases).map((r) => r.date).sort();
   return chip("time to list new suppliers", LAG, sentence(
-    `Time to list new chip suppliers (US Treasury OFAC): the median is ${sj.median_months ?? c.median_months} months from a firm's founding to its OFAC listing, across ${sj.n ?? c.n} firms founded after 24 February 2022 (the middle half took ${c.p25_months} to ${c.p75_months} months).`,
+    // (worded to be quotable: it opens with "The" and points at no firm, so "How long does it take to list a new semiconductor firm?" has its answer)
+    `The median time to list a new chip supplier (US Treasury OFAC) is ${sj.median_months ?? c.median_months} months from founding to OFAC listing, across ${sj.n ?? c.n} firms founded after 24 February 2022 (the middle half took ${c.p25_months} to ${c.p75_months} months).`,
     `The set is ${total} firms outside Russia and Belarus that ${dates.length} US Treasury press releases (${dt(dates[0])} to ${dt(dates.at(-1))}) name for sending chips, microelectronics or electronic components to Russia; ${before} were founded before the invasion and ${undated} have no founding date, and those are left out of the median.`,
     `Wider base: ${w.n} OFAC entities under the Russia programme (RUSSIA-EO14024), founded after the invasion and based outside Russia and Belarus, took a median ${w.median_months} months (middle half ${w.p25_months} to ${w.p75_months}).`,
     `Months = (OFAC listing date − the "Organization Established Date" in OFAC's entry) / 30.44 days. OFAC list issued ${dt(lag.ofac_date_of_issue)}; figures retrieved ${dt(lag.retrieved)}.`,

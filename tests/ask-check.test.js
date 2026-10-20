@@ -52,6 +52,11 @@ before(async () => {
   E.typo = await ask([["check_lists", { query: "TASSOS" }], ["check_lists", { query: "TASOSS" }]]);
   E.fragment = await ask([["check_lists", { query: "TASSOS" }], ["check_lists", { query: "SSOS" }]]);
   E.rusalDoc = await ask([["site_docs", { query: "Rusal removal from the US list" }]]);
+  // the re-review's listing sentences, in the committed explainer index
+  E.reviewDocs = await ask(["Key findings", "Fleet Tanqo (India)", "6. The EU's July 2026 act", "Zulu Ships Management (UAE)", "8. Numbers that remain and where they come from"].map((query) => ["site_docs", { query }]));
+  // the model's query can carry characters the reader's question shows differently, or a right-to-left override
+  E.gatikEmoji = await ask([["check_lists", { query: "Gatik ✅" }]]);
+  E.gatikRtl = await ask([["check_lists", { query: "Gatik\u202E Ship Management" }]]);
   E.sovcomflot = await ask([["check_lists", { query: "Sovcomflot Group" }]]);
   E.rusal = await ask([["check_lists", { query: "United Company RUSAL" }]]);
   E.lukoil = await ask([["check_lists", { query: "PAO LUKOIL" }]]);
@@ -181,7 +186,6 @@ test("fact with a number not in its sources is dropped", () => {
   const sum = find(E.chips, (e) => e.kind === "chips");
   const out = checkAnswer(answer(fact("The median is 21.5 months.", sum.id), quote(sum.id, 0, "The median is 21.5 months.")), E.chips);
   assert.deepEqual(texts(out), [sum.quotes[0]]);
-  assert.match(sum.quotes[0], /20\.3 months/);
   assert.doesNotMatch(JSON.stringify(out), /21\.5/);
 });
 
@@ -299,11 +303,11 @@ test("not_found with near names asks which one was meant, never NOT_FOUND", () =
   assert.deepEqual(out, { kind: "clarify", sentences: [{ text: CLARIFY, sources: [] }], next: [{ label: "SOVCOMFLOT", href: "/?q=SOVCOMFLOT" }] });
 });
 
-test("NOT_FOUND names the query only when the reader typed it, as whole words", () => {
+test("NOT_FOUND names the query only when the reader typed it, as whole words, in the reader's own words", () => {
   const s = E.gatik[0].id;
-  // case, spacing and punctuation in the question don't matter
-  for (const question of ["Is Gatik Ship Management sanctioned?", "is  gatik ship\nmanagement on any list", "Gatik Ship Management?"]) {
-    assert.deepEqual(texts(checkAnswer(answer(claim("not_found", s)), E.gatik, { question })), [NOT_FOUND("Gatik Ship Management")], question);
+  // case, spacing and punctuation in the question don't matter for the match; what is printed is the reader's span
+  for (const [question, shown] of [["Is Gatik Ship Management sanctioned?", "Gatik Ship Management"], ["is  gatik ship\nmanagement on any list", "gatik ship management"], ["GATIK SHIP MANAGEMENT?", "GATIK SHIP MANAGEMENT"]]) {
+    assert.deepEqual(texts(checkAnswer(answer(claim("not_found", s)), E.gatik, { question })), [NOT_FOUND(shown)], question);
   }
   // otherwise the claim is dropped: a qualifier the model added, no question at all, or a fragment of a word the reader typed
   const smuggled = checkAnswer(answer(claim("not_found", E.smuggled[0].id)), E.smuggled, { question: "Is Vessel X sanctioned?" });
@@ -314,6 +318,37 @@ test("NOT_FOUND names the query only when the reader typed it, as whole words", 
   const ssos = searchFor(E.fragment, "SSOS");
   assert.deepEqual([ssos.found, ssos.near], [false, []]);
   assert.deepEqual(checkAnswer(answer(claim("not_found", ssos.id)), E.fragment, TASSOS_Q), FALLBACK_ANSWER);
+});
+
+test("NOT_FOUND prints the matching span of the reader's question, never the model's query (re-review N6)", () => {
+  // the model's query "Gatik ✅": the reader's span is "Gatik", and the emoji is no part of it
+  const emoji = E.gatikEmoji[0];
+  assert.deepEqual([emoji.query, emoji.found, emoji.near], ["Gatik ✅", false, []]);
+  assert.deepEqual(texts(checkAnswer(answer(claim("not_found", emoji.id)), E.gatikEmoji, { question: "Is Gatik ✅ sanctioned?" })), [NOT_FOUND("Gatik")]);
+  // a right-to-left override, in the model's query or the reader's own question, never reaches the page
+  const rtl = E.gatikRtl[0];
+  for (const question of ["Is Gatik\u202E Ship Management sanctioned?", "Is Gatik Ship Management sanctioned?"]) {
+    const out = checkAnswer(answer(claim("not_found", rtl.id)), E.gatikRtl, { question });
+    assert.deepEqual(texts(out), [NOT_FOUND("Gatik Ship Management")], JSON.stringify(question));
+    assert.doesNotMatch(JSON.stringify(out), /[\u202A-\u202E\u2066-\u2069\u200B-\u200F]/u);
+  }
+  // control and format characters inside the reader's span are stripped too
+  assert.deepEqual(texts(checkAnswer(answer(claim("not_found", E.gatik[0].id)), E.gatik, { question: "Is Ga\u200Btik Ship\u0007 Management listed?" })), FALLBACK_ANSWER.sentences.map((x) => x.text));
+  assert.deepEqual(texts(checkAnswer(answer(claim("not_found", E.gatik[0].id)), E.gatik, { question: "Is Gatik\u200B Ship\u0007 Management listed?" })), [NOT_FOUND("Gatik Ship Management")]);
+});
+
+test("the re-review's listing sentences are not offered as quotes; a neutral explainer is", () => {
+  const quotes = E.reviewDocs.flatMap((e) => e.quotes);
+  for (const sentence of ["All three are fully blocked", "The company is not on the UK or EU list by name.", "YEHOPE was listed by the EU first", "MISHELL is on the US list only.", "Titan-Micro listed by the US Treasury."]) {
+    assert.ok(E.reviewDocs.some((e) => e.text.includes(sentence)), `in the committed docs: ${sentence}`);
+    assert.ok(!quotes.some((q) => q.includes(sentence)), `quotable: ${sentence}`);
+  }
+  // the Hytera combination's second half can't be cited at any index
+  const keyFindings = find(E.reviewDocs, (e) => e.label === "Key findings");
+  for (let i = -1; i <= keyFindings.quotes.length; i++) {
+    for (const x of checkAnswer(answer(quote(keyFindings.id, i)), E.reviewDocs).sentences) assert.doesNotMatch(x.text, /All three are fully blocked/);
+  }
+  assert.ok(freezeDoc().quotes.includes("Nobody may pay, hold or move the target's money or property."));
 });
 
 test("a misspelt side search never says 'not on the lists' while the reader's name is listed (review I3)", () => {

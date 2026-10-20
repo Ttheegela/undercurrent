@@ -40,7 +40,7 @@ const RESEARCH = [
     id: "IMO9408695", name: "TASSOS", imo: "9408695", flag: "Liberia", manager: "THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C",
     role: "tanker (both UK Russia list and US Iran-programme list)",
     listings: [{ by: "United States", date: "2025-07-30", program: "Iran", ref: 1 }, { by: "European Union", date: "2025-10-24", program: "Russia", ref: 2 }, { by: "United Kingdom", date: "2026-02-24", program: "Russia", ref: 3 }],
-    facts: [{ text: "Listed by the United States on 30 July 2025 (Iran), the European Union on 24 October 2025 (Russia) and the United Kingdom on 24 February 2026 (Russia).", refs: [1, 2, 3] }, { text: "9 September 2024: Managed by the Zulu Ships Management & Operation - Sole Proprietorship LLC.", refs: [4] }, { text: "Has also sailed as Bay Global and Front Balder.", refs: [4] }],
+    facts: [{ text: "Listed by the United States on 30 July 2025 (Iran), the European Union on 24 October 2025 (Russia) and the United Kingdom on 24 February 2026 (Russia).", refs: [1, 2, 3] }, { text: "1 June 2025: Named in an OFAC press release.", refs: [1] }, { text: "Appears on the Equasis register from 2019.", refs: [1] }, { text: "9 September 2024: Managed by the Zulu Ships Management & Operation - Sole Proprietorship LLC.", refs: [4] }, { text: "Has also sailed as Bay Global and Front Balder.", refs: [4] }],
     names: [{ name: "TASSOS", current: true }, { name: "Bay Global", current: false }], flags: ["Liberia", "Panama"],
     sources: [{ n: 1, label: "US Treasury OFAC sanctions list entry", url: "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=54815" }, { n: 2, label: "EU Official Journal (EUR-Lex)", url: "https://eur-lex.europa.eu/eli/reg/2014/833/oj" }, { n: 3, label: "UK Sanctions List entry", url: "https://search-uk-sanctions-list.service.gov.uk/?searchValue=RUS3483" }],
   }),
@@ -117,6 +117,8 @@ const DOCS = {
     section("lanterns", "Lantern facts", `Overview. The U.S. Treasury acted on 1 May. ${Array.from({ length: 25 }, (_, i) => `Lantern fact ${i + 1} is recorded here.`).join(" ")}`),
     // the real findings' shape: listings that name an entity (or point at one) beside a sentence that doesn't
     section("rusal", "Rusal's removal from the US list", "6 April 2018: OFAC listed Oleg Deripaska, En+, Rusal and EuroSibEnergo. Deripaska himself stayed on the US list, and the EU added him on 8 April 2022. The US listed it in July 2023. 19 December 2018 OFAC told Congress it would remove the companies. Contested: Treasury negotiated the deal, and the vote split largely along party lines.", "stories/who-lobbies/FINDINGS.html"),
+    section("listings", "Listing sentences", "All three are fully blocked (as of 25 September 2026). The company is not on the UK or EU list by name. YEHOPE was listed by the EU first and by the US 5 days later. MISHELL is on the US list only. Titan-Micro listed by the US Treasury. A sanction is a government rule that says: do not do business with a named person, company or country. Nobody may pay, hold or move money for a blocked person. Each of them faces fines if they get it wrong. Both were designated in May. In May all 3 were blocked. Under the rules all three were blocked."),
+    section("abbrev", "Abbreviations", "Rep. Jane Doe of St. Petersburg met Acme Co. Ltd. staff on No. 5 street. Mr. Lee, Ms. Kim and Dr. Park met Boribo PTE. LTD. and Hapuka Inc. staff, e.g. at lunch, i.e. at noon, with Sen. Roe and the U.K. and U.S. teams. (A bracketed aside follows.) then a lower-case fragment follows."),
     section("tools", "The main tools", "Asset freeze (also called blocking). \"An asset freeze means nobody may pay a blocked person.\" Names are compared after removing endings such as LLC or OOO. Companies owned by a listed party can be blocked without being named. Hollow shapes run listed ships but are on no list themselves.", "stories/how-sanctions-work/index.html"),
   ],
 };
@@ -183,6 +185,7 @@ const graphDoc = {
     [T, "Vessel", ["TASSOS", "Tassos"], "9408695", ["US", "UK"]],
     ["Z", "Organization", ["Zulu Ships Management"], "", ["US", "UK"]],
     ["H", "Person", ["Hossein Shamkhani"], "", ["US"]],
+    ["HAP", "Organization", ["Hapuka Marine LTD."], "6467751", ["US", "France"]],
     ["SOV1", "Company", ["SOVCOMFLOT"], "", ["US"]],
     ["SOV2", "Company", ["SOVCOMFLOT"], "", ["UK"]],
     ...Array.from({ length: 8 }, (_, i) => [`S${i}`, "Vessel", [`SHIP ${i}`], "", ["US"]]),
@@ -492,13 +495,14 @@ test("changes clamps to started and caps at 30 with total", async () => {
 test("changes adds a gap item for each unavailable source-day in range", async () => {
   await run("changes", { since: "2026-10-17", until: "2026-10-19", graph: "fleet" });
   const gaps = ofKind("gap");
-  assert.deepEqual(gaps.map((g) => [g.source, g.date]).sort(), [["The UN list", "2026-10-18"], ["The US list", "2026-10-18"]]);
-  assert.match(gaps[0].text, /was unavailable on 18 Oct 2026 \(2026-10-18\)/);
-  assert.match(gaps[0].url, /^\/stories\/updates\/index\.html\?from=2026-10-18&to=2026-10-18&graph=fleet$/);
-  // the lobbying outage on the 17th is not the fleet graph's, but is the lobby graph's
+  // every source's outage, whatever the graph: the lobbying outage on the 17th too
+  assert.deepEqual(gaps.map((g) => [g.source, g.date]).sort(), [["The UN list", "2026-10-18"], ["The US list", "2026-10-18"], ["The US lobbying data", "2026-10-17"]]);
+  const us = gaps.find((g) => g.source === "The US list");
+  assert.match(us.text, /was unavailable on 18 Oct 2026 \(2026-10-18\)/);
+  assert.match(us.url, /^\/stories\/updates\/index\.html\?from=2026-10-18&to=2026-10-18&graph=fleet$/);
   ev = [];
   await run("changes", { since: "2026-10-17", until: "2026-10-19", graph: "lobby" });
-  assert.deepEqual(ofKind("gap").map((g) => [g.source, g.date]), [["The US lobbying data", "2026-10-17"]]);
+  assert.deepEqual(ofKind("gap").map((g) => [g.source, g.date]).sort(), [["The UN list", "2026-10-18"], ["The US list", "2026-10-18"], ["The US lobbying data", "2026-10-17"]]);
   assert.equal(ofKind("change").length, 2);
   assert.equal(ofKind("change")[0].link, "/stories/who-lobbies/influence-network/index.html#focus=e:1&since=2026-10-18");
   // outside the range: no gaps
@@ -587,13 +591,13 @@ test("connections honours exclude_lobbyists", async () => {
   assert.equal(ev.filter((e) => e.kind === "lobbying" && e.found !== false).length, 0);
 });
 
-test("connections: a ship's sanctions links name both ends, with the direction and who records them", async () => {
+test("connections: a ship's sanctions links name both ends, with the direction, and never the governments behind them", async () => {
   const out = await run("connections", { query: "IMO 9408695" });
   const conn = ofKind("connection");
   assert.equal(conn[0].entity.name, "TASSOS");
   assert.equal(conn[0].entity.imo, "9408695");
   assert.equal(conn[0].url, `https://www.opensanctions.org/entities/${T}/`);
-  assert.match(conn[0].text, /US, UK/);
+  assert.doesNotMatch(conn[0].text, /US|UK|recorded under/); // whether a party is listed is check_lists' answer, not the connections'
   assert.equal(conn[0].link, "/stories/shadow-fleet/network/shadow_fleet_map.html#focus=IMO9408695");
   const zulu = conn.find((e) => /Property in the interest of/.test(e.text));
   assert.match(zulu.text, /TASSOS.*Property in the interest of.*Zulu Ships Management/);
@@ -1104,10 +1108,10 @@ test("quote naming an entity with listing language is not offered", async () => 
     assert.ok(release.quotes.length > 0, release.label);
     assert.ok(release.quotes.every((q) => !/Treasury (Sanctions|Takes Aim)/.test(q)), release.label);
   }
-  // the summary names no firm: its sentences are offered, listing words and all
+  // the summary's headline names no firm, opens with "The" and points at nothing, so the starter question's answer is quotable
   ev = [];
   await run("chips", { topic: "summary" });
-  assert.match(ev[0].quotes[0], /^Time to list new chip suppliers \(US Treasury OFAC\): the median is 20\.3 months/);
+  assert.equal(ev[0].quotes[0], "The median time to list a new chip supplier (US Treasury OFAC) is 20.3 months from founding to OFAC listing, across 25 firms founded after 24 February 2022 (the middle half took 16.1 to 25.8 months).");
 });
 
 test("explainer sentence with listing language and no entity is offered", async () => {
@@ -1117,8 +1121,103 @@ test("explainer sentence with listing language and no entity is offered", async 
     '"An asset freeze means nobody may pay a blocked person."', // the opening word may follow a quotation mark
     "Names are compared after removing endings such as LLC or OOO.", // "removing" is not a removal from a list
     "Companies owned by a listed party can be blocked without being named.",
-    "Hollow shapes run listed ships but are on no list themselves.", // "Hollow" opens the sentence; the site never uses it as a name
+    // "Hollow shapes run listed ships …" is not offered: "Hollow" is not one of the generic starters
   ]);
+});
+
+// ---- fix round 2: the re-review's findings -------------------------------------------------------------------------
+
+test("a listing sentence is quotable only with generic capitalised words and nothing pointing elsewhere", async () => {
+  await run("site_docs", { query: "listing sentences" });
+  const doc = ev.find((e) => e.label === "Listing sentences");
+  // "All three are fully blocked", "The company is not on the UK or EU list by name.", "YEHOPE was listed by the EU first…",
+  // "MISHELL is on the US list only.", "Titan-Micro listed by the US Treasury.", "Each of them …", "Both were designated …",
+  // "In May all 3 were blocked.", "Under the rules all three were blocked.": not offered
+  assert.deepEqual(doc.quotes, [
+    "A sanction is a government rule that says: do not do business with a named person, company or country.",
+    "Nobody may pay, hold or move money for a blocked person.",
+  ]);
+});
+
+test("the Hytera combination: lobbyists named in filings, then 'All three are fully blocked', cannot be rendered", async () => {
+  await run("connections", { query: "Nord Stream 2 AG" });
+  await run("site_docs", { query: "listing sentences" });
+  const lobbyists = ev.find((e) => e.kind === "lobbying" && /Lobbyists named in the filings/.test(e.text));
+  assert.ok(lobbyists.quotes.some((q) => q.startsWith("Lobbyists named in the filings for Nord Stream 2 AG")));
+  assert.ok(ev.every((e) => e.quotes.every((q) => !/All three are fully blocked/.test(q))));
+});
+
+test("connection evidence states relationships only and never names a government", async () => {
+  await run("connections", { query: "IMO 9408695" });
+  await run("connections", { query: "Zulu Ships Management" });
+  await run("connections", { query: "IMO 6467751" });
+  const conn = ofKind("connection");
+  assert.ok(conn.length > 3);
+  for (const e of conn) {
+    for (const t of [e.text, ...e.quotes]) assert.doesNotMatch(t, /recorded under|\b(?:US|UK|EU|UN|France|United States|United Kingdom|European Union|United Nations)\b/, t);
+  }
+  assert.match(conn.find((e) => e.entity?.name === "TASSOS").text, /^OpenSanctions connections data: TASSOS \(Vessel, IMO 9408695\)\. 1 direct link\.$/);
+});
+
+test("sentences don't break after common abbreviations, and a fragment is not a quote", async () => {
+  await run("site_docs", { query: "abbreviations aside fragment" });
+  assert.deepEqual(ev.find((e) => e.label === "Abbreviations").quotes, [
+    "Rep. Jane Doe of St. Petersburg met Acme Co. Ltd. staff on No. 5 street.",
+    "Mr. Lee, Ms. Kim and Dr. Park met Boribo PTE. LTD. and Hapuka Inc. staff, e.g. at lunch, i.e. at noon, with Sen. Roe and the U.K. and U.S. teams.",
+  ]);
+  // the reviewer's "(Organization, IMO 6467751)…": a name ending in "LTD." stays whole
+  ev = [];
+  await run("connections", { query: "IMO 6467751" });
+  const head = ev.find((e) => e.kind === "connection");
+  assert.deepEqual(head.quotes, ["OpenSanctions connections data: Hapuka Marine LTD. (Organization, IMO 6467751).", "No direct links are recorded."]);
+  assert.ok(ev.every((e) => e.quotes.every((q) => !/^[\p{Ll}(]/u.test(q))));
+});
+
+test("research quotes leave out a fact naming the authority, and one that 'appears on' something", async () => {
+  await run("check_lists", { query: "TASSOS" });
+  const r = ev.find((e) => e.kind === "research" && e.entity.name === "TASSOS");
+  assert.match(r.text, /Named in an OFAC press release/);
+  assert.match(r.text, /Appears on the Equasis register/);
+  assert.ok(r.quotes.every((q) => !/OFAC|Equasis/.test(q)), r.quotes.join(" | "));
+});
+
+test("changes: gaps of every source are reported whatever the graph filter", async () => {
+  const day = (date, sources = FRESH) => ({ date, sources, changes: [] });
+  const nights = (down) => ({ ...CHANGES, days: ["2026-10-16", "2026-10-15", "2026-10-14", "2026-10-13", "2026-10-12"].map((d) => day(d, d === "2026-10-14" ? { ...FRESH, ...down } : FRESH)) });
+  try {
+    // the reviewer's case: graph=fleet on a night when only lobbying was down, nothing changed anywhere
+    write(root, "data/changes/changes.json", nights({ lobbying: "unavailable" }));
+    resetAskCache();
+    await run("changes", { since: "2026-10-14", until: "2026-10-14", graph: "fleet" });
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.source]), [["change", false, undefined], ["gap", undefined, "The US lobbying data"]]);
+    // and graph=lobby on a night when the UK list was down: the network's listing statuses come from the lists
+    write(root, "data/changes/changes.json", nights({ uk: "unavailable" }));
+    resetAskCache();
+    ev = [];
+    await run("changes", { since: "2026-10-14", until: "2026-10-14", graph: "lobby" });
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.source]), [["change", false, undefined], ["gap", undefined, "The UK list"]]);
+  } finally {
+    write(root, "data/changes/changes.json", CHANGES);
+  }
+});
+
+test("changes: missing nights are counted from the first run, not from the first night held", async () => {
+  try {
+    // no night held at all
+    write(root, "data/changes/changes.json", { ...CHANGES, days: [] });
+    resetAskCache();
+    await run("changes", { since: "2026-10-13", until: "2026-10-15" });
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.source, e.from, e.to]), [["gap", undefined, "The nightly update", "2026-10-13", "2026-10-15"]]);
+    // the record started on the 12th but the first night it holds is the 16th
+    write(root, "data/changes/changes.json", { ...CHANGES, days: ["2026-10-19", "2026-10-18", "2026-10-17", "2026-10-16"].map((date) => ({ date, sources: FRESH, changes: [] })) });
+    resetAskCache();
+    ev = [];
+    await run("changes", { since: "2026-10-12", until: "2026-10-14" });
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.source, e.from, e.to]), [["gap", undefined, "The nightly update", "2026-10-12", "2026-10-14"]]);
+    assert.doesNotMatch(JSON.stringify(ev), /No changes were recorded/);
+  } finally {
+    write(root, "data/changes/changes.json", CHANGES);
+  }
 });
 
 test("quotes: a research item quotes its facts, never a listing, the authority behind one, or the match", async () => {

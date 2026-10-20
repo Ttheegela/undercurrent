@@ -33,9 +33,21 @@ const listable = (e) => typeof e.entity?.name === "string" &&
   (e.kind === "opensanctions" || ((e.kind === "list" || e.kind === "research") && !e.delisted && Object.hasOwn(LIST_LABELS, e.gov ?? "")));
 
 // The query is the model's own tool argument, so NOT_FOUND names it only when the reader typed it: its words, whole and in order,
-// in the reader's question (case, spacing and punctuation aside). "SSOS" is not in "Is TASSOS sanctioned?".
-const words = (s) => (typeof s === "string" ? ` ${s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()} ` : "  ");
-const typed = (query, question) => words(query) !== "  " && words(question).includes(words(query));
+// in the reader's question (case, spacing and punctuation aside; "SSOS" is not in "Is TASSOS sanctioned?"). What is printed is the
+// reader's own span of the question, with control and format characters (a right-to-left override, a zero-width space) stripped.
+const WORD = /[\p{L}\p{N}]+/gu;
+function typedSpan(query, question) {
+  if (typeof query !== "string" || typeof question !== "string") return null;
+  const want = (query.match(WORD) ?? []).map((w) => w.toLowerCase());
+  const words = [...question.matchAll(WORD)];
+  for (let i = 0; want.length && i + want.length <= words.length; i++) {
+    if (!want.every((w, j) => words[i + j][0].toLowerCase() === w)) continue;
+    const last = words[i + want.length - 1];
+    const span = question.slice(words[i].index, last.index + last[0].length).replace(/\s+/g, " ").replace(/[\p{Cc}\p{Cf}]/gu, "").replace(/ +/g, " ").trim();
+    return span || null;
+  }
+  return null;
+}
 
 // Each returns the sentences to show as [{text, items}], [] to drop the sentence, or null to give the fallback for the whole answer.
 const RENDER = {
@@ -43,7 +55,10 @@ const RENDER = {
   not_found: (items, s, all, ctx) => {
     const searches = items.filter((e) => e.kind === "search");
     if (!searches.length || !searches.every((e) => e.found === false)) return null;
-    return searches.filter((e) => typed(e.query, ctx.question)).map((e) => ({ text: NOT_FOUND(e.query.replace(/\s+/g, " ").trim()), items: [e] }));
+    return searches.flatMap((e) => {
+      const span = typedSpan(e.query, ctx.question);
+      return span ? [{ text: NOT_FOUND(span), items: [e] }] : [];
+    });
   },
   // "No changes" only from the change record's own item, followed by every gap of its range; never from an empty list
   change: (items, s, all) => (items.every((e) => e.kind === "change" || e.kind === "gap")

@@ -978,6 +978,13 @@ test("network loads kg.json", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("network shows the AIS snapshot time in New York time", async ({ page }) => {
+  test.slow(); // the real kg.json
+  await page.goto(NETWORK);
+  await expect(page.locator("#liveKey")).toContainText("25 Sep 2026, 4:11 PM ET");
+  await expect(page.locator("#liveKey")).not.toContainText("UTC");
+});
+
 test("network: Restricted says trade, port or investment limits, in the details and the key", async ({ page }) => {
   await stubNet(page);
   await netReady(page);

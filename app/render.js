@@ -40,9 +40,14 @@ export function formatDate(iso, long = false) {
   return m[3] ? `${Number(m[3])} ${name} ${m[1]}` : `${name} ${m[1]}`;
 }
 
+// Times are shown in New York time (EDT or EST, as the clock there reads), marked "ET".
+const NEW_YORK = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", hour12: true,
+});
+
 export function formatUpdated(date) {
-  const iso = date.toISOString();
-  return `${formatDate(iso.slice(0, 10))}, ${iso.slice(11, 16)} UTC`;
+  const p = Object.fromEntries(NEW_YORK.formatToParts(date).map((x) => [x.type, x.value]));
+  return `${formatDate(`${p.year}-${p.month}-${p.day}`)}, ${p.hour}:${p.minute} ${p.dayPeriod} ET`;
 }
 
 const MAX_PCT = 86;

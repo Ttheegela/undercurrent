@@ -1,6 +1,6 @@
 // "Show changes since": the shared front end for data/changes/changes.json (written nightly by scripts/changes.py).
 // The record is { started, days: [{ date, sources: { us|uk|eu|un|lobbying: "fresh"|"unavailable" }, changes: [Change] }] },
-// newest day first. The two graph pages mount the panel (mountChangesPanel); the Updates page reuses renderChangeList.
+// newest day first. The two graph pages mount the panel (mountChangesPanel); the Updates page reuses changesSince, sourceGaps, sourceLink, SOURCES and KINDS and the .chg-* row classes (its rows carry a Show link, which renderChangeList's button rows cannot).
 // Every date is a UTC YYYY-MM-DD string. Arithmetic goes through Date.UTC and toISOString, never local-time Date methods.
 import { escapeHtml, safeUrl, formatDate } from "./render.js";
 

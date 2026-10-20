@@ -9,8 +9,8 @@ const GRAPHS = { all: ["fleet", "lobby"], fleet: ["fleet"], lobby: ["lobby"] };
 const EMPTY = { fleet: "No changes on the lists.", lobby: "No new lobbying filings.", all: "No changes recorded." };
 // The page that draws each graph's changes, from stories/updates/.
 const SHOW = {
-  fleet: ["Show on map", "../shadow-fleet/network/shadow_fleet_map.html"],
-  lobby: ["Show on network", "../who-lobbies/influence-network/index.html"],
+  fleet: ["Show on map", "../shadow-fleet/network/shadow_fleet_map.html", "the map"],
+  lobby: ["Show on network", "../who-lobbies/influence-network/index.html", "the network"],
 };
 const DAY_CAP = 50; // rows shown for a day before "+N more on this day"; a busy day can hold thousands
 const DEFAULT_DAYS = 10;
@@ -33,21 +33,23 @@ export function parseQuery(search, today) {
 // A link carries the change's id and the day it was recorded: the graph page opens its window on that day.
 function row(c, day) {
   const kind = Object.hasOwn(KINDS, c.kind) ? c.kind : "changed";
-  const [label, page] = SHOW[c.graph];
+  const [label, page, where] = SHOW[c.graph];
+  const what = ["Show", c.name || c.summary, `on ${where}`].filter(Boolean).join(" "); // (the link's name says which item)
   const id = c.id ? `focus=${encodeURIComponent(c.id).replace(/%3A/gi, ":")}&` : "";
   return `<li class="chg-item upd-item" data-kind="${kind}"><span class="chg-kind">${KINDS[kind]}</span><span class="chg-sum">${escapeHtml(c.summary)}</span>`
-    + `<span class="upd-links">${sourceLink(c)}<a class="upd-show" href="${escapeHtml(`${page}#${id}since=${day}`)}">${label}</a></span></li>`;
+    + `<span class="upd-links">${sourceLink(c)}<a class="upd-show" href="${escapeHtml(`${page}#${id}since=${day}`)}" aria-label="${escapeHtml(what)}">${label}</a></span></li>`;
 }
 
-function renderDay(day, changes, gaps, graph) {
+function renderDay(day, changes, gaps, graph, relevant) {
   const date = escapeHtml(day);
   const rows = changes.map((c) => row(c, day));
   const list = (items) => `<ul class="chg-list">${items.join("")}</ul>`;
   const rest = rows.length - DAY_CAP;
+  const blind = gaps.length >= relevant; // every source for this graph was down: what is missing is not "no changes"
   return `<section class="upd-day" aria-labelledby="upd-${date}"><h2 id="upd-${date}"><time datetime="${date}">${escapeHtml(formatDate(day, true))}</time>`
     + `${rows.length ? `<span class="upd-count">${plural(rows.length, "change")}</span>` : ""}</h2>`
     + gaps.map((source) => `<p class="upd-note">${escapeHtml(SOURCES[source][0])} unavailable; showing the previous data.</p>`).join("")
-    + (rows.length ? list(rows.slice(0, DAY_CAP)) : `<p class="upd-empty">${EMPTY[graph]}</p>`)
+    + (rows.length ? list(rows.slice(0, DAY_CAP)) : blind ? "" : `<p class="upd-empty">${EMPTY[graph]}</p>`)
     + (rest > 0 ? `<details class="upd-more"><summary>+${rest} more on this day</summary>${list(rows.slice(DAY_CAP))}</details>` : "")
     + "</section>";
 }
@@ -61,15 +63,20 @@ function renderDay(day, changes, gaps, graph) {
 export function renderUpdates(record, { from, to, graph } = {}) {
   const key = Object.hasOwn(GRAPHS, graph) ? graph : "all";
   const graphs = GRAPHS[key];
+  const relevant = Object.keys(SOURCES).filter((s) => graphs.includes(SOURCES[s][2])).length; // the sources that feed this graph
   const days = (record?.days ?? []).filter((d) => isDate(d.date) && d.date >= from && d.date <= to).sort((a, b) => (a.date < b.date ? 1 : -1));
   const changes = Object.fromEntries(days.map((d) => [d.date, changesSince(record, graphs, d.date, d.date)])), gaps = {}; // (a day's own changes)
   for (const g of sourceGaps(record, graphs, from, to)) (gaps[g.date] ??= []).push(g.source);
 
-  const started = isDate(record?.started) && record.started > from ? `<p class="upd-note">Daily updates started on ${escapeHtml(formatDate(record.started))}.</p>` : "";
-  if (!days.length) return `${started}<p class="upd-empty">No daily updates were recorded from ${escapeHtml(formatDate(from))} to ${escapeHtml(formatDate(to))}.</p>`;
+  // `started` is the oldest day held, which moves on once old days are trimmed; `first_run` is the baseline's day (a record from before it has none)
+  const started = isDate(record?.started) ? record.started : "";
+  const first = isDate(record?.first_run) && record.first_run < started ? record.first_run : started;
+  const note = started > from
+    ? `<p class="upd-note">Daily updates started on ${escapeHtml(formatDate(first))}.${started > first ? " Older days are no longer kept; the record holds 120 days." : ""}</p>` : "";
+  if (!days.length) return `${note}<p class="upd-empty">No daily updates were recorded from ${escapeHtml(formatDate(from))} to ${escapeHtml(formatDate(to))}.</p>`;
   const shown = days.reduce((n, d) => n + changes[d.date].length, 0);
-  return `${started}<p class="upd-total">${plural(shown, "change")} over ${plural(days.length, "day")}</p>`
-    + days.map((d) => renderDay(d.date, changes[d.date], gaps[d.date] ?? [], key)).join("");
+  return `${note}<p class="upd-total">${plural(shown, "change")} over ${plural(days.length, "day")}</p>`
+    + days.map((d) => renderDay(d.date, changes[d.date], gaps[d.date] ?? [], key, relevant)).join("");
 }
 
 // ---- the page --------------------------------------------------------------------------------------
@@ -91,7 +98,7 @@ export function mountUpdates() {
     const q = parseQuery(location.search, latest);
     for (const name of ["from", "to", "graph"]) if (fixInputs || !form.elements[name].value) form.elements[name].value = q[name]; // (never rewrite what is being typed)
     results.innerHTML = renderUpdates(record, q);
-    status.textContent = results.querySelector(".upd-total")?.textContent ?? "";
+    status.textContent = results.querySelector(".upd-total, .upd-empty")?.textContent ?? ""; // (the count, or that the range holds no day)
   }
 
   async function load(retry) {

@@ -54,8 +54,8 @@ a:hover { text-decoration-color: var(--color-ink); }
 .top nav a:hover, .top nav a[aria-current="page"] { color: var(--color-ink); }
 .top > nav:first-of-type { margin-left: auto; }
 @media (max-width: 40rem) { .top nav:not(.nav-graphs) li:not(:last-child) { display: none; } }
-/* The two graphs: in the header row on wide screens, on a second row below 56rem where they no longer fit */
-.nav-graphs ul { list-style: none; display: flex; gap: var(--space-lg); margin: 0; padding: 0; font-size: var(--text-sm); }
+/* The graphs and Updates: in the header row on wide screens, on a second row below 56rem where they no longer fit, and wrapping onto a third where even that is too wide (320px) */
+.nav-graphs ul { list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-2xs) var(--space-lg); margin: 0; padding: 0; font-size: var(--text-sm); }
 .nav-graphs a { text-decoration: none; color: var(--color-muted); white-space: nowrap; }
 .nav-graphs a:hover, .nav-graphs a[aria-current="page"] { color: var(--color-ink); }
 @media (max-width: 56rem) { .top { flex-wrap: wrap; row-gap: var(--space-xs); } .top .nav-graphs { flex-basis: 100%; } }

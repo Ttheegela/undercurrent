@@ -310,7 +310,8 @@ def update_record(record: dict | None, date: str, changes: list[dict], sources: 
     only what changed since): a change seen again is not doubled (the later run's row wins), but changes that differ in
     what they went from or to are kept apart (two renames of one ship in a day, a listing and a delisting, two
     governments' delistings), and a source fresh in either run is fresh. Days past `keep_days` go, and `started` is the oldest day
-    held, because a day before it cannot be answered."""
+    held, because a day before it cannot be answered. `first_run` is the baseline's day: set once, never moved by a later
+    run or by the trim (a record from before it takes its `started`)."""
     held = (record or {}).get("days", [])
     same = next((d for d in held if d["date"] == date), {"changes": [], "sources": {}})
     rows = {(c["graph"], c["kind"], c["item"], c["id"], c.get("field"), str(c.get("from")), str(c.get("to"))): c
@@ -320,4 +321,5 @@ def update_record(record: dict | None, date: str, changes: list[dict], sources: 
     today = {"date": date, "sources": seen, "changes": sorted(rows.values(), key=_order)}
     days = [d for d in held if d["date"] != date] + [today]
     days = sorted(days, key=lambda d: d["date"], reverse=True)[:keep_days]
-    return {"started": days[-1]["date"], "days": days}
+    first_run = (record or {}).get("first_run") or (record or {}).get("started") or date
+    return {"first_run": first_run, "started": days[-1]["date"], "days": days}

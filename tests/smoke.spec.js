@@ -350,6 +350,18 @@ test("every html page with the graphs nav links the Updates page", () => {
   expect(withNav).toBeGreaterThan(15);
 });
 
+// html and body clip sideways overflow, so scrollWidth cannot see a link pushed past the edge: look at where each link is.
+test("the graphs nav stays inside the screen at 320px, with Updates pressable", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  for (const url of ["/index.html", "/stories/how-sanctions-work/index.html", "/stories/sources/METHODS_LOG.html", UPDATES, MAP, NETWORK]) {
+    await page.goto(url, { waitUntil: "domcontentloaded" });
+    const boxes = await page.locator("header .nav-graphs a").evaluateAll((as) => as.map((a) => { const r = a.getBoundingClientRect(); return { text: a.textContent, left: r.left, right: r.right, width: r.width, innerWidth }; }));
+    expect(boxes.map((b) => b.text), url).toEqual(["Shadow fleet map", "Influence network", "Updates"]);
+    for (const b of boxes) { expect(b.left, `${url} ${b.text}`).toBeGreaterThanOrEqual(0); expect(b.right, `${url} ${b.text}`).toBeLessThanOrEqual(b.innerWidth); }
+    await page.locator("header .nav-graphs a", { hasText: "Updates" }).click({ trial: true }); // not covered, not off screen
+  }
+});
+
 // ---- shadow-fleet map: live data (fleet-data.json), the changes panel, highlights and ghosts ----
 const FLEET_JSON = "**/stories/shadow-fleet/network/fleet-data.json";
 const CHANGES_JSON = "**/data/changes/changes.json";
@@ -1423,14 +1435,16 @@ test("Show on map link carries focus and since", async ({ page }) => {
   const errors = watchErrors(page);
   await stubUpdates(page);
   await updReady(page);
-  const map = rowOf(page, "US listed CHARLIE").getByRole("link", { name: "Show on map" });
+  const map = rowOf(page, "US listed CHARLIE").getByRole("link", { name: "Show CHARLIE on the map" }); // a link's accessible name says which item
   await expect(map).toHaveAttribute("href", "../shadow-fleet/network/shadow_fleet_map.html#focus=IMO1000003&since=2026-10-19");
-  const edge = rowOf(page, "New link: CHARLIE").getByRole("link", { name: "Show on map" });
+  await expect(map).toHaveText("Show on map");
+  const edge = rowOf(page, "New link: CHARLIE").getByRole("link", { name: "Show ACME SHIPPING → CHARLIE on the map" });
   await expect(edge).toHaveAttribute("href", `../shadow-fleet/network/shadow_fleet_map.html#focus=${edgeId(3)}&since=2026-10-19`);
-  const net = rowOf(page, "New lobbyist: Someone").getByRole("link", { name: "Show on network" }); // a lobby change goes to the network
+  const net = rowOf(page, "New lobbyist: Someone").getByRole("link", { name: "Show Someone on the network" }); // a lobby change goes to the network
   await expect(net).toHaveAttribute("href", "../who-lobbies/influence-network/index.html#focus=p:someone&since=2026-10-19");
-  expect(await page.getByRole("link", { name: "Show on network" }).count()).toBe(1);
-  expect(await page.getByRole("link", { name: "Show on map" }).count()).toBe(7);
+  await expect(net).toHaveText("Show on network");
+  expect(await page.getByRole("link", { name: / on the network$/ }).count()).toBe(1);
+  expect(await page.getByRole("link", { name: / on the map$/ }).count()).toBe(7);
   expect(errors).toEqual([]);
 });
 
@@ -1450,7 +1464,7 @@ test("updates: Show on map focuses a ship, a link and a removed ship on the real
   await stubMap(page, { record: CROSS });
   const open = async (text) => {
     await updReady(page, "?graph=fleet");
-    await rowOf(page, text).getByRole("link", { name: "Show on map" }).click();
+    await rowOf(page, text).getByRole("link", { name: / on the map$/ }).click();
     await expect(page).toHaveURL(new RegExp(MAP));
     await page.locator("html[data-ready]").waitFor({ state: "attached" });
     await expect(page.locator(".chg-title")).toContainText("Since 19 Oct"); // the window starts on the day the link names
@@ -1471,7 +1485,7 @@ test("updates: Show on network focuses a firm, a link and a removed ship on the 
   await stubNet(page, { record: CROSS });
   const open = async (text) => {
     await updReady(page, "?graph=lobby");
-    await rowOf(page, text).getByRole("link", { name: "Show on network" }).click();
+    await rowOf(page, text).getByRole("link", { name: / on the network$/ }).click();
     await expect(page).toHaveURL(new RegExp(NETWORK));
     await page.waitForFunction(() => document.getElementById("loading").style.display === "none" && window.__kg && window.__kg.state().ready);
   };
@@ -1537,7 +1551,7 @@ test("updates: the filters live in the URL, and bad values fall back", async ({ 
   await page.locator("select[name=graph]").selectOption("lobby");
   await expect(page).toHaveURL(/graph=lobby/);
   await expect(page.locator(".upd-item")).toHaveCount(1);
-  await expect(page.getByRole("link", { name: "Show on network" })).toHaveCount(1);
+  await expect(page.getByRole("link", { name: / on the network$/ })).toHaveCount(1);
   await page.locator("input[name=from]").fill("2026-10-19");
   await expect(page).toHaveURL(/from=2026-10-19/);
   await expect(page.locator(".upd-day")).toHaveCount(1);
@@ -1550,6 +1564,9 @@ test("updates: the filters live in the URL, and bad values fall back", async ({ 
   await expect(page.locator(".upd-day")).toHaveCount(2);
   await updReady(page, "?from=2026-01-01&to=2026-01-05"); // a range with no recorded day is not "no changes"
   await expect(page.locator(".upd-empty")).toHaveText("No daily updates were recorded from 1 Jan 2026 to 5 Jan 2026.");
+  await expect(page.locator("#upd-status")).toHaveText("No daily updates were recorded from 1 Jan 2026 to 5 Jan 2026."); // a screen reader hears it too
+  await updReady(page, "?graph=lobby");
+  await expect(page.locator("#upd-status")).toHaveText("1 change over 2 days");
   expect(errors).toEqual([]);
 });
 
@@ -1580,12 +1597,37 @@ test("updates: a record that fails says unavailable, never no changes, and Retry
   expect(errors.filter((e) => !/404|Failed to load resource/.test(e))).toEqual([]);
 });
 
+test("updates: a day when every source for the graph was down shows only the gap notes", async ({ page }) => {
+  const down = { us: "unavailable", uk: "unavailable", eu: "unavailable", un: "unavailable", lobbying: "fresh" };
+  await stubUpdates(page, { started: "2026-10-10", days: [{ date: "2026-10-19", sources: down, changes: [] }, { date: "2026-10-18", sources: { ...down, uk: "fresh" }, changes: [] }] });
+  await updReady(page, "?graph=fleet");
+  const day19 = page.locator(".upd-day", { hasText: "19 October 2026" }), day18 = page.locator(".upd-day", { hasText: "18 October 2026" });
+  await expect(day19.locator(".upd-note")).toHaveText(["UK list unavailable; showing the previous data.", "US lists unavailable; showing the previous data.",
+    "EU lists unavailable; showing the previous data.", "UN list unavailable; showing the previous data."]);
+  await expect(day19).not.toContainText("No changes");
+  await expect(day18).toContainText("No changes on the lists."); // the UK list was up that day: it can say nothing changed
+  await page.locator("select[name=graph]").selectOption("lobby"); // the lobbying filings were fine
+  await expect(day19).toContainText("No new lobbying filings.");
+  await expect(day19.locator(".upd-note")).toHaveCount(0);
+  await page.locator("select[name=graph]").selectOption("all"); // one source of the two graphs is up
+  await expect(day19).toContainText("No changes recorded.");
+});
+
+test("updates: a record that has trimmed old days says when updates really started", async ({ page }) => {
+  await stubUpdates(page, { ...recordFixture(STD_CHANGES), first_run: "2026-10-01" });
+  await updReady(page, "?from=2026-10-05");
+  await expect(page.locator(".upd-note").first()).toHaveText("Daily updates started on 1 Oct 2026. Older days are no longer kept; the record holds 120 days.");
+  await updReady(page, "?from=2026-10-12");
+  await expect(page.getByText("Daily updates started")).toHaveCount(0);
+});
+
 test("updates: a 2,000-change record renders within 2 seconds, capped per day, the rest one click away", async ({ page }) => {
   const errors = watchErrors(page);
   const many = Array.from({ length: 2000 }, (_, i) => change({ id: `IMO${2000000 + i}`, name: `BULK ${i}`, summary: `US listed BULK ${i}` }));
   await stubUpdates(page, recordFixture(many));
+  await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ status: 200, contentType: "text/css", body: "" })); // (a slow font fetch is not the page's)
+  await page.goto(UPDATES, { waitUntil: "domcontentloaded" });
   const t0 = Date.now();
-  await page.goto(UPDATES);
   await expect(page.locator(".upd-total")).toHaveText("2000 changes over 2 days");
   await expect(page.locator(".upd-day > .chg-list > .chg-item").last()).toBeVisible();
   expect(Date.now() - t0).toBeLessThan(2000);

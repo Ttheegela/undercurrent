@@ -788,3 +788,18 @@ def test_record_keeps_its_first_day_while_it_fits():
     record = update_record(record, "2026-10-20", [change(summary="x")], {"uk": "fresh"})
     assert record["started"] == "2026-10-19" and [d["date"] for d in record["days"]] == ["2026-10-20", "2026-10-19"]
     assert update_record(record, "2026-10-19", [], {}) == record  # idempotent
+
+
+def test_record_remembers_its_first_run_after_old_days_go():
+    record = None
+    for day in range(1, 11):
+        record = update_record(record, f"2026-10-{day:02d}", [], {}, keep_days=5)
+    assert record["started"] == "2026-10-06"  # the oldest day held moves on ...
+    assert record["first_run"] == "2026-10-01"  # ... the baseline's day does not
+    assert update_record(record, "2026-10-10", [], {}, keep_days=5) == record  # a re-run changes neither
+
+
+def test_a_record_from_before_first_run_takes_its_started_day():
+    old = {"started": "2026-10-06", "days": [{"date": "2026-10-06", "sources": {}, "changes": []}]}
+    assert update_record(old, "2026-10-07", [], {})["first_run"] == "2026-10-06"
+    assert update_record(None, "2026-10-19", [], {})["first_run"] == "2026-10-19"

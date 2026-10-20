@@ -71,8 +71,12 @@ test("renderUpdates says what an empty day means for the graph shown", () => {
   assert.ok(renderUpdates(empty, { ...w, graph: "lobby" }).includes("No new lobbying filings."));
   assert.ok(renderUpdates(empty, { ...w, graph: "all" }).includes("No changes recorded."));
   // a day with changes only on the other graph is empty for this one
+  const fleetOnly = { started: "2026-10-20", days: [{ date: "2026-10-20", sources: FRESH, changes: [ship({ date: "2026-10-20" })] }] };
+  assert.ok(renderUpdates(fleetOnly, { ...w, graph: "lobby" }).includes("No new lobbying filings."));
+  // ... unless lobbying was down that day: then there is only the note (RECORD's 21 Oct)
   const html = renderUpdates(RECORD, { ...ALL, graph: "lobby" });
-  assert.ok(html.slice(html.indexOf('datetime="2026-10-21"')).split("</section>")[0].includes("No new lobbying filings."));
+  const day21 = html.slice(html.indexOf('datetime="2026-10-21"')).split("</section>")[0];
+  assert.ok(day21.includes("US lobbying filings unavailable") && !day21.includes("No new lobbying filings."));
 });
 
 test("renderUpdates links each change to the graph that shows it, with focus and since", () => {
@@ -174,4 +178,53 @@ test("parseQuery validates the dates and the graph and falls back to the last 10
   assert.deepEqual(parseQuery("?from=2026-10-19&to=2026-10-10", TODAY), { from: "2026-10-10", to: "2026-10-19", graph: "all" });
   // the first of a repeated parameter wins; unrelated parameters are ignored
   assert.equal(parseQuery("?graph=lobby&graph=fleet&x=1", TODAY).graph, "lobby");
+});
+
+test("renderUpdates says nothing of 'no changes' on a day when every source for the graph was down", () => {
+  const down = (...names) => ({ ...FRESH, ...Object.fromEntries(names.map((n) => [n, "unavailable"])) });
+  const day = (sources) => ({ started: "2026-10-20", days: [{ date: "2026-10-20", sources, changes: [] }] });
+  const w = { from: "2026-10-20", to: "2026-10-20" };
+  const fleet = renderUpdates(day(down("us", "uk", "eu", "un")), { ...w, graph: "fleet" });
+  assert.ok(fleet.includes("UK list unavailable; showing the previous data.") && fleet.includes("US lists unavailable"), fleet);
+  assert.ok(!fleet.includes("No changes on the lists."), fleet);
+  const lobby = renderUpdates(day(down("lobbying")), { ...w, graph: "lobby" });
+  assert.ok(lobby.includes("US lobbying filings unavailable") && !lobby.includes("No new lobbying filings."), lobby);
+  const all = renderUpdates(day(down("us", "uk", "eu", "un", "lobbying")), { ...w, graph: "all" });
+  assert.ok(all.includes("US lobbying filings unavailable") && !all.includes("No changes recorded."), all);
+  // one source still up: the day can say there was nothing to report
+  assert.ok(renderUpdates(day(down("us", "uk", "eu")), { ...w, graph: "fleet" }).includes("No changes on the lists."));
+  assert.ok(renderUpdates(day(down("us", "uk", "eu", "un")), { ...w, graph: "lobby" }).includes("No new lobbying filings."));
+  assert.ok(renderUpdates(day(down("us", "uk", "eu", "un")), { ...w, graph: "all" }).includes("No changes recorded."));
+  // a day with changes lists them whatever the sources
+  assert.equal(rows(renderUpdates({ ...RECORD, days: [{ ...RECORD.days[2], sources: down("us", "uk", "eu", "un") }] }, { ...w, from: "2026-10-21", to: "2026-10-21", graph: "fleet" })), 2);
+});
+
+test("renderUpdates dates the start from first_run and says when older days have gone", () => {
+  const rec = (extra) => ({ ...RECORD, ...extra });
+  const w = { ...ALL, from: "2026-10-10" };
+  // the oldest day held is later than the first run: the page names the first run and says why older days are missing
+  const trimmed = renderUpdates(rec({ first_run: "2026-10-01" }), w);
+  assert.ok(trimmed.includes("Daily updates started on 1 Oct 2026. Older days are no longer kept; the record holds 120 days."), trimmed);
+  assert.ok(trimmed.indexOf("Daily updates started") < trimmed.indexOf("<time"));
+  // not trimmed, or a record from before first_run (or a bad one): the oldest day held is the start, with nothing more said
+  for (const extra of [{ first_run: "2026-10-20" }, {}, { first_run: "<b>x</b>" }, { first_run: "2026-10-25" }]) {
+    const html = renderUpdates(rec(extra), w);
+    assert.ok(html.includes("Daily updates started on 20 Oct 2026.") && !html.includes("no longer kept"), JSON.stringify(extra));
+  }
+  // a window that starts inside the kept days has no note
+  assert.ok(!renderUpdates(rec({ first_run: "2026-10-01" }), { ...ALL, from: "2026-10-20" }).includes("Daily updates started"));
+  // a window between the first run and the oldest day held still reaches days that are gone
+  assert.ok(renderUpdates(rec({ first_run: "2026-10-01" }), { ...ALL, from: "2026-10-05" }).includes("no longer kept"));
+});
+
+test("renderUpdates names the item on each Show link", () => {
+  const html = renderUpdates(RECORD, ALL);
+  assert.ok(html.includes('aria-label="Show TASSOS on the map">Show on map</a>'), html);
+  assert.ok(html.includes('aria-label="Show Acme Lobbying LLC on the network">Show on network</a>'), html);
+  const odd = { started: "2026-10-20", days: [{ date: "2026-10-20", sources: FRESH, changes: [
+    ship({ name: '<b>"x"</b>' }), ship({ name: "", summary: "A summary" }), ship({ name: undefined, summary: undefined })] }] };
+  const out = renderUpdates(odd, { ...ALL, to: "2026-10-20" });
+  assert.ok(out.includes('aria-label="Show &lt;b&gt;&quot;x&quot;&lt;/b&gt; on the map"'), out);
+  assert.ok(out.includes('aria-label="Show A summary on the map"'), out);
+  assert.ok(out.includes('aria-label="Show on the map"'), out);
 });

@@ -133,7 +133,7 @@ def test_fresh_run_writes_all_outputs(baseline):
     assert kg["meta"]["generated"] == "2026-10-19" and {n["L"] for n in kg["nodes"]} == {"fleet", "lobby"}
     # the baseline day: nothing is new, and the record starts today
     record = load(paths.changes)
-    assert record["started"] == "2026-10-19" and len(record["days"]) == 1
+    assert record["started"] == record["first_run"] == "2026-10-19" and len(record["days"]) == 1
     assert record["days"][0]["changes"] == []
     assert record["days"][0]["sources"] == {s: "fresh" for s in ("eu", "lobbying", "uk", "un", "us")}
     meta = load(paths.meta)

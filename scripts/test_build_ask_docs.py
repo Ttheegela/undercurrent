@@ -1,5 +1,5 @@
 import json
-import re
+from html.parser import HTMLParser
 
 import build_ask_docs as b
 import build_docs
@@ -30,6 +30,31 @@ def test_text_under_h1_is_a_section():
 def test_blocks_do_not_glue_words_together():
     html = "<h2>T</h2><p>one</p><p>two<br>three</p><table><tr><td>four</td><td>five</td></tr></table>"
     assert sections(html)[0]["text"] == "one two three four five"
+
+
+def test_neighbouring_elements_do_not_glue_words_together():
+    html = ('<h2>T</h2><div class="stats"><div class="stat"><b data-stat="kg.ships">1,573</b><span>sanctioned ships</span></div>'
+            '<div class="stat"><b>14</b><span>records</span></div></div>'   # methods.html stat tiles
+            '<div class="conf"><div><b><svg width="30"><line x1="0"/></svg>Documented</b>An official record. '
+            '<span data-stat="kg.documented_edges">3,719</span> lines.</div>'
+            "<div><b>Reported</b>From a filing.</div></div>")                  # methods.html confidence labels
+    assert sections(html)[0]["text"] == (
+        "{{stat:kg.ships}} sanctioned ships 14 records Documented An official record. {{stat:kg.documented_edges}} lines. "
+        "Reported From a filing.")
+
+
+def test_punctuation_next_to_an_element_stays_attached():
+    html = '<h2>T</h2><p>a (<b>bold</b>), <i>it</i>. Cost: $<span>5</span>, <a href="#">up 3</a>%; don<b>\'t</b> -<b>x</b></p>'
+    assert sections(html)[0]["text"] == "a (bold), it. Cost: $5, up 3%; don't -x"
+
+
+def test_text_before_a_sections_first_h2_belongs_to_that_section():
+    html = ('<section class="hero"><p class="label">Research notes</p><h1>Page</h1></section>'
+            '<section><p class="label">1 · One</p><h2>One</h2><p>a</p></section>'
+            '<section id="two"><p class="label">2 · Two</p><h2>Two</h2><p>b</p><h3>Sub</h3><p>c</p></section>'
+            "<section><p>pre</p><div><h3>Three</h3><p>d</p></div></section>")
+    assert [(s["title"], s["text"]) for s in sections(html)] == [
+        ("One", "1 · One a"), ("Two", "2 · Two b"), ("Sub", "c"), ("Three", "pre d")]   # the h1's label is not carried
 
 
 def test_heading_without_id_gets_a_slug_id_but_a_bare_url():
@@ -103,16 +128,50 @@ def test_every_page_is_indexed_with_unique_ids():
     assert not any("Loading updates" in s["text"] for s in by_page["stories/updates/index.html"])
 
 
-def test_every_url_fragment_exists_on_its_page():
+class Targets(HTMLParser):
+    """id -> the text of the h1-h3 that has that id, or of the first h1-h3 inside the <section> that has it.
+    Any other element with an id (a footnote, an svg marker) is not a target."""
+
+    def __init__(self):
+        super().__init__()
+        self.target, self.waiting, self.ids, self.heading = {}, [], [], None
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if a.get("id"):
+            self.ids.append(a["id"])
+        if tag == "section" and a.get("id"):
+            self.waiting.append(a["id"])
+        if tag in ("h1", "h2", "h3"):
+            self.heading = (tag, self.waiting + ([a["id"]] if a.get("id") else []), [])
+            self.waiting = []
+
+    def handle_data(self, data):
+        if self.heading:
+            self.heading[2].append(data)
+
+    def handle_endtag(self, tag):
+        if self.heading and tag == self.heading[0]:
+            for i in self.heading[1]:
+                self.target[i] = " ".join("".join(self.heading[2]).split())
+            self.heading = None
+
+
+def test_every_url_fragment_is_a_heading_or_its_section_on_its_page():
     doc = b.build()
     notes = {md.with_suffix(".html").relative_to(build_docs.ROOT).as_posix() for md in build_docs.sources()}
     for page in {s["page"] for s in doc["sections"]}:
         on_page = [s for s in doc["sections"] if s["page"] == page]
-        ids = set(re.findall(r'\bid="([^"]+)"', (build_docs.ROOT / page).read_text(encoding="utf-8")))
+        targets = Targets()
+        targets.feed((build_docs.ROOT / page).read_text(encoding="utf-8"))
+        assert len(targets.ids) == len(set(targets.ids)), page
         for s in on_page:
             path, _, fragment = s["url"].partition("#")
             assert path == "/" + page
-            assert not fragment or fragment in ids, f"{s['url']} has no such id on the page"
+            if fragment:
+                assert fragment in targets.target, f"{s['url']} is not a heading or the section of one"
+                if "{{stat:" not in s["title"]:
+                    assert targets.target[fragment] == s["title"], s["url"]
         if page in notes:   # build_docs puts an id on every h2/h3, so only the h1 lead can have a bare url
             bare = [s for s in on_page if "#" not in s["url"]]
             assert bare in ([], on_page[:1])

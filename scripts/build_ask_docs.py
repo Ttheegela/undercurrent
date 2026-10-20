@@ -33,8 +33,12 @@ HEADINGS = {"h1", "h2", "h3"}
 SKIP = {"script", "style", "nav", "header", "footer", "noscript", "sup", "text"}
 RUNTIME_IDS = {"upd-results"}
 VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
-# Anything else ends a word: <p>a</p><p>b</p> is "a b", but <b>a</b>, is "a,".
+# A tag outside this set always ends a word: <p>a</p><p>b</p> is "a b".
 INLINE = {"a", "abbr", "b", "cite", "code", "em", "i", "mark", "q", "small", "span", "strong", "sub", "time", "u", "tspan"}
+# Inline or not, a tag with no space around it still ends a word (<b>14</b><span>records</span> is "14 records")
+# unless punctuation is touching it: (<b>x</b>), is "(x),".
+OPENERS = "([{$£€#/-\"'“‘"
+CLOSERS = ".,;:!?)]}%\"'”’…"
 
 
 class Parser(HTMLParser):
@@ -46,17 +50,25 @@ class Parser(HTMLParser):
         self.found: list[list] = []               # [heading id, title parts, text parts] per heading
         self.parts: list[str] | None = None       # the open heading's title, else the open section's text
         self.heading: str | None = None
+        self.boundary = False                     # a tag came since the last text
+        self.pre: tuple[list[str], int] | None = None   # where the open <section>'s text began, if no heading has yet
 
     @property
     def skipping(self) -> bool:
         return any(skipped for _, skipped, _ in self.stack)
 
     def add(self, text: str) -> None:
-        if self.parts is not None and not self.skipping:
-            self.parts.append(text)
+        if self.parts is None or self.skipping:
+            return
+        before = self.parts[-1][-1:] if self.parts else ""
+        if self.boundary and before and text and not (before.isspace() or text[0].isspace() or before in OPENERS or text[0] in CLOSERS):
+            self.parts.append(" ")
+        self.boundary = False
+        self.parts.append(text)
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
+        self.boundary = True
         if a.get("id"):
             self.ids.add(a["id"])
         skipped = False
@@ -72,10 +84,17 @@ class Parser(HTMLParser):
                 if not own and parent[0] == "section" and parent[2] and parent[2] not in self.claimed:
                     own = parent[2]   # the first heading in <section id="x"> is reached by #x
                     self.claimed.add(own)
-                self.found.append([own, [], []])
+                carried = []   # a chapter label ("2 · Two") sits in the <section> before its h2: it goes with that heading
+                if self.pre and self.pre[0] is self.parts and tag != "h1":
+                    carried = self.parts[self.pre[1]:]
+                    del self.parts[self.pre[1]:]
+                self.pre = None
+                self.found.append([own, [], carried])
                 self.parts, self.heading = self.found[-1][1], tag
             elif not skipped and tag not in INLINE:
                 self.add(" ")
+                if tag == "section" and self.parts is not None:
+                    self.pre = (self.parts, len(self.parts))
         if tag not in VOID:
             self.stack.append((tag, skipped, a.get("id")))
 
@@ -83,6 +102,9 @@ class Parser(HTMLParser):
         names = [name for name, _, _ in self.stack]
         if tag in VOID or tag not in names:
             return
+        self.boundary = True
+        if tag == "section":
+            self.pre = None
         del self.stack[len(names) - names[::-1].index(tag) - 1:]   # also closes tags left open, like <li>
         if self.heading and self.heading not in [name for name, _, _ in self.stack]:
             self.heading, self.parts = None, self.found[-1][2]

@@ -81,9 +81,10 @@ def test_generated_headings_carry_unique_ids():
     for md in DOCS:
         page = md.with_suffix(".html").read_text(encoding="utf-8")
         tags = re.findall(r"<h[23]\b[^>]*>", page)
-        ids = [re.search(r'id="([^"]+)"', tag) for tag in tags]
+        ids = [re.search(r'(?<![\w-])id="([^"]+)"', tag) for tag in tags]
         assert tags and all(ids), md
-        assert len({i[1] for i in ids}) == len(ids), md
+        everything = re.findall(r'(?<![\w-])id="([^"]*)"', page)   # no heading id may repeat any other id on the page
+        assert len(set(everything)) == len(everything) and {i[1] for i in ids} <= set(everything), md
 
 
 def test_stat_token_becomes_a_span_with_the_current_figure_as_fallback(tmp_path, monkeypatch):

@@ -353,7 +353,7 @@ abbr { text-decoration: underline dotted; cursor: help; }
     data: function(){ return get('fleet-data.json'); },
     record: function(){
       return get('../../../data/changes/changes.json').then(function(r){
-        if(!r || !Array.isArray(r.days) || !r.days.every(function(d){ return obj(d) && Array.isArray(d.changes) && d.changes.every(obj); })) throw new Error('wrong shape');
+        if(!r || !Array.isArray(r.days) || !r.days.every(function(d){ return obj(d) && typeof d.date === 'string' && Array.isArray(d.changes) && d.changes.every(obj); })) throw new Error('wrong shape');
         return r;
       }).catch(function(){ return null; });
     },
@@ -1683,7 +1683,8 @@ function drawGhosts(gone){
     else{ p = {x: bb.x1 + bb.w/2 + ((row % 10) - (cols - 1)/2) * 90, y: bb.y2 + 100 + Math.floor(row / 10) * 80}; row++; }
     nodeEls.push({group:'nodes', data:{id:'ghost:' + id, lab:clean(c.name), size:22, col:C('neutral'), shape: c.node_type === 'ship' ? 'diamond' : c.node_type === 'company' ? 'round-rectangle' : 'ellipse'}, position:p, classes:'ghost chg-removed'});
   });
-  if(nodeEls.length || edgeEls.length) cy.add(nodeEls.concat(edgeEls));
+  /* drawn again during a selection (a filter, a new window): a removed item is never lit, so it is dimmed like the rest */
+  if(nodeEls.length || edgeEls.length){ var drawn = cy.add(nodeEls.concat(edgeEls)); if(cy.$('.dim').length) drawn.addClass('dim'); }
 }
 function applyWindow(since, changes){ S.changes = changes; markChanges(); settle(); }
 function centreGhost(id){

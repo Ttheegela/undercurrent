@@ -1,7 +1,9 @@
 # Shadow Fleet Network: method
 
 Built on 25 September 2026 at the "Trace the Unseen" build day (sanctions and evasion track). This note says where every
-node and line in the chart comes from, how we joined the sources, and what the chart cannot show.
+node and line in the chart comes from, how we joined the sources, and what the chart cannot show. The chart is now rebuilt
+every night from the official lists: the counts and sources below are those of the 25 September build, and the map's
+"What the data covers" panel names the lists each night's build used.
 
 ## What the chart shows
 

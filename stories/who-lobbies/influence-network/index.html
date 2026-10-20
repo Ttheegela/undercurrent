@@ -251,7 +251,7 @@ a.btn { text-decoration: none; display: inline-block; }
     data: function(){ return get('kg.json'); },
     record: function(){
       return get('../../../data/changes/changes.json').then(function(r){
-        if(!r || !Array.isArray(r.days) || !r.days.every(function(d){ return obj(d) && Array.isArray(d.changes) && d.changes.every(obj); })) throw new Error('wrong shape');
+        if(!r || !Array.isArray(r.days) || !r.days.every(function(d){ return obj(d) && typeof d.date === 'string' && Array.isArray(d.changes) && d.changes.every(obj); })) throw new Error('wrong shape');
         return r;
       }).catch(function(){ return null; });
     },

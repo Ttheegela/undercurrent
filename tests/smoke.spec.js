@@ -673,6 +673,24 @@ test("changes record failure says unavailable, not no changes", async ({ page })
   await expect(page.locator(".chg-empty")).toContainText("No changes since");
 });
 
+// a day whose date is not a string cannot be placed on the calendar: the record is unusable, not empty
+const BAD_DATES = [20261019, null, { y: 2026 }, ["2026-10-19"]];
+const dateless = (date) => ({ started: "2026-10-10", days: [{ date, sources: {}, changes: [] }, ...recordFixture(STD_CHANGES).days] });
+
+test("map: a record day whose date is not a string says changes are unavailable", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.route(FLEET_JSON, (r) => r.fulfill({ json: fleetFixture() }));
+  for (const date of BAD_DATES) {
+    await page.route(CHANGES_JSON, (r) => r.fulfill({ json: dateless(date) }));
+    await mapReady(page);
+    const root = page.locator("#chg-root");
+    await expect(root).toContainText("Changes unavailable right now");
+    await expect(root.getByRole("button", { name: "Retry" })).toBeVisible();
+    await page.unroute(CHANGES_JSON);
+  }
+  expect(errors).toEqual([]);
+});
+
 test("retry restores the change panel and rings", async ({ page }) => {
   let down = true, record = 0, code = 0;
   await page.route(FLEET_JSON, (r) => r.fulfill({ json: fleetFixture() }));
@@ -823,6 +841,23 @@ test("ghosts follow the type filter and come back with it", async ({ page }) => 
   await page.locator("#f-type label", { hasText: "Ships" }).click();
   await expect.poll(() => cyIds(page, "node.ghost")).toContain("ghost:IMO1000099");
   expect(await cyIds(page, "edge.ghost")).toContain(`ghost:${edgeId(90)}`);
+});
+
+test("map: ghosts drawn again by a filter toggled during a selection stay dimmed", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubMap(page);
+  await mapReady(page);
+  const ghosts = () => page.evaluate(() => window.__fleet.cy.elements(".ghost").map((g) => [g.id(), g.hasClass("dim")]).sort());
+  await page.evaluate(() => window.__fleet.selectNode("co:acme", { fly: false }));
+  const before = await ghosts();
+  expect(before.length).toBeGreaterThan(0);
+  expect(before.every(([, dim]) => dim)).toBe(true); // a removed item is never lit by choosing its neighbour
+  await page.locator("#filters > summary").click();
+  await page.locator("#f-type label", { hasText: "Lead links" }).click(); // the ghosts are removed and drawn again
+  await expect.poll(ghosts).toEqual(before);
+  await page.locator("#f-type label", { hasText: "Lead links" }).click();
+  await expect.poll(ghosts).toEqual(before);
+  expect(errors).toEqual([]);
 });
 
 test("map: the key names new, changed and removed", async ({ page }) => {
@@ -1248,6 +1283,23 @@ test("network: change record failure says unavailable, not no changes, and Retry
   await again.goto(NETWORK);
   await again.getByRole("button", { name: "What changed" }).click();
   await expect(again.locator(".chg-empty")).toContainText("No changes since");
+});
+
+test("network: a record day whose date is not a string says changes are unavailable", async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.addInitScript(() => { window.__noAnim = true; });
+  await page.route(KG_JSON, (r) => r.fulfill({ json: kgFixture() }));
+  for (const date of BAD_DATES) {
+    await page.route(CHANGES_JSON, (r) => r.fulfill({ json: dateless(date) }));
+    await netReady(page);
+    await page.getByRole("button", { name: "What changed" }).click();
+    const root = page.locator("#chg-root");
+    await expect(root).toContainText("Changes unavailable right now");
+    await expect(root.getByRole("button", { name: "Retry" })).toBeVisible();
+    expect(await ghostIds(page)).toEqual([]);
+    await page.unroute(CHANGES_JSON);
+  }
+  expect(errors).toEqual([]);
 });
 
 test("network full outage: Retry reloads the change record too", async ({ page }) => {

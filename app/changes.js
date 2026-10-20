@@ -21,8 +21,12 @@ function shiftMonth(s, n) {
 }
 
 const PRESETS = { yesterday: ["Yesterday", 1], "7d": ["7 days", 7], "10d": ["10 days", 10] };
-// The five sources a night's build can find unavailable, and how the note names each.
-const SOURCES = { uk: ["UK list", "was"], us: ["US lists", "were"], eu: ["EU lists", "were"], un: ["UN list", "was"], lobbying: ["US lobbying filings", "were"] };
+// The five sources a night's build can find unavailable: how a note names each, and the graph it feeds (the lists feed
+// the fleet layer, which the network shows too under "fleet"; lobbying feeds only the lobby layer).
+const SOURCES = {
+  uk: ["UK list", "was", "fleet"], us: ["US lists", "were", "fleet"], eu: ["EU lists", "were", "fleet"], un: ["UN list", "was", "fleet"],
+  lobbying: ["US lobbying filings", "were", "lobby"],
+};
 const KINDS = { added: "New", removed: "Removed", changed: "Changed" };
 
 export function presetSince(preset, todayISO) {
@@ -49,10 +53,14 @@ export function daysWithChanges(record, graph) {
   return new Set((record?.days ?? []).filter((d) => d.changes.some(keep)).map((d) => d.date));
 }
 
-/** The sources a night's build could not read inside the window: a change from one of them is missing, not absent. */
-export function sourceGaps(record, sinceISO, todayISO) {
+/**
+ * The sources feeding `graph` (a name or an array) that a night's build could not read inside the window: a change from
+ * one of them is missing, not absent. "fleet" is the lists (us, uk, eu, un), "lobby" is lobbying.
+ */
+export function sourceGaps(record, graph, sinceISO, todayISO) {
+  const graphs = [].concat(graph);
   return windowDays(record, sinceISO, todayISO).flatMap((d) =>
-    Object.keys(SOURCES).filter((s) => d.sources?.[s] === "unavailable").map((source) => ({ source, date: d.date })));
+    Object.keys(SOURCES).filter((s) => graphs.includes(SOURCES[s][2]) && d.sources?.[s] === "unavailable").map((source) => ({ source, date: d.date })));
 }
 
 export function gapText({ source, date }) {
@@ -113,8 +121,9 @@ let uid = 0;
 /**
  * Mounts the panel in `root`: preset buttons, a "Pick a day" calendar, a heading, the change list and notes on sources
  * that were down. "Today" is the latest day in the record, or `today` when there is no record.
- * It starts on the 7 days preset and calls onWindow(sinceISO, changes) once during this call, then each time the window
- * changes; onSelect(change) runs when a row is clicked or Enter is pressed on it. `graph` is one graph name or an array.
+ * It starts on the 7 days preset. onWindow(sinceISO, changes) is called in a microtask after this call returns (so it can
+ * use the returned handle), then each time the window changes; onSelect(change) runs when a row is clicked or Enter is
+ * pressed on it. `graph` is one graph name or an array.
  */
 export function mountChangesPanel(root, { record, graph, today, limit = 50, updatesHref, onWindow, onSelect } = {}) {
   const id = `chg-${++uid}`;
@@ -122,7 +131,7 @@ export function mountChangesPanel(root, { record, graph, today, limit = 50, upda
   const min = record?.started || todayISO; // the first day with a record; earlier days are disabled
   const marked = daysWithChanges(record, graph);
   const clamp = (d) => (d < min ? min : d > todayISO ? todayISO : d);
-  let since, preset, cursor, open = false, changes = [];
+  let since, preset, cursor, open = false, destroyed = false, changes = [];
 
   root.classList.add("chg");
   root.innerHTML = `
@@ -158,7 +167,7 @@ export function mountChangesPanel(root, { record, graph, today, limit = 50, upda
     grid.innerHTML = renderCalendar(`${ym}-01`, { min, max: todayISO, since, cursor, marked });
   }
 
-  function setWindow(date, name = null) {
+  function setWindow(date, name = null, defer = false) {
     since = clamp(date);
     preset = name;
     cursor = since;
@@ -166,12 +175,13 @@ export function mountChangesPanel(root, { record, graph, today, limit = 50, upda
     const n = changes.length;
     title.textContent = `Since ${dMon(since)} · ${n} change${n === 1 ? "" : "s"}`;
     body.innerHTML = n ? renderChangeList(changes, { limit, updatesHref }) : `<p class="chg-empty">No changes since ${escapeHtml(formatDate(since))}.</p>`;
-    const lines = sourceGaps(record, since, todayISO).map(gapText);
+    const lines = sourceGaps(record, graph, since, todayISO).map(gapText);
     if (record?.started && preset && presetSince(preset, todayISO) < min) lines.unshift(`Changes are recorded from ${formatDate(min)}.`);
     notes.innerHTML = lines.map((t) => `<li>${escapeHtml(t)}</li>`).join("");
     root.querySelectorAll("[data-preset]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.preset === preset)));
     paintCalendar();
-    onWindow?.(since, changes);
+    const notify = () => { if (!destroyed) onWindow?.(since, changes); }; // reads the window as it is when it runs
+    if (defer) queueMicrotask(notify); else notify();
   }
 
   const focusCursor = () => grid.querySelector('[tabindex="0"]')?.focus();
@@ -201,13 +211,14 @@ export function mountChangesPanel(root, { record, graph, today, limit = 50, upda
 
   root.addEventListener("click", onClick);
   root.addEventListener("keydown", onKey);
-  setWindow(presetSince("7d", todayISO), "7d");
+  setWindow(presetSince("7d", todayISO), "7d", true);
 
   return {
     setSince(date) {
       if (ISO.test(date)) setWindow(date, Object.keys(PRESETS).find((p) => presetSince(p, todayISO) === date) ?? null);
     },
     destroy() {
+      destroyed = true;
       root.removeEventListener("click", onClick);
       root.removeEventListener("keydown", onKey);
       root.classList.remove("chg");

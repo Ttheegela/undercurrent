@@ -78,16 +78,26 @@ test("presetSince counts calendar days in UTC", () => {
 });
 
 test("sourceGaps lists unavailable sources inside the window, newest day first", () => {
-  assert.deepEqual(sourceGaps(RECORD, "2026-10-20", "2026-10-23"), [
+  const both = ["fleet", "lobby"];
+  assert.deepEqual(sourceGaps(RECORD, both, "2026-10-20", "2026-10-23"), [
     { source: "uk", date: "2026-10-23" },
     { source: "eu", date: "2026-10-21" },
     { source: "lobbying", date: "2026-10-21" },
   ]);
-  assert.deepEqual(sourceGaps(RECORD, "2026-10-22", "2026-10-23"), [{ source: "uk", date: "2026-10-23" }]);
-  assert.deepEqual(sourceGaps(RECORD, "2026-10-22", "2026-10-22"), []);
-  assert.deepEqual(sourceGaps(RECORD, "2025-01-01", "2026-10-20"), []); // clamped to started; 20 Oct was fine
-  assert.deepEqual(sourceGaps(RECORD, "2026-10-24", "2026-10-23"), []);
-  assert.deepEqual(sourceGaps(null, "2026-10-20", "2026-10-23"), []);
+  assert.deepEqual(sourceGaps(RECORD, both, "2026-10-22", "2026-10-23"), [{ source: "uk", date: "2026-10-23" }]);
+  assert.deepEqual(sourceGaps(RECORD, both, "2026-10-22", "2026-10-22"), []);
+  assert.deepEqual(sourceGaps(RECORD, both, "2025-01-01", "2026-10-20"), []); // clamped to started; 20 Oct was fine
+  assert.deepEqual(sourceGaps(RECORD, both, "2026-10-24", "2026-10-23"), []);
+  assert.deepEqual(sourceGaps(null, both, "2026-10-20", "2026-10-23"), []);
+});
+
+test("sourceGaps is per graph: the map has no lobbying gap, the network has both kinds", () => {
+  const all = [{ source: "uk", date: "2026-10-23" }, { source: "eu", date: "2026-10-21" }];
+  assert.deepEqual(sourceGaps(RECORD, "fleet", "2026-10-20", "2026-10-23"), all); // the lists, never lobbying
+  assert.deepEqual(sourceGaps(RECORD, ["fleet"], "2026-10-20", "2026-10-23"), all);
+  assert.deepEqual(sourceGaps(RECORD, "lobby", "2026-10-20", "2026-10-23"), [{ source: "lobbying", date: "2026-10-21" }]);
+  assert.deepEqual(sourceGaps(RECORD, ["fleet", "lobby"], "2026-10-20", "2026-10-23").map((g) => g.source), ["uk", "eu", "lobbying"]);
+  assert.deepEqual(sourceGaps(RECORD, [], "2026-10-20", "2026-10-23"), []);
 });
 
 test("gapText names the source and the day", () => {
@@ -195,4 +205,36 @@ test("moveDay moves by day and week, Home/End go to the week's edges, all clampe
   assert.equal(moveDay("2026-10-31", "ArrowRight", "2026-10-01", "2026-11-30"), "2026-11-01"); // across months
   assert.equal(to("2026-10-14", "PageDown"), null);
   assert.equal(to("2026-10-14", "a"), null);
+});
+
+// A root with just enough of the DOM for mountChangesPanel to render into: every selector gets one inert element.
+function stubRoot() {
+  const part = () => ({ hidden: true, textContent: "", innerHTML: "", dataset: {}, classList: { toggle() {} }, setAttribute() {}, focus() {} });
+  const parts = new Map();
+  return {
+    classList: { add() {}, remove() {} }, innerHTML: "", textContent: "", addEventListener() {}, removeEventListener() {},
+    querySelector: (sel) => (parts.has(sel) ? parts : parts.set(sel, part())).get(sel), querySelectorAll: () => [],
+  };
+}
+const tick = () => new Promise((resolve) => setTimeout(resolve));
+
+test("mountChangesPanel calls onWindow after it returns, so the callback can use the handle", async () => {
+  const seen = [];
+  let panel;
+  panel = mountChangesPanel(stubRoot(), { record: RECORD, graph: "fleet", onWindow: (since, changes) => seen.push([since, changes.length, typeof panel.setSince]) });
+  assert.deepEqual(seen, []); // not during the call
+  await tick();
+  assert.deepEqual(seen, [["2026-10-20", 3, "function"]]); // 7 days back from 23 Oct, clamped to the record start
+});
+
+test("a setSince straight after mount still ends with the latest window; destroy cancels the first call", async () => {
+  const seen = [];
+  const panel = mountChangesPanel(stubRoot(), { record: RECORD, graph: "fleet", onWindow: (since) => seen.push(since) });
+  panel.setSince("2026-10-21");
+  await tick();
+  assert.equal(seen.at(-1), "2026-10-21");
+  const quiet = [];
+  mountChangesPanel(stubRoot(), { record: RECORD, graph: "fleet", onWindow: (since) => quiet.push(since) }).destroy();
+  await tick();
+  assert.deepEqual(quiet, []);
 });

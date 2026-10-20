@@ -257,3 +257,42 @@ table.lists { width: 100%; border-collapse: collapse; font-size: var(--text-sm);
   .lg-handle::before, .lg-size, .lg-reset { display: none; }
   .lg-btn { min-height: 2rem; }
 }
+
+/* Changes panel (app/changes.js): presets, a month calendar, the change list and notes on sources that were down.
+   --chg-new is local to the panel and the list (10.5:1 on --color-paper-2); a removed row is dashed --color-neutral.
+   The graph pages use the classes chg-new and chg-removed for their own highlights, so none are defined here. */
+.chg, .chg-list { --chg-new: oklch(80% 0.17 150); }
+.chg { display: grid; gap: var(--space-sm); min-width: 0; color: var(--color-ink); font-size: var(--text-sm); }
+.chg [hidden] { display: none; }
+.chg-presets { display: flex; flex-wrap: wrap; gap: var(--space-2xs); }
+.btn.chg-btn { padding: 0.5rem 0.7rem; font-size: var(--text-xs); }
+.chg-btn[aria-pressed="true"], .chg-btn.is-on { background: var(--color-ink); border-color: var(--color-ink); color: var(--color-paper); }
+.chg-cal { border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-sm); padding: var(--space-xs); }
+.chg-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2xs); }
+.chg-month { font-weight: 700; font-size: var(--text-sm); }
+.btn.chg-nav { padding: 0.35rem 0.7rem; font-size: var(--text-base); }
+.chg-grid [role="row"] { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.chg-dow { text-align: center; padding: var(--space-2xs) 0; font: 500 var(--text-2xs)/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-neutral); }
+.chg-day { position: relative; display: block; width: 100%; min-height: 2.25rem; padding: 0 0 0.4rem; background: none; border: var(--rule-hair) solid transparent; border-radius: var(--radius-sm); color: var(--color-ink); font: 500 var(--text-xs)/2.25rem var(--font-mono); cursor: pointer; }
+.chg-day:hover:not(:disabled) { background: var(--color-paper-3); border-color: var(--color-rule); }
+.chg-day[aria-pressed="true"] { background: var(--color-paper-3); border-color: var(--color-ink); }
+.chg-day:disabled { opacity: 0.35; cursor: not-allowed; }
+.chg-dot { position: absolute; left: 50%; bottom: 5px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--chg-new); }
+.chg-title { margin: 0; font-size: var(--text-sm); font-weight: 700; line-height: 1.3; }
+.chg .chg-list { max-height: 20rem; overflow: auto; }
+.chg-list { list-style: none; margin: 0; padding: 0; }
+.chg-item { border-top: var(--rule-hair) solid var(--color-rule); border-left: 3px solid var(--color-muted); }
+.chg-pick { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-2xs) var(--space-sm); width: 100%; padding: var(--space-xs) var(--space-sm); background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.chg-pick:hover { background: var(--color-paper-3); }
+.chg-item[data-kind="added"] { border-left-color: var(--chg-new); }
+.chg-item[data-kind="removed"] { border-left: 3px dashed var(--color-neutral); }
+.chg-kind { font: 500 var(--text-2xs)/1.6 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-muted); }
+.chg-item[data-kind="added"] .chg-kind { color: var(--chg-new); }
+.chg-item[data-kind="removed"] .chg-kind { color: var(--color-neutral); }
+.chg-sum { overflow-wrap: anywhere; }
+.chg-date { grid-column: 2; font: var(--text-2xs)/1.4 var(--font-mono); color: var(--color-neutral); }
+.chg-src { display: inline-block; margin: 0 0 var(--space-xs) var(--space-sm); font-size: var(--text-xs); color: var(--color-muted); overflow-wrap: anywhere; }
+.chg-more, .chg-empty { margin: var(--space-xs) 0 0; font-size: var(--text-xs); color: var(--color-muted); }
+.chg-notes { list-style: none; margin: 0; padding: 0; font-size: var(--text-xs); color: var(--color-muted); }
+.chg-notes:empty { display: none; }
+.chg-notes li + li { margin-top: var(--space-2xs); }

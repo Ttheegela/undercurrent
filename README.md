@@ -42,6 +42,7 @@ Every night at 04:00 UTC, `.github/workflows/update-lists.yml` refreshes:
 - **Failure handling:** each source fails alone. A source that fails to download, changes shape or shrinks by more than 20% keeps yesterday's copy, and a GitHub issue names it. The page says "Some lists may be out of date" when a list is stale.
 - **Chip firms:** the list is hand-checked in `stories/chips-into-russia/data/chips-firms.json`. Firms are joined by OFAC id and each is named in a US Treasury press release. The home page's "months" figure is read from `summary.json`.
 - **Research snapshot:** fixed at 25 September 2026. Rebuild the search index with `python3 scripts/build_research_index.py`.
+- **Research notes:** the Markdown files under `stories/` are the source; the site serves the `.html` pages that `python3 scripts/build_docs.py` writes next to them. Edit the `.md`, run the script and commit both (a test fails if a page is out of date). `vercel.json` redirects the old `.md` URLs.
 
 ### Two jobs, one key
 

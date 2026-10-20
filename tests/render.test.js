@@ -36,7 +36,7 @@ test("escapeHtml and safeUrl neutralise hostile data", () => {
   assert.equal(safeUrl("javascript:alert(1)"), "#");
   assert.equal(safeUrl("data:text/html,hi"), "#");
   assert.equal(safeUrl("https://www.gov.uk/x"), "https://www.gov.uk/x");
-  assert.equal(safeUrl("stories/shadow-fleet/FINDINGS.md"), "stories/shadow-fleet/FINDINGS.md");
+  assert.equal(safeUrl("stories/shadow-fleet/FINDINGS.html"), "stories/shadow-fleet/FINDINGS.html");
 });
 
 test("dossier escapes names and drops javascript links", () => {

@@ -264,7 +264,8 @@ const NETWORK = "/stories/who-lobbies/influence-network/index.html";
 
 for (const [name, path] of [["shadow-fleet map", MAP], ["influence network", NETWORK]]) {
   test(`${name}: the key drags, collapses and resets, and remembers across reloads`, async ({ page }) => {
-    if (path === NETWORK) test.slow(); // four loads, each laying out 3,000 nodes: 17 s on a quiet machine, over the default 30 s on a busy one
+    // Four loads of a multi-megabyte graph page plus CDN scripts: give CI room beyond the 30 s default.
+    test.slow();
     const errors = watchErrors(page);
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto(path);
@@ -301,7 +302,8 @@ test("every page with the main header links to both graphs, on desktop and phone
   const pages = ["/index.html", "/stories/about-the-data.html", "/stories/how-sanctions-work/index.html",
     "/stories/chips-into-russia/viz/index.html", "/stories/chips-into-russia/viz/coverage.html",
     "/stories/chips-into-russia/viz/listing_lag.html", "/stories/chips-into-russia/viz/river.html",
-    "/stories/who-lobbies/influence-network/methods.html", "/stories/who-lobbies/clean-names-graph/index.html", MAP, NETWORK];
+    "/stories/who-lobbies/influence-network/methods.html", "/stories/who-lobbies/clean-names-graph/index.html",
+    "/stories/shadow-fleet/network/METHOD.html", "/stories/sources/METHODS_LOG.html", MAP, NETWORK];
   for (const width of [1280, 375]) {
     await page.setViewportSize({ width, height: 812 });
     for (const path of pages) {

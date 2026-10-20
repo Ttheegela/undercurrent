@@ -7,10 +7,11 @@ import { join } from "node:path";
 import { TOOLS, runTool, resetAskCache } from "../api/_ask_tools.js";
 import { INDEX_URL, resetIndexCache } from "../api/search.js";
 import { CONNECTIONS_URL, LOBBYING_URL, resetConnectionsCache } from "../api/connections.js";
+import { normalizeName } from "../app/normalize.js";
 
 // ---- a small site on disk: the tools read it from process.cwd() ---------------------------------------------------
 
-const rec = (name, program, date, ref, imo = "", url = "") => [name, name.toUpperCase().replace(/[^A-Z0-9 ]/g, " ").replace(/\s+/g, " ").trim(), program, date, ref, imo, url];
+const rec = (name, program, date, ref, imo = "", url = "") => [name, normalizeName(name), program, date, ref, imo, url]; // the stored key is the normalised name, as in the real lists
 const LISTS = {
   us: [
     rec("TASSOS", "Iran", "", "54815", "9408695"),
@@ -21,6 +22,9 @@ const LISTS = {
     rec("Tasson", "Entity List (EL)", "2010-01-01", "T1"),
     rec("ALI", "Iran", "", "A1"),
     rec("Shipping Ltd", "Russia", "", "SH1"),
+    rec("Ship Management Ltd", "Russia", "", "SM1"),
+    rec("ARES SHIPPING LIMITED", "Iran", "", "AR1"),
+    rec("ABGO TRADING LIMITED", "Iran", "", "AB1"),
     rec("AREN SHIP MANAGEMENT", "Iran", "", "53099", "6088476"),
     ...Array.from({ length: 8 }, (_, i) => rec(`QUARTZ ${i}`, "Russia", "2024-01-0" + (i + 1), `Q${i}`)),
   ],
@@ -56,6 +60,10 @@ const RESEARCH = [
     id: "org:lukoil", name: "PAO LUKOIL", kind: "Company", story: { label: "Open the lobbying network", url: "stories/who-lobbies/clean-names-graph/index.html" },
     listings: [{ by: "EU and UK sanctions lists", date: "2025", program: "", ref: 1 }],
     facts: [{ text: "On the EU and UK lists from 2025.", refs: [1] }], sources: [{ n: 1, label: "Findings", url: "stories/who-lobbies/FINDINGS.html" }],
+  }),
+  entry({
+    id: "co:zed", name: "ZED HOLDING", kind: "Company", listings: [{ by: "United States", date: "2024-01-01", program: "Iran", ref: 1 }],
+    facts: [{ text: "Listed by the United States on 1 January 2024 (Iran).", refs: [1] }], sources: [{ n: 1, label: "OFAC", url: "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=2" }],
   }),
   entry({
     id: "co:smic", name: "SMIC", kind: "Company", listings: [{ by: "US export-control Entity List", date: "2020-12", program: "", ref: 1 }],
@@ -157,7 +165,8 @@ const osIndex = {
     ["NK-x1", "Vessel", "1111111", "US", ["TASSOS STAR"]],
     ["NK-x2", "Company", "", "EU", ["Sovcomflot PJSC", "SCF Group"]],
     ["NK-orion", "Company", "", "EU", ["Orion Ship Management Holdings"]],
-    ["NK-ua", "Company", "", "Ukraine GUR war-sanctions database", ["Orion Ship Management Group"]], // a guard: GUR's database alone is not a listing (no such value in the real index)
+    ["NK-ua", "Company", "", "Ukraine War and Sanctions", ["Orion Ship Management Group"]], // a guard: GUR's database alone is not a listing (its title; no such value in the real index)
+    ["NK-ua2", "Company", "", "Ukraine GUR war-sanctions database", ["Orion Ship Management Syndicate"]],
     ["NK-nsdc", "Person", "", "Ukraine", ["CHANTURIA IRAKLI", "Chanturiia Irakli"]], // real shape: Ukraine's own sanctions carry the label "Ukraine"
     ["NK-meti", "Organization", "", "Japan METI End User List", ["Kuroda Precision Works"]], // real shape: an entry with no programme id carries its dataset's title
     ["NK-multi", "Company", "", "Australia, Canada, EU, UK, New Zealand, Switzerland, Ukraine, US", ["Baltic Carrier Works"]],
@@ -727,6 +736,31 @@ test("C1: a one-word generic or very short name inside the query is not offered"
   }
 });
 
+test("C1 residual: a multi-word listed name made of short or generic words is offered when the query adds a word", async () => {
+  for (const query of ["ARES SHIPPING LIMITED Group", "ABGO TRADING LIMITED Group", "ZED HOLDING Group", "Ares Shipping Co. LLC Group"]) {
+    ev = [];
+    await run("check_lists", { query });
+    assert.equal(ev[0].found, false, query);
+    assert.equal(ev.length, 1, query); // offered, not cited
+    assert.ok(ev[0].near.length >= 1 && /^(ARES SHIPPING|ABGO TRADING|ZED HOLDING)/i.test(ev[0].near[0]), `${query}: ${ev[0].near}`);
+  }
+  // and the listed name itself is found as before
+  ev = [];
+  await run("check_lists", { query: "ARES SHIPPING LIMITED" });
+  assert.equal(ev[0].found, true);
+});
+
+test("C1 residual: names made only of generic words, and one generic word, still offer nothing", async () => {
+  for (const query of ["Shipping Group", "Ship Management Group", "Trading Group"]) { // "Shipping Ltd" and "Ship Management Ltd" are listed
+    ev = [];
+    await run("check_lists", { query });
+    assert.deepEqual([ev[0].found, ev[0].near], [false, []], query);
+  }
+  ev = [];
+  await run("check_lists", { query: "Sovcomflot Group" }); // a one-word name still needs 5+ letters
+  assert.deepEqual(ev[0].near, ["SOVCOMFLOT"]);
+});
+
 test("C1: connections also finds the IMO or the bare name inside the query", async () => {
   for (const query of ["TASSOS (IMO 9408695)", "IMO: 9408695", "MV TASSOS"]) {
     ev = [];
@@ -776,7 +810,7 @@ test("I2: a single down day keeps its date; two outages with a good night betwee
   write(root, "data/changes/changes.json", { ...CHANGES, days: [day("2026-10-16", ["us"]), day("2026-10-15", []), day("2026-10-14", ["us", "eu"]), day("2026-10-13", ["us"]), day("2026-10-12", [])] });
   try {
     resetAskCache();
-    await run("changes", { since: "2026-10-12", until: "2026-10-20" });
+    await run("changes", { since: "2026-10-12", until: "2026-10-16" });
     const key = (g) => `${g.source} ${g.from} ${g.to} ${g.date}`;
     assert.deepEqual(ofKind("gap").map(key).sort(), [
       "The EU list 2026-10-14 2026-10-14 2026-10-14", "The US list 2026-10-13 2026-10-14 undefined", "The US list 2026-10-16 2026-10-16 2026-10-16",
@@ -837,6 +871,9 @@ test("OpenSanctions authorities: real shapes. Ukraine's own sanctions and a data
   assert.equal(ev[0].found, false);
   assert.equal(ofKind("opensanctions").length, 0);
   assert.ok(!ev[0].near.some((n) => /Group$/.test(n)));
+  ev = [];
+  await run("check_lists", { query: "Orion Ship Management Syndicate" }); // the other spelling of the guard
+  assert.deepEqual([ev[0].found, ofKind("opensanctions").length], [false, 0]);
 });
 
 test("minors: an empty date keeps the government, a year or month reads 'in', a relative source url is made absolute, research items say how they matched", async () => {
@@ -856,20 +893,20 @@ test("minors: an empty date keeps the government, a year or month reads 'in', a 
 
 test("M7: nights absent from the record are gap runs by 'The nightly update', and never read as 'no changes'", async () => {
   const day = (date, changes = []) => ({ date, sources: FRESH, changes });
-  // the nightly run skipped the 13th and 14th, and the 17th is simply not run yet (it is after the latest day held)
+  // the nightly run skipped the 13th and 14th, and has not run since the 16th; today is the 20th, whose run may be still to come
   write(root, "data/changes/changes.json", { ...CHANGES, days: [day("2026-10-16", [ship(1, "2026-10-16")]), day("2026-10-15"), day("2026-10-12")] });
   try {
     resetAskCache();
     const out = await run("changes", { since: "2026-10-12", until: "2026-10-20" });
     const gaps = ofKind("gap");
-    assert.deepEqual(gaps.map((g) => [g.source, g.from, g.to, g.date]), [["The nightly update", "2026-10-13", "2026-10-14", undefined]]);
-    assert.equal(gaps[0].text, "The nightly update was unavailable from 13 Oct 2026 (2026-10-13) to 14 Oct 2026 (2026-10-14), so changes from it on those days aren't recorded.");
-    assert.equal(gaps[0].url, "/stories/updates/index.html?from=2026-10-13&to=2026-10-14&graph=all");
-    assert.deepEqual([out.gaps, out.missing_nights, out.gap_days, out.total], [1, 2, 0, 1]);
+    assert.deepEqual(gaps.map((g) => [g.source, g.from, g.to, g.date]), [["The nightly update", "2026-10-17", "2026-10-19", undefined], ["The nightly update", "2026-10-13", "2026-10-14", undefined]]);
+    assert.equal(gaps[1].text, "The nightly update was unavailable from 13 Oct 2026 (2026-10-13) to 14 Oct 2026 (2026-10-14), so changes from it on those days aren't recorded.");
+    assert.equal(gaps[0].url, "/stories/updates/index.html?from=2026-10-17&to=2026-10-19&graph=all");
+    assert.deepEqual([out.gaps, out.missing_nights, out.gap_days, out.total], [2, 5, 0, 1]);
     // a graph filter does not hide a night that did not run
     ev = [];
     await run("changes", { since: "2026-10-12", until: "2026-10-20", graph: "lobby" });
-    assert.deepEqual(ofKind("gap").map((g) => g.source), ["The nightly update"]);
+    assert.deepEqual(ofKind("gap").map((g) => g.source), ["The nightly update", "The nightly update"]);
     // one missing night keeps the single-day wording and a date
     ev = [];
     await run("changes", { since: "2026-10-14", until: "2026-10-16" });
@@ -884,10 +921,24 @@ test("M7: nights absent from the record are gap runs by 'The nightly update', an
     ev = [];
     await run("changes", { since: "2026-10-15", until: "2026-10-15" });
     assert.deepEqual(ev.map((e) => [e.kind, e.found]), [["change", false]]);
-    // after the latest night held, and before the first, nothing is missing
+    // the nights after the latest one held are missing too, up to yesterday: a stalled job is not "no changes"
     ev = [];
-    await run("changes", { since: "2026-10-17", until: "2026-10-20" });
+    const stalled = await run("changes", { since: "2026-10-17", until: "2026-10-20" });
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.from, e.to]), [["gap", undefined, "2026-10-17", "2026-10-19"]]);
+    assert.deepEqual([stalled.total, stalled.missing_nights], [0, 3]);
+    assert.doesNotMatch(JSON.stringify(ev), /No changes were recorded/);
+    ev = [];
+    const week = await run("changes", { since: "2026-10-13" }); // "what changed this week", with a change on the 16th
+    assert.equal(week.total, 1);
+    assert.deepEqual(ofKind("gap").map((g) => [g.from, g.to]), [["2026-10-17", "2026-10-19"], ["2026-10-13", "2026-10-14"]]);
+    // today itself is never flagged, and before its run it is simply not there yet
+    ev = [];
+    await run("changes", { since: "2026-10-20", until: "2026-10-20" });
     assert.deepEqual(ev.map((e) => [e.kind, e.found]), [["change", false]]);
+    // with today as the 17th, the 17th is not flagged but the stretch up to it is
+    ev = [];
+    await run("changes", { since: "2026-10-12", until: "2026-10-20" }, { today: "2026-10-17" });
+    assert.deepEqual(ofKind("gap").map((g) => [g.from, g.to]), [["2026-10-13", "2026-10-14"]]);
   } finally {
     write(root, "data/changes/changes.json", CHANGES);
   }

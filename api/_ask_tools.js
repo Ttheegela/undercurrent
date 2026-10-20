@@ -154,7 +154,7 @@ const similar = (a, b) =>
 // A research key that is one of the entry's published names (a former ship name) is shown as that name; any other key is not shown.
 const publishedName = (e, key) => e.names.find((n) => normalizeName(n.name) === key)?.name ?? e.name;
 const placeholder = (e) => e.id.startsWith("co:unlisted") || /^unlisted\b/i.test(e.name);
-const governmental = (e) => e.by.split(", ").some((a) => !/\bGUR\b|war[-_ ]sanctions/i.test(a));
+const governmental = (e) => e.by.split(", ").some((a) => !/\bGUR\b|war[-_ ](and[-_ ])?sanctions/i.test(a)); // also the dataset's title, "Ukraine War and Sanctions"
 
 /** The names (in the lists, the research and OpenSanctions) whose words are all in the query. */
 function containedIn(q, entries, docs, entities) {
@@ -162,7 +162,8 @@ function containedIn(q, entries, docs, entities) {
   const words = new Set(q.tokens);
   const fits = (key) => {
     const w = key.split(" ");
-    return w.every((x) => words.has(x)) && w.some(distinctive);
+    // a one-word name must be a distinctive word; a longer name needs one word that is neither generic nor a function word ("ARES SHIPPING")
+    return w.every((x) => words.has(x)) && (w.length === 1 ? distinctive(w[0]) : w.some((x) => !GENERIC.has(x) && !FUNCTION_WORDS.has(x)));
   };
   const out = [];
   for (const e of entries) if (!placeholder(e)) for (const k of e.keys) if (fits(k)) out.push({ name: publishedName(e, k), words: k.split(" ").length });
@@ -421,13 +422,15 @@ function changesTool(args, ev, ctx) {
   const inRange = inRecord ? changesSince(rec, ["fleet", "lobby"], from, to) : [];
   const all = inRecord ? changesSince(rec, graphs, from, to).filter((c) => words.every((w) => hay(c).includes(w))) : [];
   const sourceDays = inRecord ? sourceGaps(rec, graphs, from, to) : [];
-  // A night between the first and the latest day the record holds, and not in it, is a run that did not complete: not "no changes".
-  // (Days after the latest held night are simply not run yet.)
+  // A night from the first day the record holds to yesterday (UTC) that it does not hold is a run that did not complete: not "no
+  // changes". That includes the nights after the latest day held, so a stalled job shows. Today is never flagged: its run (04:00 UTC)
+  // may not have happened yet.
   const held = new Set((rec.days ?? []).map((d) => d.date).filter(isDate));
   const days = [...held].sort();
-  const [first, latest] = [days[0], days.at(-1)];
+  const first = days[0];
+  const yesterday = addDays(today, -1);
   const missing = [];
-  if (inRecord && first) for (let d = from > first ? from : first; d <= to && d <= latest; d = addDays(d, 1)) if (!held.has(d)) missing.push(d);
+  if (inRecord && first) for (let d = from > first ? from : first; d <= to && d <= yesterday; d = addDays(d, 1)) if (!held.has(d)) missing.push(d);
   const runs = inRecord ? gapRuns([...sourceDays, ...missing.map((date) => ({ source: "nightly", date }))]) : [];
   const gapDays = sourceDays.length;
   const shown = all.slice(0, CAP.changes);

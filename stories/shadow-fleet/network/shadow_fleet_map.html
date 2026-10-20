@@ -420,11 +420,13 @@ if(TMAX == null) TMAX = 92;
 var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 /* ---------- index ---------- */
-var byId = Object.create(null), adj = Object.create(null), edgeById = Object.create(null); /* no prototype: an id from the URL or the change record can be "constructor" */
+var byId = Object.create(null), adj = Object.create(null), edgeById = Object.create(null), edgeByKey = Object.create(null); /* no prototype: an id from the URL or the change record can be "constructor" */
 D.nodes.forEach(function(n){ byId[n.id] = n; adj[n.id] = []; });
-D.edges.forEach(function(e){
+/* The payload's links have no id of their own (a link is its source, target and type): the page numbers them, and finds the link a change
+   names by those three, which a change carries as endpoint_ids[0], endpoint_ids[1] and node_type. */
+D.edges.forEach(function(e, k){
   if(!byId[e.s] || !byId[e.t]) return;
-  edgeById[e.i] = e;
+  e.i = 'e' + k; edgeById[e.i] = e; edgeByKey[e.s + '|' + e.t + '|' + e.y] = e;
   adj[e.s].push(e); adj[e.t].push(e);
   e._m = parseMonth(e.d);
 });
@@ -1620,16 +1622,17 @@ renderEmpty(); renderPatterns(); renderAbout();
 /* ---------- changes: what the day chosen in the panel added, removed or changed ---------- */
 /* The panel (app/changes.js) calls applyWindow with this graph's changes since the chosen day. A new ship or link gets a green ring, a
    changed one a grey ring; an item that has left the graph is drawn as a dashed ghost, which takes no clicks. */
-var chgPanel = null, chgIds = new Set(), DAY = /^\d{4}-\d{2}-\d{2}$/;
+var chgPanel = null, chgById = new Map(), DAY = /^\d{4}-\d{2}-\d{2}$/;
+function edgeOf(c){ var ep = c.endpoint_ids; return ep ? edgeByKey[ep[0] + '|' + ep[1] + '|' + c.node_type] : undefined; } /* the map's link a change names, if it is on the map */
 function markChanges(){
   var gone = [];
   cy.batch(function(){
     cy.elements('.ghost').remove();
     cy.elements('.chg-new, .chg-changed').removeClass('chg-new chg-changed');
     S.changes.forEach(function(c){
-      var here = c.item === 'edge' ? edgeById[c.id] : byId[c.id];
+      var here = c.item === 'edge' ? edgeOf(c) : byId[c.id];
       if(c.kind === 'removed'){ if(!here) gone.push(c); }
-      else if(here) cy.getElementById(c.id).addClass(c.kind === 'added' ? 'chg-new' : 'chg-changed');
+      else if(here) cy.getElementById(c.item === 'edge' ? here.i : c.id).addClass(c.kind === 'added' ? 'chg-new' : 'chg-changed');
     });
     drawGhosts(gone);
   });
@@ -1673,21 +1676,22 @@ function showStage(){ if(matchMedia('(max-width: 760px)').matches) document.getE
 /* an item named by a change row or the hash: a node or link on the map is focused, a removed one is centred on its ghost (if it has one) */
 function goTo(id){
   showStage();
+  var c = chgById.get(id), e = c && c.item === 'edge' ? edgeOf(c) : null; /* a link's id is a change's, as the payload has none */
   if(byId[id]) focusNode(id);
-  else if(edgeById[id]) focusNode(edgeById[id].s);
+  else if(e) focusNode(e.s);
   else centreGhost(id);
 }
-function known(id){ return !!id && !!(byId[id] || edgeById[id] || chgIds.has(id)); }
+function known(id){ return !!id && !!(byId[id] || chgById.has(id)); }
 /* a link to a removed item can only be followed once the first view is laid out and the panel has chosen its window */
 function settle(){
   var f = S.pendingFocus;
-  if(f && S.ready && chgPanel){ S.pendingFocus = null; if(chgIds.has(f)) goTo(f); }
+  if(f && S.ready && chgPanel){ S.pendingFocus = null; if(chgById.has(f)) goTo(f); }
 }
 function mountPanel(rec, mod){
   var root = document.getElementById('chg-root');
   if(!mod){ root.textContent = 'The list of changes is unavailable right now.'; return; }
   if(!rec || !Array.isArray(rec.days) || !rec.days.every(function(d){ return d && Array.isArray(d.changes); })) rec = null;
-  if(rec) rec.days.forEach(function(d){ d.changes.forEach(function(c){ if(c.graph === 'fleet') chgIds.add(c.id); }); });
+  if(rec) rec.days.forEach(function(d){ d.changes.forEach(function(c){ if(c.graph === 'fleet' && !chgById.has(c.id)) chgById.set(c.id, c); }); });
   chgPanel = mod.mountChangesPanel(root, {record:rec, graph:'fleet', today:String(META.generated || '').slice(0, 10), updatesHref:'../../updates/index.html',
     onWindow:applyWindow, onSelect:function(c){ if(c) goTo(c.id); }});
   var since = parseHash().since;
@@ -1702,10 +1706,10 @@ function parseHash(){
   return hp;
 }
 /* optional deep link: #view=big&select=IMO9282792&tab=patterns&pattern=names&focus=IMO9282792&since=2026-10-12
-   (focus: an id on the map or in the change record; since: the first day of the changes window) */
+   (focus: a node id on the map, or the id of a change in the record: a link, or a node or link that has left the map; since: the first day of the changes window) */
 var HP = parseHash();
 var bootView = PRESETS.some(function(p){ return p.id===HP.view; }) ? HP.view : 'overlap';
-var bootFocus = HP.focus && (byId[HP.focus] ? HP.focus : edgeById[HP.focus] ? edgeById[HP.focus].s : null);
+var bootFocus = HP.focus && byId[HP.focus] ? HP.focus : null;
 S.pendingFocus = HP.focus && !bootFocus ? HP.focus : null;
 if(matchMedia('(max-width: 760px)').matches && !DAY.test(HP.since || '')) document.getElementById('changes').open = false; /* keep the map in reach on a phone */
 S._after = function(){

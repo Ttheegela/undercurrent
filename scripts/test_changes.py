@@ -10,7 +10,7 @@ import pytest
 import fleet_official as fo
 import kg_build
 from changes import diff, summarize, update_record
-from fleet_merge import edge_id, generic_id, merge
+from fleet_merge import compact, edge_id, generic_id, merge
 from kg_build import build_kg
 from lists import LISTS
 
@@ -119,6 +119,27 @@ def test_new_and_removed_link():
     assert (new["source_url"], new["source_label"]) == ("https://example.gov/zulu", "UK Sanctions List")
     gone = only(diff(with_link, fleet(*base), "fleet", DAY, set()))
     assert (gone["kind"], gone["summary"]) == ("removed", "Link removed: TASSOS → Zulu Ships Management (managed by)")
+
+
+def payload_ready(graph):
+    """The long form as merge() leaves it for compact(): every link has its confidence."""
+    return dict(graph, edges=[{"confidence": "Documented", **e} for e in graph["edges"]])
+
+
+def test_page_finds_a_changed_link_by_its_ends():
+    """The map's payload has no edge ids, so the page matches a change's link on (endpoint_ids[0], endpoint_ids[1], node_type)
+    against the payload's (s, t, y)."""
+    base = [ship(), ZULU_NODE, listing(TASSOS, "uk"), *GOV_NODES]
+    now = fleet(*base, fedge(ZULU, TASSOS, "manages"))
+    added = only(diff(fleet(*base), now, "fleet", DAY, set()))
+    links = [(e["s"], e["t"], e["y"]) for e in compact(payload_ready(now), DAY)["edges"]]
+    assert (*added["endpoint_ids"], added["node_type"]) in links and len(links) == len(set(links))
+    # a company that is generic today: the payload and the change both carry the published id
+    gen = generic_id(REAL)
+    generic = fnode(gen, "company", "unlisted ship manager", name_policy="generic", generic_name="unlisted ship manager")
+    now = fleet(*base, generic, fedge(gen, TASSOS, "owns"))
+    new = only([c for c in diff(fleet(*base), now, "fleet", DAY, set()) if c["item"] == "edge"])
+    assert (*new["endpoint_ids"], new["node_type"]) in [(e["s"], e["t"], e["y"]) for e in compact(payload_ready(now), DAY)["edges"]]
 
 
 def test_edge_change_carries_endpoint_ids():

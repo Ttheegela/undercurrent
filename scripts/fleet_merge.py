@@ -367,7 +367,9 @@ def _map_graph(graph: dict) -> dict:
 
 
 def compact(graph: dict, generated: str) -> dict:
-    """The page's FLEET_DATA: a [url, file] source table, a quote table and short edge keys (merge.py:306-355)."""
+    """The page's FLEET_DATA: a [url, file] source table, a quote table and short edge keys (merge.py:306-355). An edge has
+    no id here (its e:<12 hex> id was about 40 KB of gzip, and is a hash of s, t and y): the page names a link by (s, t, y),
+    as a change names it by (endpoint_ids, node_type). The long form keeps its ids."""
     graph = _map_graph(graph)
     sources, quotes, sidx, qidx = [], [], {}, {}
 
@@ -377,7 +379,7 @@ def compact(graph: dict, generated: str) -> dict:
             table.append(list(key) if isinstance(key, tuple) else key)
         return index[key]
 
-    edges = [{"i": e["id"], "s": e["source"], "t": e["target"], "y": e["type"], "d": e.get("date", ""),
+    edges = [{"s": e["source"], "t": e["target"], "y": e["type"], "d": e.get("date", ""),
               "c": "D" if e["confidence"] == "Documented" else "L",
               "src": [[ref(sources, sidx, (x["url"] or "", x["file"] or "")), ref(quotes, qidx, (x["quote"] or "")[:300]),
                        x.get("record", ""), x.get("angle", ""), "D" if x.get("confidence") == "Documented" else "L"]

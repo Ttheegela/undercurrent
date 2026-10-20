@@ -364,8 +364,11 @@ def test_compact_matches_page_shape():
     data = compact(g, "2026-10-19")
     assert list(data) == ["nodes", "edges", "sources", "quotes", "meta"]  # the old inline FLEET_DATA keys
     first = data["edges"][0]
-    assert {"i", "s", "t", "y", "src"} <= set(first)
-    assert first["i"] == "e:" + hashlib.sha1(f"{first['s']}|{first['t']}|{first['y']}".encode()).hexdigest()[:12]
+    assert {"s", "t", "y", "src"} <= set(first)
+    # no edge id: the e:<12 hex> ids were 40 KB of gzip, and a link is its (s, t, y) anyway (the id is a hash of them)
+    assert all(set(e) <= {"s", "t", "y", "d", "c", "src", "n"} for e in data["edges"])
+    keys = [(e["s"], e["t"], e["y"]) for e in data["edges"]]
+    assert len(keys) == len(set(keys))
     assert data["meta"]["generated"] == "2026-10-19" and data["meta"]["title"] == "Shadow Fleet Network"
     counts = data["meta"]["counts"]
     assert (counts["ships"], counts["edges"], counts["ships_russia_and_iran"]) == (1, 2, 1)

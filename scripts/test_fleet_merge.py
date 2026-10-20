@@ -209,6 +209,10 @@ def test_is_official_matches_the_host():
     assert not is_official("https://war-sanctions.gur.gov.ua/en") and not is_official("")
 
 
+def test_a_malformed_url_is_not_official():
+    assert not is_official("https://[gov.uk/x") and not is_official("http://[::1")  # (urlsplit raises on these)
+
+
 def test_generic_stub_scrubs_real_name():
     cited = edge("co:gone-shipping", "IMO9408695", "manages", "2023-02",
                  src("ship-histories", "https://example.org/h", confidence="Lead", quote="Gone Shipping LLC took over"))

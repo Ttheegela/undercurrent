@@ -209,6 +209,18 @@ def test_cosmetic_respelling_is_not_a_rename():
         "summary"] == "Renamed: Orchid Ship management LLC-FZ → Orchid Maritime LLC-FZ"
 
 
+def test_a_company_name_that_norm_co_reads_alike_is_not_a_rename():
+    def company(name):
+        return fleet(fnode("co:cape-gemi-isletmeciligi-as", "company", name, name_policy="show", listed_by=["eu"]),
+                     listing("co:cape-gemi-isletmeciligi-as", "eu"), *GOV_NODES)
+    # the id is a slug of norm_co(name), which drops a parenthetical: every spelling it reads alike is the same company
+    assert diff(company("Cape Gemi Isletmeciligi AS (Turkey)"), company("Cape Gemi Isletmeciligi AS"), "fleet", DAY,
+                set()) == []
+    # a ship's name keeps the strict comparison: "(Turkey)" would be part of it
+    assert only(diff(fleet(ship(name="OCEAN (II)")), fleet(ship(name="OCEAN")), "fleet", DAY, set()))[
+        "summary"] == "Renamed: OCEAN (II) → OCEAN (IMO 9408695)"
+
+
 def test_rename_and_programmes():
     prev = fleet(ship(name="OLD STAR", programs=["russia"]), listing(TASSOS, "uk"), *GOV_NODES)
     curr = fleet(ship(name="TASSOS", programs=["iran", "russia"]), listing(TASSOS, "uk"), *GOV_NODES)
@@ -517,6 +529,18 @@ def test_new_recent_filing_is_new():
     assert {c["summary"] for c in diff(prev, now, "lobby", DAY, set())} == {
         "Nord Stream 2 AG hired Capitol Counsel LLC", "Jane Roe is a lobbyist at Capitol Counsel LLC",
         "New lobbyist: Jane Roe"}
+
+
+def test_a_link_held_once_per_client_is_new_on_any_of_its_new_filings():
+    # kg.json holds a firm's lobbying of one agency once per client, so links can share their ends and type
+    senate = knode("gov:us-senate", "government", "US Senate")
+    url = "https://lda.gov/filings/public/filing/dddd4444/print/"
+    prev = kg(NS2, CAPITOL, senate, kedge(NS2["id"], CAPITOL["id"], "hired", fl=["aaaa1111"]))
+    curr = kg(NS2, CAPITOL, senate, kedge(NS2["id"], CAPITOL["id"], "hired", fl=["aaaa1111"]),
+              kedge(CAPITOL["id"], "gov:us-senate", "lobbied", fl=["dddd4444"], u=url),  # a new filing, for one client
+              kedge(CAPITOL["id"], "gov:us-senate", "lobbied", fl=["aaaa1111"], fr=[]))  # an old one, for another
+    lobbied = [c for c in diff(prev, curr, "lobby", DAY, set()) if c["node_type"] == "lobbied"]
+    assert [(c["summary"], c["source_url"]) for c in lobbied] == [("Capitol Counsel LLC lobbied US Senate", url)]
 
 
 def test_yesterday_without_filing_ids_cannot_say_what_lobbying_is_new():

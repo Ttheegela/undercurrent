@@ -15,7 +15,9 @@ A fleet node's lists and their dates are merge()'s own (listed_by and listing_da
 designation edges also hold research designations that no list backs today, and give the "blocked" level only where
 they back a government in listed_by.
 Hand-checked list status of lobby-side companies lives in base["status"] and is applied last, as the original's curated
-status was, but never weaker than the live one: a node shows the stronger of the two levels. Only an asset freeze is
+status was, but never weaker than the live one: a node shows the stronger of the two levels. On a node in the live
+fleet graph, a curated entry stays only while its government still lists the node, and the curated level only while
+every one of its entries stays (it may rest on the one that went): otherwise the live level stands. Only an asset freeze is
 "blocked" (a US SDN entry, a UK row with an asset freeze, an EU Reg. 269/2014 entry); the rest is "restricted", the
 page's dashed ring (US SSI and NS-MBS entries, UK specified ships, EU Reg. 833/2014 measures such as the ship listing),
 so a ship listed only by the UK or EU is "restricted". The 16 fleet companies in the base are not in base["status"]:
@@ -210,15 +212,17 @@ def build_kg(fleet: dict, lobby: dict | None, base: dict, previous_kg: dict | No
             if n["L"] == "fleet":  # no ship names it and no list holds it today: 25 Sep's list status is not today's
                 nodes[nid].update(s="", lists=[])
     for nid, st in base.get("status", {}).items():  # hand-checked: "restricted" (sectoral) is not "blocked"
-        n, curated = nodes.get(nid), st["lists"]
+        n, curated, level = nodes.get(nid), st["lists"], st["s"]
         if nid in fleet_ids:  # a live node keeps a curated entry, and the level, only while that government lists it
             now = {x[0].split()[0] for x in n["lists"]}
             curated = [x for x in curated if x[0].split()[0] in now]
             if not curated:
                 continue
-        if n and LEVELS.index(st["s"]) >= LEVELS.index(n["s"]):  # a stronger live listing keeps its own level and lists
+            if len(curated) < len(st["lists"]):  # the level may have rested on a listing that ended: the live one stands
+                level = n["s"]
+        if n and LEVELS.index(level) >= LEVELS.index(n["s"]):  # a stronger live listing keeps its own level and lists
             named = {x[0].split()[0] for x in curated}  # the curated entries describe their governments' listings;
-            n.update(s=st["s"], lists=curated + [x for x in n["lists"] if x[0].split()[0] not in named])  # a new one shows
+            n.update(s=level, lists=curated + [x for x in n["lists"] if x[0].split()[0] not in named])  # a new one shows
     for nid, seen in base["live_flags"].items():
         if nid in nodes:
             nodes[nid]["live"] = seen

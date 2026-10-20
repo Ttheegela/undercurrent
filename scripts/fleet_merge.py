@@ -236,7 +236,10 @@ def merge(base: dict, official: dict, aliases: dict[str, str] | None = None,
 
 
 def is_official(url: str) -> bool:
-    host = urlsplit(url or "").hostname or ""
+    try:
+        host = urlsplit(url or "").hostname or ""
+    except ValueError:  # a malformed host, such as an unclosed "[": no official record
+        return False
     return any(host == h or host.endswith("." + h) for h in OFFICIAL_HOSTS)
 
 

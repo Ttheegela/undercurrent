@@ -9,16 +9,18 @@ Ask read (data/changes/changes.json).
     adds its changes to the day. `unavailable` holds the sources to treat as down: the nightly build passes tonight's.
     (A night with a list down keeps the previous fleet whole, so the night it comes back compares two complete graphs.)
   * The fleet layer is reported once, on graph "fleet" (the network's pages use the same ids). Graph "lobby" holds the
-    lobbying layer's additions, the listings of the firms only the network shows (kg_only), and the level ("status")
-    of the nodes the lists were asked about on both days: every ship, each kg_only firm, and a company or person with
-    `lk` (looked up) on both days.
+    lobbying layer's additions, the listings of the firms only the network shows (kg_only), and the network's level
+    ("status") of a node the lists were asked about on both days: a ship, a kg_only firm, or a company or person with
+    `lk` (looked up that night). A lobby-layer node's level (hand-checked, kg-base.json) is not reported, nor a level
+    while a government that lists the node is unavailable.
   * A node is "added" or "removed" only when an official node enters or leaves the graph; a research item never is. A
     ship is on the map because a list names it, so its entering or leaving, and any listed_by change of a ship on both
     days (whatever its layer), is a listing. A company or person is on the map only while a listed vessel names it
     (build_official looks up no others), so its entering or leaving the map claims no listing ("New on the map"), and
     its listed_by is compared only when it was looked up on both days (official on both). A link changes only when it
-    enters or leaves the graph. Company ids are slugs of the lists' own spellings, so a respelling is a removal and an
-    addition; none has happened yet.
+    enters or leaves the graph. Company ids are slugs of the lists' own spellings (norm_co), so a respelling that
+    norm_co reads otherwise is a removal and an addition (none has happened yet), and one it reads alike, such as an
+    added "(Turkey)", is not a rename either.
   * A lobby node or link is news only when it carries a filing that yesterday's lobby layer (kg `fl`) did not hold and
     that was posted in the last 14 days (kg `fr`): a registrant renamed in the LDA gets new ids for its whole history,
     a link out of yesterday's graph can return, and a filing a partial fetch lost can come back; LDA posts filings late,
@@ -39,7 +41,7 @@ from __future__ import annotations
 import re
 
 from fleet_merge import _loose, _map_graph, edge_id, generic_id
-from fleet_official import CNAME
+from fleet_official import CNAME, norm_co
 from kg_build import _excluded, _is_excluded
 from lists import LISTS
 from normalize import normalize_name
@@ -117,7 +119,9 @@ def _fleet_view(graph: dict) -> tuple[dict, list]:
 
 def _kg_view(graph: dict) -> tuple[dict, list]:
     """The network's nodes (the fleet layer for its level and as link ends) and its lobby links; the base's team and
-    curated links are fixed and left out, and the fleet layer's links are the map's to report."""
+    curated links are fixed and left out, and the fleet layer's links are the map's to report. kg.json holds a lobby
+    link once per client, but a change names a link by its ends and type, so those are folded into one with all their
+    filings: the link is new on a new filing on any of them, as its ends are."""
     lobbyists = {e["s"] for e in graph["edges"] if e["L"] == "lobby" and e["y"] == "lobbyist_at"}
     nodes = {}
     for n in graph["nodes"]:
@@ -131,9 +135,18 @@ def _kg_view(graph: dict) -> tuple[dict, list]:
                                    flag=info.get("flag_now"),
                                    govs=() if lobby else {x[0].split()[0].upper() for x in n["lists"]},
                                    programs=info.get("programs"), status=n["s"])
-    edges = [_edge(edge_id(e["s"], e["t"], e["y"]), e["s"], e["t"], e["y"], (e.get("u") or "", e.get("f") or LDA_LABEL),
-                   _origin(e.get("f")), lobby=True, fl=e.get("fl"), fr=e.get("fr", ()))
-             for e in graph["edges"] if e["L"] == "lobby" and e["s"] in nodes and e["t"] in nodes]
+    edges = {}
+    for e in graph["edges"]:
+        if e["L"] == "lobby" and e["s"] in nodes and e["t"] in nodes:
+            link = _edge(edge_id(e["s"], e["t"], e["y"]), e["s"], e["t"], e["y"],
+                         (e.get("u") or "", e.get("f") or LDA_LABEL), _origin(e.get("f")), lobby=True, fl=e.get("fl"),
+                         fr=e.get("fr", ()))
+            held = edges.setdefault(link["id"], link)
+            if held is not link:
+                held["fl"] = None if None in (held["fl"], link["fl"]) else held["fl"] | link["fl"]
+                held["src"] = held["src"] if held["fr"] or not link["fr"] else link["src"]  # (cite a recent filing)
+                held["fr"] |= link["fr"]
+    edges = list(edges.values())
     _link(nodes, edges)
     return nodes, edges
 
@@ -155,8 +168,10 @@ def _facts(p: dict, c: dict, down: set) -> dict:
     that starts to give a flag has not re-flagged the ship), and a generic company's name is the policy's, not its own."""
     squash = lambda s: re.sub(r"[\W_]", "", s.casefold())  # noqa: E731
     # (a name spelled another way: case, spacing, punctuation or legal form. The vessel record that names a company
-    # decides its spelling, so a vessel leaving can flip it)
-    respelt = lambda a, b: any(f(a) == f(b) != "" for f in (squash, _loose, normalize_name))  # noqa: E731
+    # decides its spelling, so a vessel leaving can flip it; and a company's id is a slug of norm_co(name), so every
+    # spelling norm_co reads alike, such as one with a "(Turkey)" added, is the same company)
+    keys = (squash, _loose, normalize_name) + ((norm_co,) if c["t"] == "company" else ())
+    respelt = lambda a, b: any(f(a) == f(b) != "" for f in keys)  # noqa: E731
     first = lambda n: next((g for g in PRECEDENCE if g in n["govs"]), None)  # noqa: E731
     out = {}
     # (the name and flag are the first list's: when the list ranking first changed, another's spelling is no rename)

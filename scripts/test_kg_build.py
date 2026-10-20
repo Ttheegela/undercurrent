@@ -421,6 +421,17 @@ def test_curated_entries_drop_when_live_listing_ends():
     assert get(kg, "co:nord-stream-2")["lists"] == status["co:nord-stream-2"]["lists"]
 
 
+def test_curated_level_ends_with_the_governments_it_rested_on():
+    # hand-checked "blocked" on a US SDN and a UK entry; today only the UK lists it, and without an asset freeze
+    status = {"co:sberbank": {"s": "blocked", "lists": [["US SDN", "17018", "RUSSIA-EO14024"], ["UK", "RUS0256", "01/03/2022"]]}}
+    sber = fnode("co:sberbank", "company", "Sberbank", **listed_by("uk", uk="2022-03-01"))
+    edges = [fedge("co:sberbank", "gov:uk", "designated_by", uk_freeze=False), fedge("co:sberbank", "IMO9408695", "owns")]
+    kg = build_kg(make_fleet(sber, extra_edges=edges), lobby(), make_base(status=status), None, DAY)
+    node = get(kg, "co:sberbank")
+    assert node["s"] == "restricted"  # what the UK listing supports today, not the curated level
+    assert node["lists"] == [["UK", "RUS0256", "01/03/2022"]]  # the curated UK entry still describes a live listing
+
+
 def test_lists_keep_the_25_sep_order():
     # ships were UK, US, EU; companies and people US, EU, UK. Listed by edge order (the long form is sorted) it was EU, UK, US.
     def desig(nid):

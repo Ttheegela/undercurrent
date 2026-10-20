@@ -342,23 +342,61 @@ def inflate(paths, family, extra):
                                     "EU journal via OpenSanctions"])
 def test_family_shrink_over_20_percent_rejects(world, family):
     held = inflate(world, family, extra=0)  # tonight's count
-    inflate(world, family, extra=held // 4 + 1)  # yesterday's: just over a quarter more, so tonight's is under 80%
+    inflate(world, family, extra=max(held // 4 + 1, blg.FAMILY_MIN))  # yesterday's: a large family, tonight's under 80%
     before = fleet_bytes(world)
     assert blg.build(DAY2, fake_fetch, world) == 1
     assert fleet_bytes(world) == before
     meta = load(world.meta)
-    assert meta["status"] == "kept-previous" and family in meta["error"] and "shrank" in meta["error"]
+    assert meta["status"] == "kept-previous" and f"{family}: official links shrank from {held + max(held // 4 + 1, blg.FAMILY_MIN)}" \
+        f" yesterday to {held} today" in meta["error"]
     assert meta["unavailable"] == [blg.FAMILIES[family][1]]  # (only that list's government)
     assert [c for c in record_day(world, "2026-10-20")["changes"] if c["graph"] == "fleet"] == []
 
 
+def many_vessels(paths, n):
+    for i in range(n):
+        add_vessel(paths, "93%05d" % i, "SHIP %d" % i)
+
+
 def test_family_shrink_under_20_percent_passes(world):
-    family = "EU journal via OpenSanctions"
+    family = "US consolidated screening list"
+    many_vessels(world, 100)  # a night on which the family grows to 100 links or more ...
+    assert blg.build(DAY2, fake_fetch, world) == 0
+    held = blg._family_counts({"nodes": [], "edges": load(world.edges)})[family]
+    assert held >= blg.FAMILY_MIN
+    inflate(world, family, extra=held // 4)  # ... and yesterday's was a quarter more, so tonight's is exactly 80%
+    assert blg.build(DAY3, fake_fetch, world) == 0
+    assert load(world.meta)["status"] == "fresh" and load(world.meta)["unavailable"] == []
+
+
+def test_family_shrink_just_over_20_percent_rejects_a_large_family(world):
+    family = "US consolidated screening list"
+    many_vessels(world, 100)
+    assert blg.build(DAY2, fake_fetch, world) == 0
+    held = blg._family_counts({"nodes": [], "edges": load(world.edges)})[family]
+    inflate(world, family, extra=held // 4 + 1)
+    assert blg.build(DAY3, fake_fetch, world) == 1
+    assert load(world.meta)["unavailable"] == ["us"]
+
+
+def test_small_family_drop_of_five_passes(world):
+    family = "EU journal via OpenSanctions"  # a few links: a percentage means little
     held = inflate(world, family, extra=0)
-    assert held >= 4  # (so that a fifth more is at least one link)
-    inflate(world, family, extra=held // 4)  # yesterday's: a quarter more, so tonight's is exactly 80%
+    assert held < blg.FAMILY_MIN
+    inflate(world, family, extra=5)  # yesterday's map held five more than tonight's
     assert blg.build(DAY2, fake_fetch, world) == 0
     assert load(world.meta)["status"] == "fresh" and load(world.meta)["unavailable"] == []
+
+
+def test_small_family_to_zero_rejects(world):
+    before = fleet_bytes(world)
+    no_ships = lambda url: (fake_fetch(url).replace(",Vessel,", ",Company,")  # noqa: E731
+                            if url == fo.OS_EU_JOURNAL else fake_fetch(url))
+    assert blg.build(DAY2, no_ships, world) == 1  # (rows, but none a ship: the journal's links are all gone)
+    assert fleet_bytes(world) == before
+    meta = load(world.meta)
+    assert "EU journal via OpenSanctions: official links shrank from 4 yesterday to 0 today" in meta["error"]
+    assert meta["unavailable"] == ["eu"]
 
 
 def test_sample_needs_an_official_link():

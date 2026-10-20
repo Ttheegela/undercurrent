@@ -17,7 +17,8 @@ A source that fails alone keeps yesterday's copy and produces no changes:
     files stay as they are, the failed sources are "unavailable" that day, and the network's lobbying layer may still
     update. The same holds when the build is rejected:
       - the official links of one source family (UK list, US screening list, OFAC and the EU journal via OpenSanctions,
-        EU financial list) are down by more than 20% on yesterday's: that family's government is unavailable;
+        EU financial list) are down by more than 20% on yesterday's, or (a family of under FAMILY_MIN links) down to
+        none: that family's government is unavailable, and the reason names the family and its counts;
       - the official links as a whole are down by more than 20%, TASSOS has no official link to Zulu, or the build
         crashes: then all three lists are unavailable.
     Exit code 1 whenever the fleet was not rebuilt.
@@ -56,6 +57,7 @@ ROOT = Path(__file__).resolve().parent.parent
 FLEET_SOURCES = ("uk", "us", "eu")  # the lists the map is built from (the UN list feeds neither graph)
 SAMPLE_IMO, SAMPLE_PARTNER = "IMO9408695", "zulu"  # TASSOS must keep its link to Zulu Ships Management
 DEFAULT_OPENSANCTIONS_SOURCES = 95  # data sets OpenSanctions combines, when its meta does not say
+FAMILY_MIN = 100  # a family with fewer links yesterday is too small for a percentage to mean much: only zero rejects
 # The official links by where their sources come from: (the source files they cite, the government to mark when the
 # family shrinks). One download that comes back short must not read as delistings, however small a part of the map.
 FAMILIES = {"UK list": ({UK_FILE}, "uk"),
@@ -167,14 +169,15 @@ def _rejected(merged: dict, prev: dict | None) -> tuple[str, set] | None:
     """(why, the governments to mark unavailable) when tonight's fleet graph must not replace yesterday's."""
     if prev:
         before, after = _family_counts(prev), _family_counts(merged)
-        shrunk = [f for f in FAMILIES if before[f] and after[f] < SHRINK_LIMIT * before[f]]
+        shrunk = [f for f in FAMILIES if before[f] and (after[f] == 0 if before[f] < FAMILY_MIN
+                                                        else after[f] < SHRINK_LIMIT * before[f])]
         if shrunk:
-            return ("; ".join(f"{f}: official links shrank from {before[f]} to {after[f]}" for f in shrunk),
-                    {FAMILIES[f][1] for f in shrunk})
+            return ("; ".join(f"{f}: official links shrank from {before[f]} yesterday to {after[f]} today"
+                              for f in shrunk), {FAMILIES[f][1] for f in shrunk})
     count = lambda g: sum(1 for e in _map_graph(g)["edges"] if e.get("layer") == "official")  # noqa: E731
     was, now = (count(prev) if prev else 0), count(merged)
     if was and now < SHRINK_LIMIT * was:
-        return f"official fleet links shrank from {was} to {now}", set(FLEET_SOURCES)
+        return f"official fleet links shrank from {was} yesterday to {now} today", set(FLEET_SOURCES)
     names = {n["id"]: n["name"] for n in merged["nodes"]}
     partners = [e["target"] if e["source"] == SAMPLE_IMO else e["source"] for e in merged["edges"]
                 if SAMPLE_IMO in (e["source"], e["target"]) and e.get("layer") == "official"]

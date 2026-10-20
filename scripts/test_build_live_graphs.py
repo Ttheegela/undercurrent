@@ -300,7 +300,7 @@ def test_both_graphs_kept_when_nothing_can_update(world):
     assert day["changes"] == [] and day["sources"]["us"] == day["sources"]["lobbying"] == "unavailable"
 
 
-def test_unavailable_sources_carry_to_the_next_run(world, monkeypatch):
+def test_the_diff_treats_only_tonights_sources_as_down(world, monkeypatch):
     calls = []
     real = blg.diff
     monkeypatch.setattr(blg, "diff", lambda prev, curr, graph, date, unavailable, exclude=None: (
@@ -309,11 +309,58 @@ def test_unavailable_sources_carry_to_the_next_run(world, monkeypatch):
     blg.build(DAY2, fake_fetch, world)
     assert calls == [("lobby", "2026-10-20", {"uk"})]  # the map was kept: only the network is compared
     set_list(world, "uk", "fresh")
-    assert blg.build(DAY3, fake_fetch, world) == 0  # uk is back, but nothing it supplied is news tonight
-    assert calls[1:] == [("fleet", "2026-10-21", {"uk"}), ("lobby", "2026-10-21", {"uk"})]
-    assert load(world.meta)["unavailable"] == []  # (tonight's own set; the carry lasts one run)
+    # uk is back: the map kept on night 2 is the last complete one, so what uk changed since is tonight's news
+    assert blg.build(DAY3, fake_fetch, world) == 0
+    assert calls[1:] == [("fleet", "2026-10-21", set()), ("lobby", "2026-10-21", set())]
+    assert load(world.meta)["unavailable"] == []
+
+
+def add_uk_ship(paths, imo, name):
+    """A new UK-listed ship (TASSOS's row under another IMO, name and record, with no manager named)."""
+    _, table = (paths.raw / "uk.csv").read_text(encoding="utf-8").split("\n", 1)
+    header, tassos = list(csv.reader(table.splitlines()))[:2]
+    row = dict(zip(header, tassos))
+    row.update({"Unique ID": "RUS9" + imo[-3:], "Name 6": name, "IMO number": "IMO" + imo, "Current owner/operator (s)": ""})
+    with open(paths.raw / "uk.csv", "a", newline="", encoding="utf-8") as f:
+        csv.DictWriter(f, fieldnames=header).writerow(row)
+
+
+def summaries(paths, date):
+    return sorted(c["summary"] for c in record_day(paths, date)["changes"])
+
+
+def test_recovery_night_records_the_recovering_sources_changes(world):
+    set_list(world, "uk", "kept-previous")
+    assert blg.build(DAY2, fake_fetch, world) == 1  # night 2: the UK list is down, so the whole map is kept
+    set_list(world, "uk", "fresh")
+    add_uk_ship(world, "9777777", "NEWCOMER")  # ... and by night 3 the UK has listed a new ship
+    assert blg.build(DAY3, fake_fetch, world) == 0
+    assert "IMO9777777" in {n["id"] for n in load(world.fleet_data)["nodes"]}
+    assert summaries(world, "2026-10-21") == ["UK listed NEWCOMER (IMO 9777777)"]
+    assert [d["sources"]["uk"] for d in load(world.changes)["days"]] == ["fresh", "unavailable", "fresh"]
     assert blg.build(DAY4, fake_fetch, world) == 0
-    assert calls[3:] == [("fleet", "2026-10-22", set()), ("lobby", "2026-10-22", set())]
+    assert summaries(world, "2026-10-22") == []  # filed once
+
+
+def test_recovery_night_records_a_filing_posted_during_a_lobbying_outage(world):
+    world.lobbying_meta.write_text(json.dumps({"status": "kept-previous"}), encoding="utf-8")
+    asset = world.lobbying.read_bytes()
+    world.lobbying.unlink()
+    assert blg.build(DAY2, fake_fetch, world) == 0  # night 2: lobbying is down, the network carries its layer
+    sample = json.loads(gzip.decompress(asset))  # night 3: lobbying is back, with a filing posted on night 2
+    uuid = "ffffffff-0000-0000-0000-000000000001"
+    sample["nodes"].append({"id": "lf:brand-new-partners", "type": "lobbyfirm", "name": "Brand New Partners LLC"})
+    sample["edges"].append({"source": "co:e-on", "target": "lf:brand-new-partners", "type": "hired", "years": [2026],
+                            "n_filings": 1, "filings": [uuid], "texts": ["sanctions"], "amount": 10000,
+                            "source_url": f"https://lda.gov/filings/public/filing/{uuid}/print/"})
+    sample.setdefault("filing_posted", {})[uuid] = "2026-10-20"  # (within the 14 days before night 3)
+    world.lobbying.write_bytes(gzip.compress(json.dumps(sample).encode("utf-8")))
+    world.lobbying_meta.write_text(json.dumps({"status": "fresh"}), encoding="utf-8")
+    assert blg.build(DAY3, fake_fetch, world) == 0
+    assert summaries(world, "2026-10-21") == ["E.ON hired Brand New Partners LLC", "New lobbying firm: Brand New Partners LLC"]
+    assert [d["sources"]["lobbying"] for d in load(world.changes)["days"]] == ["fresh", "unavailable", "fresh"]
+    assert blg.build(DAY4, fake_fetch, world) == 0
+    assert summaries(world, "2026-10-22") == []
 
 
 def test_first_run_without_lobbying_carries_the_25_sep_layer(world):
@@ -481,13 +528,20 @@ def test_crash_while_building_keeps_the_fleet(world, monkeypatch):
     assert "crashed" in meta["error"] and meta["unavailable"] == ["eu", "uk", "us"]
 
 
-def test_malformed_lobbying_asset_does_not_take_the_map_down(world):
+@pytest.mark.parametrize("asset", [gzip.compress(b'{"filings": 3}'), b"not gzip"], ids=["not an asset", "not gzip"])
+def test_malformed_lobbying_asset_does_not_take_the_map_down_but_is_reported(world, asset):
     kg_before = load(world.kg)
-    world.lobbying.write_bytes(gzip.compress(b'{"filings": 3}'))  # (the meta says fresh, the asset is something else)
-    assert blg.build(DAY2, fake_fetch, world) == 0
-    kg = load(world.kg)
+    add_vessel(world, "9111111", "FIRST LIGHT")
+    world.lobbying.write_bytes(asset)  # (the meta says fresh, the asset is something else)
+    assert blg.build(DAY2, fake_fetch, world) == 1  # so the nightly issue names it
+    meta = load(world.meta)
+    assert meta["error"].startswith("lobbying asset unreadable: ") and meta["unavailable"] == ["lobbying"]
+    assert (meta["status"], meta["updated_at"]) == ("fresh", DAY2)  # the map still updates
+    assert "IMO9111111" in {n["id"] for n in load(world.fleet_data)["nodes"]}
+    kg = load(world.kg)  # ... and the network carries yesterday's lobby layer
     assert [e for e in kg["edges"] if e["L"] == "lobby"] == [e for e in kg_before["edges"] if e["L"] == "lobby"]
     assert record_day(world, "2026-10-20")["sources"]["lobbying"] == "unavailable"
+    assert summaries(world, "2026-10-20") == ["US listed FIRST LIGHT (IMO 9111111)"]
 
 
 def test_malformed_lobbying_asset_on_a_first_run_builds_the_map_alone(world):
@@ -495,9 +549,10 @@ def test_malformed_lobbying_asset_on_a_first_run_builds_the_map_alone(world):
         getattr(world, name).unlink()
     world.lobbying.write_bytes(gzip.compress(b'{"filings": 3}'))  # (fresh by the meta, but not an asset) and no network to carry a layer from
     assert not world.kg_js.exists()
-    assert blg.build(DAY2, fake_fetch, world) == 0
+    assert blg.build(DAY2, fake_fetch, world) == 1
     assert load(world.fleet_data)["nodes"] and not world.kg.exists()
     assert record_day(world, "2026-10-20")["sources"]["lobbying"] == "unavailable"
+    assert load(world.meta)["error"].startswith("lobbying asset unreadable: ")
 
 
 def test_network_is_kept_when_the_stored_firms_are_lost(world):

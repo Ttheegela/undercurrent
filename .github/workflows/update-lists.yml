@@ -70,7 +70,7 @@ jobs:
         run: python scripts/build_chips.py
 
       # Needs build/raw/{us,uk}.csv, data/lists/, data/opensanctions-meta.json, data/lobbying-meta.json and build/lobbying.json.gz from the steps above,
-      # and fetches two OpenSanctions CSVs. Exits 1 whenever it kept yesterday's fleet; data/live-graphs-meta.json says why.
+      # and fetches two OpenSanctions CSVs. Exits 1 whenever it kept yesterday's fleet or could not read the lobbying asset; data/live-graphs-meta.json says why.
       - name: Build live graphs
         id: graphsbuild
         timeout-minutes: 20

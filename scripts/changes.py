@@ -6,8 +6,8 @@ Ask read (data/changes/changes.json).
 
   * graph "fleet" is fleet_merge.merge()'s long form, "lobby" is kg_build.build_kg()'s window.KG shape. `prev` is the
     graph the last run left: a re-run on a day already filed diffs against that day's earlier graph, and update_record
-    adds its changes to the day. `unavailable` holds the sources to treat as down (the nightly build passes tonight's
-    with the previous run's, so a source's recovery night reports nothing of it).
+    adds its changes to the day. `unavailable` holds the sources to treat as down: the nightly build passes tonight's.
+    (A night with a list down keeps the previous fleet whole, so the night it comes back compares two complete graphs.)
   * The fleet layer is reported once, on graph "fleet" (the network's pages use the same ids). Graph "lobby" holds the
     lobbying layer's additions, the listings of the firms only the network shows (kg_only), and the level ("status")
     of the nodes the lists were asked about on both days: every ship, each kg_only firm, and a company or person with

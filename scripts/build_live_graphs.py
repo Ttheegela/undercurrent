@@ -25,10 +25,11 @@ A source that fails alone keeps yesterday's copy and produces no changes:
   * With no earlier fleet graph there is nothing to keep, so a night like that writes nothing and exits 1.
   * Lobbying is unavailable when data/lobbying-meta.json is not fresh, the asset is missing or it cannot be used: the
     network carries yesterday's lobby layer. With the map kept, the network is rebuilt only if the meta file still
-    holds the firms the map leaves out; without them it is kept too.
-  * The diff treats tonight's unavailable sources and the previous run's as down (data/live-graphs-meta.json keeps
-    them), so the night a source comes back reports nothing it supplied. A re-run on the same day diffs against that
-    day's earlier graph and its changes are added to the day.
+    holds the firms the map leaves out; without them it is kept too. An asset that is there but cannot be read or
+    used is also an error: the meta file's `error` names it and the run exits 1, though the map still updates.
+  * The diff treats tonight's unavailable sources as down. A night with a fleet source down keeps the whole previous
+    fleet, so the night it comes back compares two complete graphs and reports what that source changed meanwhile.
+    A re-run on the same day diffs against that day's earlier graph and its changes are added to the day.
 Every output is first written in full to a .tmp file, then the files are renamed into place with nothing between:
 fleet-data, nodes, edges, kg, site-stats, then changes.json, then the meta file. The record is never ahead of the graphs
 it describes, so a run that dies part-way loses that night's rows (or, before any graph file is renamed, finds the same
@@ -147,14 +148,15 @@ def _legacy_kg(paths: Paths) -> dict | None:
         return None
 
 
-def _lobbying(paths: Paths) -> dict | None:
-    """Tonight's lobbying asset, or None when it is not fresh or not there."""
+def _lobbying(paths: Paths) -> tuple[dict | None, list]:
+    """(tonight's lobbying asset, []), or None when it is not fresh or not there, with why when it is there but
+    cannot be read."""
     if (_read(paths.lobbying_meta) or {}).get("status") != "fresh" or not paths.lobbying.is_file():
-        return None
+        return None, []
     try:
-        return json.loads(gzip.decompress(paths.lobbying.read_bytes()))
-    except (OSError, EOFError, ValueError):
-        return None
+        return json.loads(gzip.decompress(paths.lobbying.read_bytes())), []
+    except (OSError, EOFError, ValueError) as exc:
+        return None, [f"lobbying asset unreadable: {type(exc).__name__}: {exc}"]
 
 
 def _family_counts(graph: dict) -> dict[str, int]:
@@ -278,7 +280,8 @@ def build(now: str | None = None, fetch=fetch_text, paths: Paths = DEFAULT_PATHS
         print("live graphs: no earlier graph to keep and the fleet could not be built; nothing written - "
               + "; ".join(problems))
         return 1
-    lobby = _lobbying(paths)
+    lobby, unread = _lobbying(paths)
+    problems += unread
     if merged is None and "kg_only" not in last:
         lobby = None  # the meta file lost the firms only the network draws: it cannot be rebuilt around the old map
 
@@ -292,18 +295,17 @@ def build(now: str | None = None, fetch=fetch_text, paths: Paths = DEFAULT_PATHS
             except Exception as exc:  # noqa: BLE001 - an asset that is not what it says it is: lobbying fails alone
                 if lobby is None:
                     raise
-                print(f"live graphs: lobbying asset unusable ({type(exc).__name__}: {exc}); carrying the lobby layer")
+                problems.append(f"lobbying asset unreadable: {type(exc).__name__}: {exc}")
                 lobby = None
                 kg = build_kg(fleet, None, base, before, date, exclude=exclude) if before else None
     today_down = down | stale | ({"lobbying"} if lobby is None else set())
 
-    unavailable = (today_down | set(last.get("unavailable", []))) & set(SOURCES)
     asset_excluded = (lobby or {}).get("exclude_lobbyists", []) + exclude
     changes = []
     if merged is not None and prev_fleet is not None:
-        changes += diff(prev_fleet, merged, "fleet", date, unavailable, asset_excluded)
+        changes += diff(prev_fleet, merged, "fleet", date, today_down, asset_excluded)
     if kg is not None and prev_kg is not None:
-        changes += diff(prev_kg, kg, "lobby", date, unavailable, asset_excluded)
+        changes += diff(prev_kg, kg, "lobby", date, today_down, asset_excluded)
     record = update_record(_read(paths.changes), date, changes,
                            {s: "unavailable" if s in today_down else "fresh" for s in SOURCES})
 
@@ -317,7 +319,7 @@ def build(now: str | None = None, fetch=fetch_text, paths: Paths = DEFAULT_PATHS
         hidden = {"nodes": [n for n in merged["nodes"] if n["id"] not in on_map[0]],
                   "edges": [e for e in merged["edges"] if e["id"] not in on_map[1]]}
     meta = {"label": "Live graphs", "checked_at": now, "status": "fresh" if merged is not None else "kept-previous",
-            **({"error": "; ".join(problems)} if merged is None else {}),
+            **({"error": "; ".join(problems)} if problems else {}),
             "updated_at": now if merged is not None else last.get("updated_at"),  # (when the map was last rebuilt)
             "record_count": len(payload["edges"]), "unavailable": sorted(today_down), "kg_only": hidden}
 
@@ -330,7 +332,7 @@ def build(now: str | None = None, fetch=fetch_text, paths: Paths = DEFAULT_PATHS
           f"network {'rebuilt' if kg is not None else 'kept previous'}, {len(changes)} changes"
           + (f"; unavailable: {', '.join(sorted(today_down))}" if today_down else "")
           + (f" - {'; '.join(problems)}" if problems else ""))
-    return 0 if merged is not None else 1
+    return 0 if merged is not None and not problems else 1
 
 
 if __name__ == "__main__":

@@ -528,7 +528,8 @@ def test_crash_while_building_keeps_the_fleet(world, monkeypatch):
     assert "crashed" in meta["error"] and meta["unavailable"] == ["eu", "uk", "us"]
 
 
-@pytest.mark.parametrize("asset", [gzip.compress(b'{"filings": 3}'), b"not gzip"], ids=["not an asset", "not gzip"])
+@pytest.mark.parametrize("asset", [gzip.compress(b'{"filings": 3}'), b"not gzip", gzip.compress(b"{}")[:10] + b"\xff" * 40],
+                         ids=["not an asset", "not gzip", "corrupt gzip body"])
 def test_malformed_lobbying_asset_does_not_take_the_map_down_but_is_reported(world, asset):
     kg_before = load(world.kg)
     add_vessel(world, "9111111", "FIRST LIGHT")

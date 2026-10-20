@@ -27,6 +27,7 @@ def test_the_allowlist_line_is_pinned():
     lines = [x.strip() for x in step("Commit changes").splitlines()]
     assert AWK in lines
     assert sum("git diff --cached --raw" in x for x in lines) == 1  # (and it is the only one)
+    assert 'if [ -n "$bad" ]; then echo "::error::Unexpected staged paths: $bad"; exit 1; fi' in lines
 
 
 def test_collect_put_in_place_and_git_add_name_the_same_files():

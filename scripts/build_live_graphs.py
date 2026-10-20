@@ -42,6 +42,7 @@ import json
 import os
 import re
 import sys
+import zlib
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -155,7 +156,7 @@ def _lobbying(paths: Paths) -> tuple[dict | None, list]:
         return None, []
     try:
         return json.loads(gzip.decompress(paths.lobbying.read_bytes())), []
-    except (OSError, EOFError, ValueError) as exc:
+    except (OSError, EOFError, ValueError, zlib.error) as exc:
         return None, [f"lobbying asset unreadable: {type(exc).__name__}: {exc}"]
 
 

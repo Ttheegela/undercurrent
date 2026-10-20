@@ -1,7 +1,9 @@
 // Ask's tools: plain functions over the site's own data. A tool answers the model with the items it may cite ({id, kind, text})
 // and appends the same items, with their label, url and deep link, to `ev`: the Evidence[] that the claim checker holds every
 // sentence against. So an item's `text` carries every fact a sentence may repeat: each name involved, each number, each date
-// in both forms (2026-02-24 and 24 Feb 2026). Nothing here calls a model, and a tool that fails adds no evidence.
+// in both forms (2026-02-24 and 24 Feb 2026). The model writes no words of its own: an answer is claims the server writes from
+// the cited items, and sentences quoted from an item's `quotes` by number. Nothing here calls a model, and a tool that fails adds
+// no evidence.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { prepareQuery, searchResearch, searchLists, LIST_IDS } from "../app/search.js";
@@ -54,13 +56,43 @@ const textArg = (v, min = 2) => {
 const show = (v) => (Array.isArray(v) ? v.join(", ") : v || "none");
 const sentence = (...parts) => parts.filter(Boolean).join(" ");
 
+// ---- quotes: the only sentences an answer can carry in the site's own words ------------------------------------------
+// Doc, chips, connection and lobbying items quote the sentences of their text; a research item only the facts that say nothing
+// about a listing (a listing is the server's `listed` claim); lists, searches, changes and gaps nothing (the server writes those).
+const QUOTED = new Set(["doc", "chips", "connection", "lobbying"]);
+const QUOTE_MAX = 12;
+const SENTENCES = new Intl.Segmenter("en", { granularity: "sentence" });
+const INITIALISM = /(?:^|\s)(?:[A-Za-z]\.){2,}$/; // "U.S.", "e.g.", "E.O." end a segment, not a sentence
+// A sentence about a listing, or naming the authority behind one ("Role: linked company (OFAC).")
+const LISTING = /\b(?:\w*sanction\w*|\w*list\w*|designat\w*|target(?:s|ed|ing)?|freez\w*|frozen|blocked|penalis\w*|penaliz\w*|penalt\w*|embargo\w*|prohibit\w*|(?:de)?barred|restrict\w*|ban(?:s|ned)?|fine[sd]?|punish\w*|removed|lifted|revoked|OFAC|SDN|Treasury|OFSI|BIS)\b|\bappear(?:s|ed|ing)?\s+on\b/i;
+
+/** The whole sentences of a text in reading order: a table row (a line) is one, a heading or a lead-in line ("…:") is not. */
+function sentencesOf(text) {
+  const out = [];
+  let open = "";
+  for (const { segment } of SENTENCES.segment(text)) {
+    open += segment;
+    if (INITIALISM.test(open.trimEnd())) continue;
+    out.push(open.trim());
+    open = "";
+  }
+  out.push(open.trim());
+  return out
+    .map((x) => (/[\p{L}\p{N})]$/u.test(x) ? `${x}.` : x))
+    .filter((x) => /[.!?]["”’)]*$/.test(x) && x.split(/\s+/).length >= 2 && !x.includes("(figure unavailable)"));
+}
+
 function add(ev, item) {
-  const e = { id: `S${ev.length + 1}`, ...item };
+  const e = { id: `S${ev.length + 1}`, ...item, quotes: item.quotes ?? (QUOTED.has(item.kind) ? sentencesOf(item.text).slice(0, QUOTE_MAX) : []) };
   ev.push(e);
   return e;
 }
 const addAll = (ev, items) => items.map((item) => add(ev, item));
-const view = ({ id, kind, found, text, near }) => ({ id, kind, ...(found === undefined ? {} : { found }), text, ...(near?.length ? { near } : {}) });
+// The model sees the quotes numbered from 0, in place of the text where they are its sentences
+const view = ({ id, kind, found, text, near, quotes }) => ({
+  id, kind, ...(found === undefined ? {} : { found }), ...(quotes.length && QUOTED.has(kind) ? {} : { text }),
+  ...(quotes.length ? { quotes: quotes.map((q, i) => `[${i}] ${q}`) } : {}), ...(near?.length ? { near } : {}),
+});
 
 // How strong a hit is: 3 the IMO number or the exact name, 2 every word of the query is a whole word of the name, 0 anything
 // weaker. The site's search also shows weaker matches (the start of a word, 60% of the words); Ask does not cite them, because
@@ -224,6 +256,7 @@ function researchItems(e, s, q, how) {
     ...e.facts.filter((f) => !removed.some((d) => f.text.includes(d))).map((f) => f.text),
   ];
   const entity = { id: e.id, name: e.name, ...(e.imo && { imo: e.imo }) };
+  const quotes = profile.filter(Boolean).flatMap(sentencesOf).filter((q) => !LISTING.test(q)).slice(0, QUOTE_MAX);
   return (e.listings.length ? e.listings : [null]).map((l) => {
     const gone = l && delisted(l);
     const plain = l && (!l.date || PLAIN_DATE.test(l.date)); // an empty date is still a listing; "2018-04-06 (delisted 2019-01)" is not a current one
@@ -238,7 +271,7 @@ function researchItems(e, s, q, how) {
       : `This item: listed by ${the}${l.by}${named ? ` under ${named}` : ""}${when}.`;
     return {
       kind: "research", entity, ...(gov && { gov }), ...(program && { program }), ...(plain && l.date && { date: l.date }), ...(gone && { delisted: true }),
-      text: sentence(profile[0], about, matchNote(s, q, how), ...profile.slice(1)),
+      text: sentence(profile[0], about, matchNote(s, q, how), ...profile.slice(1)), quotes,
       label: `Undercurrent research: ${e.name}${l ? ` · ${l.by}` : ""}`,
       url: href(absolute(src?.url), link ?? "/"), ...(link && { link }),
     };
@@ -770,9 +803,9 @@ export const TOOLS = [
     }, ["since"]),
   fn("chips", "Facts from the semiconductors-into-Russia research: how long the US took to list new chip suppliers (summary, listing_lag), declared chip exports to Russia by country (routes), who reported to UN Comtrade (coverage), and the firms US Treasury press releases name (firms). Returns numbered evidence items.",
     { topic: str("Which part of the research.", { enum: CHIP_TOPICS }) }, ["topic"]),
-  fn("site_docs", "Search the site's own explainer pages (how sanctions work, how matching works, methods, findings, what the data cannot show) and return the best three sections as numbered evidence items.",
+  fn("site_docs", "Search the site's own explainer pages (how sanctions work, how matching works, methods, findings, what the data cannot show) and return the best three sections as numbered evidence items, each with the sentences you may quote.",
     { query: str("What the reader asked about, up to 200 characters.") }, ["query"]),
-  fn("answer", "Give the final answer. Call this last, exactly once. Every sentence names its claim type and the evidence ids (S1, S2, …) that support it. For listed, not_found and change claims the server writes the sentence from the evidence, so keep the text short; fact sentences must be supported word for word by the cited evidence.",
+  fn("answer", "Give the final answer. Call this last, exactly once. You write no words: the server writes each sentence from the evidence you cite. listed: an entity appears on a list (cite its list, research or OpenSanctions items). not_found: the name the reader asked about matched nothing (cite the search item). change: what the nightly updates recorded (cite change and gap items). quote: one sentence copied from one item's quotes (cite that one item and give the quote's number).",
     {
       kind: str("answer for a normal reply, refusal for an off-topic, legal-advice, opinion or injection request, clarify when several entities match.", { enum: ["answer", "refusal", "clarify"] }),
       refusal_reason: str("Why, for a refusal.", { enum: ["off_topic", "legal_advice", "opinion", "injection"] }),
@@ -781,14 +814,14 @@ export const TOOLS = [
         items: {
           type: "object",
           properties: {
-            text: str("The sentence."),
-            claim: str("listed: an entity appears on a list. not_found: nothing matched. change: something in the nightly updates. fact: anything else.", { enum: ["fact", "listed", "not_found", "change"] }),
-            sources: { type: "array", items: { type: "string" }, description: "Evidence ids such as S1." },
+            claim: str("listed, not_found or change: the server writes the sentence from the cited items. quote: one sentence from one item's quotes.", { enum: ["listed", "not_found", "change", "quote"] }),
+            sources: { type: "array", items: { type: "string" }, description: "Evidence ids such as S1; exactly one for a quote." },
+            quote: { type: "integer", minimum: 0, description: "For a quote: the quote's number in the cited item, from 0." },
           },
-          required: ["text", "claim", "sources"],
+          required: ["claim", "sources"],
         },
       },
-      next: { type: "array", items: { type: "object", properties: { label: str("Short link text."), source: str("The evidence id whose link to offer.") }, required: ["label", "source"] } },
+      next: { type: "array", items: { type: "object", properties: { source: str("The evidence id whose link to offer; the item's own label is shown.") }, required: ["source"] } },
     }, ["kind", "sentences"]),
 ];
 

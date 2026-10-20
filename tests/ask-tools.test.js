@@ -114,6 +114,7 @@ const DOCS = {
     section("graphs", "How the graphs rebuild", "The graphs now show {{stat:fleet.ships}} ships and {{stat:fleet.companies}} companies, rebuilt every night from the lists. Last build: {{stat:generated}}. Unknown: {{stat:nope.nothing}}."),
     section("reproduce", "Reproduce", "Rebuild the graphs: run the build. " + "graphs rebuild ".repeat(40), "stories/shadow-fleet/network/METHOD.html"),
     section("matching", "How matching works", "Names are compared after removing accents and punctuation. A seven-digit number is treated as an IMO number."),
+    section("lanterns", "Lantern facts", `Overview. The U.S. Treasury acted on 1 May. ${Array.from({ length: 15 }, (_, i) => `Lantern fact ${i + 1} is recorded here.`).join(" ")}`),
   ],
 };
 const CHIPS = {
@@ -978,10 +979,15 @@ test("TOOLS are OpenAI function definitions for the six tools", () => {
   assert.deepEqual(by.answer.properties.kind.enum, ["answer", "refusal", "clarify"]);
   assert.deepEqual(by.answer.properties.refusal_reason.enum, ["off_topic", "legal_advice", "opinion", "injection"]);
   const s = by.answer.properties.sentences.items;
-  assert.deepEqual(s.properties.claim.enum, ["fact", "listed", "not_found", "change"]);
+  assert.deepEqual(s.properties.claim.enum, ["listed", "not_found", "change", "quote"]);
   assert.equal(s.properties.sources.type, "array");
+  assert.equal(s.properties.quote.type, "integer");
+  assert.deepEqual(s.required, ["claim", "sources"]);
   assert.deepEqual(by.answer.required, ["kind", "sentences"]);
-  assert.ok(by.answer.properties.next.items.properties.source);
+  // the model writes no words: no text in a sentence, no label in a next step
+  assert.equal(s.properties.text, undefined);
+  assert.deepEqual(Object.keys(by.answer.properties.next.items.properties), ["source"]);
+  assert.deepEqual(by.answer.properties.next.items.required, ["source"]);
 });
 
 test("every item from every tool has an id in order, a text, a label and a safe url", async () => {
@@ -1003,9 +1009,98 @@ test("every item from every tool has an id in order, a text, a label and a safe 
     assert.doesNotMatch(e.text, /undefined|NaN|\[object/, `${e.id}: ${e.text}`);
     assert.doesNotMatch(e.label, /undefined|NaN|\[object/, e.id);
   });
-  // what the model is given is the id, kind and text (plus found), not the urls
+  // what the model is given is the id, kind and text (plus found), or the quotes in place of a text they cover; never the urls
   const seen = (await run("site_docs", { query: "matching" })).items[0];
-  assert.deepEqual(Object.keys(seen).sort(), ["id", "kind", "text"]);
+  assert.deepEqual(Object.keys(seen).sort(), ["id", "kind", "quotes"]);
+});
+
+// ---- quotes: the only sentences the model can put in an answer --------------------------------------------------------
+
+const QUOTED = new Set(["doc", "chips", "connection", "lobbying"]);
+async function everyTool() {
+  await run("check_lists", { query: "TASSOS" });
+  await run("check_lists", { query: "United Company RUSAL" });
+  await run("check_lists", { query: "Gatik Ship Management" });
+  await run("connections", { query: "IMO 9408695" });
+  await run("connections", { query: "Nord Stream 2 AG" });
+  await run("changes", { since: "2026-10-12" });
+  for (const topic of ["summary", "routes", "coverage", "listing_lag", "firms"]) await run("chips", { topic });
+  await run("site_docs", { query: "graphs rebuild" });
+  await run("site_docs", { query: "lantern facts" });
+}
+
+test("quotes: sentences of doc, chips, connection and lobbying text; none for lists, searches, changes and gaps", async () => {
+  await everyTool();
+  const kinds = new Set(ev.map((e) => e.kind));
+  for (const k of ["search", "list", "opensanctions", "research", "connection", "lobbying", "change", "gap", "chips", "doc"]) assert.ok(kinds.has(k), k);
+  for (const e of ev) {
+    assert.ok(Array.isArray(e.quotes), e.id);
+    if (["list", "opensanctions", "search", "change", "gap"].includes(e.kind)) assert.deepEqual(e.quotes, [], `${e.id} ${e.kind}`);
+    if (QUOTED.has(e.kind)) assert.ok(e.quotes.length > 0, `${e.id} ${e.kind}`);
+    assert.ok(e.quotes.length <= 12, e.id);
+    let at = -1;
+    for (const q of e.quotes) {
+      assert.match(q, /^\S.*[.!?]["”’)]*$/s, `${e.id}: ${q}`); // a whole sentence, trimmed, ending as one
+      assert.ok(q.split(/\s+/).length >= 2, q);
+      assert.doesNotMatch(q, /\{\{|figure unavailable|undefined|NaN/, q);
+      const pos = e.text.indexOf(q.replace(/\.$/, ""), at + 1); // in the item's own text, in reading order
+      assert.ok(pos > at, `${e.id}: ${q}`);
+      at = pos;
+    }
+  }
+});
+
+test("quotes: a doc's sentences are filled, whole across initialisms, at most 12, headings left out", async () => {
+  await run("site_docs", { query: "how do the graphs rebuild" });
+  assert.match(ev[0].quotes[0], /^The graphs now show 1,747 ships and 1,037 companies, rebuilt every night from the lists\.$/);
+  ev = [];
+  await run("site_docs", { query: "lantern facts" });
+  const doc = ev.find((e) => e.label === "Lantern facts");
+  assert.equal(doc.quotes.length, 12);
+  assert.equal(doc.quotes[0], "The U.S. Treasury acted on 1 May."); // not "The U.S." and "Treasury acted on 1 May."
+  assert.equal(doc.quotes[11], "Lantern fact 11 is recorded here.");
+  assert.ok(!doc.quotes.includes("Overview."));
+});
+
+test("quotes: a chips table row is a sentence, its lead-in line is not", async () => {
+  await run("chips", { topic: "listing_lag" });
+  const table = ev.find((e) => /shortest first/.test(e.text));
+  assert.deepEqual(table.quotes, [
+    "Milur Electronics (Armenia): founded 1 Aug 2022 (2022-08-01), listed 14 Feb 2023 (2023-02-14), 6.1 months.",
+    "Allparts Trading (United Arab Emirates): founded 1 Oct 2022 (2022-10-01), listed 30 Oct 2024 (2024-10-30), 24.9 months; on the BIS Entity List from 12 Apr 2023 (2023-04-12) (88 FR 23332).",
+  ]);
+});
+
+test("quotes: a research item quotes its facts, never a listing, the authority behind one, or the match", async () => {
+  await run("check_lists", { query: "TASSOS" });
+  const r = ev.find((e) => e.kind === "research" && e.entity.name === "TASSOS");
+  assert.deepEqual(r.quotes, [
+    "TASSOS (Oil Tanker, IMO 9408695, flag Liberia) in Undercurrent's research.",
+    "Manager: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C.",
+    "Other names: Bay Global.",
+    "Flags flown: Liberia, Panama.",
+    "9 September 2024: Managed by the Zulu Ships Management & Operation - Sole Proprietorship LLC.",
+    "Has also sailed as Bay Global and Front Balder.",
+  ]);
+  // every research item of the entry quotes the same facts
+  for (const e of ev.filter((x) => x.kind === "research" && x.entity.name === "TASSOS")) assert.deepEqual(e.quotes, r.quotes);
+  ev = [];
+  await run("check_lists", { query: "United Company RUSAL" });
+  const rusal = ev.find((e) => e.kind === "research");
+  assert.match(rusal.text, /Appears on the US Treasury list from 2018; removed in 2019\./);
+  assert.deepEqual(rusal.quotes, ["United Company RUSAL (Company) in Undercurrent's research.", "Country: Russia."]);
+});
+
+test("quotes: the model sees them numbered from 0, beside the text only where they don't cover it", async () => {
+  const out = await run("check_lists", { query: "TASSOS" });
+  const shown = (kind) => out.items.find((i) => i.kind === kind);
+  assert.equal(shown("research").quotes[1], "[1] Manager: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C.");
+  assert.equal(typeof shown("research").text, "string");
+  assert.equal("quotes" in shown("list"), false);
+  assert.equal("quotes" in shown("search"), false);
+  const docs = await run("site_docs", { query: "how does matching work" });
+  assert.deepEqual(docs.items[0].quotes, ["[0] Names are compared after removing accents and punctuation.", "[1] A seven-digit number is treated as an IMO number."]);
+  assert.equal("text" in docs.items[0], false);
 });
 
 test("a data file that cannot be read gives an error, not a throw, and no evidence", async () => {

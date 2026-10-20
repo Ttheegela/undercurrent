@@ -29,7 +29,7 @@ from normalize import normalize_name
 
 ROOT = Path(__file__).resolve().parent.parent
 FLEET = ROOT / "stories" / "shadow-fleet" / "network"
-MAP_HTML = FLEET / "shadow_fleet_map.html"
+MAP_DATA = FLEET / "fleet-data.json"  # the map fetches this (it was once inline in shadow_fleet_map.html)
 KG_JS = ROOT / "stories" / "who-lobbies" / "influence-network" / "kg_data.js"
 LISTS = ROOT / "data" / "lists"
 
@@ -209,13 +209,9 @@ def main() -> None:
     fix_profiles(profiles, by_quote)
     (FLEET / "ship_profiles.json").write_text(json.dumps(profiles, ensure_ascii=False), encoding="utf-8")
 
-    html = MAP_HTML.read_text(encoding="utf-8")
-    head = "window.FLEET_DATA="
-    start = html.index(head) + len(head)
-    end = html.index(";</script>", start)
-    data = json.loads(html[start:end])
+    data = json.loads(MAP_DATA.read_text(encoding="utf-8"))
     fix_map(data, recs)
-    MAP_HTML.write_text(html[:start] + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + html[end:], encoding="utf-8")
+    MAP_DATA.write_text(json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")  # as build_live_graphs writes it
 
     js = KG_JS.read_text(encoding="utf-8")
     kg = json.loads(js[len("window.KG="):-2])

@@ -319,3 +319,284 @@ test("every page with the main header links to both graphs, on desktop and phone
   await page.locator("header .nav-graphs a", { hasText: "Shadow fleet map" }).click();
   await expect(page).toHaveURL(new RegExp(MAP + "$"));
 });
+
+// ---- shadow-fleet map: live data (fleet-data.json), the changes panel, highlights and ghosts ----
+const FLEET_JSON = "**/stories/shadow-fleet/network/fleet-data.json";
+const CHANGES_JSON = "**/data/changes/changes.json";
+const edgeId = (k) => `e:${String(k).padStart(12, "0")}`;
+const shipNode = (n, extra = {}) => ({ id: `IMO${1000000 + n}`, type: "ship", name: `SHIP ${n}`, aliases: [`SHIP ${n}`], imo: String(1000000 + n),
+  programs: ["russia", "iran"], program_group: "both", listed_by: ["us"], listed: true, first_listed: "2025-03-01", ship_type: "Crude Oil Tanker",
+  name_count: 1, flag_count: 1, sources: [], angle: ["lists"], ...extra });
+
+// ALPHA, BRAVO, CHARLIE and DELTA are run by ACME and fly the Panama flag; `bulk` more ships stand alone
+function fleetFixture(bulk = 0) {
+  const ships = [["ALPHA", 1], ["BRAVO", 2], ["CHARLIE", 3], ["DELTA", 4]].map(([name, n]) => shipNode(n, { name, aliases: [name] }));
+  for (let i = 0; i < bulk; i++) ships.push(shipNode(100 + i, { name: `BULK ${i}`, aliases: [`BULK ${i}`] }));
+  const edges = ships.slice(0, 4).flatMap((s, k) => [
+    { i: edgeId(k + 1), s: "co:acme", t: s.id, y: "operates", d: "2025-03-01", c: "D", src: [[0, null, "rec", "lists", "D"]] },
+    { i: edgeId(50 + k + 1), s: s.id, t: "cc:pa", y: "flagged_in", d: "", c: "D", src: [] },
+  ]);
+  return {
+    nodes: [...ships,
+      { id: "co:acme", type: "company", name: "ACME SHIPPING", aliases: [], country: "pa", role: "operator", ship_count: 4, listed: true, listed_by: ["us"],
+        program_group: "both", programs: ["russia"], first_listed: "2025-03-01", sources: [] },
+      { id: "cc:pa", type: "country", name: "Panama", country: "pa" }, { id: "gov:us", type: "government", name: "United States" }],
+    edges, sources: [["https://example.org/list", "list.csv"]], quotes: [],
+    meta: { title: "Shadow Fleet Network", subtitle: "Fixture", credits: "Fixture credits", generated: "2026-10-19", patterns: [], coverage: [],
+      study_counts: [], verified_angles: [], counts: {} },
+  };
+}
+const change = (over) => ({ date: "2026-10-19", graph: "fleet", kind: "added", item: "node", id: "", name: "", node_type: "ship", summary: "",
+  source_url: "https://example.org/list", source_label: "Example list", ...over });
+const EDGE_ENDS = (a, b, an, bn) => ({ item: "edge", node_type: "operates", endpoints: [an, bn], endpoint_ids: [a, b] });
+const STD_CHANGES = [
+  change({ id: "IMO1000003", name: "CHARLIE", summary: "US listed CHARLIE (IMO 1000003)" }),
+  change({ ...EDGE_ENDS("co:acme", "IMO1000003", "ACME SHIPPING", "CHARLIE"), id: edgeId(3), name: "ACME SHIPPING → CHARLIE", summary: "New link: CHARLIE → ACME SHIPPING (operated by)" }),
+  change({ kind: "changed", id: "IMO1000004", name: "DELTA", field: "listed_by", from: ["eu"], summary: "EU removed DELTA (IMO 1000004)" }),
+  change({ kind: "removed", id: "IMO1000099", name: "GONE SHIP", summary: "EU removed GONE SHIP (IMO 1000099)" }),
+  change({ ...EDGE_ENDS("co:acme", "IMO1000099", "ACME SHIPPING", "GONE SHIP"), kind: "removed", id: edgeId(90), name: "ACME SHIPPING → GONE SHIP", summary: "Link removed: GONE SHIP → ACME SHIPPING (operated by)" }),
+  change({ ...EDGE_ENDS("co:acme", "IMO1000002", "ACME SHIPPING", "BRAVO"), kind: "removed", id: edgeId(91), name: "ACME SHIPPING → BRAVO", summary: "Link removed: BRAVO → ACME SHIPPING (operated by)" }),
+  change({ ...EDGE_ENDS("co:old", "IMO1000001", "OLD CO", "ALPHA"), kind: "removed", id: edgeId(92), name: "OLD CO → ALPHA", summary: "Link removed: ALPHA → OLD CO (operated by)" }),
+  change({ graph: "lobby", id: "p:someone", name: "Someone", node_type: "lobbyist", summary: "New lobbyist: Someone" }),
+];
+const recordFixture = (changes) => ({ started: "2026-10-10", days: [
+  { date: "2026-10-19", sources: { us: "fresh", uk: "fresh", eu: "fresh", un: "fresh", lobbying: "fresh" }, changes },
+  { date: "2026-10-18", sources: { us: "fresh", uk: "unavailable", eu: "fresh", un: "fresh", lobbying: "fresh" }, changes: [] }] });
+
+async function stubMap(page, { fleet = fleetFixture(), record = recordFixture(STD_CHANGES) } = {}) {
+  await page.route(FLEET_JSON, (r) => r.fulfill({ json: fleet }));
+  await page.route(CHANGES_JSON, (r) => (record ? r.fulfill({ json: record }) : r.fulfill({ status: 404, body: "" })));
+}
+async function mapReady(page, hash = "") {
+  await page.goto(MAP + hash);
+  await page.locator("html[data-ready]").waitFor({ state: "attached" });
+}
+const cyIds = (page, selector) => page.evaluate((s) => window.__fleet.cy.elements(s).map((e) => e.id()).sort(), selector);
+const ghostBox = (page, id) => page.evaluate((gid) => {
+  const g = window.__fleet.cy.getElementById(gid), p = g.renderedPosition(), b = document.getElementById("cy").getBoundingClientRect();
+  return { x: b.left + p.x, y: b.top + p.y, w: b.width, h: b.height, inside: p.x > 0 && p.y > 0 && p.x < b.width && p.y < b.height };
+}, id);
+
+test("map loads data by fetch and shows Data built date", async ({ page }) => {
+  const errors = watchErrors(page);
+  let fetched = 0;
+  page.on("request", (r) => { if (r.url().endsWith("/network/fleet-data.json")) fetched++; });
+  await stubMap(page);
+  await mapReady(page);
+  expect(await page.evaluate(() => window.FLEET_DATA)).toBeUndefined();
+  await expect(page.locator("#gen")).toHaveText("Data built 2026-10-19");
+  await expect(page.locator("#time")).toHaveAttribute("max", "93"); // Jan 2019 is month 0, Oct 2026 is month 93
+  await expect(page.locator("#asof")).toHaveText("Oct 2026");
+  expect(fetched).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+// the added ship and link get green rings, the changed ship a grey one, removed items dashed ghosts (never clickable for details)
+test("since window highlights added ship and draws removed ghost", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubMap(page);
+  await mapReady(page);
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 7 changes"); // the lobby change is not the map's
+  await expect.poll(() => cyIds(page, "node.chg-new")).toEqual(["IMO1000003"]);
+  expect(await cyIds(page, "edge.chg-new")).toEqual([edgeId(3)]);
+  expect(await cyIds(page, "node.chg-changed")).toEqual(["IMO1000004"]); // a changed ship must never look new
+  expect(await cyIds(page, "node.chg-new, edge.chg-new")).not.toContain("IMO1000004");
+  // removed: a ghost ship, a ghost link to it, a ghost link between two ships still on screen; a link with an unknown end is skipped
+  expect(await cyIds(page, ".chg-removed")).toEqual([`ghost:${edgeId(90)}`, `ghost:${edgeId(91)}`, "ghost:IMO1000099"].sort());
+  const ghost = await page.evaluate(() => { const g = window.__fleet.cy.getElementById("ghost:IMO1000099"); return { label: g.data("lab"), events: g.style("events") }; });
+  expect(ghost).toEqual({ label: "GONE SHIP", events: "no" });
+  expect(await page.evaluate((id) => { const e = window.__fleet.cy.getElementById(id); return [e.source().id(), e.target().id()]; }, `ghost:${edgeId(90)}`)).toEqual(["co:acme", "ghost:IMO1000099"]);
+  expect(await page.evaluate((id) => { const e = window.__fleet.cy.getElementById(id); return [e.source().id(), e.target().id()]; }, `ghost:${edgeId(91)}`)).toEqual(["co:acme", "IMO1000002"]);
+  // a ghost takes no clicks, so it never gets details (the click goes through to whatever is behind it: here the operator's box)
+  const at = await ghostBox(page, "ghost:IMO1000099");
+  expect(at.inside).toBe(true);
+  await page.mouse.click(at.x, at.y);
+  expect(await page.evaluate(() => (window.__fleet.S.selected || {}).id || "")).not.toMatch(/^ghost:/);
+  await expect(page.locator("#p-detail")).not.toContainText("GONE SHIP");
+  // choosing a shorter window drops what it no longer holds
+  await page.getByRole("button", { name: "Yesterday" }).click();
+  await expect(page.locator(".chg-title")).toHaveText("Since 18 Oct · 7 changes");
+  expect(errors).toEqual([]);
+});
+
+test("map: rings are painted on the overlay, green for new and grey for changed", async ({ page }) => {
+  await stubMap(page);
+  await mapReady(page);
+  await expect.poll(() => cyIds(page, "node.chg-new")).toEqual(["IMO1000003"]);
+  // the ring is a circle 5px outside the node: count the pixels of each colour on it (other drawings can cover some of them)
+  const ring = (id) => page.evaluate((nid) => {
+    const el = window.__fleet.cy.getElementById(nid), p = el.renderedPosition(), r = Math.max(el.renderedWidth(), el.renderedHeight()) / 2 + 5;
+    const ov = document.getElementById("overlay"), px = ov.getContext("2d").getImageData(0, 0, ov.width, ov.height), dpr = ov.width / ov.clientWidth;
+    let green = 0, grey = 0;
+    for (let a = 0; a < 360; a += 10) {
+      const x = Math.round((p.x + r * Math.cos(a * Math.PI / 180)) * dpr), y = Math.round((p.y + r * Math.sin(a * Math.PI / 180)) * dpr), i = (y * ov.width + x) * 4;
+      const [R, G, B, A] = px.data.slice(i, i + 4);
+      if (A < 150) continue;
+      if (G > R + 30 && G > B + 30) green++; else if (Math.abs(R - G) < 25 && Math.abs(G - B) < 30) grey++;
+    }
+    return { green, grey };
+  }, id);
+  await expect.poll(async () => (await ring("IMO1000003")).green).toBeGreaterThan(18); // painted on the next animation frame
+  await expect.poll(async () => (await ring("IMO1000004")).grey).toBeGreaterThan(18);
+  expect((await ring("IMO1000004")).green).toBe(0);
+});
+
+test("deep link #focus=…&since=… opens focused with window", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubMap(page);
+  await mapReady(page, "#focus=IMO1000003&since=2026-10-19");
+  expect(await page.evaluate(() => [window.__fleet.S.focusId, window.__fleet.S.selected.id])).toEqual(["IMO1000003", "IMO1000003"]);
+  await expect(page.locator("#viewname")).toHaveText("Focus");
+  await expect(page.locator(".chg-title")).toHaveText("Since 19 Oct · 7 changes");
+  await expect.poll(() => cyIds(page, "node.chg-new")).toEqual(["IMO1000003"]);
+  expect(errors).toEqual([]);
+});
+
+test("map: a deep link to a removed ship centres on its ghost", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubMap(page);
+  await mapReady(page, "#focus=IMO1000099&since=2026-10-12");
+  await expect.poll(() => cyIds(page, "node.chg-removed")).toEqual(["ghost:IMO1000099"]);
+  await expect.poll(async () => (await ghostBox(page, "ghost:IMO1000099")).inside).toBe(true);
+  expect(await page.evaluate(() => window.__fleet.S.focusId)).toBeNull();
+  expect(errors).toEqual([]);
+});
+
+test("hashchange re-focuses", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubMap(page);
+  await mapReady(page);
+  await page.evaluate(() => { location.hash = "#focus=IMO1000002&since=2026-10-15"; });
+  await expect.poll(() => page.evaluate(() => window.__fleet.S.focusId + " " + (window.__fleet.S.selected || {}).id)).toBe("IMO1000002 IMO1000002"); // the focus view has been laid out
+  await expect(page.locator(".chg-title")).toHaveText("Since 15 Oct · 7 changes");
+  await page.evaluate(() => { location.hash = "#select=IMO1000001"; });
+  await expect.poll(() => page.evaluate(() => window.__fleet.S.selected && window.__fleet.S.selected.id)).toBe("IMO1000001");
+  expect(errors).toEqual([]);
+});
+
+test("map: junk in the hash is ignored", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubMap(page);
+  await mapReady(page, "#focus=%3Cimg%20src%3Dx%3E&since=2026-13-45&select=constructor&view=nope&tab=nope&x=%E0%A4%A");
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 7 changes");
+  expect(await page.evaluate(() => [window.__fleet.S.focusId, window.__fleet.S.preset])).toEqual([null, "overlap"]);
+  await page.evaluate(() => { location.hash = "#focus=__proto__&since=20261019"; });
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 7 changes");
+  expect(errors).toEqual([]);
+});
+
+test("200 changes highlight without timeout", async ({ page }) => {
+  const errors = watchErrors(page);
+  const added = Array.from({ length: 200 }, (_, i) => change({ id: `IMO${1000100 + i}`, name: `BULK ${i}`, summary: `US listed BULK ${i}` }));
+  await stubMap(page, { fleet: fleetFixture(200), record: recordFixture(added) });
+  const t0 = Date.now();
+  await page.goto(MAP);
+  await expect(page.locator(".chg-more")).toContainText("+150 more", { timeout: 3000 });
+  expect(Date.now() - t0).toBeLessThan(3000);
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 200 changes");
+  await expect(page.locator(".chg-item")).toHaveCount(50);
+  await expect.poll(() => page.evaluate(() => window.__fleet.cy.nodes(".chg-new").length), { timeout: 10_000 }).toBe(200);
+  expect(errors).toEqual([]);
+});
+
+test("map: choosing a change row focuses an added ship and centres a removed one on its ghost", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubMap(page);
+  await mapReady(page);
+  await page.locator(".chg-pick", { hasText: "GONE SHIP (IMO 1000099)" }).click();
+  await expect.poll(async () => (await ghostBox(page, "ghost:IMO1000099")).inside).toBe(true);
+  await expect(page.locator("#app")).toHaveClass(/panel-closed/); // no details for a ghost
+  await page.locator(".chg-pick", { hasText: "US listed CHARLIE" }).click();
+  await expect.poll(() => page.evaluate(() => window.__fleet.S.focusId)).toBe("IMO1000003");
+  await page.locator(".chg-pick", { hasText: "ALPHA → OLD CO" }).click(); // its ends are unknown: nothing to centre on
+  expect(await page.evaluate(() => window.__fleet.S.focusId)).toBe("IMO1000003");
+  expect(errors).toEqual([]);
+});
+
+test("map: change text is escaped and never becomes markup", async ({ page }) => {
+  const errors = watchErrors(page);
+  const hostile = '<img src=x onerror="window.__pwned=1">';
+  const rows = [change({ id: "IMO1000003", name: hostile, summary: `US listed ${hostile}`, source_label: hostile, source_url: "javascript:window.__pwned=1" }),
+    change({ kind: "removed", id: "IMO1000098", name: hostile, summary: `EU removed ${hostile}` })];
+  await stubMap(page, { record: recordFixture(rows) });
+  await mapReady(page);
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 2 changes");
+  await expect(page.locator(".chg-list img")).toHaveCount(0);
+  await expect(page.locator(".chg-list")).toContainText("<img src=x");
+  await expect(page.locator(".chg-list a[href^='javascript']")).toHaveCount(0);
+  expect(await page.evaluate(() => window.__pwned)).toBeUndefined();
+  expect(errors).toEqual([]);
+});
+
+test("map: without a change record the map still works and the panel says no changes", async ({ page }) => {
+  await stubMap(page, { record: null });
+  await mapReady(page);
+  await expect(page.locator(".chg-empty")).toContainText("No changes since");
+  expect(await page.evaluate(() => window.__fleet.cy.nodes().length)).toBeGreaterThan(3);
+  expect(await cyIds(page, ".chg-new, .chg-changed, .chg-removed")).toEqual([]);
+});
+
+test("map: an item removed and then back on the map is neither a ghost nor a ring", async ({ page }) => {
+  const rows = [change({ kind: "removed", id: "IMO1000001", name: "ALPHA", summary: "EU removed ALPHA (IMO 1000001)" }),
+    change({ ...EDGE_ENDS("co:acme", "IMO1000001", "ACME SHIPPING", "ALPHA"), kind: "removed", id: edgeId(1), name: "ACME SHIPPING → ALPHA", summary: "Link removed: ALPHA → ACME SHIPPING (operated by)" })];
+  await stubMap(page, { record: recordFixture(rows) });
+  await mapReady(page);
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 2 changes");
+  expect(await cyIds(page, ".chg-removed, .chg-new, .chg-changed")).toEqual([]);
+});
+
+test("map: on a phone choosing a change brings the map into view", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await stubMap(page);
+  await mapReady(page);
+  await page.locator("#changes > summary").click(); // folded on a phone until opened
+  const stageTop = () => page.evaluate(() => Math.round(document.getElementById("stage").getBoundingClientRect().top));
+  expect(await stageTop()).toBeGreaterThan(700); // below the controls, off screen
+  await page.locator(".chg-pick", { hasText: "US listed CHARLIE" }).click();
+  await expect.poll(stageTop).toBeLessThan(300);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("map: a deep link to a new link focuses the ship it starts at", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubMap(page);
+  await mapReady(page, `#focus=${edgeId(3)}&since=2026-10-12`);
+  expect(await page.evaluate(() => window.__fleet.S.focusId)).toBe("co:acme");
+  await expect.poll(() => cyIds(page, "edge.chg-new")).toEqual([edgeId(3)]);
+  expect(errors).toEqual([]);
+});
+
+test("map: if the panel's code fails to load the map still works", async ({ page }) => {
+  await page.route("**/app/changes.js", (r) => r.abort());
+  await stubMap(page);
+  await page.goto(MAP);
+  await page.locator("html[data-ready]").waitFor({ state: "attached" });
+  await expect(page.locator("#chg-root")).toContainText("unavailable right now");
+  expect(await page.evaluate(() => window.__fleet.cy.nodes().length)).toBeGreaterThan(3);
+});
+
+test("map: the key names new, changed and removed", async ({ page }) => {
+  await stubMap(page);
+  await mapReady(page);
+  const key = page.locator("#key");
+  for (const t of ["New since", "Changed", "Removed"]) await expect(key).toContainText(t);
+});
+
+test("map shows retry when data fails", async ({ page }) => {
+  let down = true;
+  await page.route(FLEET_JSON, (r) => (down ? r.abort() : r.fulfill({ json: fleetFixture() })));
+  await page.route(CHANGES_JSON, (r) => r.fulfill({ json: recordFixture(STD_CHANGES) }));
+  await page.goto(MAP);
+  await expect(page.getByText("Map data unavailable right now")).toBeVisible();
+  down = false;
+  await page.getByRole("button", { name: "Retry" }).click();
+  await page.locator("html[data-ready]").waitFor({ state: "attached" });
+  await expect(page.getByText("Map data unavailable right now")).toBeHidden();
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 7 changes");
+});
+
+test("map: a wrong-shape data file also shows retry", async ({ page }) => {
+  await page.route(FLEET_JSON, (r) => r.fulfill({ json: { oops: 1 } }));
+  await page.goto(MAP);
+  await expect(page.getByText("Map data unavailable right now")).toBeVisible();
+});

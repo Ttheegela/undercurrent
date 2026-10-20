@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import fs from "node:fs";
+import { join } from "node:path";
 
 function watchErrors(page) {
   const errors = [];
@@ -261,6 +263,7 @@ test("chip dossiers: RM Design links the time-to-list page, ELEM GROUP does not"
 
 const MAP = "/stories/shadow-fleet/network/shadow_fleet_map.html";
 const NETWORK = "/stories/who-lobbies/influence-network/index.html";
+const UPDATES = "/stories/updates/index.html";
 
 for (const [name, path] of [["shadow-fleet map", MAP], ["influence network", NETWORK]]) {
   test(`${name}: the key drags, collapses and resets, and remembers across reloads`, async ({ page }) => {
@@ -297,13 +300,13 @@ for (const [name, path] of [["shadow-fleet map", MAP], ["influence network", NET
   });
 }
 
-test("every page with the main header links to both graphs, on desktop and phone", async ({ page }) => {
+test("every page with the main header links to both graphs and Updates, on desktop and phone", async ({ page }) => {
   test.setTimeout(90_000);
   const pages = ["/index.html", "/stories/about-the-data.html", "/stories/how-sanctions-work/index.html",
     "/stories/chips-into-russia/viz/index.html", "/stories/chips-into-russia/viz/coverage.html",
     "/stories/chips-into-russia/viz/listing_lag.html", "/stories/chips-into-russia/viz/river.html",
     "/stories/who-lobbies/influence-network/methods.html", "/stories/who-lobbies/clean-names-graph/index.html",
-    "/stories/shadow-fleet/network/METHOD.html", "/stories/sources/METHODS_LOG.html", MAP, NETWORK];
+    "/stories/shadow-fleet/network/METHOD.html", "/stories/sources/METHODS_LOG.html", MAP, NETWORK, UPDATES];
   for (const width of [1280, 375]) {
     await page.setViewportSize({ width, height: 812 });
     for (const path of pages) {
@@ -311,8 +314,10 @@ test("every page with the main header links to both graphs, on desktop and phone
       const links = page.locator("header .nav-graphs a");
       await expect(links.nth(0), `${path} @ ${width}`).toBeVisible();
       await expect(links.nth(1), `${path} @ ${width}`).toBeVisible();
-      const got = await links.evaluateAll((as) => as.map((a) => [new URL(a.href).pathname, a.getAttribute("aria-current")]));
-      expect(got, `${path} @ ${width}`).toEqual([[MAP, path === MAP ? "page" : null], [NETWORK, path === NETWORK ? "page" : null]]);
+      await expect(links.nth(2), `${path} @ ${width}`).toBeVisible();
+      const got = await links.evaluateAll((as) => as.map((a) => [a.textContent, new URL(a.href).pathname, a.getAttribute("aria-current")]));
+      expect(got, `${path} @ ${width}`).toEqual([["Shadow fleet map", MAP, path === MAP ? "page" : null], ["Influence network", NETWORK, path === NETWORK ? "page" : null],
+        ["Updates", UPDATES, path === UPDATES ? "page" : null]]);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${path} @ ${width}`).toBe(true);
     }
   }
@@ -321,6 +326,28 @@ test("every page with the main header links to both graphs, on desktop and phone
   await expect(page).toHaveURL(new RegExp(NETWORK + "$"));
   await page.locator("header .nav-graphs a", { hasText: "Shadow fleet map" }).click();
   await expect(page).toHaveURL(new RegExp(MAP + "$"));
+  await page.locator("header .nav-graphs a", { hasText: "Updates" }).click();
+  await expect(page).toHaveURL(new RegExp(UPDATES + "$"));
+});
+
+// The nav above is checked in a browser on a sample of pages; this reads every page that has it (the notes pages build_docs.py writes too).
+test("every html page with the graphs nav links the Updates page", () => {
+  const pages = [];
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).forEach((e) => {
+    const full = join(dir, e.name);
+    if (e.isDirectory()) { if (!["node_modules", ".venv", "test-results", ".git", ".superpowers"].includes(e.name)) walk(full); } else if (e.name.endsWith(".html")) pages.push(full);
+  });
+  walk("stories");
+  pages.push("index.html");
+  let withNav = 0;
+  for (const file of pages) {
+    const nav = /<nav class="nav-graphs"[\s\S]*?<\/nav>/.exec(fs.readFileSync(file, "utf8"));
+    if (!nav) continue;
+    withNav++;
+    const hrefs = [...nav[0].matchAll(/<a href="([^"]*)"[^>]*>([^<]*)<\/a>/g)].filter((m) => m[2] === "Updates").map((m) => new URL(m[1], `http://x/${file}`).pathname);
+    expect(hrefs, file).toEqual([UPDATES]);
+  }
+  expect(withNav).toBeGreaterThan(15);
 });
 
 // ---- shadow-fleet map: live data (fleet-data.json), the changes panel, highlights and ghosts ----
@@ -1364,4 +1391,249 @@ test("network on a phone: the drawer fits and the page does not scroll sideways"
   await page.getByRole("button", { name: "What changed" }).click();
   await page.locator(".chg-pick", { hasText: "No longer on the map: LOOSE CO" }).click({ timeout: 3000 });
   await expect.poll(async () => (await ghostScreen(page, "co:loose")).inside).toBe(true);
+});
+
+// ---- Updates page: every night's changes, newest first, with links that show each on its graph ----
+const stubUpdates = (page, record = recordFixture(STD_CHANGES)) =>
+  page.route(CHANGES_JSON, (r) => (record ? r.fulfill({ json: record }) : r.fulfill({ status: 404, body: "" })));
+async function updReady(page, query = "") {
+  await page.goto(UPDATES + query);
+  await page.locator("#upd-results .upd-day, #upd-results .upd-empty, #upd-results .upd-fail").first().waitFor();
+}
+const rowOf = (page, text) => page.locator(".upd-item", { hasText: text });
+
+test("updates page lists the days newest first with the right links", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubUpdates(page);
+  await updReady(page);
+  await expect(page.locator("header .nav-graphs a[aria-current=page]")).toHaveText("Updates");
+  await expect(page.locator(".upd-day h2 time")).toHaveText(["19 October 2026", "18 October 2026"]);
+  await expect(page.locator(".upd-total")).toHaveText("8 changes over 2 days");
+  await expect(page.locator("input[name=from]")).toHaveValue("2026-10-10"); // the last 10 days, ending on the latest recorded day
+  await expect(page.locator("input[name=to]")).toHaveValue("2026-10-19");
+  await expect(page.locator("select[name=graph]")).toHaveValue("all");
+  await expect(rowOf(page, "US listed CHARLIE").locator(".chg-kind")).toHaveText("New");
+  await expect(rowOf(page, "EU removed GONE SHIP").locator(".chg-kind")).toHaveText("Removed");
+  await expect(rowOf(page, "EU removed DELTA").locator(".chg-kind")).toHaveText("Changed");
+  await expect(rowOf(page, "US listed CHARLIE").getByRole("link", { name: "Example list" })).toHaveAttribute("href", "https://example.org/list");
+  expect(errors).toEqual([]);
+});
+
+test("Show on map link carries focus and since", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubUpdates(page);
+  await updReady(page);
+  const map = rowOf(page, "US listed CHARLIE").getByRole("link", { name: "Show on map" });
+  await expect(map).toHaveAttribute("href", "../shadow-fleet/network/shadow_fleet_map.html#focus=IMO1000003&since=2026-10-19");
+  const edge = rowOf(page, "New link: CHARLIE").getByRole("link", { name: "Show on map" });
+  await expect(edge).toHaveAttribute("href", `../shadow-fleet/network/shadow_fleet_map.html#focus=${edgeId(3)}&since=2026-10-19`);
+  const net = rowOf(page, "New lobbyist: Someone").getByRole("link", { name: "Show on network" }); // a lobby change goes to the network
+  await expect(net).toHaveAttribute("href", "../who-lobbies/influence-network/index.html#focus=p:someone&since=2026-10-19");
+  expect(await page.getByRole("link", { name: "Show on network" }).count()).toBe(1);
+  expect(await page.getByRole("link", { name: "Show on map" }).count()).toBe(7);
+  expect(errors).toEqual([]);
+});
+
+// A synthetic record whose ids the map's and the network's fixtures hold: a node, a link and a removed ship for each page.
+const CROSS = recordFixture([
+  change({ id: "IMO1000003", name: "CHARLIE", summary: "US listed CHARLIE (IMO 1000003)" }),
+  change({ ...EDGE_ENDS("co:acme", "IMO1000003", "ACME SHIPPING", "CHARLIE"), id: edgeId(3), name: "ACME SHIPPING → CHARLIE", summary: "New link: CHARLIE → ACME SHIPPING (operated by)" }),
+  change({ kind: "removed", id: "IMO1000099", name: "GONE SHIP", summary: "EU removed GONE SHIP (IMO 1000099)" }),
+  lobbyChange({ id: "lf:newfirm", name: "NEW FIRM", summary: "New lobbying firm: NEW FIRM" }),
+  lobbyChange({ ...LOBBY_ENDS("co:acme", "lf:newfirm", "ACME SHIPPING", "NEW FIRM"), id: edgeId(11), name: "ACME SHIPPING → NEW FIRM", summary: "ACME SHIPPING hired NEW FIRM" }),
+  lobbyChange({ kind: "removed", id: "IMO1000098", name: "GONE TWO", node_type: "ship", summary: "Removed from the network: GONE TWO" }),
+]);
+
+test("updates: Show on map focuses a ship, a link and a removed ship on the real map", async ({ page }) => {
+  test.slow();
+  const errors = watchErrors(page);
+  await stubMap(page, { record: CROSS });
+  const open = async (text) => {
+    await updReady(page, "?graph=fleet");
+    await rowOf(page, text).getByRole("link", { name: "Show on map" }).click();
+    await expect(page).toHaveURL(new RegExp(MAP));
+    await page.locator("html[data-ready]").waitFor({ state: "attached" });
+    await expect(page.locator(".chg-title")).toContainText("Since 19 Oct"); // the window starts on the day the link names
+  };
+  await open("US listed CHARLIE");
+  await expect.poll(() => page.evaluate(() => window.__fleet.S.focusId)).toBe("IMO1000003");
+  await open("New link: CHARLIE");
+  await expect.poll(() => page.evaluate(() => window.__fleet.S.focusId)).toBe("co:acme"); // the ship's operator, where the link starts
+  await open("EU removed GONE SHIP");
+  await expect.poll(() => cyIds(page, "node.chg-removed")).toEqual(["ghost:IMO1000099"]);
+  await expect.poll(async () => (await ghostBox(page, "ghost:IMO1000099")).inside).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("updates: Show on network focuses a firm, a link and a removed ship on the real network", async ({ page }) => {
+  test.slow();
+  const errors = watchErrors(page);
+  await stubNet(page, { record: CROSS });
+  const open = async (text) => {
+    await updReady(page, "?graph=lobby");
+    await rowOf(page, text).getByRole("link", { name: "Show on network" }).click();
+    await expect(page).toHaveURL(new RegExp(NETWORK));
+    await page.waitForFunction(() => document.getElementById("loading").style.display === "none" && window.__kg && window.__kg.state().ready);
+  };
+  await open("New lobbying firm: NEW FIRM");
+  await expect.poll(async () => (await netState(page)).selected).toBe("lf:newfirm");
+  await open("ACME SHIPPING hired NEW FIRM");
+  await expect.poll(async () => (await netState(page)).selected).toBe("co:acme");
+  await open("Removed from the network: GONE TWO");
+  await expect.poll(async () => (await ghostScreen(page, "IMO1000098")).inside).toBe(true);
+  expect((await netState(page)).selected).toBeNull(); // a ghost has no details
+  expect(errors).toEqual([]);
+});
+
+test("updates page escapes hostile names", async ({ page }) => {
+  const errors = watchErrors(page);
+  const hostile = '<img src=x onerror="window.__pwned=1">';
+  const rows = [change({ id: `IMO1"><img src=x onerror=window.__pwned=1>`, name: hostile, summary: `US listed ${hostile}`, source_label: hostile, source_url: "javascript:window.__pwned=1" }),
+    lobbyChange({ id: "co:a&b=c d", name: hostile, summary: `New lobbying firm: ${hostile}`, source_label: hostile })];
+  await stubUpdates(page, recordFixture(rows));
+  await updReady(page, `?graph=${encodeURIComponent(hostile)}&from=${encodeURIComponent(hostile)}`);
+  await expect(page.locator(".upd-total")).toHaveText("2 changes over 2 days");
+  await expect(page.locator("#upd-results img")).toHaveCount(0);
+  await expect(page.locator("#upd-results")).toContainText("<img src=x");
+  await expect(page.locator("#upd-results a[href^='javascript']")).toHaveCount(0);
+  const hrefs = await page.locator(".upd-show").evaluateAll((as) => as.map((a) => new URL(a.href)));
+  expect(hrefs.map((u) => u.pathname)).toEqual([MAP, NETWORK]);
+  expect(hrefs[1].hash).toBe("#focus=co:a%26b%3Dc%20d&since=2026-10-19"); // a link's id cannot end its pair
+  expect(await page.evaluate(() => window.__pwned)).toBeUndefined();
+  expect(errors).toEqual([]);
+});
+
+test("updates: a source that was down, and what an empty day means for each graph", async ({ page }) => {
+  await stubUpdates(page);
+  const day18 = page.locator(".upd-day", { hasText: "18 October 2026" });
+  await updReady(page, "?graph=fleet");
+  await expect(day18).toContainText("UK list unavailable; showing the previous data.");
+  await expect(day18).toContainText("No changes on the lists.");
+  await updReady(page, "?graph=lobby"); // the UK list does not feed the lobbying layer
+  await expect(day18).not.toContainText("unavailable");
+  await expect(day18).toContainText("No new lobbying filings.");
+  await updReady(page, "?graph=all");
+  await expect(day18).toContainText("UK list unavailable; showing the previous data.");
+  await expect(day18).toContainText("No changes recorded.");
+});
+
+test("updates: the page says when daily updates started", async ({ page }) => {
+  await stubUpdates(page);
+  await updReady(page, "?from=2026-10-01");
+  await expect(page.locator(".upd-note").first()).toHaveText("Daily updates started on 10 Oct 2026.");
+  expect(await page.locator("#upd-results").evaluate((el) => el.firstElementChild.textContent)).toBe("Daily updates started on 10 Oct 2026."); // above the list
+  await updReady(page, "?from=2026-10-12");
+  await expect(page.getByText("Daily updates started")).toHaveCount(0);
+});
+
+test("updates: the filters live in the URL, and bad values fall back", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubUpdates(page);
+  await updReady(page, "?from=2026-02-30&to=nope&graph=evil");
+  await expect(page.locator("input[name=from]")).toHaveValue("2026-10-10");
+  await expect(page.locator("input[name=to]")).toHaveValue("2026-10-19");
+  await expect(page.locator("select[name=graph]")).toHaveValue("all");
+  await expect(page.locator(".upd-day")).toHaveCount(2);
+  await page.locator("select[name=graph]").selectOption("lobby");
+  await expect(page).toHaveURL(/graph=lobby/);
+  await expect(page.locator(".upd-item")).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Show on network" })).toHaveCount(1);
+  await page.locator("input[name=from]").fill("2026-10-19");
+  await expect(page).toHaveURL(/from=2026-10-19/);
+  await expect(page.locator(".upd-day")).toHaveCount(1);
+  await page.reload(); // the URL alone restores the view
+  await expect(page.locator("select[name=graph]")).toHaveValue("lobby");
+  await expect(page.locator("input[name=from]")).toHaveValue("2026-10-19");
+  await expect(page.locator(".upd-day")).toHaveCount(1);
+  await updReady(page, "?from=2026-10-19&to=2026-10-10"); // a reversed range is put the right way round
+  await expect(page.locator("input[name=from]")).toHaveValue("2026-10-10");
+  await expect(page.locator(".upd-day")).toHaveCount(2);
+  await updReady(page, "?from=2026-01-01&to=2026-01-05"); // a range with no recorded day is not "no changes"
+  await expect(page.locator(".upd-empty")).toHaveText("No daily updates were recorded from 1 Jan 2026 to 5 Jan 2026.");
+  expect(errors).toEqual([]);
+});
+
+test("updates: a record that fails says unavailable, never no changes, and Retry restores it", async ({ page }) => {
+  const errors = watchErrors(page);
+  let up = false;
+  await page.route(CHANGES_JSON, (r) => (up ? r.fulfill({ json: recordFixture(STD_CHANGES) }) : r.fulfill({ status: 404, body: "" })));
+  await page.goto(UPDATES);
+  const root = page.locator("#upd-results");
+  await expect(root).toContainText("Updates unavailable right now.");
+  await expect(root).not.toContainText("No changes");
+  await expect(page.locator("#upd-filter")).toBeHidden();
+  await root.getByRole("button", { name: "Retry" }).click();
+  await expect(root).toContainText("Updates unavailable right now."); // still down: still says so, and Retry has the focus again
+  await expect(root.getByRole("button", { name: "Retry" })).toBeFocused();
+  up = true;
+  await root.getByRole("button", { name: "Retry" }).click();
+  await expect(page.locator(".upd-day")).toHaveCount(2);
+  await expect(root).not.toContainText("unavailable right now");
+  await expect(page.locator("#upd-filter")).toBeVisible();
+  // a wrong-shape record is the same failure
+  for (const bad of [{ days: "nope" }, { started: "2026-10-10", days: [{ date: "2026-10-19", sources: {}, changes: [null] }] }]) {
+    await page.unroute(CHANGES_JSON);
+    await page.route(CHANGES_JSON, (r) => r.fulfill({ json: bad }));
+    await page.goto(UPDATES);
+    await expect(root).toContainText("Updates unavailable right now.");
+  }
+  expect(errors.filter((e) => !/404|Failed to load resource/.test(e))).toEqual([]);
+});
+
+test("updates: a 2,000-change record renders within 2 seconds, capped per day, the rest one click away", async ({ page }) => {
+  const errors = watchErrors(page);
+  const many = Array.from({ length: 2000 }, (_, i) => change({ id: `IMO${2000000 + i}`, name: `BULK ${i}`, summary: `US listed BULK ${i}` }));
+  await stubUpdates(page, recordFixture(many));
+  const t0 = Date.now();
+  await page.goto(UPDATES);
+  await expect(page.locator(".upd-total")).toHaveText("2000 changes over 2 days");
+  await expect(page.locator(".upd-day > .chg-list > .chg-item").last()).toBeVisible();
+  expect(Date.now() - t0).toBeLessThan(2000);
+  await expect(page.locator(".upd-day > .chg-list > .chg-item")).toHaveCount(50);
+  const more = page.locator(".upd-more summary");
+  await expect(more).toHaveText("+1950 more on this day");
+  await expect(page.locator(".upd-more .chg-item").first()).toBeHidden();
+  await more.click();
+  await expect(page.locator(".upd-more .chg-item").first()).toBeVisible();
+  await expect(page.locator(".upd-day .chg-item")).toHaveCount(2000);
+  // changing a filter on it is quick too
+  const ms = await page.evaluate(() => {
+    const t = performance.now(), sel = document.querySelector("select[name=graph]");
+    sel.value = "fleet";
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
+    return performance.now() - t;
+  });
+  expect(ms).toBeLessThan(1000);
+  await expect(page.locator(".upd-total")).toHaveText("2000 changes over 2 days");
+  expect(errors).toEqual([]);
+});
+
+test("updates on a phone: long names wrap, links wrap, nothing scrolls sideways", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  const long = "A".repeat(60) + " " + "B".repeat(90);
+  await stubUpdates(page, recordFixture([change({ id: "IMO1000003", name: long, summary: `US listed ${long}`, source_label: long, source_url: `https://example.org/${"x".repeat(120)}` }),
+    lobbyChange({ id: "co:acme-lobbying", name: long, summary: `New lobbying firm: ${long}`, source_label: long })]));
+  await updReady(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const boxes = await page.locator(".upd-item").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return [r.left, r.right]; }));
+  for (const [left, right] of boxes) { expect(left).toBeGreaterThanOrEqual(0); expect(right).toBeLessThanOrEqual(375); }
+});
+
+test("updates: runs under the content security policies in vercel.json", async ({ page }) => {
+  const headers = JSON.parse(fs.readFileSync("vercel.json", "utf8")).headers;
+  const policy = (source) => headers.find((h) => h.source === source).headers.find((h) => h.key === "Content-Security-Policy").value.replace("; upgrade-insecure-requests", "");
+  for (const csp of [policy("/((?!stories/).*)"), policy("/stories/(.*)")]) { // the strict app policy (script-src 'self') and the one that applies to /stories/
+    const errors = watchErrors(page);
+    await page.route("**/stories/updates/index.html", async (route) => {
+      const res = await route.fetch();
+      await route.fulfill({ response: res, headers: { ...res.headers(), "content-security-policy": csp } });
+    });
+    await stubUpdates(page);
+    await updReady(page);
+    await expect(page.locator(".upd-day")).toHaveCount(2);
+    await page.locator("select[name=graph]").selectOption("fleet");
+    await expect(page.locator(".upd-item")).toHaveCount(7); // the fixture's fleet changes
+    expect(errors, csp).toEqual([]);
+    await page.unrouteAll();
+  }
 });

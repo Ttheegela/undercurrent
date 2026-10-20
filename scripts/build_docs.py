@@ -294,6 +294,7 @@ PAGE = Template("""<!DOCTYPE html>
   <nav class="nav-graphs" aria-label="Graphs"><ul>
     <li><a href="${root}stories/shadow-fleet/network/shadow_fleet_map.html">Shadow fleet map</a></li>
     <li><a href="${root}stories/who-lobbies/influence-network/index.html">Influence network</a></li>
+    <li><a href="${root}stories/updates/index.html">Updates</a></li>
   </ul></nav>
 </header>
 <main class="wrap">

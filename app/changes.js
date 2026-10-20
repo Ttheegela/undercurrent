@@ -10,10 +10,10 @@ const DAY_MS = 864e5;
 const pad = (n) => String(n).padStart(2, "0");
 const utc = (s) => { const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d); };
 const toISO = (ms) => new Date(ms).toISOString().slice(0, 10);
-const addDays = (s, n) => toISO(utc(s) + n * DAY_MS);
+export const addDays = (s, n) => toISO(utc(s) + n * DAY_MS);
 const weekday = (s) => (new Date(utc(s)).getUTCDay() + 6) % 7; // 0 = Monday: weeks run Monday to Sunday
 const dMon = (s) => formatDate(s).slice(0, -5); // "23 Oct"
-const isDate = (s) => typeof s === "string" && ISO.test(s) && toISO(utc(s)) === s; // a day that exists: not 2026-11-31
+export const isDate = (s) => typeof s === "string" && ISO.test(s) && toISO(utc(s)) === s; // a day that exists: not 2026-11-31
 
 /** The same day of the month n months on, or the month's last day when it is shorter. */
 function shiftMonth(s, n) {
@@ -25,11 +25,11 @@ function shiftMonth(s, n) {
 const PRESETS = { yesterday: ["Yesterday", 1], "7d": ["7 days", 7], "10d": ["10 days", 10] };
 // The five sources a night's build can find unavailable: how a note names each, and the graph it feeds (the lists feed
 // the fleet layer, which the network shows too under "fleet"; lobbying feeds only the lobby layer).
-const SOURCES = {
+export const SOURCES = {
   uk: ["UK list", "was", "fleet"], us: ["US lists", "were", "fleet"], eu: ["EU lists", "were", "fleet"], un: ["UN list", "was", "fleet"],
   lobbying: ["US lobbying filings", "were", "lobby"],
 };
-const KINDS = { added: "New", removed: "Removed", changed: "Changed" };
+export const KINDS = { added: "New", removed: "Removed", changed: "Changed" };
 
 export function presetSince(preset, todayISO) {
   if (!Object.hasOwn(PRESETS, preset)) throw new Error(`unknown preset: ${preset}`);
@@ -70,14 +70,18 @@ export function gapText({ source, date }) {
   return `${name} ${verb} unavailable on ${dMon(date)}, so changes from it that day aren't recorded.`;
 }
 
-function changeItem(c, i) {
-  const kind = Object.hasOwn(KINDS, c.kind) ? c.kind : "changed";
+/** A change's source as a link (only to http(s)), or as plain text when its url is missing or unsafe; "" with no label either. */
+export function sourceLink(c) {
   const href = c.source_url && safeUrl(c.source_url); // "#" is what safeUrl answers for a url it rejects: no link then
-  const src = href && href !== "#"
+  return href && href !== "#"
     ? `<a class="chg-src" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(c.source_label || "Source")}</a>`
     : c.source_label ? `<span class="chg-src">${escapeHtml(c.source_label)}</span>` : "";
+}
+
+function changeItem(c, i) {
+  const kind = Object.hasOwn(KINDS, c.kind) ? c.kind : "changed";
   // data-i is the change's index in the list given, for a click handler to look it up
-  return `<li class="chg-item" data-kind="${kind}"><button type="button" class="chg-pick" data-i="${i}"><span class="chg-kind">${KINDS[kind]}</span><span class="chg-sum">${escapeHtml(c.summary)}</span><span class="chg-date">${escapeHtml(dMon(c.date))}</span></button>${src}</li>`;
+  return `<li class="chg-item" data-kind="${kind}"><button type="button" class="chg-pick" data-i="${i}"><span class="chg-kind">${KINDS[kind]}</span><span class="chg-sum">${escapeHtml(c.summary)}</span><span class="chg-date">${escapeHtml(dMon(c.date))}</span></button>${sourceLink(c)}</li>`;
 }
 
 /** The changes as an escaped list: the first `limit`, then a line saying how many more the Updates page holds. */

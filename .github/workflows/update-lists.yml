@@ -96,7 +96,9 @@ jobs:
           retention-days: 3
           if-no-files-found: error
 
-  # Holds the deploy key. Runs no project code; the only downloaded data it reads is the build's note, with jq.
+  # Holds the deploy key. Runs no project code. The downloaded data it reads, all with jq and only for the failure issue,
+  # is the status files: data/lists/meta.json, data/opensanctions-meta.json, chips-meta.json and the build's note in
+  # data/live-graphs-meta.json.
   publish:
     needs: build
     if: ${{ !cancelled() }}
@@ -120,14 +122,17 @@ jobs:
 
       # Copy only the expected paths; refuse dotfiles, symlinks, names with any character outside [A-Za-z0-9._-]
       # (spaces, tabs, newlines, non-ASCII) and anything else that isn't a plain file or folder. Names are untrusted:
-      # shown escaped and indented, never raw, so one cannot start a workflow command.
+      # shown escaped and indented, never raw, with workflow commands stopped under a one-time token while they print.
       - name: Put data files in place
         run: |
           src="$RUNNER_TEMP/nightly"
           odd=$(LC_ALL=C find "$src" -mindepth 1 \( -name '.*' -o -name '*[!A-Za-z0-9._-]*' -o \( ! -type f ! -type d \) \))
           if [ -n "$odd" ]; then
             echo "::error::Unexpected entries in artifact (first 20, escaped):"
+            stop=$(openssl rand -hex 16)
+            echo "::stop-commands::$stop"
             printf '%s\n' "$odd" | head -n 20 | cat -vt | sed 's/^/  /'
+            echo "::$stop::"
             exit 1
           fi
           if [ -d "$src/data/lists" ]; then rm -rf data/lists && cp -R "$src/data/lists" data/lists; fi
@@ -169,7 +174,7 @@ jobs:
           git config user.name "undercurrent-nightly"
           git config user.email "undercurrent-nightly@users.noreply.github.com"
           git add data/lists data/opensanctions-meta.json data/connections-meta.json data/lobbying-meta.json stories/chips-into-russia/data/routes.json stories/chips-into-russia/data/coverage.json stories/chips-into-russia/data/listing_lag.json stories/chips-into-russia/data/summary.json stories/chips-into-russia/data/chips-meta.json stories/shadow-fleet/network/fleet-data.json stories/shadow-fleet/network/nodes.json stories/shadow-fleet/network/edges.json stories/who-lobbies/influence-network/kg.json data/changes/changes.json data/site-stats.json data/live-graphs-meta.json
-          bad=$(git diff --cached --raw --no-renames | awk -F'\t' '{ split($1, m, " "); if (NF != 2 || (m[2] != "100644" && m[2] != "000000") || $2 !~ /^(data\/lists\/[a-z]+\.json|data\/[a-z-]+-meta\.json|data\/site-stats\.json|data\/changes\/changes\.json|stories\/chips-into-russia\/data\/[a-z_-]+\.json|stories\/shadow-fleet\/network\/(fleet-data|nodes|edges)\.json|stories\/who-lobbies\/influence-network\/kg\.json)$/) print $2 }')
+          bad=$(git diff --cached --raw --no-renames | awk -F'\t' '{ split($1, m, " "); if (NF != 2 || (m[2] != "100644" && m[2] != "000000") || $2 !~ /^(data\/lists\/[a-z]+\.json|data\/[a-z-]+-meta\.json|data\/site-stats\.json|data\/changes\/changes\.json|stories\/chips-into-russia\/data\/[a-z_-]+\.json|stories\/shadow-fleet\/network\/(fleet-data|nodes|edges)\.json|stories\/who-lobbies\/influence-network\/kg\.json)$/) print (NF == 2 ? $2 : $0) }')
           if [ -n "$bad" ]; then echo "::error::Unexpected staged paths: $bad"; exit 1; fi
           if git diff --cached --quiet; then
             echo "No changes."
@@ -216,7 +221,8 @@ jobs:
             err=$(jq -rs --arg d "$(date -u +%F)" 'if length == 1 then .[0] else empty end | select(.checked_at[0:10] == $d) | .error | select(type == "string") | gsub("[\\p{Cc}\\p{Cf}\u0060]"; " ") | .[0:500]' "$RUNNER_TEMP/nightly/data/live-graphs-meta.json" 2>/dev/null || true)
             if [ -n "$err" ]; then note=$(printf ' Live graphs said: `%s`.' "$err"); fi
           fi
-          failed=$(jq -r '[.lists | to_entries[] | select(.value.status != "fresh") | .key] | join(", ") | gsub("[^a-z, ]"; "")' data/lists/meta.json) || failed="build crashed"
+          # (list names come from the artifact: letters and spaces only, 60 characters each and 300 in all)
+          failed=$(jq -r '[.lists | to_entries[] | select(.value.status != "fresh") | .key | gsub("[^a-z ]"; "") | .[0:60]] | join(", ") | .[0:300]' data/lists/meta.json) || failed="build crashed"
           if [ "$failed" != "build crashed" ] && [ "$(jq -r '.status' data/opensanctions-meta.json 2>/dev/null)" != "fresh" ]; then
             failed="${failed:+${failed}, }opensanctions"
           fi

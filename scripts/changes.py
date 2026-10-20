@@ -4,11 +4,14 @@ diff() compares yesterday's and today's graph and returns dated Change dicts; su
 English; update_record() files a night's changes into the rolling record that the Updates page, the calendar panel and
 Ask read (data/changes/changes.json).
 
-  * graph "fleet" is fleet_merge.merge()'s long form, "lobby" is kg_build.build_kg()'s window.KG shape. `prev` must be
-    the graph from before `date` (not one already published that day), and `unavailable` holds this night's names only.
+  * graph "fleet" is fleet_merge.merge()'s long form, "lobby" is kg_build.build_kg()'s window.KG shape. `prev` is the
+    graph the last run left: a re-run on a day already filed diffs against that day's earlier graph, and update_record
+    adds its changes to the day. `unavailable` holds the sources to treat as down (the nightly build passes tonight's
+    with the previous run's, so a source's recovery night reports nothing of it).
   * The fleet layer is reported once, on graph "fleet" (the network's pages use the same ids). Graph "lobby" holds the
-    lobbying layer's additions, the level ("status") of the fleet nodes the network draws, and the listings of the
-    firms only the network shows (kg_only).
+    lobbying layer's additions, the listings of the firms only the network shows (kg_only), and the level ("status")
+    of the nodes the lists were asked about on both days: every ship, each kg_only firm, and a company or person with
+    `lk` (looked up) on both days.
   * A node is "added" or "removed" only when an official node enters or leaves the graph; a research item never is. A
     ship is on the map because a list names it, so its entering or leaving, and any listed_by change of a ship on both
     days (whatever its layer), is a listing. A company or person is on the map only while a listed vessel names it
@@ -303,13 +306,14 @@ def summarize(c: dict) -> str:
 def update_record(record: dict | None, date: str, changes: list[dict], sources: dict[str, str],
                   keep_days: int = 120) -> dict:
     """File a night in the rolling record: `sources` says which lists were "fresh" or "unavailable" that night. A
-    re-run on a day already held adds to it and never wipes it (its own diff may find nothing, against a graph already
-    published that day): a change seen again is not doubled (the later run's row wins; a listing and a delisting of one
-    node are two), and a source fresh in either run is fresh. Days past `keep_days` go, and `started` is the oldest day
+    re-run on a day already held adds to it and never wipes it (it diffs against that day's earlier graph, so it finds
+    only what changed since): a change seen again is not doubled (the later run's row wins), but changes that differ in
+    what they went from or to are kept apart (two renames of one ship in a day, a listing and a delisting, two
+    governments' delistings), and a source fresh in either run is fresh. Days past `keep_days` go, and `started` is the oldest day
     held, because a day before it cannot be answered."""
     held = (record or {}).get("days", [])
     same = next((d for d in held if d["date"] == date), {"changes": [], "sources": {}})
-    rows = {(c["graph"], c["kind"], c["item"], c["id"], c.get("field"), "to" in c): c
+    rows = {(c["graph"], c["kind"], c["item"], c["id"], c.get("field"), str(c.get("from")), str(c.get("to"))): c
             for c in same["changes"] + list(changes)}
     seen = {k: "fresh" if "fresh" in (same["sources"].get(k), sources.get(k)) else "unavailable"
             for k in sorted(same["sources"].keys() | sources.keys())}

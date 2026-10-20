@@ -722,6 +722,19 @@ def test_same_day_rerun_keeps_first_runs_changes():
     assert [c["summary"] for c in later["days"][0]["changes"]] == ["a2", "b", "c", "d"]  # (in the diff's order)
 
 
+def test_same_day_two_renames_of_one_node_keep_both_rows():
+    # (a second run diffs against the first run's graph: TASSOS renamed twice in one day, and a ship delisted by two
+    # governments in two runs, are four changes, not two)
+    first = [change(kind="changed", field="name", **{"from": "A", "to": "B"}),
+             change(kind="changed", field="listed_by", **{"from": ["EU"]})]
+    second = [change(kind="changed", field="name", **{"from": "B", "to": "C"}),
+              change(kind="changed", field="listed_by", **{"from": ["UK"]})]
+    record = update_record(update_record(None, DAY, first, {}), DAY, second, {})
+    rows = record["days"][0]["changes"]
+    assert sorted(str(c.get("from")) + ">" + str(c.get("to", "")) for c in rows) == ["A>B", "B>C", "['EU']>", "['UK']>"]
+    assert update_record(record, DAY, first + second, {}) == record  # ... and seeing them again doubles nothing
+
+
 def test_sources_of_a_day_are_in_a_fixed_order():
     names = ["us", "uk", "eu", "un", "lobbying"]  # (a set's order would depend on the hash seed)
     first = update_record(None, DAY, [], {k: "fresh" for k in names})["days"][0]["sources"]

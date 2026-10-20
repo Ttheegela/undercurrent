@@ -137,7 +137,8 @@ def _previous_fleet(paths: Paths, last: dict) -> dict | None:
 
 
 def _legacy_kg(paths: Paths) -> dict | None:
-    """The 25 Sep network (window.KG = {...};), whose lobby layer the first run carries when lobbying is unavailable."""
+    """The 25 Sep network (window.KG = {...};), whose lobby layer the first run carries when lobbying is unavailable.
+    kg_data.js is gone from the repo (the network fetches kg.json, which is committed), so None is the usual answer."""
     try:
         return json.loads(paths.kg_js.read_text(encoding="utf-8").strip().split("=", 1)[1].removesuffix(";"))
     except (OSError, IndexError, ValueError):
@@ -260,14 +261,15 @@ def build(now: str | None = None, fetch=fetch_text, paths: Paths = DEFAULT_PATHS
     if merged is not None or lobby is not None:
         fleet = prev_fleet if merged is None else merged
         base, before = load_kg_base(paths.kg_base), prev_kg or _legacy_kg(paths)
-        try:
-            kg = build_kg(fleet, lobby, base, before, date, exclude=exclude)
-        except Exception as exc:  # noqa: BLE001 - an asset that is not what it says it is: lobbying fails alone
-            if lobby is None:
-                raise
-            print(f"live graphs: lobbying asset unusable ({type(exc).__name__}: {exc}); carrying the lobby layer")
-            lobby = None
-            kg = build_kg(fleet, None, base, before, date, exclude=exclude)
+        if lobby is not None or before:  # (lobbying down with no earlier network to carry its layer from: no network tonight)
+            try:
+                kg = build_kg(fleet, lobby, base, before, date, exclude=exclude)
+            except Exception as exc:  # noqa: BLE001 - an asset that is not what it says it is: lobbying fails alone
+                if lobby is None:
+                    raise
+                print(f"live graphs: lobbying asset unusable ({type(exc).__name__}: {exc}); carrying the lobby layer")
+                lobby = None
+                kg = build_kg(fleet, None, base, before, date, exclude=exclude) if before else None
     today_down = down | stale | ({"lobbying"} if lobby is None else set())
 
     unavailable = (today_down | set(last.get("unavailable", []))) & set(SOURCES)

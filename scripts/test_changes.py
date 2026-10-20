@@ -555,6 +555,26 @@ def network_of(fleet_graph):
     return build_kg(fleet_graph, asset, base, None, DAY)
 
 
+def test_network_page_finds_a_changed_link_by_its_ends(tmp_path):
+    """The network's payload has no edge ids, so the page matches a change's link on (endpoint_ids[0], endpoint_ids[1],
+    node_type) against a link's (s, t, y): in the fleet layer (a change on graph "fleet") and the lobby layer (graph "lobby")."""
+    sample = json.loads((FIX.parent / "lobbying_sample.json").read_text(encoding="utf-8"))
+    hired = next(e for e in sample["edges"] if e["type"] == "hired")
+    new = set(hired["filings"])  # filings yesterday's layer did not hold, posted since: their links are news
+    yesterday = {**sample, "edges": [e for e in sample["edges"] if not new & set(e["filings"])]}
+    today = {**sample, "filing_posted": {f: "2026-10-18" for f in new}}
+    base = {"nodes": [], "edges": [], "lob_alias": {}, "live_flags": {}, "status": {},
+            "meta": {"no_lobbying_found": {"match": [], "names": []}, "live": None}}
+    before, after = map_on(tmp_path, "before", drop={"MARSHAL ZHUKOV", "ZEPHYR I"}), map_on(tmp_path, "after")
+    kg0 = build_kg(before, yesterday, base, None, "2026-10-19")
+    kg1 = build_kg(after, today, base, kg0, DAY)
+    links = {(e["s"], e["t"], e["y"]) for e in kg1["edges"]}
+    for graph, was, now in (("fleet", before, after), ("lobby", kg0, kg1), ("fleet", after, before)):  # (the last: links that left)
+        found = [c for c in diff(was, now, graph, DAY, set()) if c["item"] == "edge"]
+        assert found, graph  # each case has a link to find
+        assert all((*c["endpoint_ids"], c["node_type"]) in links for c in found), (graph, [c["summary"] for c in found])
+
+
 def test_network_status_ignores_company_no_longer_looked_up(tmp_path):
     # the vessel that named TRANS-FLOT JSC drops out; research keeps the company, but nothing looks it up, so the
     # network's level for it falls to none though the US list still holds it

@@ -293,6 +293,20 @@ def test_first_run_without_lobbying_carries_the_25_sep_layer(world):
     assert record["days"][0]["sources"]["lobbying"] == "unavailable"
 
 
+def test_first_run_without_lobbying_or_an_earlier_network_builds_the_map_alone(world):
+    # kg_data.js is gone from the repo and this is the first run (no kg.json): there is no layer to carry, so no network tonight
+    for name in ("fleet_data", "nodes", "edges", "kg", "changes", "stats", "meta"):
+        getattr(world, name).unlink()
+    world.lobbying_meta.write_text(json.dumps({"status": "kept-previous"}), encoding="utf-8")
+    world.lobbying.unlink()
+    assert not world.kg_js.exists()
+    assert blg.build(DAY2, fake_fetch, world) == 0
+    assert load(world.fleet_data)["nodes"] and not world.kg.exists()
+    day = load(world.changes)["days"][0]
+    assert day["changes"] == [] and day["sources"]["lobbying"] == "unavailable"
+    assert load(world.meta)["unavailable"] == ["lobbying"]
+
+
 # ---- each source fails alone: a short or empty download, a family of links that shrinks ---------------
 
 def header_only(url):

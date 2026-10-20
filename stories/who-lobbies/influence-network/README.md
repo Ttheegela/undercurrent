@@ -47,7 +47,7 @@ they disclose) and marks the ships seen live on our God's Eye globe. Every line 
 **Visual key.** Columns run left to right: Government, Bills and orders, Lobbyists, Lobbying firms, Clients, Parent
 companies, then the fleet in Russia, Iran and other clusters. Colour shows the side (blue companies and ships, orange
 lobbying, green government); shape shows the type. A solid red ring means blocked (asset freeze), a dashed ring means
-restricted (trade, loan or investment limits). Hollow shapes run listed ships but are on no list themselves. White lines
+restricted (trade, port or investment limits). Hollow shapes run listed ships but are on no list themselves. White lines
 join the lobbying side to the fleet. A pulsing green ring means the ship was seen live on AIS.
 
 ## Data sources
@@ -102,7 +102,7 @@ The scripts in `scripts/` document the method and run from the event workspace, 
 ```
 python scripts/fetch_lda.py       # every page of lobbying reports for the chosen clients -> pulls/lda/
 python scripts/extract_lobby.py   # lobbying layer: clients, firms, lobbyists, bills, fees
-python scripts/build_kg.py        # merge with the shadow-fleet map and curated links -> kg_data.js
+python scripts/build_kg.py        # merge with the shadow-fleet map and curated links (the 25 Sep build; kg.json is now rebuilt nightly by scripts/build_live_graphs.py)
 ```
 
 To view locally, serve the folder (`python -m http.server 8792`) and open `http://localhost:8792`. The page loads
@@ -114,7 +114,7 @@ force-graph from cdn.jsdelivr.net, so it needs an internet connection.
 |---|---|
 | `index.html` | The interactive map |
 | `methods.html` | Methods and sources in plain language |
-| `kg_data.js` | Built graph data (nodes, links, sources) |
+| `kg.json` | Built graph data (nodes, links, sources), fetched by the page and rebuilt nightly |
 | `data/godseye_live.json` | The God's Eye live-AIS snapshot used for the green markers |
 | `scripts/curated.json` | Hand-checked links and sanctions statuses, each with its source |
 | `scripts/*.py` | Fetch, extract and build scripts |

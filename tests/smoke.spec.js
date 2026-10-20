@@ -264,6 +264,7 @@ const NETWORK = "/stories/who-lobbies/influence-network/index.html";
 
 for (const [name, path] of [["shadow-fleet map", MAP], ["influence network", NETWORK]]) {
   test(`${name}: the key drags, collapses and resets, and remembers across reloads`, async ({ page }) => {
+    if (path === NETWORK) test.slow(); // four loads, each laying out 3,000 nodes: 17 s on a quiet machine, over the default 30 s on a busy one
     const errors = watchErrors(page);
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto(path);
@@ -735,4 +736,510 @@ test("map: a wrong-shape data file also shows retry", async ({ page }) => {
   await page.route(FLEET_JSON, (r) => r.fulfill({ json: { oops: 1 } }));
   await page.goto(MAP);
   await expect(page.getByText("Map data unavailable right now")).toBeVisible();
+});
+
+// ---- influence network: live data (kg.json), the changes drawer, highlights and ghosts ----
+const KG_JSON = "**/stories/who-lobbies/influence-network/kg.json";
+const kgNode = (id, t, n, L, extra = {}) => ({ id, t, n, L, g: L === "lobby" ? "" : "russia", s: "", lists: [], info: {}, notes: [], k: 0, ...extra });
+const kgShip = (n, name, extra = {}) => kgNode(`IMO${1000000 + n}`, "ship", name, "fleet", { s: "blocked", lists: [["US", "", "2025-03-01"]], lk: 1, unverified_person: false,
+  info: { imo: String(1000000 + n), ship_type: "Crude Oil Tanker", programs: ["russia"] }, ...extra });
+const kgEdge = (s, t, y, L, extra = {}) => ({ s, t, y, c: "D", d: "2025", u: "https://example.org/rec", r: "", q: "", L, ...extra });
+const lobbyEdge = (s, t, y, fl, extra = {}) => kgEdge(s, t, y, "lobby", { d2: "2026", ids: [], pct: "", sa: 0, sub: false, a: 0, r: `${fl.length} filings`, fl, ...extra });
+
+// ALPHA..DELTA are run by ACME (BRAVO is only "restricted"); KGONLY manages ALPHA. ACME hired OLD FIRM and NEW FIRM, which lobbied the Senate; Jane works at NEW FIRM.
+function kgFixture({ names = ["Sovcomflot", "Zulu", "Fleet Tanqo"] } = {}) {
+  const nodes = [kgShip(1, "ALPHA"), kgShip(2, "BRAVO", { s: "restricted" }), kgShip(3, "CHARLIE"), kgShip(4, "DELTA", { s: "restricted" }),
+    kgNode("co:acme", "company", "ACME SHIPPING", "fleet", { s: "blocked", lk: 1, br: true, lists: [["US", "", "2025-03-01"]], info: { role: "operator" } }),
+    kgNode("co:kgonly", "company", "KGONLY CO", "fleet", { s: "blocked", kg_only: true, lk: 1, lists: [["US", "", "2025-03-01"]] }),
+    kgNode("gov:us-senate", "government", "US Senate", "lobby", { hub: true }),
+    kgNode("lf:oldfirm", "lobbyfirm", "OLD FIRM", "lobby"), kgNode("lf:newfirm", "lobbyfirm", "NEW FIRM", "lobby"),
+    kgNode("p:jane", "person", "Jane Roe", "lobby", { info: { covered_positions: ["Staff Director, Senate Banking Committee"] } })];
+  const edges = [1, 2, 3, 4].map((n) => kgEdge("co:acme", `IMO${1000000 + n}`, "operates", "fleet")).concat([
+    kgEdge("co:kgonly", "IMO1000001", "manages", "fleet"),
+    lobbyEdge("co:acme", "lf:oldfirm", "hired", ["a1111111", "a2222222"], { a: 250000, br: true }),
+    lobbyEdge("co:acme", "lf:newfirm", "hired", ["b1111111"], { a: 120000, fr: ["b1111111"], br: true }),
+    lobbyEdge("lf:newfirm", "gov:us-senate", "lobbied", ["b1111111"], { fr: ["b1111111"] }),
+    lobbyEdge("p:jane", "lf:newfirm", "lobbyist_at", ["b1111111"])]);
+  const deg = {};
+  edges.forEach((e) => { deg[e.s] = (deg[e.s] || 0) + 1; deg[e.t] = (deg[e.t] || 0) + 1; });
+  nodes.forEach((n) => { n.k = deg[n.id] || 0; });
+  return { meta: { generated: "2026-10-19", generated_from: [], live: { count: 0, taken_utc: "2026-09-25T20:11Z" },
+    no_lobbying_found: { match: [], names }, counts: { nodes: nodes.length, edges: edges.length, by_type: {}, by_layer: {}, edge_types: {}, lead_edges: 0,
+      ships_hidden_no_owner_link: 3, lda_filings_scanned: 10, lda_filings_kept: 8 } }, nodes, edges };
+}
+const lobbyChange = (over) => change({ graph: "lobby", node_type: "lobbying firm", source_url: "https://lda.gov/x", source_label: "US Senate lobbying disclosure (LDA)", ...over });
+const LOBBY_ENDS = (a, b, an, bn, type = "hired") => ({ item: "edge", node_type: type, endpoints: [an, bn], endpoint_ids: [a, b] });
+const NET_CHANGES = [
+  lobbyChange({ id: "lf:newfirm", name: "NEW FIRM", summary: "New lobbying firm: NEW FIRM" }),
+  lobbyChange({ ...LOBBY_ENDS("co:acme", "lf:newfirm", "ACME SHIPPING", "NEW FIRM"), id: edgeId(11), name: "ACME SHIPPING → NEW FIRM", summary: "ACME SHIPPING hired NEW FIRM" }),
+  lobbyChange({ kind: "changed", id: "IMO1000004", name: "DELTA", node_type: "ship", field: "status", from: "blocked", to: "restricted", summary: "DELTA changed status: blocked → restricted" }),
+  change({ id: "IMO1000003", name: "CHARLIE", summary: "US listed CHARLIE (IMO 1000003)" }),
+  change({ ...EDGE_ENDS("co:acme", "IMO1000003", "ACME SHIPPING", "CHARLIE"), id: edgeId(3), name: "ACME SHIPPING → CHARLIE", summary: "New link: CHARLIE → ACME SHIPPING (operated by)" }),
+  change({ kind: "changed", id: "IMO1000002", name: "BRAVO", field: "listed_by", from: ["eu"], summary: "EU removed BRAVO (IMO 1000002)" }),
+  change({ id: "IMO1000050", name: "OFFNET SHIP", summary: "US listed OFFNET SHIP (IMO 1000050)" }), // a ship the network does not draw
+  change({ kind: "removed", id: "IMO1000099", name: "GONE SHIP", summary: "EU removed GONE SHIP (IMO 1000099)" }),
+  change({ ...EDGE_ENDS("co:acme", "IMO1000099", "ACME SHIPPING", "GONE SHIP"), kind: "removed", id: edgeId(90), name: "ACME SHIPPING → GONE SHIP", summary: "Link removed: GONE SHIP → ACME SHIPPING (operated by)" }),
+  change({ kind: "removed", id: "co:loose", name: "LOOSE CO", node_type: "company", summary: "No longer on the map: LOOSE CO" }),
+  change({ ...EDGE_ENDS("co:acme", "IMO1000002", "ACME SHIPPING", "BRAVO"), node_type: "owns", kind: "removed", id: edgeId(91), name: "ACME SHIPPING → BRAVO", summary: "Link removed: BRAVO → ACME SHIPPING (owned by)" }),
+  change({ ...EDGE_ENDS("co:old", "IMO1000001", "OLD CO", "ALPHA"), kind: "removed", id: edgeId(92), name: "OLD CO → ALPHA", summary: "Link removed: ALPHA → OLD CO (operated by)" }),
+];
+
+async function stubNet(page, { kg = kgFixture(), record = recordFixture(NET_CHANGES) } = {}) {
+  await page.addInitScript(() => { window.__noAnim = true; });
+  await page.route(KG_JSON, (r) => r.fulfill({ json: kg }));
+  await page.route(CHANGES_JSON, (r) => (record ? r.fulfill({ json: record }) : r.fulfill({ status: 404, body: "" })));
+}
+async function netReady(page, hash = "") {
+  await page.goto(NETWORK + hash);
+  await page.waitForFunction(() => document.getElementById("loading").style.display === "none" && window.__kg && window.__kg.state().ready);
+}
+// the network's links are named by their ends and type, as a change names them
+const linkKeys = (page, which) => page.evaluate((w) => window.__kg.Graph.graphData().links.filter((l) => window.__kg.chg.link.get(l.id) === w).map((l) => [l.s, l.t, l.y].join(" ")).sort(), which);
+const nodeMarks = (page, mark) => page.evaluate((m) => [...window.__kg.chg.node].filter(([, v]) => v === m).map(([k]) => k).sort(), mark);
+const ghostIds = (page) => page.evaluate(() => window.__kg.chg.ghostNodes.map((g) => g.id).sort());
+const ghostLinkIds = (page) => page.evaluate(() => window.__kg.chg.ghostLinks.map((g) => g.id).sort());
+const netState = (page) => page.evaluate(() => window.__kg.state());
+// where a ghost is on screen, and whether that is inside the free area (under the bar)
+const ghostScreen = (page, id) => page.evaluate((gid) => {
+  const p = window.__kg.chg.at(gid), s = window.__kg.Graph.graph2ScreenCoords(p.x, p.y), bar = document.getElementById("bar").offsetHeight;
+  return { x: s.x, y: s.y, inside: s.x > 0 && s.y > bar && s.x < innerWidth && s.y < innerHeight };
+}, id);
+
+test("network loads kg.json", async ({ page }) => {
+  const errors = watchErrors(page);
+  const seen = [];
+  page.on("request", (r) => { const u = r.url(); if (/kg\.json$|kg_data\.js$/.test(u)) seen.push(u.split("/").pop()); });
+  await stubNet(page);
+  await netReady(page);
+  expect(seen).toEqual(["kg.json"]); // once, and the frozen script is no longer asked for
+  expect(await page.evaluate(() => [typeof window.KG, window.KG.nodes.length, window.__kg.Graph.graphData().nodes.length])).toEqual(["object", 10, 10]);
+  await expect(page.locator("#counts")).toContainText("10 nodes · 9 links (0 leads)"); // from meta.counts
+  await expect(page.locator("#stepx")).toContainText("4 tankers and cargo ships"); // computed from the data
+  await expect(page.locator("#loading")).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test("network: Restricted says trade, port or investment limits, in the details and the key", async ({ page }) => {
+  await stubNet(page);
+  await netReady(page);
+  const text = "Restricted (trade, port or investment limits)";
+  await expect(page.locator("#legend")).toContainText(text);
+  await page.evaluate(() => window.__kg.go(0)); // out of the way of the details
+  await page.evaluate(() => { const n = window.__kg.nodeById.get("IMO1000002"); document.getElementById("q").value = ""; window.__kg.select(n); });
+  await expect(page.locator("#side .badge")).toHaveText(text);
+  expect(await page.evaluate(() => document.documentElement.outerHTML.includes("trade or investment limits"))).toBe(false);
+});
+
+test("since window rings new lobbying firm", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubNet(page);
+  await netReady(page);
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 12 changes"); // both graphs' changes, off-network ones listed too
+  expect(await nodeMarks(page, "new")).toEqual(["IMO1000003", "lf:newfirm"]); // the off-network ship gets no ring
+  expect(await nodeMarks(page, "changed")).toEqual(["IMO1000002", "IMO1000004"]); // a fleet listing change and a status level change
+  expect(await linkKeys(page, "new")).toEqual(["co:acme IMO1000003 operates", "co:acme lf:newfirm hired"]);
+  // a new link also gets particles, in the same green; an ordinary fleet link has none
+  const look = await page.evaluate(() => {
+    const G = window.__kg.Graph, byKey = (k) => G.graphData().links.find((l) => [l.s, l.t, l.y].join(" ") === k);
+    return { fresh: G.linkDirectionalParticles()(byKey("co:acme IMO1000003 operates")), colour: G.linkDirectionalParticleColor()(byKey("co:acme IMO1000003 operates")) === window.__kg.chgColour,
+      old: G.linkDirectionalParticles()(byKey("co:acme IMO1000004 operates")) };
+  });
+  expect(look).toEqual({ fresh: 2, colour: true, old: 0 });
+  await page.getByRole("button", { name: "What changed" }).click();
+  await page.getByRole("button", { name: "Yesterday" }).click(); // choosing a shorter window drops what it no longer holds
+  await expect(page.locator(".chg-title")).toHaveText("Since 18 Oct · 12 changes");
+  expect(errors).toEqual([]);
+});
+
+test("network: rings are painted on the canvas, green for new and grey for changed", async ({ page }) => {
+  await stubNet(page);
+  await netReady(page);
+  await page.evaluate(() => { window.__kg.select(null); window.__kg.clearFocus(); window.__kg.fitAll(); });
+  // paint the node with and without its mark, and look at the pixels that differ: that is the ring
+  const ring = (id) => page.evaluate(async (nid) => {
+    const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const G = window.__kg.Graph, n = window.__kg.nodeById.get(nid), cv = document.querySelector("#graph canvas"), dpr = cv.width / cv.clientWidth;
+    const grab = async () => {
+      G.zoom(G.zoom()); await frame();
+      const p = G.graph2ScreenCoords(n.x, n.y), R = 70, x0 = Math.max(0, Math.round((p.x - R) * dpr)), y0 = Math.max(0, Math.round((p.y - R) * dpr));
+      return cv.getContext("2d").getImageData(x0, y0, Math.round(2 * R * dpr), Math.round(2 * R * dpr)).data;
+    };
+    const with_ = await grab(), mark = window.__kg.chg.node.get(nid);
+    window.__kg.chg.node.delete(nid);
+    const without = await grab();
+    window.__kg.chg.node.set(nid, mark);
+    let diff = 0, r = 0, g = 0, b = 0;
+    for (let i = 0; i < with_.length; i += 4) if (Math.abs(with_[i] - without[i]) + Math.abs(with_[i + 1] - without[i + 1]) + Math.abs(with_[i + 2] - without[i + 2]) > 60) { diff++; r += with_[i]; g += with_[i + 1]; b += with_[i + 2]; }
+    return { diff, r: r / (diff || 1), g: g / (diff || 1), b: b / (diff || 1) };
+  }, id);
+  const fresh = await ring("IMO1000003"), changed = await ring("IMO1000004");
+  expect(fresh.diff).toBeGreaterThan(20);
+  expect(fresh.g).toBeGreaterThan(fresh.r + 40); // green
+  expect(changed.diff).toBeGreaterThan(20);
+  expect(Math.abs(changed.g - changed.r)).toBeLessThan(25); // grey
+});
+
+test("network: a link is matched by its ends and type, nothing else", async ({ page }) => {
+  const errors = watchErrors(page);
+  const rows = [
+    change({ ...EDGE_ENDS("co:acme", "IMO1000003", "ACME SHIPPING", "CHARLIE"), node_type: "owns", id: edgeId(3), name: "x", summary: "right ends, wrong type" }), // no such link
+    change({ ...EDGE_ENDS("IMO1000003", "co:acme", "CHARLIE", "ACME SHIPPING"), id: edgeId(4), name: "x", summary: "ends the wrong way round" }),
+    change({ ...EDGE_ENDS("co:nobody", "IMO1000003", "NOBODY", "CHARLIE"), id: edgeId(5), name: "x", summary: "an end that is not on the network" }),
+    lobbyChange({ ...LOBBY_ENDS("lf:newfirm", "gov:us-senate", "NEW FIRM", "US Senate", "lobbied"), id: edgeId(6), name: "x", summary: "the right link under another id" }), // the one that matches
+    change({ ...EDGE_ENDS("co:acme", "IMO1000004", "ACME SHIPPING", "DELTA"), id: edgeId(7), name: "x", summary: "a fleet link by its ends" })]; // and another
+  await stubNet(page, { record: recordFixture(rows) });
+  await netReady(page);
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 5 changes");
+  expect(await linkKeys(page, "new")).toEqual(["co:acme IMO1000004 operates", "lf:newfirm gov:us-senate lobbied"]);
+  expect(await ghostLinkIds(page)).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("network: an item that is new and changed is new, and one removed then back is neither a ghost nor a ring", async ({ page }) => {
+  const errors = watchErrors(page);
+  const added = change({ id: "IMO1000003", name: "CHARLIE", summary: "US listed CHARLIE (IMO 1000003)" });
+  const changed = change({ kind: "changed", id: "IMO1000003", name: "CHARLIE", field: "listed_by", summary: "UK listed CHARLIE (IMO 1000003)" });
+  const back = [change({ kind: "removed", id: "IMO1000001", name: "ALPHA", summary: "EU removed ALPHA (IMO 1000001)" }),
+    change({ ...EDGE_ENDS("co:acme", "IMO1000001", "ACME SHIPPING", "ALPHA"), kind: "removed", id: edgeId(1), name: "ACME SHIPPING → ALPHA", summary: "Link removed: ALPHA → ACME SHIPPING (operated by)" })];
+  for (const rows of [[added, changed], [changed, added]]) {
+    await stubNet(page, { record: recordFixture([...rows, ...back]) });
+    await netReady(page);
+    await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 4 changes");
+    expect(await nodeMarks(page, "new")).toEqual(["IMO1000003"]);
+    expect(await nodeMarks(page, "changed")).toEqual([]);
+    expect([await ghostIds(page), await ghostLinkIds(page)]).toEqual([[], []]); // (ALPHA and its link are on the network today)
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+  }
+  expect(errors).toEqual([]);
+});
+
+test("network: removed items are faint ghosts, not part of the graph", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubNet(page);
+  await netReady(page);
+  // a removed ship, and a removed company with no link to place it by; the link whose end we do not know is skipped
+  expect(await ghostIds(page)).toEqual(["IMO1000099", "co:loose"]);
+  expect(await ghostLinkIds(page)).toEqual([edgeId(90), edgeId(91)].sort()); // to a ghost ship, and between two ships still drawn
+  const model = await page.evaluate(() => {
+    const G = window.__kg.Graph, d = G.graphData(), c = window.__kg.chg;
+    return { inGraph: d.nodes.some((n) => /GONE|LOOSE/.test(n.n)) || d.links.some((l) => !!l.ghost), shown: window.__kg.nodeById.has("IMO1000099"),
+      anchor: c.ghostNodes.find((g) => g.id === "IMO1000099").anchor, loose: c.ghostNodes.find((g) => g.id === "co:loose").anchor };
+  });
+  expect(model).toEqual({ inGraph: false, shown: false, anchor: "co:acme", loose: null });
+  // the ghost of a ship sits beside the company that ran it, a loose one below the graph
+  const where = await page.evaluate(() => { const c = window.__kg.chg, a = window.__kg.nodeById.get("co:acme"), s = c.at("IMO1000099"), l = c.at("co:loose");
+    const ys = window.__kg.Graph.graphData().nodes.map((n) => n.y); return { near: Math.hypot(s.x - a.x, s.y - a.y) < 120, below: l.y > Math.max(...ys) }; });
+  expect(where).toEqual({ near: true, below: true });
+  expect(errors).toEqual([]);
+});
+
+test("network: selecting a node does not light or frame its ghosts, and a ghost takes no clicks", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubNet(page);
+  await netReady(page);
+  await page.evaluate(() => { window.__kg.go(0); window.__kg.clearFocus(); window.__kg.fitAll(); });
+  // the ghost of GONE SHIP is moved far away: choosing ACME must neither light it nor fit the camera to it
+  await page.evaluate(() => { const g = window.__kg.chg.ghostNodes.find((x) => x.id === "IMO1000099"); g.dx += 6000; g.dy += 6000; });
+  const acme = await page.evaluate(() => { const n = window.__kg.nodeById.get("co:acme"), p = window.__kg.Graph.graph2ScreenCoords(n.x, n.y); return p; });
+  await page.mouse.move(acme.x, acme.y);
+  await page.waitForTimeout(1200); // the graph repaints its picking layer 800 ms after the camera moves, then finds what is under the pointer
+  await page.mouse.click(acme.x, acme.y);
+  await expect.poll(async () => (await netState(page)).selected).toBe("co:acme");
+  const st = await netState(page);
+  expect(st.hl.filter((id) => /^ghost|IMO1000099|co:loose/.test(id))).toEqual([]); // the neighbourhood is what is there now
+  expect(await page.evaluate(() => window.__kg.Graph.zoom())).toBeGreaterThan(0.5); // framing the far ghost would have zoomed right out
+  // clicking where a ghost is selects nothing
+  await page.evaluate(() => { const g = window.__kg.chg.ghostNodes.find((x) => x.id === "IMO1000099"); g.dx -= 6000; g.dy -= 6000; window.__kg.select(null); window.__kg.fitAll(); });
+  const at = await ghostScreen(page, "IMO1000099");
+  await page.mouse.click(at.x, at.y);
+  expect((await netState(page)).selected).not.toBe("IMO1000099");
+  await expect(page.locator("#side")).not.toContainText("GONE SHIP");
+  expect(errors).toEqual([]);
+});
+
+test("deep link focus works", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubNet(page);
+  await netReady(page, "#focus=IMO1000003&since=2026-10-19");
+  const st = await netState(page);
+  expect([st.selected, st.storyActive]).toEqual(["IMO1000003", false]);
+  await expect(page.locator("#side")).toHaveClass(/open/);
+  await expect(page.locator(".chg-title")).toHaveText("Since 19 Oct · 12 changes");
+  expect(await nodeMarks(page, "new")).toEqual(["IMO1000003", "lf:newfirm"]);
+  expect(errors).toEqual([]);
+});
+
+test("network: a deep link to a removed ship centres on its ghost", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubNet(page);
+  await netReady(page, "#focus=IMO1000099&since=2026-10-12");
+  await expect.poll(async () => (await ghostScreen(page, "IMO1000099")).inside).toBe(true);
+  expect((await netState(page)).selected).toBeNull(); // a ghost has no details
+  expect(errors).toEqual([]);
+});
+
+test("network: a deep link to a new link focuses the node it starts at", async ({ page }) => {
+  await stubNet(page);
+  await netReady(page, `#focus=${edgeId(11)}&since=2026-10-12`);
+  expect((await netState(page)).selected).toBe("co:acme");
+});
+
+test("network: hashchange re-focuses", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubNet(page);
+  await netReady(page);
+  await page.evaluate(() => { location.hash = "#focus=IMO1000002&since=2026-10-15"; });
+  await expect.poll(async () => (await netState(page)).selected).toBe("IMO1000002");
+  await expect(page.locator(".chg-title")).toHaveText("Since 15 Oct · 12 changes");
+  await page.evaluate(() => { location.hash = "#focus=lf:newfirm"; });
+  await expect.poll(async () => (await netState(page)).selected).toBe("lf:newfirm");
+  expect(errors).toEqual([]);
+});
+
+test("network: junk in the hash is ignored", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubNet(page);
+  await netReady(page, "#focus=%3Cimg%20src%3Dx%3E&since=2026-13-45&x=%E0%A4%A");
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 12 changes");
+  expect((await netState(page)).selected).toBeNull();
+  for (const hash of ["#focus=constructor", "#focus=__proto__&since=20261019", "#focus=toString", "#focus=hasOwnProperty&since=2026-02-30"]) {
+    await page.evaluate((h) => { location.hash = h; }, hash);
+    await page.waitForTimeout(150);
+    expect((await netState(page)).selected).toBeNull();
+    await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 12 changes");
+  }
+  expect(errors).toEqual([]);
+});
+
+test("network: one broken pair in the hash does not lose the others", async ({ page }) => {
+  await stubNet(page);
+  await netReady(page, "#x=%E0%A4%A&since=2026-10-19&y=%");
+  await expect(page.locator(".chg-title")).toHaveText("Since 19 Oct · 12 changes");
+});
+
+test("network shows retry when data fails", async ({ page }) => {
+  let down = true;
+  await page.addInitScript(() => { window.__noAnim = true; });
+  await page.route(KG_JSON, (r) => (down ? r.abort() : r.fulfill({ json: kgFixture() })));
+  await page.route(CHANGES_JSON, (r) => r.fulfill({ json: recordFixture(NET_CHANGES) }));
+  await page.goto(NETWORK);
+  await expect(page.getByText("Network data unavailable right now")).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText("unavailable right now");
+  await expect(page.getByRole("button", { name: "Retry" })).toBeFocused();
+  await expect(page.locator("#chgBtn")).toBeHidden(); // nothing to show changes on
+  down = false;
+  await page.getByRole("button", { name: "Retry" }).click();
+  await page.waitForFunction(() => document.getElementById("loading").style.display === "none" && window.__kg);
+  await expect(page.getByText("Network data unavailable right now")).toBeHidden();
+  await expect(page.locator("#chgBtn")).toBeVisible();
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 12 changes");
+  expect(await nodeMarks(page, "new")).toEqual(["IMO1000003", "lf:newfirm"]);
+});
+
+test("network: a wrong-shape data file also shows retry", async ({ page }) => {
+  await page.route(KG_JSON, (r) => r.fulfill({ json: { oops: 1 } }));
+  await page.goto(NETWORK);
+  await expect(page.getByText("Network data unavailable right now")).toBeVisible();
+});
+
+test("network shows retry when the graph library fails to load", async ({ page }) => {
+  await page.route(/force-graph(\.min)?\.js/, (r) => r.abort());
+  await stubNet(page);
+  await page.goto(NETWORK);
+  await expect(page.getByText("Network data unavailable right now")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry" })).toBeFocused();
+});
+
+test("network: change record failure says unavailable, not no changes, and Retry restores it", async ({ page }) => {
+  let down = true, record = 0, code = 0;
+  await page.addInitScript(() => { window.__noAnim = true; });
+  await page.route(KG_JSON, (r) => r.fulfill({ json: kgFixture() }));
+  await page.route(CHANGES_JSON, (r) => { record++; return down ? r.fulfill({ json: { days: "nope" } }) : r.fulfill({ json: recordFixture(NET_CHANGES) }); });
+  await page.route(/\/app\/changes\.js/, (r) => { code++; return down ? r.abort() : r.continue(); }); // the panel's own code fails too
+  await netReady(page);
+  await page.getByRole("button", { name: "What changed" }).click();
+  const root = page.locator("#chg-root");
+  await expect(root).toContainText("Changes unavailable right now");
+  await expect(root).not.toContainText("No changes since");
+  expect(await nodeMarks(page, "new")).toEqual([]);
+  expect(await ghostIds(page)).toEqual([]);
+  down = false;
+  await root.getByRole("button", { name: "Retry" }).click();
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 12 changes");
+  expect(await nodeMarks(page, "new")).toEqual(["IMO1000003", "lf:newfirm"]);
+  expect(await ghostIds(page)).toContain("IMO1000099");
+  expect([record, code]).toEqual([2, 2]);
+  // a record that loaded and holds nothing for the window says so
+  const again = await page.context().newPage();
+  await again.addInitScript(() => { window.__noAnim = true; });
+  await again.route(KG_JSON, (r) => r.fulfill({ json: kgFixture() }));
+  await again.route(CHANGES_JSON, (r) => r.fulfill({ json: recordFixture([]) }));
+  await again.goto(NETWORK);
+  await again.getByRole("button", { name: "What changed" }).click();
+  await expect(again.locator(".chg-empty")).toContainText("No changes since");
+});
+
+test("network full outage: Retry reloads the change record too", async ({ page }) => {
+  let down = true, record = 0;
+  await page.addInitScript(() => { window.__noAnim = true; });
+  await page.route(KG_JSON, (r) => (down ? r.abort() : r.fulfill({ json: kgFixture() })));
+  await page.route(CHANGES_JSON, (r) => { record++; return down ? r.abort() : r.fulfill({ json: recordFixture(NET_CHANGES) }); });
+  await page.route(/\/app\/changes\.js/, (r) => (down ? r.abort() : r.continue()));
+  await page.goto(NETWORK);
+  await expect(page.getByText("Network data unavailable right now")).toBeVisible();
+  down = false;
+  await page.getByRole("button", { name: "Retry" }).click();
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 12 changes");
+  expect(await nodeMarks(page, "new")).toEqual(["IMO1000003", "lf:newfirm"]);
+  expect(record).toBe(2);
+});
+
+test("network: if the panel's code fails to load the graph still works", async ({ page }) => {
+  await page.route("**/app/changes.js", (r) => r.abort());
+  await stubNet(page);
+  await netReady(page);
+  await page.getByRole("button", { name: "What changed" }).click();
+  await expect(page.locator("#chg-root")).toContainText("unavailable right now");
+  expect(await page.evaluate(() => window.__kg.Graph.graphData().nodes.length)).toBe(10);
+});
+
+test("network: choosing a change row shows the item, or its ghost, or nothing", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubNet(page);
+  await netReady(page);
+  await page.getByRole("button", { name: "What changed" }).click();
+  await page.locator(".chg-pick", { hasText: "EU removed GONE SHIP" }).click();
+  await expect.poll(async () => (await ghostScreen(page, "IMO1000099")).inside).toBe(true);
+  expect((await netState(page)).selected).toBeNull(); // no details for a ghost
+  await page.locator(".chg-pick", { hasText: "No longer on the map: LOOSE CO" }).click();
+  await expect.poll(async () => (await ghostScreen(page, "co:loose")).inside).toBe(true);
+  await page.locator(".chg-pick", { hasText: "New lobbying firm: NEW FIRM" }).click();
+  expect((await netState(page)).selected).toBe("lf:newfirm");
+  await page.locator(".chg-pick", { hasText: "US listed CHARLIE" }).click();
+  expect((await netState(page)).selected).toBe("IMO1000003");
+  await page.locator(".chg-pick", { hasText: "ACME SHIPPING hired NEW FIRM" }).click(); // a link: the node it starts at
+  expect((await netState(page)).selected).toBe("co:acme");
+  await page.locator(".chg-pick", { hasText: "US listed OFFNET SHIP" }).click(); // not on the network: listed, but nothing to show
+  expect((await netState(page)).selected).toBe("co:acme");
+  await page.locator(".chg-pick", { hasText: "ALPHA → OLD CO" }).click(); // its end is unknown
+  expect((await netState(page)).selected).toBe("co:acme");
+  expect(errors).toEqual([]);
+});
+
+test("network: the drawer's keys do not step the story, and Escape closes it", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubNet(page);
+  await netReady(page);
+  const btn = page.getByRole("button", { name: "What changed" });
+  await expect(btn).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("#chgPop")).toBeHidden();
+  await btn.click();
+  await expect(btn).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("#chgPop")).toBeVisible();
+  await page.getByRole("button", { name: "Pick a day" }).click();
+  await page.locator(".chg-day[tabindex='0']").focus();
+  const before = (await netState(page)).step;
+  for (const key of ["ArrowRight", "ArrowLeft", "ArrowDown", "Home"]) await page.keyboard.press(key);
+  await page.keyboard.press("0"); // (the key to fit everything) nor other keys of the page
+  await page.keyboard.press("/");
+  expect(await page.evaluate(() => document.activeElement.id)).not.toBe("q");
+  expect((await netState(page)).step).toBe(before);
+  await page.keyboard.press("Escape"); // closes the calendar first
+  await expect(page.locator(".chg-cal")).toBeHidden();
+  await expect(page.locator("#chgPop")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#chgPop")).toBeHidden();
+  await expect(btn).toBeFocused();
+  expect((await netState(page)).step).toBe(before);
+  expect(errors).toEqual([]);
+});
+
+test("network: change text is escaped and never becomes markup", async ({ page }) => {
+  const errors = watchErrors(page);
+  const hostile = '<img src=x onerror="window.__pwned=1">';
+  const rows = [change({ id: "IMO1000003", name: hostile, summary: `US listed ${hostile}`, source_label: hostile, source_url: "javascript:window.__pwned=1" }),
+    change({ kind: "removed", id: "IMO1000098", name: hostile, summary: `EU removed ${hostile}` })];
+  await stubNet(page, { record: recordFixture(rows) });
+  await netReady(page);
+  await page.getByRole("button", { name: "What changed" }).click();
+  await expect(page.locator(".chg-title")).toHaveText("Since 12 Oct · 2 changes");
+  await expect(page.locator(".chg-list img")).toHaveCount(0);
+  await expect(page.locator(".chg-list")).toContainText("<img src=x");
+  await expect(page.locator(".chg-list a[href^='javascript']")).toHaveCount(0);
+  await page.locator(".chg-pick", { hasText: "EU removed" }).click(); // and the ghost's label is drawn as text
+  expect(await page.evaluate(() => [window.__pwned, document.querySelectorAll("#graph img, #tip img, #side img").length])).toEqual([undefined, 0]);
+  expect(errors).toEqual([]);
+});
+
+test("network: a link's source is escaped and only http(s), and an unknown link type still reads", async ({ page }) => {
+  const errors = watchErrors(page);
+  const kg = kgFixture();
+  kg.edges.find((e) => e.s === "co:kgonly").u = "javascript:window.__pwned=1";
+  kg.edges.find((e) => e.s === "co:acme" && e.t === "IMO1000002").u = 'https://example.org/"><img src=x onerror="window.__pwned=1">';
+  kg.edges.push(kgEdge("co:kgonly", "IMO1000002", "chartered_by_night", "fleet", { an: "<b>note</b>", a: 5 }));
+  await stubNet(page, { kg });
+  await netReady(page);
+  await page.evaluate(() => window.__kg.select(window.__kg.nodeById.get("IMO1000002")));
+  const side = page.locator("#side");
+  await expect(side).toContainText("chartered by night"); // no "undefined"
+  await expect(side).not.toContainText("undefined");
+  await expect(side.locator("img")).toHaveCount(0);
+  await expect(side.locator("a[href^='https://example.org/']")).toHaveCount(2); // (the quote in one address stays inside its attribute)
+  await page.evaluate(() => window.__kg.select(window.__kg.nodeById.get("co:kgonly")));
+  await expect(side.locator("a[href^='javascript']")).toHaveCount(0);
+  await expect(side).not.toContainText("undefined");
+  expect(await page.evaluate(() => window.__pwned)).toBeUndefined();
+  expect(errors).toEqual([]);
+});
+
+test("network: the key names new, changed and removed", async ({ page }) => {
+  await stubNet(page);
+  await netReady(page);
+  const key = page.locator("#legend");
+  for (const t of ["New since", "Changed", "Removed"]) await expect(key).toContainText(t);
+  // the swatch takes the panel's colour
+  const stroke = await page.evaluate(() => getComputedStyle(document.querySelector("#legend .k-new")).stroke);
+  expect(stroke).toBe(await page.evaluate(() => { const probe = document.createElement("i"); probe.style.color = window.__kg.chgColour; document.body.append(probe); const c = getComputedStyle(probe).color; probe.remove(); return c; }));
+});
+
+test("network: the new fields are never printed", async ({ page }) => {
+  await stubNet(page);
+  await netReady(page);
+  await page.evaluate(() => { window.__kg.select(window.__kg.nodeById.get("co:kgonly")); });
+  const shown = await page.evaluate(() => {
+    const n = window.__kg.nodeById.get("co:kgonly");
+    window.__kg.Graph.onNodeHover()(n); // the tooltip
+    return document.getElementById("tip").textContent + " | " + document.getElementById("side").textContent;
+  });
+  expect(shown).toContain("KGONLY CO");
+  expect(shown).not.toMatch(/kg_only|\blk\b|\bfl\b|\bfr\b|b1111111|a1111111/);
+});
+
+test("network: story figures are dated or computed, and a step whose names have left still shows the graph", async ({ page }) => {
+  const errors = watchErrors(page);
+  await stubNet(page);
+  await netReady(page);
+  const text = async (i) => { await page.evaluate((s) => window.__kg.go(s), i); return page.locator("#stepx").innerText(); };
+  expect(await text(3)).toMatch(/^As of 25 September 2026, we searched US lobbying disclosures for 18 ship managers/);
+  expect(await text(5)).toContain("As of 25 September 2026, OFAC links seven shipping companies");
+  expect(await text(6)).toContain("As of 25 September 2026, all three banks are fully blocked");
+  await page.evaluate(() => window.__kg.go(0));
+  await expect(page.locator("#steps")).toContainText("rebuilt nightly"); // not "UK sanctions list (21 Sep 2026)" of a frozen build
+  // the fixture has none of the ships and firms the steps name: the step must not fade the whole graph
+  await page.evaluate(() => window.__kg.go(1));
+  expect((await netState(page)).hl).toBeNull();
+  expect(errors).toEqual([]);
+});
+
+test("network on a phone: the drawer fits and the page does not scroll sideways", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await stubNet(page);
+  await netReady(page);
+  await page.getByRole("button", { name: "What changed" }).click();
+  const box = await page.locator("#chgPop").boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(375);
+  expect(box.y + box.height).toBeLessThanOrEqual(812);
+  await page.locator(".chg-pick", { hasText: "US listed CHARLIE" }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

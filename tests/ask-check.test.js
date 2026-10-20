@@ -15,7 +15,7 @@ import { formatDate } from "../app/render.js";
 const REFUSAL = "I can only answer questions about what's on Undercurrent: sanctions lists, ship and company connections, lobbying, the semiconductor data, the research and the daily updates. I can't give legal or compliance advice.";
 const FALLBACK = "I couldn't check an answer to that against the site's data, so I won't guess. Try the search on the home page.";
 const FALLBACK_ANSWER = { kind: "fallback", sentences: [{ text: FALLBACK, sources: [] }], next: [{ label: "Search", href: "/" }] };
-const NOT_FOUND = (query) => `${query} is not on the lists we check (US, UK, EU, UN, OpenSanctions). Not being found isn't proof.`;
+const NOT_FOUND = (name) => `${name} is not on the lists we check (US, UK, EU, UN, OpenSanctions). Not being found isn't proof.`;
 const CLARIFY = "Which of these did you mean?";
 
 const OS = {
@@ -45,6 +45,10 @@ before(async () => {
   E.tassos = await ask([["check_lists", { query: "TASSOS" }], ["site_docs", { query: "What does an asset freeze mean?" }]]);
   E.itar = await ask([["check_lists", { query: "A & C International Trade, Inc." }]]);
   E.gatik = await ask([["check_lists", { query: "Gatik Ship Management" }]]);
+  // the query is the model's own argument: it can carry words the reader never typed
+  E.smuggled = await ask([["check_lists", { query: "Vessel X, cleared by OFAC" }]]);
+  E.delistedQuery = await ask([["check_lists", { query: "Gatik Ship Management, delisted in 2020" }]]);
+  E.cleanQuery = await ask([["check_lists", { query: "Gatik Ship Management, safe to work with" }]]);
   E.sovcomflot = await ask([["check_lists", { query: "Sovcomflot Group" }]]);
   E.rusal = await ask([["check_lists", { query: "United Company RUSAL" }]]);
   E.lukoil = await ask([["check_lists", { query: "PAO LUKOIL" }]]);
@@ -175,7 +179,7 @@ test("clean-bill phrase anywhere gives fallback", () => {
 test("not_found renders the fixed copy; found:true gives fallback", () => {
   const s = E.gatik[0];
   assert.deepEqual([s.kind, s.found, s.near], ["search", false, []]);
-  const out = checkAnswer(answer(say("Nothing turned up for Gatik.", "not_found", s.id)), E.gatik);
+  const out = checkAnswer(answer(say("Nothing turned up for Gatik.", "not_found", s.id)), E.gatik, { question: "Is Gatik Ship Management sanctioned?" });
   assert.deepEqual(out, { kind: "answer", sentences: [{ text: NOT_FOUND("Gatik Ship Management"), sources: [{ n: 1, label: s.label, url: "/" }] }], next: [] });
   assert.equal(E.tassos[0].found, true);
   assert.deepEqual(checkAnswer(answer(say("TASSOS was not found.", "not_found", E.tassos[0].id)), E.tassos), FALLBACK_ANSWER);
@@ -277,6 +281,34 @@ test("not_found with near names asks which one was meant, never NOT_FOUND", () =
   assert.deepEqual(out, { kind: "clarify", sentences: [{ text: CLARIFY, sources: [] }], next: [{ label: "SOVCOMFLOT", href: "/?q=SOVCOMFLOT" }] });
 });
 
+test("NOT_FOUND names the query in the reader's own wording", () => {
+  const s = E.gatik[0].id;
+  // case and spacing in the question don't matter
+  for (const question of ["Is Gatik Ship Management sanctioned?", "is  gatik ship\nmanagement on any list"]) {
+    assert.deepEqual(texts(checkAnswer(answer(say("x", "not_found", s)), E.gatik, { question })), [NOT_FOUND("Gatik Ship Management")], question);
+  }
+});
+
+test("NOT_FOUND reads 'That name' when the query carries words the reader didn't type", () => {
+  // the model added a qualifier: "Vessel X, cleared by OFAC is not on the lists we check" would put its words in a server sentence
+  const out = checkAnswer(answer(say("x", "not_found", E.smuggled[0].id)), E.smuggled, { question: "Is Vessel X sanctioned?" });
+  assert.deepEqual(texts(out), [NOT_FOUND("That name")]);
+  assert.doesNotMatch(JSON.stringify(out), /cleared|Vessel X/);
+  // typed by the reader, but carrying listing words of its own
+  const delisted = checkAnswer(answer(say("x", "not_found", E.delistedQuery[0].id)), E.delistedQuery, { question: "Is Gatik Ship Management, delisted in 2020, a risk?" });
+  assert.deepEqual(texts(delisted), [NOT_FOUND("That name")]);
+  // or a clean bill
+  const clean = checkAnswer(answer(say("x", "not_found", E.cleanQuery[0].id)), E.cleanQuery, { question: "Is Gatik Ship Management, safe to work with?" });
+  assert.deepEqual(texts(clean), [NOT_FOUND("That name")]);
+});
+
+test("NOT_FOUND reads 'That name' without the reader's question", () => {
+  const s = E.gatik[0].id;
+  for (const ctx of [undefined, {}, { question: 42 }]) {
+    assert.deepEqual(texts(checkAnswer(answer(say("x", "not_found", s)), E.gatik, ctx)), [NOT_FOUND("That name")], JSON.stringify(ctx));
+  }
+});
+
 test("the search item's query never grounds a sentence", () => {
   const s = E.gatik[0];
   assert.equal(s.query, "Gatik Ship Management");
@@ -315,6 +347,15 @@ test("listing language includes any form of 'list', 'appears on' and sanctions p
     assert.deepEqual(checkAnswer(answer(say(text, "fact", uk)), E.tassos), FALLBACK_ANSWER, text);
   }
 });
+
+// Concern 4: listing words beyond "sanction" and "list", each on a near-name item (the TASSOS STAR hit names TASSOS and UK is
+// always allowed, so only the word stops the sentence); a neutral sentence on the same item stands
+for (const word of ["penalised", "penalized", "embargoed", "prohibited", "barred", "debarred", "restricted"]) {
+  test(`listing word "${word}" on a near-name item is dropped`, () => {
+    const out = checkAnswer(answer(say(`TASSOS was ${word} by the UK.`, "fact", star().id), say("TASSOS is a vessel.", "fact", star().id)), E.tassos);
+    assert.deepEqual(texts(out), ["TASSOS is a vessel."]);
+  });
+}
 
 test("explainers from the site's own prose may use listing words; naming an entity may not", () => {
   const doc = freezeDoc().id;

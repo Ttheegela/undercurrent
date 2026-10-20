@@ -10,7 +10,7 @@ const REFUSAL = "I can only answer questions about what's on Undercurrent: sanct
 const FALLBACK = "I couldn't check an answer to that against the site's data, so I won't guess. Try the search on the home page.";
 const CLARIFY = "Which of these did you mean?";
 const day = (iso) => formatDate(iso) || iso; // d MMM yyyy; a bare year stays as it is
-const NOT_FOUND = (query) => `${query} is not on the lists we check (US, UK, EU, UN, OpenSanctions). Not being found isn't proof.`;
+const NOT_FOUND = (name) => `${name} is not on the lists we check (US, UK, EU, UN, OpenSanctions). Not being found isn't proof.`;
 const NO_CHANGES = (from, to) => `No changes were recorded between ${day(from)} and ${day(to)}.`;
 const SOURCE_GAP = (g) => (g.date || g.from === g.to
   ? `${g.source} was unavailable on ${day(g.date ?? g.from)}, so changes from it that day aren't recorded.`
@@ -29,7 +29,7 @@ const fallback = () => only("fallback", FALLBACK, [{ label: "Search", href: "/" 
 
 // Listing words are for `listed` claims, which the server writes: "list" in any form, not only "is on the … list" ("The UK list
 // includes TASSOS"). A clean bill is never said at all; "no changes" only from the change record's own item; a link never from the model.
-const LISTING = /\b(?:sanction\w*|list(?:s|ed|ing|ings)?|delisted|designat\w*|blacklist\w*|target(?:s|ed|ing)?|freez\w*|frozen|blocked)\b|\bappear(?:s|ed|ing)?\s+on\b/i;
+const LISTING = /\b(?:sanction\w*|list(?:s|ed|ing|ings)?|delisted|designat\w*|blacklist\w*|target(?:s|ed|ing)?|freez\w*|frozen|blocked|penalis\w*|penaliz\w*|embargo\w*|prohibit\w*|(?:de)?barred|restricted)\b|\bappear(?:s|ed|ing)?\s+on\b/i;
 const CLEAN_BILL = /\bnot\s+sanctioned|n['’]t\s+sanctioned|\bis\s+clean\b|\bno\s+sanctions\b|\bsafe\s+to\b/i;
 const NO_CHANGE = /\bno\s+(?:new\s+)?(?:changes?|updates?)\b|\bnothing\s+(?:new|changed|has\s+changed)\b/i;
 const URLISH = /\b(?:https?|javascript|data|vbscript):|\bwww\./i;
@@ -76,15 +76,21 @@ function factOk(text, items, explain) {
 
 // ---- rendering ---------------------------------------------------------------------------------------------------------
 
+// The search item's query is the model's own tool argument, so it could carry words the reader never typed ("Vessel X, cleared by
+// OFAC"). It is named only when the reader's question holds it (case and spacing aside) and it says nothing of its own.
+const plain = (s) => (typeof s === "string" ? s.replace(/\s+/g, " ").trim().toLowerCase() : "");
+const queryName = (query, question) =>
+  (plain(query) && plain(question).includes(plain(query)) && !CLEAN_BILL.test(query) && !LISTING.test(query) ? query.replace(/\s+/g, " ").trim() : "That name");
+
 const listable = (e) => typeof e.entity?.name === "string" &&
   (e.kind === "opensanctions" || ((e.kind === "list" || e.kind === "research") && !e.delisted && Object.hasOwn(LIST_LABELS, e.gov ?? "")));
 
 // Each returns the sentences to show as [{text, items}], [] to drop the sentence, or null to give the fallback for the whole answer.
 const RENDER = {
   listed: (text, items) => (items.every(listable) ? items.map((e) => ({ text: LISTED(e), items: [e] })) : null),
-  not_found: (text, items) => {
+  not_found: (text, items, all, ctx) => {
     const searches = items.filter((e) => e.kind === "search");
-    return searches.length && searches.every((e) => e.found === false) ? searches.map((e) => ({ text: NOT_FOUND(e.query), items: [e] })) : null;
+    return searches.length && searches.every((e) => e.found === false) ? searches.map((e) => ({ text: NOT_FOUND(queryName(e.query, ctx.question)), items: [e] })) : null;
   },
   // "No changes" only from the change record's own item, followed by every gap of its range; never from an empty list
   change: (text, items, all) => (items.every((e) => e.kind === "change" || e.kind === "gap")
@@ -131,10 +137,10 @@ function clarify(cited, asked, byId) {
 
 /**
  * raw: the model's `answer` arguments {kind, refusal_reason?, sentences: [{text, claim, sources}], next: [{label, source}]};
- * ev: the evidence of this question. Returns {kind: "answer"|"refusal"|"clarify"|"fallback", sentences: [{text, sources: [{n, label,
+ * ev: the evidence of this question; ctx.question: the reader's latest message (NOT_FOUND names a query only when it is there). Returns {kind: "answer"|"refusal"|"clarify"|"fallback", sentences: [{text, sources: [{n, label,
  * url}]}], next: [{label, href}]}.
  */
-export function checkAnswer(raw, ev) {
+export function checkAnswer(raw, ev, ctx = {}) {
   if (raw?.kind === "refusal") return only("refusal", REFUSAL);
   if (raw?.kind !== "answer" && raw?.kind !== "clarify") return fallback();
   const byId = new Map((Array.isArray(ev) ? ev : []).map((e) => [e.id, e]));
@@ -153,7 +159,7 @@ export function checkAnswer(raw, ev) {
 
   const pieces = [];
   for (const { s, items } of cited) {
-    const shown = Object.hasOwn(RENDER, s.claim) ? RENDER[s.claim](s.text, items, [...byId.values()]) : [];
+    const shown = Object.hasOwn(RENDER, s.claim) ? RENDER[s.claim](s.text, items, [...byId.values()], ctx ?? {}) : [];
     if (!shown) return fallback();
     pieces.push(...shown);
   }

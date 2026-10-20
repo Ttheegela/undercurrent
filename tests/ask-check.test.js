@@ -57,6 +57,12 @@ before(async () => {
   // the model's query can carry characters the reader's question shows differently, or a right-to-left override
   E.gatikEmoji = await ask([["check_lists", { query: "Gatik ✅" }]]);
   E.gatikRtl = await ask([["check_lists", { query: "Gatik\u202E Ship Management" }]]);
+  // a common word the reader typed, searched by the model; and an IMO number nothing holds
+  E.sanctioned = await ask([["check_lists", { query: "sanctioned" }]]);
+  E.unknownImo = await ask([["check_lists", { query: "1234567" }]]);
+  // round 3's sentences, in the committed index
+  E.maintainer = await ask(["What is in this folder", "Reproduce", "Rebuilding", "What's on the shelf (Materials)", "How we organise the work (orchestration)", "Updates (newest last)", "Credits and full notes"].map((query) => ["site_docs", { query }]));
+  E.round3 = await ask(["How sanctions work", "Key findings", "6. Open leads for someone to pick up", "4. The managers: young companies, one ship each", "Part 1. Who lobbies, and through whom", "Our research: sources, data and where to dig next", "3. State the programme filter, every time"].map((query) => ["site_docs", { query }]));
   E.sovcomflot = await ask([["check_lists", { query: "Sovcomflot Group" }]]);
   E.rusal = await ask([["check_lists", { query: "United Company RUSAL" }]]);
   E.lukoil = await ask([["check_lists", { query: "PAO LUKOIL" }]]);
@@ -306,7 +312,7 @@ test("not_found with near names asks which one was meant, never NOT_FOUND", () =
 test("NOT_FOUND names the query only when the reader typed it, as whole words, in the reader's own words", () => {
   const s = E.gatik[0].id;
   // case, spacing and punctuation in the question don't matter for the match; what is printed is the reader's span
-  for (const [question, shown] of [["Is Gatik Ship Management sanctioned?", "Gatik Ship Management"], ["is  gatik ship\nmanagement on any list", "gatik ship management"], ["GATIK SHIP MANAGEMENT?", "GATIK SHIP MANAGEMENT"]]) {
+  for (const [question, shown] of [["Is Gatik Ship Management sanctioned?", "Gatik Ship Management"], ["is  Gatik ship\nmanagement on any list", "Gatik ship management"], ["GATIK SHIP MANAGEMENT?", "GATIK SHIP MANAGEMENT"]]) {
     assert.deepEqual(texts(checkAnswer(answer(claim("not_found", s)), E.gatik, { question })), [NOT_FOUND(shown)], question);
   }
   // otherwise the claim is dropped: a qualifier the model added, no question at all, or a fragment of a word the reader typed
@@ -335,6 +341,36 @@ test("NOT_FOUND prints the matching span of the reader's question, never the mod
   // control and format characters inside the reader's span are stripped too
   assert.deepEqual(texts(checkAnswer(answer(claim("not_found", E.gatik[0].id)), E.gatik, { question: "Is Ga\u200Btik Ship\u0007 Management listed?" })), FALLBACK_ANSWER.sentences.map((x) => x.text));
   assert.deepEqual(texts(checkAnswer(answer(claim("not_found", E.gatik[0].id)), E.gatik, { question: "Is Gatik\u200B Ship\u0007 Management listed?" })), [NOT_FOUND("Gatik Ship Management")]);
+});
+
+test("every sentence of a maintainer-note section is unquotable, in the committed index", () => {
+  for (const title of ["What is in this folder", "Reproduce", "Rebuilding", "2. What's on the shelf (Materials)", "D. How we organise the work (orchestration)", "Updates (newest last)", "Credits and full notes"]) {
+    const doc = find(E.maintainer, (e) => e.label === title);
+    assert.ok(doc.text.length > 20, title);
+    assert.deepEqual(doc.quotes, [], title);
+  }
+});
+
+test("NOT_FOUND renders only when the reader's span holds a name-like token: a capitalised word or a digit", () => {
+  // the reader asked about TASSOS and the model searched a word of the question: "sanctioned is not on the lists" is never said
+  const word = E.sanctioned[0];
+  assert.deepEqual([word.query, word.found, word.near], ["sanctioned", false, []]);
+  assert.deepEqual(checkAnswer(answer(claim("not_found", word.id)), E.sanctioned, TASSOS_Q), FALLBACK_ANSWER);
+  // a name typed all in lower case has no name-like token either
+  assert.deepEqual(checkAnswer(answer(claim("not_found", E.gatik[0].id)), E.gatik, { question: "is gatik ship management listed?" }), FALLBACK_ANSWER);
+  // a digit is name-like: an IMO number
+  const imo = E.unknownImo[0];
+  assert.deepEqual([imo.found, imo.near], [false, []]);
+  assert.deepEqual(texts(checkAnswer(answer(claim("not_found", imo.id)), E.unknownImo, { question: "Is IMO 1234567 on a list?" })), [NOT_FOUND("1234567")]);
+});
+
+test("round 3: the reworded 'A sanction is …' is quotable; the slipped sentences, team and currency wording are not", () => {
+  const quotes = E.round3.flatMap((e) => e.quotes);
+  assert.ok(quotes.some((q) => q.includes("A sanction is a government rule that says: do not do business with a named person, company or country.")), "the real explainer");
+  for (const sentence of ["No manager of the 42 is UK-listed as a company", "No sanctions wording found in the filings we read.", "Some listed ships are sailing right now.", "A wave of agents is on these now.", "The teammate's leads", "Written for teammates.", "Two teammates got 42 and 45"]) {
+    assert.ok(E.round3.some((e) => e.text.includes(sentence)), `in the committed docs: ${sentence}`);
+    assert.ok(!quotes.some((q) => q.includes(sentence)), `quotable: ${sentence}`);
+  }
 });
 
 test("the re-review's listing sentences are not offered as quotes; a neutral explainer is", () => {

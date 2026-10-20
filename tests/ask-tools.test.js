@@ -40,7 +40,7 @@ const RESEARCH = [
     id: "IMO9408695", name: "TASSOS", imo: "9408695", flag: "Liberia", manager: "THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C",
     role: "tanker (both UK Russia list and US Iran-programme list)",
     listings: [{ by: "United States", date: "2025-07-30", program: "Iran", ref: 1 }, { by: "European Union", date: "2025-10-24", program: "Russia", ref: 2 }, { by: "United Kingdom", date: "2026-02-24", program: "Russia", ref: 3 }],
-    facts: [{ text: "Listed by the United States on 30 July 2025 (Iran), the European Union on 24 October 2025 (Russia) and the United Kingdom on 24 February 2026 (Russia).", refs: [1, 2, 3] }, { text: "1 June 2025: Named in an OFAC press release.", refs: [1] }, { text: "Appears on the Equasis register from 2019.", refs: [1] }, { text: "9 September 2024: Managed by the Zulu Ships Management & Operation - Sole Proprietorship LLC.", refs: [4] }, { text: "Has also sailed as Bay Global and Front Balder.", refs: [4] }],
+    facts: [{ text: "Listed by the United States on 30 July 2025 (Iran), the European Union on 24 October 2025 (Russia) and the United Kingdom on 24 February 2026 (Russia).", refs: [1, 2, 3] }, { text: "1 June 2025: Named in an OFAC press release.", refs: [1] }, { text: "Currently sailing under the Liberian flag.", refs: [1] }, { text: "Appears on the Equasis register from 2019.", refs: [1] }, { text: "9 September 2024: Managed by the Zulu Ships Management & Operation - Sole Proprietorship LLC.", refs: [4] }, { text: "Has also sailed as Bay Global and Front Balder.", refs: [4] }],
     names: [{ name: "TASSOS", current: true }, { name: "Bay Global", current: false }], flags: ["Liberia", "Panama"],
     sources: [{ n: 1, label: "US Treasury OFAC sanctions list entry", url: "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=54815" }, { n: 2, label: "EU Official Journal (EUR-Lex)", url: "https://eur-lex.europa.eu/eli/reg/2014/833/oj" }, { n: 3, label: "UK Sanctions List entry", url: "https://search-uk-sanctions-list.service.gov.uk/?searchValue=RUS3483" }],
   }),
@@ -117,8 +117,11 @@ const DOCS = {
     section("lanterns", "Lantern facts", `Overview. The U.S. Treasury acted on 1 May. ${Array.from({ length: 25 }, (_, i) => `Lantern fact ${i + 1} is recorded here.`).join(" ")}`),
     // the real findings' shape: listings that name an entity (or point at one) beside a sentence that doesn't
     section("rusal", "Rusal's removal from the US list", "6 April 2018: OFAC listed Oleg Deripaska, En+, Rusal and EuroSibEnergo. Deripaska himself stayed on the US list, and the EU added him on 8 April 2022. The US listed it in July 2023. 19 December 2018 OFAC told Congress it would remove the companies. Contested: Treasury negotiated the deal, and the vote split largely along party lines.", "stories/who-lobbies/FINDINGS.html"),
-    section("listings", "Listing sentences", "All three are fully blocked (as of 25 September 2026). The company is not on the UK or EU list by name. YEHOPE was listed by the EU first and by the US 5 days later. MISHELL is on the US list only. Titan-Micro listed by the US Treasury. A sanction is a government rule that says: do not do business with a named person, company or country. Nobody may pay, hold or move money for a blocked person. Each of them faces fines if they get it wrong. Both were designated in May. In May all 3 were blocked. Under the rules all three were blocked."),
-    section("abbrev", "Abbreviations", "Rep. Jane Doe of St. Petersburg met Acme Co. Ltd. staff on No. 5 street. Mr. Lee, Ms. Kim and Dr. Park met Boribo PTE. LTD. and Hapuka Inc. staff, e.g. at lunch, i.e. at noon, with Sen. Roe and the U.K. and U.S. teams. (A bracketed aside follows.) then a lower-case fragment follows."),
+    section("listings", "Listing sentences", "All three are fully blocked (as of 25 September 2026). The company is not on the UK or EU list by name. YEHOPE was listed by the EU first and by the US 5 days later. MISHELL is on the US list only. Titan-Micro listed by the US Treasury. A sanction is a government rule that says: do not do business with a named person, company or country. Nobody may pay, hold or move money for a blocked person. Each of them faces fines if they get it wrong. Both were designated in May. In May all 3 were blocked. Under the rules all three were blocked. No manager of the 42 is UK-listed as a company; the UK lists the ships only. No sanctions wording found in the filings we read."),
+    section("files", "Files", "index.html: the interactive page. nodes.json holds every organisation, with its source."),
+    section("shelf", "2. What's on the shelf (Materials)", "Every page opens in a browser without a server."),
+    section("notes", "Field notes", "Written for teammates. Some listed ships are sailing right now. A wave of agents is on these now. The data is currently refreshed nightly. At present the map holds every ship. At the moment nothing is pending. Our team checked every name. Every figure is checked twice."),
+    section("abbrev", "Abbreviations", "Rep. Jane Doe of St. Petersburg met Acme Co. Ltd. staff on No. 5 street. Mr. Lee, Ms. Kim and Dr. Park met Boribo PTE. LTD. and Hapuka Inc. staff, e.g. at lunch, i.e. at noon, with Sen. Roe and the U.K. and U.S. delegations. (A bracketed aside follows.) then a lower-case fragment follows."),
     section("tools", "The main tools", "Asset freeze (also called blocking). \"An asset freeze means nobody may pay a blocked person.\" Names are compared after removing endings such as LLC or OOO. Companies owned by a listed party can be blocked without being named. Hollow shapes run listed ships but are on no list themselves.", "stories/how-sanctions-work/index.html"),
   ],
 };
@@ -1132,7 +1135,8 @@ test("a listing sentence is quotable only with generic capitalised words and not
   const doc = ev.find((e) => e.label === "Listing sentences");
   // "All three are fully blocked", "The company is not on the UK or EU list by name.", "YEHOPE was listed by the EU first…",
   // "MISHELL is on the US list only.", "Titan-Micro listed by the US Treasury.", "Each of them …", "Both were designated …",
-  // "In May all 3 were blocked.", "Under the rules all three were blocked.": not offered
+  // "In May all 3 were blocked.", "Under the rules all three were blocked.", "No manager of the 42 is UK-listed …" (the 42 is
+  // a set named elsewhere) and "No sanctions wording found …" (never quotable): not offered
   assert.deepEqual(doc.quotes, [
     "A sanction is a government rule that says: do not do business with a named person, company or country.",
     "Nobody may pay, hold or move money for a blocked person.",
@@ -1145,6 +1149,29 @@ test("the Hytera combination: lobbyists named in filings, then 'All three are fu
   const lobbyists = ev.find((e) => e.kind === "lobbying" && /Lobbyists named in the filings/.test(e.text));
   assert.ok(lobbyists.quotes.some((q) => q.startsWith("Lobbyists named in the filings for Nord Stream 2 AG")));
   assert.ok(ev.every((e) => e.quotes.every((q) => !/All three are fully blocked/.test(q))));
+});
+
+test("team wording, present-tense currency wording and maintainer notes are never quotable", async () => {
+  await run("site_docs", { query: "field notes" });
+  assert.deepEqual(ev.find((e) => e.label === "Field notes").quotes, ["Every figure is checked twice."]);
+  // every sentence of a maintainer-note section ("Files", "Reproduce", build or run steps), even one that would pass alone
+  ev = [];
+  await run("site_docs", { query: "rebuild the graphs" });
+  const reproduce = ev.find((e) => e.label === "Reproduce");
+  assert.match(reproduce.text, /^Rebuild the graphs: run the build\./);
+  assert.deepEqual(reproduce.quotes, []);
+  ev = [];
+  await run("site_docs", { query: "files nodes organisation" });
+  assert.deepEqual(ev.find((e) => e.label === "Files").quotes, []);
+  ev = [];
+  await run("site_docs", { query: "shelf materials browser server" });
+  assert.deepEqual(ev.find((e) => e.label === "2. What's on the shelf (Materials)").quotes, []); // a sentence that would pass alone
+  // and in research: "Currently sailing under the Liberian flag." is not offered
+  ev = [];
+  await run("check_lists", { query: "TASSOS" });
+  const r = ev.find((e) => e.kind === "research" && e.entity.name === "TASSOS");
+  assert.match(r.text, /Currently sailing under the Liberian flag\./);
+  assert.ok(!r.quotes.some((q) => /Currently/.test(q)));
 });
 
 test("connection evidence states relationships only and never names a government", async () => {
@@ -1163,7 +1190,7 @@ test("sentences don't break after common abbreviations, and a fragment is not a 
   await run("site_docs", { query: "abbreviations aside fragment" });
   assert.deepEqual(ev.find((e) => e.label === "Abbreviations").quotes, [
     "Rep. Jane Doe of St. Petersburg met Acme Co. Ltd. staff on No. 5 street.",
-    "Mr. Lee, Ms. Kim and Dr. Park met Boribo PTE. LTD. and Hapuka Inc. staff, e.g. at lunch, i.e. at noon, with Sen. Roe and the U.K. and U.S. teams.",
+    "Mr. Lee, Ms. Kim and Dr. Park met Boribo PTE. LTD. and Hapuka Inc. staff, e.g. at lunch, i.e. at noon, with Sen. Roe and the U.K. and U.S. delegations.",
   ]);
   // the reviewer's "(Organization, IMO 6467751)…": a name ending in "LTD." stays whole
   ev = [];

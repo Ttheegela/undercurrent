@@ -36,6 +36,7 @@ const listable = (e) => typeof e.entity?.name === "string" &&
 // in the reader's question (case, spacing and punctuation aside; "SSOS" is not in "Is TASSOS sanctioned?"). What is printed is the
 // reader's own span of the question, with control and format characters (a right-to-left override, a zero-width space) stripped.
 const WORD = /[\p{L}\p{N}]+/gu;
+const NAME_LIKE = /(?<![\p{L}\p{N}])\p{Lu}|\p{N}/u; // a capitalised word or a digit
 function typedSpan(query, question) {
   if (typeof query !== "string" || typeof question !== "string") return null;
   const want = (query.match(WORD) ?? []).map((w) => w.toLowerCase());
@@ -44,7 +45,7 @@ function typedSpan(query, question) {
     if (!want.every((w, j) => words[i + j][0].toLowerCase() === w)) continue;
     const last = words[i + want.length - 1];
     const span = question.slice(words[i].index, last.index + last[0].length).replace(/\s+/g, " ").replace(/[\p{Cc}\p{Cf}]/gu, "").replace(/ +/g, " ").trim();
-    return span || null;
+    return NAME_LIKE.test(span) ? span : null; // "sanctioned is not on the lists" is never said
   }
   return null;
 }

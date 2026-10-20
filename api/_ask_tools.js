@@ -78,10 +78,12 @@ const STARTERS = new Set(("A An The Nobody No Anyone Any Every Most Many Some Co
   "Lists Sanctions Asset Export Secondary Sectoral If When Once Under In For To Because Where While").split(" "));
 const CAPITALISED = /(?<![\p{L}\p{N}])\p{Lu}[\p{L}\p{N}'’-]*/gu;
 const NUMBER_WORDS = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty thirty forty fifty sixty seventy eighty ninety hundred";
-const POINTS_AT = new RegExp(String.raw`\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both)\b|\ball\s+(?:\d+|${NUMBER_WORDS.split(" ").join("|")})\b|\bthe\s+(?:company|firm|ship|vessel|tanker|person|entity|bank|group|owner|manager|operator)\b`, "i");
+const POINTS_AT = new RegExp(String.raw`\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both)\b|\b(?:all|the)\s+(?:\d+|${NUMBER_WORDS.split(" ").join("|")})\b|\bthe\s+(?:company|firm|ship|vessel|tanker|person|entity|bank|group|owner|manager|operator)\b`, "i");
 const generic = (s) => !POINTS_AT.test(s) && (s.replace(ALLOWED, ",").match(CAPITALISED) ?? []).every((w) => STARTERS.has(w.replace(/['’]s$/, "")));
+// Never quotable: "team" wording, present-tense currency wording (the 25 Sep 2026 research would read as current), "no sanctions"
+const NEVER = /\bteam(?:s|mates?)?\b|\bright now\b|\bcurrently\b|\bat present\b|\bat the moment\b|\bon these now\b|\bno sanctions\b/i;
 // (the allowed names are not listing words: "OpenSanctions connections data: TASSOS …" is not about a listing)
-const quotable = (s) => !LISTING.test(s.replace(ALLOWED, ",")) || generic(s);
+const quotable = (s) => !NEVER.test(s) && (!LISTING.test(s.replace(ALLOWED, ",")) || generic(s));
 const quotesOf = (kind, text) => sentencesOf(text).filter(quotable).slice(0, quoteMax(kind));
 
 /** The whole sentences of a text in reading order: a table row (a line) is one; a heading, a lead-in line ("…:") and a fragment
@@ -275,7 +277,7 @@ function researchItems(e, s, q, how) {
     ...e.facts.filter((f) => !removed.some((d) => f.text.includes(d))).map((f) => f.text),
   ];
   const entity = { id: e.id, name: e.name, ...(e.imo && { imo: e.imo }) };
-  const quotes = profile.filter(Boolean).flatMap(sentencesOf).filter((q) => !LISTING.test(q) && !AUTHORITY.test(q)).slice(0, quoteMax("research"));
+  const quotes = profile.filter(Boolean).flatMap(sentencesOf).filter((q) => !LISTING.test(q) && !AUTHORITY.test(q) && !NEVER.test(q)).slice(0, quoteMax("research"));
   return (e.listings.length ? e.listings : [null]).map((l) => {
     const gone = l && delisted(l);
     const plain = l && (!l.date || PLAIN_DATE.test(l.date)); // an empty date is still a listing; "2018-04-06 (delisted 2019-01)" is not a current one
@@ -771,7 +773,9 @@ function chipsTool(args, ev) {
 const STOP = new Set("a about an and are as at be by can do does for from get give has have how i in is it its me my of on or please show tell that the there this to was what when where which who why will with you your".split(" "));
 const stem = (w) => (w.length > 3 ? w.replace(/(ing|ed|es|s)$/, "").replace(/e$/, "") : w); // change, changes and changed all become "chang"
 const tokens = (s) => (s.toLowerCase().match(/[a-z0-9]+/g) || []).filter((w) => !STOP.has(w)).map(stem);
-const MAINTAINER = /^(files?|reproduce|rebuilding|what is in this folder|credits)\b/i; // build steps and file lists: last in line behind an explainer
+// Maintainer notes (file lists, build and run steps, how the work was organised, logs, credits): last in line behind an explainer,
+// and never quoted
+const MAINTAINER = /^(?:files?|reproduce|rebuilding|what is in this folder|credits)\b|\((?:materials|orchestration)\)$|^updates \(newest last\)$/i;
 const MAINTAINER_PAGE = /METHODS_LOG/;
 
 function docIndex() {
@@ -811,7 +815,7 @@ function siteDocs(args, ev) {
     .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
-  const items = top.map(({ d }) => ({ kind: "doc", text: filled(d.s.text), label: d.s.title, url: href(d.s.url, "/") }));
+  const items = top.map(({ d }) => ({ kind: "doc", text: filled(d.s.text), label: d.s.title, url: href(d.s.url, "/"), ...(MAINTAINER.test(d.s.title) && { quotes: [] }) }));
   return { query, items: addAll(ev, items).map(view) };
 }
 

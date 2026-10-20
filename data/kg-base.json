@@ -1,0 +1,2385 @@
+{
+"edges": [
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"br": true,
+"c": "D",
+"d": "2014-09-12",
+"f": "pulls/tavily/20260925T184127949600Z_9368_search.json",
+"q": "Gazprom Neft is majority owned by Gazprom.",
+"r": "",
+"s": "co:gazprom",
+"t": "co:gazprom-neft",
+"u": "https://home.treasury.gov/news/press-releases/jl2629",
+"y": "owns"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"c": "D",
+"d": "2025-01-10",
+"f": "pulls/tavily/20260925T184101617058Z_26384_extract.json",
+"q": "Russia-based fleet and bunker operator Gazpromneft Marine Bunker ... a Gazprom Neft subsidiary",
+"r": "",
+"s": "co:gazprom-neft",
+"t": "co:gazpromneft-marine-bunker-liability",
+"u": "https://home.treasury.gov/news/press-releases/jy2777",
+"y": "owns"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"c": "D",
+"d": "2005",
+"f": "",
+"q": "Client: GAZPROMEXPORT LTD (FORMERLY GAZEXPORT LTD) A SUBSIDIARY OF OAO GAZPROM",
+"r": "",
+"s": "co:gazprom",
+"t": "co:gazpromexport",
+"u": "https://lda.senate.gov/filings/public/filing/a790e61d-e32a-4907-b827-b8112a617526/print/",
+"y": "owns"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"c": "L",
+"d": "",
+"f": "",
+"q": "Inferred from the name and the Sberbank group holding companies listed as foreign entities on the filings; not stated on an official page we saved.",
+"r": "",
+"s": "co:sberbank",
+"t": "co:sberbank-cib-usa",
+"u": "",
+"y": "owns"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"c": "L",
+"d": "",
+"f": "",
+"q": "US subsidiary of the Hangzhou parent (inferred from the name; the filings list CETC and CETHIK, the parent's state owners, as foreign entities).",
+"r": "",
+"s": "co:hangzhou-hikvision",
+"t": "co:hikvision-usa",
+"u": "",
+"y": "owns"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"c": "L",
+"d": "",
+"f": "",
+"q": "The Hikvision USA filings list CETC as a foreign entity; control of the parent is widely reported but not re-checked here.",
+"r": "",
+"s": "co:cetc",
+"t": "co:hangzhou-hikvision",
+"u": "",
+"y": "owns"
+},
+{
+"L": "curated",
+"a": 108500,
+"an": "US$ per month (FARA registration 6170)",
+"c": "D",
+"d": "2019-02",
+"f": "",
+"q": "Foreign-agent (FARA) contract between Mercury Public Affairs and En+ Group, $108,500 per month, during the 2019 delisting.",
+"r": "",
+"s": "co:en-plus-group",
+"t": "lf:mercury-public-affairs",
+"u": "https://efile.fara.gov/docs/6170-Exhibit-AB-20200316-80.pdf",
+"y": "hired"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"c": "R",
+"d": "2025-04-30",
+"f": "",
+"q": "Sidley Austin registered as a foreign agent (FARA 3731) for Hikvision USA; about $573,619 in one six-month period (not re-checked).",
+"r": "",
+"s": "co:hikvision-usa",
+"t": "lf:sidley-austin",
+"u": "https://efile.fara.gov/docs/3731-Supplemental-Statement-20250430-53.pdf",
+"y": "foreign_agent_for"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"br": true,
+"c": "D",
+"d": "2025-01-10",
+"f": "pulls/tavily/20260925T194926777053Z_14684_search.json",
+"q": "Joint Stock Company Sovcomflot (Sovcomflot), Russia's state-owned shipping company and fleet operator",
+"r": "",
+"s": "gov:russia",
+"t": "co:sovcomflot",
+"u": "https://home.treasury.gov/news/press-releases/jy2777",
+"y": "owns"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"c": "L",
+"d": "",
+"f": "",
+"q": "Inferred from the name; no official text we saved states the owner.",
+"r": "",
+"s": "co:gazprom-neft",
+"t": "co:gazpromneft-shipping",
+"u": "",
+"y": "owns"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"br": true,
+"c": "L",
+"d": "",
+"f": "",
+"q": "Inferred from the name; no official text we saved states the owner (EU listed Gazprom Flot on 23 Apr 2026).",
+"r": "",
+"s": "co:gazprom",
+"t": "co:gazprom-flot",
+"u": "",
+"y": "owns"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"br": true,
+"c": "D",
+"d": "",
+"f": "us_csl/consolidated.csv",
+"q": "US sanctions list entry: (Linked To: LIMITED LIABILITY COMPANY ARCTIC LNG 2)",
+"r": "OFAC ent_num 50521",
+"s": "co:ocean-speedstar-solutions",
+"t": "co:arctic-lng-2",
+"u": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=50521",
+"y": "linked_to"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"br": true,
+"c": "D",
+"d": "",
+"f": "us_csl/consolidated.csv",
+"q": "US sanctions list entry: (Linked To: LIMITED LIABILITY COMPANY ARCTIC LNG 2)",
+"r": "OFAC ent_num 50524",
+"s": "co:zara-shipholding",
+"t": "co:arctic-lng-2",
+"u": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=50524",
+"y": "linked_to"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"br": true,
+"c": "D",
+"d": "",
+"f": "us_csl/consolidated.csv",
+"q": "US sanctions list entry: (Linked To: LIMITED LIABILITY COMPANY ARCTIC LNG 2)",
+"r": "OFAC ent_num 50626",
+"s": "co:gotik-shipping",
+"t": "co:arctic-lng-2",
+"u": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=50626",
+"y": "linked_to"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"br": true,
+"c": "D",
+"d": "",
+"f": "us_csl/consolidated.csv",
+"q": "US sanctions list entry: (Linked To: LIMITED LIABILITY COMPANY ARCTIC LNG 2)",
+"r": "OFAC ent_num 50627",
+"s": "co:plio-energy-cargo-shipping",
+"t": "co:arctic-lng-2",
+"u": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=50627",
+"y": "linked_to"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"br": true,
+"c": "D",
+"d": "",
+"f": "us_csl/consolidated.csv",
+"q": "US sanctions list entry: (Linked To: LIMITED LIABILITY COMPANY ARCTIC LNG 2)",
+"r": "OFAC ent_num 51967",
+"s": "co:skyhart-management-services",
+"t": "co:arctic-lng-2",
+"u": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=51967",
+"y": "linked_to"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"br": true,
+"c": "D",
+"d": "",
+"f": "us_csl/consolidated.csv",
+"q": "US sanctions list entry: (Linked To: LIMITED LIABILITY COMPANY ARCTIC LNG 2)",
+"r": "OFAC ent_num 51972",
+"s": "co:avision-shipping-services",
+"t": "co:arctic-lng-2",
+"u": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=51972",
+"y": "linked_to"
+},
+{
+"L": "curated",
+"a": 0,
+"an": "",
+"br": true,
+"c": "D",
+"d": "",
+"f": "us_csl/consolidated.csv",
+"q": "US sanctions list entry: (Linked To: LIMITED LIABILITY COMPANY ARCTIC LNG 2)",
+"r": "OFAC ent_num 52250",
+"s": "co:hongkong-yaqing-shipping",
+"t": "co:arctic-lng-2",
+"u": "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=52250",
+"y": "linked_to"
+},
+{
+"L": "team",
+"c": "D",
+"d": "2022",
+"f": "[lda-foreign-entities] LDA filing 5929b87d-2cee-4128-9aa5-abc35980cd13 (verified live)",
+"q": "issue: DEF, FOR, HOM, INT, SCI; period: 2022-Q2",
+"r": "",
+"s": "lf:elevation-association",
+"t": "lob:us_congress",
+"u": "https://lda.gov/filings/public/filing/5929b87d-2cee-4128-9aa5-abc35980cd13/print/",
+"y": "lobbied"
+},
+{
+"L": "team",
+"c": "D",
+"d": "2022",
+"f": "[lda-foreign-entities] LDA filing e7429017-7938-42b7-9d37-4dd2da5b4a04 (verified live)",
+"q": "issue: COM, CPI, CPT, HOM, SCI, TEC, TRD; period: 2022-Q3",
+"r": "",
+"s": "co:huawei",
+"t": "lob:us_congress",
+"u": "https://lda.gov/filings/public/filing/e7429017-7938-42b7-9d37-4dd2da5b4a04/print/",
+"y": "lobbied"
+},
+{
+"L": "team",
+"c": "D",
+"d": "2024",
+"f": "[lda-known-listed] lda.senate.gov filings API, foreign_entity_name=DJI (2024 Q1) | [fara-principals] lda.senate.gov filing c2c08c25-46cb-420d-9e82-a0b284a31d3e",
+"q": "issue: drone regulation; period: 2024 | 2024-03 (effective 2024-03-19)",
+"r": "",
+"s": "co:dji",
+"t": "lob:porter_wright",
+"u": "https://lda.gov/filings/public/filing/c2c08c25-46cb-420d-9e82-a0b284a31d3e/print/",
+"y": "hired"
+},
+{
+"L": "team",
+"c": "D",
+"d": "2014",
+"f": "[lda-known-listed] lda.senate.gov filings, client=Small UAV Coalition, registrant=Akin Gump/McGuireWoods, fe=DJI",
+"q": "issue: UAV rulemaking; period: 2014-2017",
+"r": "",
+"s": "co:sz-dji-technology",
+"t": "lob:small_uav_coalition",
+"u": "",
+"y": "linked_to"
+},
+{
+"L": "team",
+"c": "D",
+"d": "2016",
+"f": "[lda-known-listed] lda.senate.gov filings API",
+"q": "issue: UAV rulemaking; amount: 230000; period: 2016 Q1",
+"r": "",
+"s": "lob:small_uav_coalition",
+"t": "lf:akin-gump-strauss-hauer-feld",
+"u": "",
+"y": "hired"
+},
+{
+"L": "team",
+"c": "D",
+"d": "2016",
+"f": "[lda-known-listed] lda.senate.gov filings, registrant=Franklin Square Group",
+"q": "issue: drone rules; period: 2016",
+"r": "",
+"s": "co:sz-dji-technology",
+"t": "lob:drone_mfrs_alliance",
+"u": "",
+"y": "linked_to"
+},
+{
+"L": "team",
+"c": "D",
+"d": "2018",
+"f": "[lda-known-listed] lda.senate.gov filings, registrant=Thorn Run Partners",
+"q": "issue: drone rules; period: 2018",
+"r": "",
+"s": "co:sz-dji-technology",
+"t": "lob:alliance_drone_innovation",
+"u": "",
+"y": "linked_to"
+},
+{
+"L": "team",
+"c": "D",
+"d": "2017",
+"f": "[lda-known-listed] lda.senate.gov filings, fe disclosure text",
+"q": "amount: 38% ownership; period: 2017 Q3",
+"r": "",
+"s": "gov:russia",
+"t": "co:gazprom",
+"u": "",
+"y": "owns"
+},
+{
+"L": "team",
+"c": "L",
+"d": "2019",
+"f": "[lda-known-listed] prior team research: rusal-en-plus-delisting.md | [ownership-bridges] public reporting (En+ Group annual report/prospectus); not confirmed via an official record",
+"q": "issue: aluminum tariffs/trade; amount: reported ~48%-57% stake (varies by year/source); period: 2019-2025",
+"r": "",
+"s": "co:en-plus-group",
+"t": "lob:rusal",
+"u": "",
+"y": "owns"
+},
+{
+"L": "team",
+"c": "L",
+"d": "2022",
+"f": "[lda-known-listed] politico.eu, prior team research: oil-majors.md (Bulgaria denied acting for Lukoil)",
+"q": "issue: EU sanctions exemption for Neftochim Burgas refinery; period: 2022-2025",
+"r": "",
+"s": "lob:bulgaria",
+"t": "lob:lukoil",
+"u": "",
+"y": "linked_to"
+},
+{
+"L": "team",
+"c": "D",
+"d": "2024",
+"f": "[fara-principals] lda.senate.gov filings 6ffc9525-2752-4b9f-953b-0340c438e6f3, f8516f8c-de77-4fd3-a320-8fa3208bbde2, lobbying_activities[]",
+"q": "issue: LNG, sanctions compliance (issue codes ENG/CDT/FUE); no specific government_entities named in filing; period: 2024",
+"r": "",
+"s": "lf:qorvis-holding-geopols",
+"t": "lob:us_congress",
+"u": "https://lda.gov/filings/public/filing/6ffc9525-2752-4b9f-953b-0340c438e6f3/print/",
+"y": "lobbied"
+},
+{
+"L": "team",
+"c": "L",
+"d": "",
+"f": "[ownership-bridges] politico.eu 'Russia's Lukoil struggle to escape the grip' (press reporting, not a lobbying-register filing); Sofia denies lobbying \"for Lukoil\" per same article; flagged CAN'T VERIFY in climate-day/ideas/lobbying/_checks.md (oil-majors)",
+"q": "issue: EU seaborne-crude sanctions derogation",
+"r": "",
+"s": "lob:bulgaria",
+"t": "lob:neftochim_burgas",
+"u": "",
+"y": "linked_to"
+},
+{
+"L": "team",
+"c": "L",
+"d": "",
+"f": "[ownership-bridges] public reporting",
+"q": "amount: ~49% reported stake",
+"r": "",
+"s": "lob:nayara_energy",
+"t": "lob:rosneft",
+"u": "",
+"y": "linked_to"
+},
+{
+"L": "team",
+"c": "D",
+"d": "2022",
+"f": "[associations-thinktanks] q1_uscbc.json",
+"q": "issue: Export controls / PNTR status; period: 2022-2026",
+"r": "",
+"s": "org:uscbc",
+"t": "lob:us_congress",
+"u": "",
+"y": "lobbied"
+},
+{
+"L": "team",
+"c": "L",
+"d": "2020",
+"f": "[associations-thinktanks] Inference from smic2.json + q1_uscbc.json; no funding link established",
+"q": "issue: Same firm serves listed entity and then, concurrently/immediately after, an adjacent clean trade association on overlapping export-control/China-trade issues; period: 2020-2026 (SMIC engagement ends ~2022-Q1; USCBC engagement runs 20",
+"r": "",
+"s": "co:smic",
+"t": "org:uscbc",
+"u": "",
+"y": "linked_to"
+},
+{
+"L": "team",
+"c": "D",
+"d": "2022",
+"f": "[associations-thinktanks] Brussels Times, brusselstimes.com/207876",
+"q": "issue: Renewed AWDC-Alrosa trade agreement; period: 2022-04",
+"r": "",
+"s": "lob:awdc",
+"t": "lob:alrosa",
+"u": "",
+"y": "linked_to"
+},
+{
+"L": "team",
+"c": "D",
+"d": "2022",
+"f": "[associations-thinktanks] Reuters, reuters.com/article/ukraine-crisis-eu-sanctions-diamonds-idCAKBN2QQ0EL",
+"q": "issue: Argued against including diamonds in Russia sanctions package (cited ~30% hit to Antwerp trade); period: 2022-09",
+"r": "",
+"s": "lob:awdc",
+"t": "lob:eu",
+"u": "",
+"y": "lobbied"
+},
+{
+"L": "team",
+"c": "D",
+"d": "",
+"f": "[eu-uk-registers] https://www.aalep.eu/russian-interest-representation-eu",
+"q": "issue: energy/pipeline interests",
+"r": "",
+"s": "lob:nord_stream_ag",
+"t": "lob:sass_consulting_ag",
+"u": "",
+"y": "hired"
+},
+{
+"L": "team",
+"c": "D",
+"d": "",
+"f": "[eu-uk-registers] https://www.aalep.eu/russian-interest-representation-eu",
+"q": "issue: rail/transport interests",
+"r": "",
+"s": "lob:jsc_russian_railways",
+"t": "lob:sass_consulting_ag",
+"u": "",
+"y": "hired"
+},
+{
+"L": "team",
+"c": "D",
+"d": "",
+"f": "[eu-uk-registers] https://www.aalep.eu/russian-interest-representation-eu",
+"q": "issue: nuclear/energy interests",
+"r": "",
+"s": "lob:jsc_rusatom_overseas",
+"t": "lob:sass_consulting_ag",
+"u": "",
+"y": "hired"
+},
+{
+"L": "team",
+"c": "D",
+"d": "",
+"f": "[eu-uk-registers] https://www.aalep.eu/russian-interest-representation-eu",
+"q": "issue: EU public/regulatory affairs (register text just says 'Nord Stream', unqualified; treated as Nord Stream AG per the fuller wording in the adjacent Sass Consulting entry of the same register)",
+"r": "",
+"s": "lob:nord_stream_ag",
+"t": "lob:brunswick_group",
+"u": "",
+"y": "hired"
+},
+{
+"L": "team",
+"c": "D",
+"d": "2015",
+"f": "[eu-uk-registers] https://www.aalep.eu/russian-interest-representation-eu",
+"q": "issue: natural resources, gas export, tariff setting, import quotas; period: 2015-10 to 2015-12",
+"r": "",
+"s": "lob:bell_pottinger",
+"t": "lob:gazprom_ep_international",
+"u": "",
+"y": "linked_to"
+},
+{
+"L": "team",
+"c": "D",
+"d": "",
+"f": "[eu-uk-registers] https://www.aalep.eu/russian-interest-representation-eu",
+"q": "",
+"r": "",
+"s": "lob:gazprom_ep_international",
+"t": "co:gazprom",
+"u": "",
+"y": "linked_to"
+},
+{
+"L": "team",
+"c": "L",
+"d": "2022",
+"f": "[eu-uk-registers] https://www.ftm.eu/articles/european-parliament-ban-russian-lobbyists-france-not-cooperating",
+"q": "issue: MEP Katarina Barley proposed EU Transparency Register suspension of Russian-HQ registrants; register now shows this org deregistered; period: 2022",
+"r": "",
+"s": "lob:european_parliament",
+"t": "lob:phosagro",
+"u": "",
+"y": "linked_to"
+},
+{
+"L": "team",
+"c": "L",
+"d": "2022",
+"f": "[eu-uk-registers] https://www.ftm.eu/articles/european-parliament-ban-russian-lobbyists-france-not-cooperating",
+"q": "issue: MEP Katarina Barley proposed EU Transparency Register suspension of Russian-HQ registrants; register now shows this org deregistered; period: 2022",
+"r": "",
+"s": "lob:european_parliament",
+"t": "lob:acron",
+"u": "",
+"y": "linked_to"
+},
+{
+"L": "team",
+"c": "L",
+"d": "2022",
+"f": "[eu-uk-registers] https://www.ftm.eu/articles/european-parliament-ban-russian-lobbyists-france-not-cooperating",
+"q": "issue: MEP Katarina Barley proposed EU Transparency Register suspension of Russian-HQ registrants; register now shows this org deregistered; period: 2022",
+"r": "",
+"s": "lob:european_parliament",
+"t": "lob:rumyantsev_partners",
+"u": "",
+"y": "hired"
+},
+{
+"L": "team",
+"br": true,
+"c": "D",
+"d": "2025-01-10",
+"f": "pulls\\tavily\\20260925T193336140521Z_24988_extract.json",
+"q": "Russia-based Joint Stock Company Rosnefteflot (Rosnefteflot) is the marine transportation arm of Russian oil company Open Joint-Stock Company Rosneft Oil Company (Rosneft)",
+"r": "",
+"s": "lob:rosneft",
+"t": "co:rosnefteflot",
+"u": "https://home.treasury.gov/news/press-releases/jy2777",
+"y": "controls"
+},
+{
+"L": "team",
+"br": true,
+"c": "D",
+"d": "",
+"f": "pulls\\tavily\\20260925T193516708111Z_10452_search.json",
+"q": "OOO LUKOIL-BUNKER provides marine fuel bunkering services",
+"r": "",
+"s": "lob:lukoil",
+"t": "co:lukoil-bunker",
+"u": "https://www.lukoil.com/Products/business/forvessels",
+"y": "controls"
+},
+{
+"L": "team",
+"br": true,
+"c": "L",
+"d": "",
+"f": "pulls\\tavily\\20260925T193516708111Z_10452_search.json",
+"q": "LUKOIL-MarineBunker acquires two bunkering tankers ... (100% subsidiary of LUKOIL)",
+"r": "",
+"s": "lob:lukoil",
+"t": "co:lukoil-marinbunker",
+"u": "https://en.portnews.ru/news/291299",
+"y": "controls"
+},
+{
+"L": "team",
+"br": true,
+"c": "D",
+"d": "2022-04-21",
+"f": "UK-Sanctions-List.csv (report 21-Sep-2026), Unique ID RUS1358",
+"q": "GTLK JSC is a Russian leasing company ... They are a state-owned company directly controlled by the Government of the Russian Federation",
+"r": "",
+"s": "gov:russia",
+"t": "co:state-transportation-leasing",
+"u": "https://search-uk-sanctions-list.service.gov.uk/designations/RUS1358/Entity",
+"y": "controls"
+}
+],
+"live_flags": {
+"IMO8730077": {
+"area": "Sakhalin / Sea of Okhotsk",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9205067": {
+"area": "Gulf of Finland",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9227443": {
+"area": "Gulf of Finland",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9229374": {
+"area": "Kattegat / Skagerrak",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9232929": {
+"area": "Sea of Marmara / Bosphorus",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9233777": {
+"area": "Sea of Marmara / Bosphorus",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9255244": {
+"area": "Strait of Gibraltar approaches",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9266865": {
+"area": "38.1°N 10.4°W",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9281009": {
+"area": "Kattegat / Skagerrak",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9299692": {
+"area": "English Channel",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9321172": {
+"area": "Baltic Sea",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9326718": {
+"area": "Norwegian / Barents Sea",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9327372": {
+"area": "Strait of Gibraltar approaches",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9348479": {
+"area": "Kattegat / Skagerrak",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9360128": {
+"area": "Sakhalin / Sea of Okhotsk",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9384095": {
+"area": "Sea of Marmara / Bosphorus",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9387279": {
+"area": "North Sea",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9412335": {
+"area": "Western Mediterranean",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9430272": {
+"area": "Baltic Sea",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9613551": {
+"area": "Sakhalin / Sea of Okhotsk",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9741724": {
+"area": "Gulf of Finland",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9753741": {
+"area": "Sakhalin / Sea of Okhotsk",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9797577": {
+"area": "Sakhalin / Sea of Okhotsk",
+"at": "2026-09-25T20:11Z"
+},
+"IMO9843560": {
+"area": "Sakhalin / Sea of Okhotsk",
+"at": "2026-09-25T20:11Z"
+}
+},
+"lob_alias": {
+"lob:akin_gump": "lf:akin-gump-strauss-hauer-feld",
+"lob:arctic_lng_2": "co:arctic-lng-2",
+"lob:avoq": "lf:avoq",
+"lob:capitol_counsel": "lf:capitol-counsel",
+"lob:cetc": "co:cetc",
+"lob:dci_group": "lf:dci-group",
+"lob:dji": "co:sz-dji-technology",
+"lob:dji_technology_inc": "co:dji",
+"lob:elevation_association": "lf:elevation-association",
+"lob:en_plus": "co:en-plus-group",
+"lob:futurewei": "co:huawei",
+"lob:gazprom": "co:gazprom",
+"lob:hikvision": "co:hangzhou-hikvision",
+"lob:hikvision_usa": "co:hikvision-usa",
+"lob:huawei": "co:huawei",
+"lob:huawei_technologies_usa": "co:huawei",
+"lob:liberty_gov_affairs": "lf:liberty-government-affairs",
+"lob:madison_group": "lf:madison-group",
+"lob:manatos_manatos": "lf:manatos-manatos",
+"lob:mercury_public_affairs": "lf:mercury-public-affairs",
+"lob:nord_stream_2": "co:nord-stream-2",
+"lob:novatek": "co:novatek",
+"lob:podesta_group": "lf:podesta-group",
+"lob:qorvis_geopols": "lf:qorvis-holding-geopols",
+"lob:roberti_global": "lf:roberti-global-fka-roberti-white",
+"lob:russia_finance_ministry": "gov:russia",
+"lob:russian_federation": "gov:russia",
+"lob:sberbank": "co:sberbank",
+"lob:sberbank_cib_usa": "co:sberbank-cib-usa",
+"lob:scarinci_hollenbeck": "lf:scarinci-hollenbeck",
+"lob:sidley_austin": "lf:sidley-austin",
+"lob:smic": "co:smic",
+"lob:squire_patton_boggs": "lf:squire-patton-boggs",
+"lob:union_oil_gas_ru": "co:union-oil-gas-producers-russia",
+"lob:uscbc": "org:uscbc",
+"lob:vtb_bank": "co:vtb-bank"
+},
+"meta": {
+"live": {
+"count": 27,
+"taken_utc": "2026-09-25T20:11Z"
+},
+"no_lobbying_found": {
+"_about": "Searched the US Senate lobbying-disclosure API by client and foreign-entity name on 2026-09-25: zero filings. 'No filing found' is not proof of no influence (foreign lobbying can run through FARA, the EU or governments).",
+"match": [
+"co:sovcomflot",
+"co:sovcomflot-sterling-shipmanagement",
+"co:zulu-ships-management-and-operation-l-l-c",
+"co:fleet-tanqo",
+"co:lukoil-marinbunker",
+"co:rosnefteflot"
+],
+"names": [
+"Sovcomflot",
+"Zulu Ships Management",
+"Fleet Tanqo",
+"Orchid Shipmanagement",
+"Glory Shipping",
+"Lukoil",
+"Rosneft",
+"Nayara",
+"Litasco",
+"Rusal",
+"Megasan",
+"Alrosa",
+"Kaspersky",
+"YMTC",
+"CXMT",
+"RM Design and Development",
+"ELEM Group",
+"Keremet Bank"
+]
+}
+},
+"nodes": [
+{
+"L": "fleet",
+"br": true,
+"g": "russia",
+"id": "co:avision-shipping-services",
+"info": {
+"country": "in",
+"first_listed": "2025-01-10",
+"programs": [
+"russia"
+],
+"role": "owner/operator (UK list)"
+},
+"k": 6,
+"lists": [
+[
+"US",
+"",
+"2025-01-10"
+]
+],
+"n": "Avision Shipping Services Pvt",
+"notes": [],
+"s": "blocked",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "fleet",
+"br": true,
+"g": "russia",
+"id": "co:gazprom-flot",
+"info": {
+"country": "ru",
+"first_listed": "2026-04-23",
+"programs": [
+"russia"
+],
+"role": "owner/operator (UK list)"
+},
+"k": 2,
+"lists": [
+[
+"US",
+"",
+""
+],
+[
+"EU",
+"",
+"2026-04-23"
+]
+],
+"n": "Gazprom Flot LLC",
+"notes": [],
+"s": "blocked",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "fleet",
+"br": true,
+"g": "other",
+"id": "co:gazprom-neft",
+"info": {
+"aliases": [
+"PAO Gazprom Neft"
+],
+"country": "RU",
+"first_listed": "2025-01-10",
+"role": "oil major"
+},
+"k": 6,
+"lists": [
+[
+"US SDN",
+"17143",
+"RUSSIA-EO14024"
+],
+[
+"UK",
+"RUS2383",
+"10/01/2025"
+]
+],
+"n": "Gazprom Neft (PJSC Gazprom Neft)",
+"notes": [
+"Designated by OFAC 10 Jan 2025 (release jy2777) as one of Russia's two remaining independent oil majors at the time.",
+"Vertically integrated Russian oil producer/exporter; OFAC and UK both designated it 10 Jan 2025."
+],
+"s": "blocked",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "fleet",
+"g": "russia",
+"id": "co:gazpromneft-marine-bunker-liability",
+"info": {
+"aliases": [
+"Gazpromneft Marine Bunker Ltd"
+],
+"country": "ru",
+"first_listed": "2025-01-10",
+"programs": [
+"russia"
+],
+"role": "linked company (OFAC); owner/operator (UK list)"
+},
+"k": 13,
+"lists": [
+[
+"EU",
+"",
+"2026-04-23"
+],
+[
+"US",
+"",
+"2025-01-10"
+]
+],
+"n": "GAZPROMNEFT MARINE BUNKER LIMITED LIABILITY COMPANY",
+"notes": [
+"Grepped from OpenSanctions eu_fsf.csv, EU-UKR programme, act 2026/509 (OJ L202600509), dated 2026-04-23.",
+"Russia-based fleet/bunker operator, 10 listed ships in our fleet graph."
+],
+"s": "blocked",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "fleet",
+"g": "russia",
+"id": "co:gazpromneft-shipping",
+"info": {
+"country": "RU",
+"role": "owner/operator (UK list)"
+},
+"k": 9,
+"lists": [],
+"n": "Gazpromneft Shipping LLC",
+"notes": [
+"7 listed ships in our fleet graph; name pattern matches the Gazprom Neft shipping family, not confirmed by name alone as a subsidiary in an official text we pulled this session."
+],
+"s": "",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "fleet",
+"br": true,
+"g": "russia",
+"id": "co:gotik-shipping",
+"info": {
+"country": "in",
+"first_listed": "2024-09-05",
+"programs": [
+"russia"
+],
+"role": "linked company (OFAC)"
+},
+"k": 2,
+"lists": [
+[
+"US",
+"",
+"2024-09-05"
+]
+],
+"n": "GOTIK SHIPPING CO",
+"notes": [],
+"s": "blocked",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "fleet",
+"br": true,
+"g": "russia",
+"id": "co:hongkong-yaqing-shipping",
+"info": {
+"country": "cn",
+"first_listed": "2025-01-10",
+"programs": [
+"russia"
+],
+"role": "linked company (OFAC)"
+},
+"k": 2,
+"lists": [
+[
+"US",
+"",
+"2025-01-10"
+]
+],
+"n": "HONGKONG YAQING SHIPPING CO LIMITED",
+"notes": [],
+"s": "blocked",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "fleet",
+"br": true,
+"g": "russia",
+"id": "co:lukoil-bunker",
+"info": {
+"country": "RU",
+"role": "owner/operator (UK list)"
+},
+"k": 3,
+"lists": [],
+"n": "LUKOIL BUNKER",
+"notes": [
+"2 listed ships in our fleet graph."
+],
+"s": "",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "fleet",
+"br": true,
+"g": "russia",
+"id": "co:lukoil-marinbunker",
+"info": {
+"country": "ru",
+"first_listed": "2026-07-23",
+"role": "commercial operator"
+},
+"k": 4,
+"lists": [
+[
+"EU",
+"",
+"2026-07-23"
+]
+],
+"n": "Limited Liability Company “Lukoil-Marinbunker”",
+"nolobby": true,
+"notes": [
+"Entry 950. St Petersburg. EU: commercial operator of vessels Aginskoye, G. Rossini and G. Puccini (no IMO given in this act entry), which lack adequate liability insurance and use ship-to-ship transfers / AIS manipulation while carrying Russian oil.",
+"3 listed ships in our fleet graph; EU-listed 2026 (Reg 2026/1845) per our own service-providers.md pass.",
+"EU-listed 23 Jul 2026 (Reg 2026/1845); named as operator of the newly listed tanker G.ROSSINI. RE-VERIFIED directly against local eu_fsf.csv row (id NK-hA6wLbrchBe22t9xp4RQzU, sanctions 'UKR - 2026/1845 (OJ L202601845) - 2026-07-23')."
+],
+"s": "blocked",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "fleet",
+"br": true,
+"g": "russia",
+"id": "co:ocean-speedstar-solutions",
+"info": {
+"country": "in",
+"first_listed": "2024-08-23",
+"programs": [
+"russia"
+],
+"role": "owner/operator (UK list)"
+},
+"k": 6,
+"lists": [
+[
+"US",
+"",
+"2024-08-23"
+],
+[
+"UK",
+"",
+"2024-09-26"
+]
+],
+"n": "Ocean Speedstar Solutions OPC PVT LTD",
+"notes": [],
+"s": "blocked",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "fleet",
+"br": true,
+"g": "russia",
+"id": "co:plio-energy-cargo-shipping",
+"info": {
+"country": "in",
+"first_listed": "2024-09-05",
+"programs": [
+"russia"
+],
+"role": "linked company (OFAC)"
+},
+"k": 2,
+"lists": [
+[
+"US",
+"",
+"2024-09-05"
+]
+],
+"n": "PLIO ENERGY CARGO SHIPPING OPC PRIVATE LIMITED",
+"notes": [],
+"s": "blocked",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "fleet",
+"br": true,
+"g": "russia",
+"id": "co:rosnefteflot",
+"info": {
+"country": "ru",
+"first_listed": "2025-01-10",
+"programs": [
+"russia"
+],
+"role": "owner/operator (UK list)"
+},
+"k": 18,
+"lists": [
+[
+"US",
+"",
+"2025-01-10"
+]
+],
+"n": "ROSNEFTEFLOT JSC",
+"nolobby": true,
+"notes": [
+"Russia-based shipping arm of Rosneft, 12 listed ships in our fleet graph."
+],
+"s": "blocked",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "fleet",
+"br": true,
+"g": "russia",
+"id": "co:sovcomflot",
+"info": {
+"aliases": [
+"PAO SOVCOMFLOT",
+"PJSC SOVCOMFLOT",
+"Public Joint Stock Company Sovcomflot",
+"SCF Group"
+],
+"country": "ru",
+"first_listed": "2022-03-24",
+"programs": [
+"russia"
+],
+"role": "owner/operator (UK list)"
+},
+"k": 91,
+"lists": [
+[
+"US SDN",
+"34741",
+"RUSSIA-EO14024"
+],
+[
+"UK",
+"",
+"24/03/2022"
+]
+],
+"n": "SOVCOMFLOT",
+"nolobby": true,
+"notes": [
+"81 listed ships in our fleet graph, the largest single operator; OFAC named 69 of its vessels as blocked property on 10 Jan 2025.",
+"Russia's state-owned tanker operator; OFAC's 10 Jan 2025 action identified 69 vessels it owns (54 oil/product tankers, 4 LNG carriers) as blocked property. UK designated it separately on 24/03/2022.",
+"Russia's largest state shipping company; already well-documented sanctioned entity, not created fresh here."
+],
+"s": "blocked",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "fleet",
+"br": true,
+"g": "russia",
+"id": "co:state-transportation-leasing",
+"info": {
+"aliases": [
+"GTLK AO",
+"PJSC STLC"
+],
+"country": "ru",
+"first_listed": "2023-04-20",
+"programs": [
+"russia"
+],
+"role": "linked company (OFAC)"
+},
+"k": 14,
+"lists": [
+[
+"US",
+"",
+"2023-04-20"
+]
+],
+"n": "JOINT STOCK COMPANY STATE TRANSPORTATION LEASING COMPANY",
+"notes": [
+"13 listed ships; UK's own Statement of Reasons calls it state-owned and directly controlled by the Russian government."
+],
+"s": "blocked",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:acron",
+"info": {
+"country": "ru",
+"role": "intermediary"
+},
+"k": 1,
+"lists": [],
+"n": "Acron",
+"notes": [
+"[eu-uk-registers] Deregistered from EU Transparency Register per ftm.eu (confirmed in extract). sanctions.check: no match above threshold."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:alliance_drone_innovation",
+"info": {
+"country": "us",
+"role": "association"
+},
+"k": 1,
+"lists": [],
+"n": "Alliance for Drone Innovation",
+"notes": [],
+"s": "",
+"src": "team lobbying research",
+"t": "association",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:alrosa",
+"info": {
+"country": "ru",
+"role": "listed entity"
+},
+"k": 1,
+"lists": [],
+"n": "Alrosa",
+"notes": [
+"[associations-thinktanks] State-controlled diamond miner; UK-list claim dropped, unverified"
+],
+"s": "",
+"src": "team lobbying research",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:awdc",
+"info": {
+"country": "be",
+"role": "association"
+},
+"k": 2,
+"lists": [],
+"n": "Antwerp World Diamond Centre",
+"notes": [
+"[associations-thinktanks] Belgian diamond-trade association; announced renewed Alrosa agreement Apr 2022"
+],
+"s": "",
+"src": "team lobbying research",
+"t": "association",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:bell_pottinger",
+"info": {
+"country": "gb",
+"role": "lobby firm"
+},
+"k": 1,
+"lists": [],
+"n": "Bell Pottinger LLP",
+"notes": [
+"[eu-uk-registers] Client relationship Oct-Dec 2015 per register entry (confirmed in aalep.eu extract)."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "lobbyfirm",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:brunswick_group",
+"info": {
+"country": "gb",
+"role": "lobby firm"
+},
+"k": 1,
+"lists": [],
+"n": "Brunswick Group LLP",
+"notes": [
+"[eu-uk-registers] EU relations lead named as Philippe Blanchard, Managing Partner, per register entry (confirmed in aalep.eu extract)."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "lobbyfirm",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:bulgaria",
+"info": {
+"country": "bg",
+"role": "government"
+},
+"k": 2,
+"lists": [],
+"n": "Government of Bulgaria",
+"notes": [
+"[ownership-bridges] Secured EU Druzhba/seaborne-crude derogation for Lukoil-owned refinery; denies lobbying \"for Lukoil\" per same source",
+"Lobbied Brussels for the Lukoil-owned Neftochim Burgas refinery's sanctions exemption; Bulgaria's finance ministry denied acting for Lukoil."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "government",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:drone_mfrs_alliance",
+"info": {
+"country": "us",
+"role": "association"
+},
+"k": 1,
+"lists": [],
+"n": "Drone Manufacturers Alliance",
+"notes": [],
+"s": "",
+"src": "team lobbying research",
+"t": "association",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": true,
+"id": "lob:eu",
+"info": {
+"country": "eu",
+"role": "government"
+},
+"k": 1,
+"lists": [],
+"n": "European Union institutions",
+"notes": [
+"[associations-thinktanks] Target of AWDC's anti-diamond-sanctions lobbying, 2022"
+],
+"s": "",
+"src": "team lobbying research",
+"t": "government",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": true,
+"id": "lob:european_parliament",
+"info": {
+"country": "eu",
+"role": "government"
+},
+"k": 3,
+"lists": [],
+"n": "European Parliament",
+"notes": [],
+"s": "",
+"src": "team lobbying research",
+"t": "government",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:gazprom_ep_international",
+"info": {
+"country": "nl",
+"role": "intermediary"
+},
+"k": 2,
+"lists": [],
+"n": "Gazprom EP International",
+"notes": [
+"[eu-uk-registers] Described in Bell Pottinger's own EU Transparency Register entry as 'a subsidiary of Gazprom'. sanctions.check finds only an 83.7% fuzzy match (different entity, 'Gazprom Neft International SA'); not itself confirmed liste"
+],
+"s": "",
+"src": "team lobbying research",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:jsc_rusatom_overseas",
+"info": {
+"country": "ru",
+"role": "listed entity"
+},
+"k": 1,
+"lists": [],
+"n": "JSC Rusatom Overseas",
+"notes": [
+"[eu-uk-registers] CORRECTED: sanctions.check finds 100% match on both US consolidated (RUSATOM OVERSEAS JOINT STOCK COMPANY, alias 'RUSATOM OVERSEAS JSC') and UK list (RUS3421, listed 2026-02-24). Previous pass reported this as unmatched."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:jsc_russian_railways",
+"info": {
+"country": "ru",
+"role": "listed entity"
+},
+"k": 1,
+"lists": [],
+"n": "JSC Russian Railways",
+"notes": [
+"[eu-uk-registers] Confirmed via sanctions.check: 100% match, UK list (RUS1084) and US consolidated (alias 'JSC Russian Railways')."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"br": true,
+"g": "",
+"hub": false,
+"id": "lob:lukoil",
+"info": {
+"aliases": [
+"Lukoil"
+],
+"country": "ru",
+"role": "listed entity"
+},
+"k": 3,
+"lists": [],
+"n": "PAO LUKOIL",
+"notes": [
+"Also on the lobbying graph as lob:lukoil -- see same_as below.",
+"Same organisation as our co:lukoil node above. same_as: co:lukoil."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:nayara_energy",
+"info": {
+"country": "in",
+"role": "listed entity"
+},
+"k": 1,
+"lists": [],
+"n": "Nayara Energy Limited",
+"notes": [
+"Indian refiner reported to be ~49% Rosneft-linked. No matching company node exists in our fleet graph."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:neftochim_burgas",
+"info": {
+"country": "bg",
+"role": "intermediary"
+},
+"k": 1,
+"lists": [],
+"n": "LUKOIL Neftohim Burgas",
+"notes": [
+"[ownership-bridges] Refinery beneficiary of EU sanctions derogation",
+"Lukoil's Bulgarian refinery, at the centre of the EU sanctions-exemption lobbying episode."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:nord_stream_ag",
+"info": {
+"country": "ch",
+"role": "intermediary"
+},
+"k": 2,
+"lists": [],
+"n": "Nord Stream AG",
+"notes": [
+"[eu-uk-registers] AALEP names 'Nord Stream AG' (Sass Consulting) and 'Nord Stream' (Brunswick, unqualified). This is a distinct Swiss-registered company from 'Nord Stream 2 AG' (US PEESA-EO14039/EO14024). sanctions.check found only a 91.7% "
+],
+"s": "",
+"src": "team lobbying research",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:phosagro",
+"info": {
+"country": "ru",
+"role": "intermediary"
+},
+"k": 1,
+"lists": [],
+"n": "PhosAgro",
+"notes": [
+"[eu-uk-registers] Deregistered from EU Transparency Register per ftm.eu (confirmed in extract). sanctions.check: no match above threshold."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:porter_wright",
+"info": {
+"country": "us",
+"role": "lobby firm"
+},
+"k": 1,
+"lists": [],
+"n": "Porter Wright Morris & Arthur LLP",
+"notes": [],
+"s": "",
+"src": "team lobbying research",
+"t": "lobbyfirm",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"br": true,
+"g": "",
+"hub": false,
+"id": "lob:rosneft",
+"info": {
+"country": "ru",
+"role": "listed entity"
+},
+"k": 2,
+"lists": [],
+"n": "Rosneft",
+"notes": [
+"[ownership-bridges] Reported ~49% Nayara stake (public reporting)",
+"Russia's largest oil company; designated by OFAC 22 Oct 2025 (release sb0290) alongside Lukoil.",
+"Same organisation as our co:rosneft node above. same_as: co:rosneft."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:rumyantsev_partners",
+"info": {
+"country": "ru",
+"role": "lobby firm"
+},
+"k": 1,
+"lists": [],
+"n": "Rumyantsev & Partners",
+"notes": [
+"[eu-uk-registers] Deregistered from EU Transparency Register per ftm.eu (confirmed in extract). sanctions.check: no match above threshold."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "lobbyfirm",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:rusal",
+"info": {
+"aliases": [
+"United Company Rusal"
+],
+"country": "ru",
+"role": "listed entity"
+},
+"k": 1,
+"lists": [],
+"n": "United Company RUSAL",
+"notes": [
+"[ownership-bridges] Zero LDA filings under its own name (confirmed, climate-day/ideas/lobbying/rusal-en-plus-delisting.md); UK 2023 relisting not independently reconciled this pass"
+],
+"s": "",
+"src": "team lobbying research",
+"t": "company",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:sass_consulting_ag",
+"info": {
+"country": "ch",
+"role": "lobby firm"
+},
+"k": 3,
+"lists": [],
+"n": "Sass Consulting AG",
+"notes": [
+"[eu-uk-registers] Owner/Director Sebastian Sass, per EU Transparency Register entry (confirmed in aalep.eu extract)."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "lobbyfirm",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": false,
+"id": "lob:small_uav_coalition",
+"info": {
+"country": "us",
+"role": "association"
+},
+"k": 2,
+"lists": [],
+"n": "Small UAV Coalition",
+"notes": [
+"[lda-known-listed] Trade coalition, 2014-2017 filings name DJI as foreign entity."
+],
+"s": "",
+"src": "team lobbying research",
+"t": "association",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "",
+"hub": true,
+"id": "lob:us_congress",
+"info": {
+"aliases": [
+"US Congress / Executive Branch (lobbying targets)",
+"US Congress / federal agencies (Commerce, BIS)"
+],
+"country": "us",
+"role": "government"
+},
+"k": 4,
+"lists": [],
+"n": "US Congress / federal agencies",
+"notes": [
+"[lda-foreign-entities] lobbied entities named in LDA general_issue_code targets [associations-thinktanks] Target of export-control lobbying"
+],
+"s": "",
+"src": "team lobbying research",
+"t": "government",
+"unverified_person": false
+},
+{
+"L": "lobby",
+"g": "china",
+"id": "co:hikvision-usa",
+"info": {
+"lda_names": [
+"HIKVISION USA INC",
+"HIKVISION USA, INC.",
+"HIKVISION, USA INC."
+]
+},
+"k": 20,
+"lists": [],
+"n": "Hikvision USA",
+"notes": [],
+"s": "",
+"t": "company"
+},
+{
+"L": "lobby",
+"br": true,
+"g": "",
+"id": "lf:sidley-austin",
+"info": {},
+"k": 20,
+"lists": [],
+"n": "Sidley Austin LLP",
+"notes": [],
+"s": "",
+"t": "lobbyfirm"
+},
+{
+"L": "lobby",
+"g": "china",
+"id": "co:cetc",
+"info": {
+"country": "CN",
+"role": "named as a foreign entity on a US lobbying filing"
+},
+"k": 2,
+"lists": [
+[
+"US Chinese military companies (CMIC)",
+"30936",
+"CMIC-EO13959"
+]
+],
+"n": "China Electronics Technology Group (CETC)",
+"notes": [],
+"s": "restricted",
+"t": "company"
+},
+{
+"L": "lobby",
+"g": "china",
+"id": "co:huawei",
+"info": {
+"lda_names": [
+"HUAWEI TECHNOLOGIES CO LTD",
+"HUAWEI TECHNOLOGIES",
+"HUAWEI TECHNOLOGIES CO., LTD.",
+"HUAWEI TECH. INVESTMENT CO., LTD.",
+"K-GLOBAL (ON BEHALF OF HUAWEI TECHNOLOGIES COMPANY, LTD.)",
+"HUAWEI USA TECHNOLOGIES",
+"HUAWEI TECHNOLOGIES COMPANY, LTD.",
+"HUAWEI TECHNOLOGIES USA INC.",
+"FUTUREWEI TECHNOLOGIES, INC",
+"FUTUREWEI TECHNOLOGIES, INC.",
+"HUAWEI TECHNOLOGIES USA, INC.",
+"HUAWEI TECH. INVESTMENT COMPANY, LTD.",
+"HUAWEI, USA",
+"HUAWEI TECH, INVESTMENT CO., LTD.",
+"HUAWEI",
+"HUAWEI DEVICE (SHENZHEN) CO., LTD.",
+"HUAWEI TECHNOLOGIES USA INC",
+"HUAWEI TECHNOLOGY USA, INC."
+]
+},
+"k": 118,
+"lists": [
+[
+"US Chinese military companies (CMIC)",
+"30947",
+"CMIC-EO13959"
+],
+[
+"US Commerce Entity List",
+"",
+"2019-05-21"
+]
+],
+"n": "Huawei",
+"notes": [],
+"s": "restricted",
+"t": "company"
+},
+{
+"L": "lobby",
+"br": true,
+"g": "",
+"id": "lf:mercury-public-affairs",
+"info": {},
+"k": 16,
+"lists": [],
+"n": "Mercury Public Affairs, LLC",
+"notes": [],
+"s": "",
+"t": "lobbyfirm"
+},
+{
+"L": "lobby",
+"g": "china",
+"id": "co:smic",
+"info": {
+"lda_names": [
+"SEMICONDUCTOR MANUFACTURING INTERNATIONAL CORPORATION",
+"AKIN, GUMP ON BEHALF OF SEMICONDUCTOR MANUFACTURING INTERNATIONAL CORPORATION",
+"SEMICONDUCTOR MANUFACTURING INTERNATIONAL CORPORATION (SMIC)"
+]
+},
+"k": 14,
+"lists": [
+[
+"US Chinese military companies (CMIC)",
+"30951",
+"CMIC-EO13959"
+],
+[
+"US Commerce Entity List",
+"",
+"2020-12-18"
+]
+],
+"n": "SMIC (Semiconductor Manufacturing International)",
+"notes": [],
+"s": "restricted",
+"t": "company"
+},
+{
+"L": "lobby",
+"g": "",
+"id": "lf:akin-gump-strauss-hauer-feld",
+"info": {},
+"k": 24,
+"lists": [],
+"n": "Akin Gump Strauss Hauer & Feld",
+"notes": [],
+"s": "",
+"t": "lobbyfirm"
+},
+{
+"L": "lobby",
+"g": "russia",
+"id": "co:en-plus-group",
+"info": {
+"lda_names": [
+"EN+ GROUP, IPJSC"
+]
+},
+"k": 7,
+"lists": [],
+"n": "En+ Group",
+"notes": [],
+"s": "",
+"t": "company"
+},
+{
+"L": "lobby",
+"g": "chips",
+"id": "org:uscbc",
+"info": {
+"lda_names": [
+"THE US-CHINA BUSINESS COUNCIL"
+]
+},
+"k": 8,
+"lists": [],
+"n": "US-China Business Council",
+"notes": [],
+"s": "",
+"t": "association"
+},
+{
+"L": "lobby",
+"br": true,
+"g": "russia",
+"id": "co:arctic-lng-2",
+"info": {
+"lda_names": [
+"LIMITED LIABILITY COMPANY ARCTIC LNG 2"
+]
+},
+"k": 13,
+"lists": [
+[
+"US SDN",
+"46030",
+"RUSSIA-EO14024"
+],
+[
+"UK",
+"RUS2092",
+"22/02/2024"
+]
+],
+"n": "Arctic LNG 2",
+"notes": [],
+"s": "blocked",
+"t": "company"
+},
+{
+"L": "lobby",
+"g": "china",
+"id": "co:dji",
+"info": {
+"lda_names": [
+"DJI TECHNOLOGY, INC.",
+"DJI TECHNOLOGY",
+"DJI TECHNOLOGY INCORPORATED"
+]
+},
+"k": 155,
+"lists": [
+[
+"US Chinese military companies (CMIC): SZ DJI Technology",
+"33111",
+"CMIC-EO13959"
+],
+[
+"US Commerce Entity List",
+"",
+"2020-12-18"
+]
+],
+"n": "DJI Technology",
+"notes": [],
+"s": "restricted",
+"t": "company"
+},
+{
+"L": "lobby",
+"g": "",
+"id": "lf:qorvis-holding-geopols",
+"info": {},
+"k": 8,
+"lists": [],
+"n": "Qorvis Holding Inc - Geopols",
+"notes": [],
+"s": "",
+"t": "lobbyfirm"
+},
+{
+"L": "lobby",
+"g": "russia",
+"id": "co:gazpromexport",
+"info": {
+"lda_names": [
+"GAZPROMEXPORT LTD (FORMERLY GAZEXPORT LTD) A SUBSIDIARY OF OAO GAZPROM"
+]
+},
+"k": 8,
+"lists": [],
+"n": "Gazpromexport",
+"notes": [],
+"s": "",
+"t": "company"
+},
+{
+"L": "lobby",
+"br": true,
+"g": "russia",
+"id": "gov:russia",
+"info": {
+"country": "RU",
+"role": "named as a foreign entity on a US lobbying filing"
+},
+"k": 6,
+"lists": [
+[
+"US menu-based (NS-MBS): Ministry of Finance",
+"31694",
+"RUSSIA-EO14024"
+]
+],
+"n": "Government of Russia",
+"notes": [],
+"s": "restricted",
+"t": "government"
+},
+{
+"L": "lobby",
+"g": "",
+"id": "lf:elevation-association",
+"info": {},
+"k": 5,
+"lists": [],
+"n": "The Elevation Association, LLC",
+"notes": [],
+"s": "",
+"t": "lobbyfirm"
+},
+{
+"L": "lobby",
+"br": true,
+"g": "russia",
+"id": "co:gazprom",
+"info": {
+"country": "RU",
+"role": "named as a foreign entity on a US lobbying filing"
+},
+"k": 6,
+"lists": [
+[
+"US sectoral (SSI) and menu-based (NS-MBS)",
+"17250",
+"RUSSIA-EO14024"
+],
+[
+"US Commerce Entity List",
+"",
+"2014-09-17"
+]
+],
+"n": "Gazprom",
+"notes": [],
+"s": "restricted",
+"t": "company"
+},
+{
+"L": "lobby",
+"g": "russia",
+"id": "co:sberbank-cib-usa",
+"info": {
+"lda_names": [
+"SBERBANK CIB USA INC.",
+"SBERBANK CIB USA, INC."
+]
+},
+"k": 25,
+"lists": [],
+"n": "Sberbank CIB USA",
+"notes": [],
+"s": "",
+"t": "company"
+},
+{
+"L": "lobby",
+"g": "china",
+"id": "co:sz-dji-technology",
+"info": {
+"country": "CN",
+"role": "named as a foreign entity on a US lobbying filing"
+},
+"k": 4,
+"lists": [],
+"n": "Sz Dji Technology Co., Ltd",
+"notes": [],
+"s": "",
+"t": "company"
+},
+{
+"L": "lobby",
+"g": "russia",
+"id": "co:sberbank",
+"info": {
+"role": "Russia's largest bank"
+},
+"k": 1,
+"lists": [
+[
+"US SDN",
+"17018",
+"RUSSIA-EO14024"
+],
+[
+"UK",
+"RUS0256",
+"01/03/2022"
+]
+],
+"n": "Sberbank",
+"notes": [],
+"s": "blocked",
+"t": "company"
+},
+{
+"L": "lobby",
+"g": "china",
+"id": "co:hangzhou-hikvision",
+"info": {
+"role": "Chinese surveillance-camera maker"
+},
+"k": 2,
+"lists": [
+[
+"US Chinese military companies (CMIC)",
+"30946",
+"CMIC-EO13959"
+],
+[
+"US Commerce Entity List",
+"",
+"2019-10-09"
+]
+],
+"n": "Hangzhou Hikvision",
+"notes": [],
+"s": "restricted",
+"t": "company"
+},
+{
+"L": "fleet",
+"br": true,
+"g": "russia",
+"id": "co:zara-shipholding",
+"info": {
+"role": "shipping company linked by OFAC to Arctic LNG 2"
+},
+"k": 1,
+"lists": [
+[
+"US SDN",
+"50524",
+"RUSSIA-EO14024"
+]
+],
+"n": "ZARA SHIPHOLDING CO",
+"notes": [],
+"s": "blocked",
+"t": "company"
+},
+{
+"L": "fleet",
+"br": true,
+"g": "russia",
+"id": "co:skyhart-management-services",
+"info": {
+"country": "IN",
+"role": "shipping company linked by OFAC to Arctic LNG 2"
+},
+"k": 1,
+"lists": [
+[
+"US SDN",
+"51967",
+"RUSSIA-EO14024"
+]
+],
+"n": "SKYHART MANAGEMENT SERVICES PRIVATE LIMITED",
+"notes": [],
+"s": "blocked",
+"t": "company"
+}
+],
+"status": {
+"co:arctic-lng-2": {
+"lists": [
+[
+"US SDN",
+"46030",
+"RUSSIA-EO14024"
+],
+[
+"UK",
+"RUS2092",
+"22/02/2024"
+]
+],
+"s": "blocked"
+},
+"co:cetc": {
+"lists": [
+[
+"US Chinese military companies (CMIC)",
+"30936",
+"CMIC-EO13959"
+]
+],
+"s": "restricted"
+},
+"co:dji": {
+"lists": [
+[
+"US Chinese military companies (CMIC): SZ DJI Technology",
+"33111",
+"CMIC-EO13959"
+],
+[
+"US Commerce Entity List",
+"",
+"2020-12-18"
+]
+],
+"s": "restricted"
+},
+"co:gazprom": {
+"lists": [
+[
+"US sectoral (SSI) and menu-based (NS-MBS)",
+"17250",
+"RUSSIA-EO14024"
+],
+[
+"US Commerce Entity List",
+"",
+"2014-09-17"
+]
+],
+"s": "restricted"
+},
+"co:gazprombank": {
+"lists": [
+[
+"US SDN",
+"17016",
+"RUSSIA-EO14024"
+],
+[
+"UK",
+"RUS1072",
+"24/03/2022"
+]
+],
+"s": "blocked"
+},
+"co:hangzhou-hikvision": {
+"lists": [
+[
+"US Chinese military companies (CMIC)",
+"30946",
+"CMIC-EO13959"
+],
+[
+"US Commerce Entity List",
+"",
+"2019-10-09"
+]
+],
+"s": "restricted"
+},
+"co:huawei": {
+"lists": [
+[
+"US Chinese military companies (CMIC)",
+"30947",
+"CMIC-EO13959"
+],
+[
+"US Commerce Entity List",
+"",
+"2019-05-21"
+]
+],
+"s": "restricted"
+},
+"co:hytera": {
+"lists": [
+[
+"US Commerce Entity List",
+"",
+"2024-08-27"
+]
+],
+"s": "restricted"
+},
+"co:nord-stream-2": {
+"lists": [
+[
+"US SDN",
+"31926",
+"PEESA-EO14039; RUSSIA-EO14024"
+]
+],
+"s": "blocked"
+},
+"co:novatek": {
+"lists": [
+[
+"US sectoral (SSI)",
+"17064",
+"UKRAINE-EO13662"
+]
+],
+"s": "restricted"
+},
+"co:sberbank": {
+"lists": [
+[
+"US SDN",
+"17018",
+"RUSSIA-EO14024"
+],
+[
+"UK",
+"RUS0256",
+"01/03/2022"
+]
+],
+"s": "blocked"
+},
+"co:smic": {
+"lists": [
+[
+"US Chinese military companies (CMIC)",
+"30951",
+"CMIC-EO13959"
+],
+[
+"US Commerce Entity List",
+"",
+"2020-12-18"
+]
+],
+"s": "restricted"
+},
+"co:vtb-bank": {
+"lists": [
+[
+"US SDN",
+"17013",
+"RUSSIA-EO14024"
+],
+[
+"UK",
+"RUS0250",
+"24/02/2022"
+]
+],
+"s": "blocked"
+},
+"gov:russia": {
+"lists": [
+[
+"US menu-based (NS-MBS): Ministry of Finance",
+"31694",
+"RUSSIA-EO14024"
+]
+],
+"s": "restricted"
+},
+"p:oleg-deripaska": {
+"lists": [
+[
+"US SDN",
+"24283",
+"UKRAINE-EO13661"
+],
+[
+"UK",
+"RUS0269",
+"10/03/2022"
+]
+],
+"s": "blocked"
+}
+}
+}

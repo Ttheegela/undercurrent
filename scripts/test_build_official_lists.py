@@ -87,3 +87,22 @@ def test_corrupt_previous_files_are_treated_as_absent(tmp_path):
     (tmp_path / "meta.json").write_text("{not json")
     assert b.main(fixture_fetch, tmp_path, DAY1) == 0
     assert {m["status"] for m in read_meta(tmp_path).values()} == {"fresh"}
+
+
+def test_fresh_lists_write_raw_copies(tmp_path, raw_dir):
+    assert b.main(fixture_fetch, tmp_path / "lists", DAY1) == 0
+    assert (raw_dir / "us.csv").read_bytes() == (FIX / "us.csv").read_bytes()
+    assert (raw_dir / "uk.csv").read_bytes() == (FIX / "uk.csv").read_bytes()
+    assert sorted(p.name for p in raw_dir.iterdir()) == ["uk.csv", "us.csv"]
+
+
+def test_failed_list_writes_no_raw_copy(tmp_path, raw_dir):
+
+    def broken(url):
+        if url == b.LISTS["uk"]["download"]:
+            raise OSError("timed out")
+        return fixture_fetch(url)
+
+    assert b.main(broken, tmp_path / "lists", DAY1) == 1
+    assert (raw_dir / "us.csv").exists()
+    assert not (raw_dir / "uk.csv").exists()

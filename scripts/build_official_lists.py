@@ -3,6 +3,8 @@
 A list that fails (download error, wrong shape, empty, or more than 20% smaller
 than the committed copy) keeps its previous file and is marked "kept-previous".
 Exits 1 when any list failed so the nightly workflow can open an issue.
+A freshly built US or UK list also keeps its raw download in build/raw/ (gitignored)
+for the graph builder; a list that kept its previous copy writes no raw file.
 """
 from __future__ import annotations
 
@@ -17,6 +19,8 @@ from lists import LISTS, PARSERS
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "data" / "lists"
+RAW_DIR = ROOT / "build" / "raw"
+RAW_EXT = {"us": "csv", "uk": "csv"}  # lists whose download the graph builder re-reads
 SHRINK_LIMIT = 0.8
 USER_AGENT = "Undercurrent/1.0 (+https://github.com/Ttheegela/undercurrent)"
 
@@ -27,9 +31,12 @@ def fetch(url: str) -> bytes:
         return response.read()
 
 
-def _write_atomic(path: Path, text: str) -> None:
+def _write_atomic(path: Path, data: str | bytes) -> None:
     tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
+    if isinstance(data, bytes):
+        tmp.write_bytes(data)
+    else:
+        tmp.write_text(data, encoding="utf-8")
     os.replace(tmp, path)
 
 
@@ -41,7 +48,8 @@ def build_one(list_id: str, fetch_fn, out_dir: Path, now: str, previous_meta: di
         prev_records = None
     base = {"label": LISTS[list_id]["label"], "source_url": LISTS[list_id]["page"], "checked_at": now}
     try:
-        records = PARSERS[list_id](fetch_fn(LISTS[list_id]["download"]))
+        raw = fetch_fn(LISTS[list_id]["download"])
+        records = PARSERS[list_id](raw)
         if not records:
             raise ValueError("no records")
         if prev_records and len(records) < SHRINK_LIMIT * len(prev_records):
@@ -57,6 +65,9 @@ def build_one(list_id: str, fetch_fn, out_dir: Path, now: str, previous_meta: di
     text = json.dumps({"list": list_id, "records": records}, ensure_ascii=False, separators=(",", ":"))
     if not path.exists() or path.read_text(encoding="utf-8") != text:
         _write_atomic(path, text)
+    if list_id in RAW_EXT:
+        RAW_DIR.mkdir(parents=True, exist_ok=True)
+        _write_atomic(RAW_DIR / f"{list_id}.{RAW_EXT[list_id]}", raw)
     return {**base, "status": "fresh", "updated_at": now, "record_count": len(records)}
 
 

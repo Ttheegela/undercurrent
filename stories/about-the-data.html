@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../app/style.css">
+<script type="module" src="../app/stats.js"></script>
 <style>
   /* Page styles on the main site's system (app/style.css tokens only) · hero + Long Document body */
   .doc { max-width: 46rem; padding-bottom: var(--space-3xl); }
@@ -28,6 +29,7 @@
   <nav class="nav-graphs" aria-label="Graphs"><ul>
     <li><a href="shadow-fleet/network/shadow_fleet_map.html">Shadow fleet map</a></li>
     <li><a href="who-lobbies/influence-network/index.html">Influence network</a></li>
+    <li><a href="updates/index.html">Updates</a></li>
   </ul></nav>
 </header>
 <main class="wrap">
@@ -38,12 +40,12 @@
 <div class="doc">
   <h2>What we check</h2>
   <ul>
-    <li><strong>Our research</strong>: 1,724 ships, 1,007 companies and 25 people in the shadow-fleet network, 8 officially listed companies from our semiconductor chip research and the listed companies and intermediaries in our lobbying research. A snapshot from the VeilTrace build day, 25 September 2026.</li>
+    <li><strong>Our research</strong>: 1,724 ships, 1,007 companies and 25 people in the shadow-fleet network, 8 officially listed companies from our semiconductor chip research and the listed companies and intermediaries in our lobbying research. A snapshot from the VeilTrace build day, 25 September 2026. The shadow-fleet map is rebuilt every night and now shows <span data-stat="fleet.ships">1,747</span> ships and <span data-stat="fleet.companies">1,037</span> companies.</li>
     <li><strong>United States</strong>: the Consolidated Screening List, which includes the Treasury's OFAC sanctions list and Commerce export-control lists.</li>
     <li><strong>United Kingdom</strong>: the UK Sanctions List.</li>
     <li><strong>European Union</strong>: the consolidated list of persons, groups and entities subject to EU financial sanctions.</li>
     <li><strong>United Nations</strong>: the Security Council consolidated list.</li>
-    <li><strong>OpenSanctions</strong>: consolidated sanctions data from 95 sources worldwide, refreshed nightly from OpenSanctions' free bulk data. CC BY-NC 4.0.</li>
+    <li><strong>OpenSanctions</strong>: consolidated sanctions data from <span data-stat="opensanctions_sources">95</span> sources worldwide, refreshed nightly from OpenSanctions' free bulk data. CC BY-NC 4.0.</li>
     <li><strong>Connections</strong>: owners, managers and linked companies from the official sanctions lists (via OpenSanctions' relationship data), and US lobbying from Lobbying Disclosure Act filings (<a href="https://lda.gov/api/redoc/v1/">lda.gov API</a>) for a tracked list of companies, both refreshed nightly. Lobbyists are named only from their own disclosures. No filing found is not proof of no influence.</li>
   </ul>
 
@@ -63,6 +65,9 @@
 
   <h2>How the lists stay current</h2>
   <p>Every night at 04:00 UTC the four official lists are downloaded and checked. A list that fails to download, changes shape, or shrinks by more than a fifth keeps yesterday's copy, and the page says "Some lists may be out of date". The other lists still update.</p>
+
+  <h2>How the graphs update</h2>
+  <p>The shadow-fleet map and the influence network are rebuilt every night from the official lists, the OFAC and EU Official Journal exports from OpenSanctions, and US lobbying filings. The <a href="updates/index.html">Updates</a> page lists what changed each day. If one of those sources fails or shrinks by more than a fifth, that night's graphs keep its previous copy. The Updates page marks the source unavailable and reports no changes from it, so a failed download is never shown as a delisting. The research snapshot of 25 September 2026 stays fixed for search and the dossiers.</p>
 
   <h2>Corrections and removal requests</h2>
   <p>We name companies and people only as official sanctions lists, government documents or, for lobbyists, their own US lobbying filings name them. A company known to us only from other sources is shown by a description, such as "unlisted ship manager", not by its name.</p>

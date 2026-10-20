@@ -72,6 +72,9 @@ a.btn { text-decoration: none; display: inline-block; }
 .k-ctrl { stroke: var(--kg-ctrl); stroke-width: 1.5; } .k-money { stroke: var(--kg-infl); stroke-width: 2; stroke-dasharray: 5 3; }
 .k-govl { stroke: var(--kg-gov); stroke-width: 1.5; stroke-dasharray: 4 2; } .k-lead { stroke: var(--kg-lead); stroke-width: 1.5; stroke-dasharray: 1 3; }
 .k-bridge { stroke: var(--color-ink); stroke-width: 2.2; }
+/* Change marks: --chg-new is the panel's token (app/style.css), copied onto :root for the key */
+.k-new { fill: none; stroke: var(--chg-new); stroke-width: 2; } .k-chg { fill: none; stroke: var(--color-neutral); stroke-width: 2; }
+.k-gone { fill: none; stroke: var(--color-neutral); stroke-width: 1.5; stroke-dasharray: 2.5 2; } .k-gone-l { stroke: var(--color-neutral); stroke-width: 2; stroke-dasharray: 1.5 3.5; opacity: .7; }
 
 /* Story caption: the home page's walkthrough card, wider */
 #story { left: 50%; transform: translateX(-50%); bottom: var(--space-md); width: min(52rem, calc(100% - 2 * var(--page-gutter))); padding: var(--space-md) var(--space-lg) var(--space-sm); background: var(--color-paper-3); }
@@ -106,21 +109,28 @@ a.btn { text-decoration: none; display: inline-block; }
 #side .ln .meta { color: var(--color-neutral); font-family: var(--font-mono); font-size: var(--text-2xs); margin-top: 2px; }
 #side .sanc-dot { color: var(--color-accent); }
 #side a { color: var(--color-ink); text-decoration-color: var(--color-accent); }
-#side .close { position: absolute; top: var(--space-xs); right: var(--space-xs); background: none; border: 0; color: var(--color-neutral); font-size: var(--text-xl); line-height: 1; padding: var(--space-2xs) var(--space-xs); cursor: pointer; }
-#side .close:hover { color: var(--color-ink); }
+#side .close, #chgPop .close { position: absolute; top: var(--space-xs); right: var(--space-xs); background: none; border: 0; color: var(--color-neutral); font-size: var(--text-xl); line-height: 1; padding: var(--space-2xs) var(--space-xs); cursor: pointer; }
+#side .close:hover, #chgPop .close:hover { color: var(--color-ink); }
+
+/* What changed: a drawer down the left, under the top bar (the details drawer is on the right) */
+#chgPop { top: calc(var(--bar-h, 3.5rem) + var(--space-xs)); left: var(--page-gutter); z-index: 8; width: min(26rem, calc(100vw - 2 * var(--page-gutter))); max-height: calc(100% - var(--bar-h, 3.5rem) - 2 * var(--space-sm)); overflow-y: auto; padding: var(--space-md); }
+#chgPop .intro { margin: var(--space-2xs) 0 var(--space-sm); padding-right: var(--space-lg); color: var(--color-muted); font-size: var(--text-xs); }
+#chgBtn[hidden] { display: none; } #chgBtn[aria-expanded=true] { border-color: var(--color-muted); }
 
 #tip { position: fixed; pointer-events: none; background: var(--color-paper-3); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-sm); padding: var(--space-xs) var(--space-sm); font-size: var(--text-xs); display: none; z-index: 9; max-width: 20rem; }
 #tip b { display: block; font-size: var(--text-sm); } #tip span { color: var(--color-muted); }
+#fail { position: fixed; inset: var(--bar-h, 3.5rem) 0 0 0; z-index: 9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-sm); padding: var(--space-md); text-align: center; background: var(--color-paper); }
+#fail[hidden] { display: none; } #fail p { margin: 0; font-family: var(--font-serif); font-size: var(--text-base); color: var(--color-ink); }
 #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--color-muted); font-family: var(--font-mono); font-size: var(--text-xs); z-index: 20; background: var(--color-paper); }
 @media (max-width: 68.75rem) { #bar h1, #bar .sep { display: none; } .qbox input { width: 11rem; } }
 @media (max-width: 47.5rem) {
-  /* Three rows: brand + methods / search / tools, with the filters in a sideways-scrolling strip */
+  /* Rows: brand + methods / search / tools / the filters in a sideways-scrolling strip / the two graphs */
   #bar { padding-block: var(--space-xs); gap: var(--space-xs); }
   #bar .methods { margin-left: auto; padding-inline: 0; }
   .spacer { display: none; }
   .qbox { flex: 1 1 100%; order: 1; } .qbox input { width: 100%; }
-  #pathBtn, #fitBtn { order: 2; }
-  .toggles { order: 3; flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  #pathBtn, #fitBtn, #chgBtn { order: 2; }
+  .toggles { order: 3; flex: 1 1 100%; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   #bar .nav-graphs { order: 4; flex-basis: 100%; }
   /* the key: a chip under the bar, opening as a sheet over the story card */
   #legend:not(.is-collapsed) { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 60%; z-index: 9; border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
@@ -132,7 +142,8 @@ a.btn { text-decoration: none; display: inline-block; }
 </style>
 </head>
 <body>
-<div id="loading">Laying out companies, ships, people and lobbyists…</div>
+<div id="loading">Loading and laying out companies, ships, people and lobbyists…</div>
+<div id="fail" role="alert" hidden><p>Network data unavailable right now.</p><button class="btn" id="retry">Retry</button></div>
 <div id="graph"></div>
 
 <header id="bar">
@@ -143,6 +154,7 @@ a.btn { text-decoration: none; display: inline-block; }
   <datalist id="names"></datalist>
   <button class="btn" id="pathBtn" aria-expanded="false">Find a path</button>
   <button class="btn" id="fitBtn" title="Show everything (key 0)">Overview</button>
+  <button class="btn" id="chgBtn" aria-expanded="false" aria-controls="chgPop">What changed</button>
   <a class="btn btn-ghost methods" href="methods.html">Methods &amp; sources</a>
   <div class="spacer"></div>
   <div class="toggles" role="group" aria-label="Filters">
@@ -156,6 +168,7 @@ a.btn { text-decoration: none; display: inline-block; }
   <nav class="nav-graphs" aria-label="Graphs"><ul>
     <li><a href="../../shadow-fleet/network/shadow_fleet_map.html">Shadow fleet map</a></li>
     <li><a href="index.html" aria-current="page">Influence network</a></li>
+    <li><a href="../../updates/index.html">Updates</a></li>
   </ul></nav>
 </header>
 
@@ -164,6 +177,13 @@ a.btn { text-decoration: none; display: inline-block; }
   <button class="btn" id="pgo">Show path</button><button class="btn btn-ghost" id="pclear">Clear</button>
   <div id="pathmsg">Shortest chain of recorded links between two names.</div>
 </div>
+
+<aside id="chgPop" class="card" aria-label="What changed" hidden>
+  <button class="close" id="chgClose" aria-label="Close">×</button>
+  <div class="kicker">What changed</div>
+  <p class="intro">New lobbying filings and sanctions-list changes to the ships, companies and people on this page, rebuilt nightly.</p>
+  <div id="chg-root" class="chg"></div>
+</aside>
 
 <aside id="legend" class="lg" data-legend="uc-legend-influence" data-legend-below="#bar" aria-label="Key">
   <div class="lg-head">
@@ -181,8 +201,8 @@ a.btn { text-decoration: none; display: inline-block; }
       <span class="it"><svg width="12" height="12"><rect class="k-gov" x="1" y="3" width="10" height="6" rx="1"/></svg>Bill or order</span>
       <span class="it"><svg width="12" height="12"><circle class="k-corp" cx="6" cy="6" r="5"/></svg>Person (listed)</span>
       <span class="it"><svg width="14" height="14"><circle class="k-nolob" cx="7" cy="7" r="4"/><line class="k-nolob" x1="4" y1="10" x2="10" y2="4"/></svg>No lobbying found</span>
-      <span class="it"><svg width="14" height="14"><circle class="k-sanc" cx="7" cy="7" r="5"/></svg>Blocked</span>
-      <span class="it"><svg width="14" height="14"><circle class="k-restr" cx="7" cy="7" r="5"/></svg>Restricted</span>
+      <span class="it wide"><svg width="14" height="14"><circle class="k-sanc" cx="7" cy="7" r="5"/></svg>Blocked (asset freeze)</span>
+      <span class="it wide"><svg width="14" height="14"><circle class="k-restr" cx="7" cy="7" r="5"/></svg>Restricted (trade, port or investment limits)</span>
       <span class="it wide"><svg width="12" height="12"><rect class="k-hollow" x="1.5" y="1.5" width="9" height="9" rx="2"/></svg>Hollow: runs listed ships, but on no list itself</span>
       <span class="it wide"><svg width="14" height="14"><circle class="k-corp" cx="7" cy="7" r="3"/><circle class="k-live" cx="7" cy="7" r="5.5"/></svg><span id="liveKey">Pulsing ring: seen live on the God's Eye globe</span></span>
     </div>
@@ -192,6 +212,11 @@ a.btn { text-decoration: none; display: inline-block; }
       <span class="it"><svg width="24" height="8"><line class="k-govl" x1="0" y1="4" x2="24" y2="4"/></svg>Lobbied / worked at</span>
       <span class="it"><svg width="24" height="8"><line class="k-lead" x1="0" y1="4" x2="24" y2="4"/></svg>Lead (inferred)</span>
       <span class="it wide"><svg width="24" height="8"><line class="k-bridge" x1="0" y1="4" x2="24" y2="4"/></svg>Bridge: joins the lobbying side to the fleet</span>
+    </div>
+    <div class="g">
+      <span class="it"><svg width="14" height="14"><circle class="k-corp" cx="7" cy="7" r="3"/><circle class="k-new" cx="7" cy="7" r="5.5"/></svg>New since</span>
+      <span class="it"><svg width="14" height="14"><circle class="k-corp" cx="7" cy="7" r="3"/><circle class="k-chg" cx="7" cy="7" r="5.5"/></svg>Changed</span>
+      <span class="it wide"><svg width="24" height="14"><path class="k-gone" d="M6.5 2.5 L11 7 L6.5 11.5 L2 7Z"/><line class="k-gone-l" x1="13" y1="7" x2="23" y2="7"/></svg>Removed</span>
     </div>
     <div class="counts" id="counts"></div>
   </div>
@@ -216,16 +241,58 @@ a.btn { text-decoration: none; display: inline-block; }
 <aside id="side" class="card" aria-label="Details"><button class="close" id="sclose" aria-label="Close">×</button><div id="sbody"></div></aside>
 <div id="tip"></div>
 
-<script src="kg_data.js"></script>
+<script>
+/* Start the downloads now so they overlap the graph library: kg.json, the change record and the panel's code. The record and the panel are
+   optional (a failure, or a wrong-shaped record, resolves to null and the drawer says so, with a Retry). retry() asks again for what failed. */
+(function(){
+  function get(url){ return fetch(url).then(function(r){ if(!r.ok) throw new Error(url + ' ' + r.status); return r.json(); }); }
+  var obj = function(x){ return !!x && typeof x === 'object'; };
+  var L = window.__load = {
+    data: function(){ return get('kg.json'); },
+    record: function(){
+      return get('../../../data/changes/changes.json').then(function(r){
+        if(!r || !Array.isArray(r.days) || !r.days.every(function(d){ return obj(d) && typeof d.date === 'string' && Array.isArray(d.changes) && d.changes.every(obj); })) throw new Error('wrong shape');
+        return r;
+      }).catch(function(){ return null; });
+    },
+    panel: function(again){ return import('../../../app/changes.js' + (again ? '?again=' + Date.now() : '')).catch(function(){ return null; }); }, /* (a failed import may be remembered, so ask under a new name) */
+    retry: function(){ L.rec = L.rec.then(function(r){ return r || L.record(); }); L.mod = L.mod.then(function(m){ return m || L.panel(true); }); }
+  };
+  L.first = L.data();
+  L.first.catch(function(){});
+  L.rec = L.record();
+  L.mod = L.panel();
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/force-graph@1.51.4/dist/force-graph.min.js" integrity="sha384-Hm6GpQcTNI5VqGgGS7lLxTGtEFcxu/kOVV0B7ozIZRu9blWVvigv5httJQZ2qZmY" crossorigin="anonymous"></script>
 <script>
 (function(){
 "use strict";
-const KG = window.KG;
+/* The data arrives by fetch (script above): a loading veil meanwhile, a message and Retry if it fails. */
+const setBarH = () => document.documentElement.style.setProperty("--bar-h", document.getElementById("bar").offsetHeight + "px");
+setBarH(); new ResizeObserver(setBarH).observe(document.getElementById("bar"));
+let reloadToRetry = false;   // (the graph itself could not start)
+function loadNetwork(again){
+  const loading = document.getElementById("loading"), fail = document.getElementById("fail"), chgBtn = document.getElementById("chgBtn");
+  function down(){ loading.style.display = "none"; fail.hidden = false; chgBtn.hidden = true; document.getElementById("chgPop").hidden = true; document.getElementById("retry").focus(); }
+  fail.hidden = true; chgBtn.hidden = false; loading.style.display = "";
+  if (again) window.__load.retry();
+  (again ? window.__load.data() : window.__load.first).then(D => {
+    if (!D || !Array.isArray(D.nodes) || !Array.isArray(D.edges) || !D.meta || !D.meta.counts) throw new Error("kg.json has the wrong shape");
+    return D;
+  }).then(start, down).catch(e => { reloadToRetry = true; down(); throw e; });
+}
+document.getElementById("retry").addEventListener("click", () => { if (reloadToRetry) location.reload(); else loadNetwork(true); });
+loadNetwork(false);
+
+function start(KG){
+window.KG = KG;
 // Graph colours, read once: site tokens (app/style.css) + this page's --kg-* data-viz tokens. Accent = sanctioned only.
 const TOKEN = (() => { const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue("--" + k).trim();
   return {paper:v("color-paper"), neutral:v("color-neutral"), muted:v("color-muted"), ink:v("color-ink"), accent:v("color-accent"),
-          corp:v("kg-corp"), infl:v("kg-infl"), gov:v("kg-gov"), ctrl:v("kg-ctrl"), lead:v("kg-lead")}; })();
+          corp:v("kg-corp"), infl:v("kg-infl"), gov:v("kg-gov"), ctrl:v("kg-ctrl"), lead:v("kg-lead"),
+          chgNew:getComputedStyle(document.getElementById("chg-root")).getPropertyValue("--chg-new").trim()}; })();
+document.documentElement.style.setProperty("--chg-new", TOKEN.chgNew);   // for the key
 const alpha = (c, a) => c.replace(/\)$/, ` / ${a})`);   // oklch(L C H) -> oklch(L C H / a)
 const C = {corp:TOKEN.corp, infl:TOKEN.infl, gov:TOKEN.gov, sanc:TOKEN.accent, live:TOKEN.ink};
 const $ = id => document.getElementById(id);
@@ -250,6 +317,9 @@ const nodes = KG.nodes.map(n => ({...n}));
 const nodeById = new Map(nodes.map(n => [n.id, n]));
 const adj = new Map(nodes.map(n => [n.id, []]));
 links.forEach(l => { adj.get(l.s).push(l); adj.get(l.t).push(l); });
+// A change names a link by (endpoint_ids[0], endpoint_ids[1], node_type) = (s, t, y), in both layers. Links can share all three (two periods), so a key holds a list.
+const edgeByKey = new Map();
+links.forEach(l => { const k = l.s + "|" + l.t + "|" + l.y; if (!edgeByKey.has(k)) edgeByKey.set(k, []); edgeByKey.get(k).push(l); });
 
 nodes.forEach(n => {
   n.side = (n.t === "lobbyfirm" || n.t === "association" || (n.t === "person" && n.L === "lobby")) ? "infl"
@@ -307,6 +377,8 @@ nodes.forEach(n => {
 // ================= state =================
 let hlNodes = null, hlLinks = null, hover = null, selected = null, pathLinks = null, storyActive = true;
 const vis = {lead:true, prog:{russia:true, iran:true, china:true, other:true}};
+// What the chosen window marks: node id -> "new" | "changed", link id -> "new", and ghosts (drawn on their own: never selected, lit, laid out or framed).
+const chg = {changes:[], node:new Map(), link:new Map(), ghostNodes:[], ghostLinks:[], index:new Map(), focus:null, row:null, at:null};
 function nodeVisible(n){
   if (!n.prog) return true;              // lobbyists, firms, government: always shown
   return n.prog.some(p => vis.prog[p]);
@@ -363,10 +435,13 @@ function drawNode(n, ctx, scale){
     ctx.globalAlpha = f ? 0.07 : 1;
   }
   if (n === selected || n === hover){ ctx.beginPath(); ctx.arc(n.x, n.y, r + 5 + 2/scale, 0, 2*Math.PI); ctx.lineWidth = 1.5/scale; ctx.strokeStyle = TOKEN.ink; ctx.stroke(); }
+  const mark = chg.node.get(n.id);   // new since the chosen day: green ring; changed: grey ring (a solid ring: removed items are dashed)
+  if (mark){ ctx.beginPath(); ctx.arc(n.x, n.y, r + 5 + 6/scale, 0, 2*Math.PI); ctx.lineWidth = Math.max(2.2/scale, 1); ctx.strokeStyle = mark === "new" ? TOKEN.chgNew : TOKEN.neutral; ctx.stroke(); }
   ctx.globalAlpha = 1;
 }
 function linkColor(l){
   if (hlLinks && !hlLinks.has(l.id)) return alpha(TOKEN.neutral, 0.025);
+  if (chg.link.has(l.id)) return alpha(TOKEN.chgNew, 0.95);
   if (l.br && l.c !== "L") return alpha(TOKEN.ink, hlLinks ? 0.95 : 0.8);
   if (l.c === "L") return alpha(TOKEN.lead, l.br ? 0.9 : 0.7);
   const on = !!hlLinks;
@@ -382,6 +457,7 @@ function linkWidth(l){
   let w = l.fam === "money" ? 1 + Math.min(4, Math.log10(1 + (l.a || 0)) / 1.6) : l.fam === "staff" ? 0.5 : l.fam === "ctrl" ? 1.2 : 0.8;
   if (hlLinks && hlLinks.has(l.id)) w *= 1.8;
   if (l.br) w = Math.max(w, 2.2);
+  if (chg.link.has(l.id)) w = Math.max(w, 1.8);
   if (pathLinks && pathLinks.has(l.id)) w = 4;
   return w;
 }
@@ -404,6 +480,11 @@ function drawLabels(ctx, scale){
     else if (hlNodes && hlNodes.has(n.id)) p = (n.t === "ship" && hlNodes.size > 60) ? (scale > 2.5 ? 1 : -1) : 1e5 + n.base;
     else if (n.base * scale > 22 || scale > 5) p = n.base;
     if (p >= 0) cand.push([p, n]);
+  }
+  for (const g of chg.ghostNodes){
+    const q = chg.at(g.id);
+    if (!q || !ghostShown(g) || q.x < tl.x || q.x > br.x || q.y < tl.y || q.y > br.y) continue;
+    if (g.id === chg.focus || 40 * scale > 22) cand.push([g.id === chg.focus ? 1e6 : 40, {x:q.x, y:q.y, r:g.r, n:g.name, base:40}]);
   }
   cand.sort((a, b) => b[0] - a[0]);
   const placed = [], fs = 12 / scale, pad = 2 / scale;
@@ -433,6 +514,33 @@ function drawHeadings(ctx, scale){
   ctx.fillStyle = TOKEN.neutral;
   for (const L of LANES){ if (top[L.key] !== undefined && L.key !== "bridge") ctx.fillText(L.title.toUpperCase(), L.x, top[L.key] - 30 / scale); }
   for (const [g, v] of Object.entries(gal)){ if (GALAXY[g] && isFinite(v.y)) ctx.fillText(GALAXY[g].title.toUpperCase(), GALAXY[g].x, v.y - 30 / scale); }
+  if (chg.row && chg.ghostNodes.some(g => !g.anchor)) ctx.fillText("REMOVED", chg.row.x, chg.row.y - 30 / scale);
+}
+// ---- removed items: faint dashed outlines beside a node a removed link names (they follow it) or in a row below the graph. No force, no pointer area.
+const ghostShown = g => !g.anchor || nodeVisible(nodeById.get(g.anchor));
+function ghostAt(id){
+  const g = chg.index.get(id);
+  if (!g){ const n = nodeById.get(id); return n && n.x != null ? {x:n.x, y:n.y} : null; }
+  if (!g.anchor) return {x:g.x, y:g.y};
+  const a = nodeById.get(g.anchor); return {x:a.x + g.dx, y:a.y + g.dy};
+}
+chg.at = ghostAt;
+function drawGhosts(ctx, scale){
+  if (!chg.ghostNodes.length && !chg.ghostLinks.length) return;
+  const shown = id => chg.index.has(id) ? ghostShown(chg.index.get(id)) : nodeVisible(nodeById.get(id));
+  ctx.save();
+  ctx.strokeStyle = TOKEN.neutral; ctx.lineWidth = Math.max(1.2, 1.5 / scale); ctx.globalAlpha = 0.45; ctx.setLineDash([2 / scale, 6 / scale]);   // (fainter than a lead link)
+  for (const l of chg.ghostLinks){
+    if (!shown(l.a) || !shown(l.b)) continue;
+    const a = chg.at(l.a), b = chg.at(l.b);
+    if (a && b){ ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+  }
+  ctx.globalAlpha = 0.8; ctx.lineWidth = 1.5 / scale; ctx.setLineDash([3 / scale, 2.5 / scale]);
+  for (const g of chg.ghostNodes){
+    if (!ghostShown(g)) continue;
+    const q = chg.at(g.id); shape(ctx, {x:q.x, y:q.y, t:g.type}, Math.max(g.r, 7 / scale)); ctx.stroke();
+  }
+  ctx.restore();
 }
 
 // ================= graph =================
@@ -445,16 +553,17 @@ const Graph = ForceGraph()(el)
   .nodeVal(n => n.r * n.r / 4)
   .nodeCanvasObject(drawNode)
   .nodePointerAreaPaint((n, color, ctx) => { if (!nodeVisible(n)) return; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(n.x, n.y, n.r + 3, 0, 2*Math.PI); ctx.fill(); })
+  .onRenderFramePre(drawGhosts)
   .onRenderFramePost((ctx, scale) => { drawLabels(ctx, scale); drawHeadings(ctx, scale); })
   .linkVisibility(linkVisible)
   .linkColor(linkColor)
   .linkWidth(linkWidth)
   .linkLineDash(l => l.c === "L" ? [1, 3] : l.fam === "money" ? [5, 3] : l.fam === "gov" || l.fam === "door" ? [4, 2] : null)
   .linkCurvature(l => l.fam === "door" ? 0.2 : 0)
-  .linkDirectionalParticles(l => (l.br && !hlLinks) || (l.fam === "money" && (!hlLinks || hlLinks.has(l.id))) || (pathLinks && pathLinks.has(l.id)) || (hlLinks && hlLinks.has(l.id) && hlLinks.size < 400 && l.fam !== "staff") ? 2 : 0)
+  .linkDirectionalParticles(l => (chg.link.has(l.id) && (!hlLinks || hlLinks.has(l.id))) || (l.br && !hlLinks) || (l.fam === "money" && (!hlLinks || hlLinks.has(l.id))) || (pathLinks && pathLinks.has(l.id)) || (hlLinks && hlLinks.has(l.id) && hlLinks.size < 400 && l.fam !== "staff") ? 2 : 0)
   .linkDirectionalParticleWidth(l => l.fam === "money" ? 2.8 : 2.2)
   .linkDirectionalParticleSpeed(0.005)
-  .linkDirectionalParticleColor(l => l.br ? TOKEN.ink : l.fam === "money" ? TOKEN.infl : l.fam === "gov" || l.fam === "door" ? TOKEN.gov : TOKEN.corp)
+  .linkDirectionalParticleColor(l => chg.link.has(l.id) ? TOKEN.chgNew : l.br ? TOKEN.ink : l.fam === "money" ? TOKEN.infl : l.fam === "gov" || l.fam === "door" ? TOKEN.gov : TOKEN.corp)
   .d3AlphaDecay(0.022).d3VelocityDecay(0.38)
   .warmupTicks(260).cooldownTicks(160)
   .onNodeHover(n => { hover = n || null; el.style.cursor = n ? "pointer" : null; showTip(n); hoverHighlight(); })
@@ -487,7 +596,7 @@ Graph.d3Force("columns", alpha => {
 
 // ================= tooltip =================
 const tip = $("tip");
-const statusText = n => n.s === "blocked" ? "Blocked (asset freeze)" : n.s === "restricted" ? "Restricted (trade or investment limits)" : "";
+const statusText = n => n.s === "blocked" ? "Blocked (asset freeze)" : n.s === "restricted" ? "Restricted (trade, port or investment limits)" : "";
 function showTip(n){
   if (!n){ hideTip(); return; }
   const p = Graph.graph2ScreenCoords(n.x, n.y);
@@ -496,6 +605,8 @@ function showTip(n){
   tip.style.left = Math.min(innerWidth - 330, p.x + 14) + "px"; tip.style.top = (p.y + 12) + "px";
 }
 function hideTip(){ tip.style.display = "none"; }
+// http, https or relative only (as safeUrl in app/render.js): the file is rebuilt nightly
+function safeUrl(u){ try { const p = new URL(u, "https://undercurrent.invalid/"); if (p.protocol === "https:" || p.protocol === "http:") return u; } catch (e) {} return "#"; }
 function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
 // ================= focus helpers =================
@@ -523,8 +634,8 @@ function hoverHighlight(){
 function clearFocus(){ selected = null; pathLinks = null; hlNodes = hlLinks = null; closeSide(); }
 
 // Fit nodes into the free area: under the top bar, above the story bar, left of the drawer.
-function flyTo(ids, pad){
-  const pts = ids.map(id => nodeById.get(id)).filter(n => n && n.x != null && nodeVisible(n));
+function flyTo(ids, pad, maxK){
+  const pts = ids.map(id => typeof id === "object" ? id : nodeById.get(id)).filter(n => n && n.x != null && nodeVisible(n));   // (ids, or {x, y} points: a ghost)
   if (!pts.length) return;
   const W = el.clientWidth, H = el.clientHeight;
   const story = $("story"), storyH = story.style.display === "none" ? 40 : story.offsetHeight + 24;
@@ -536,13 +647,19 @@ function flyTo(ids, pad){
     const r = leg.getBoundingClientRect(), l2 = r.right + 10, r2 = r.left - 10;
     if (r.left + r.right < W){ if (R - l2 > W / 2) L = l2; } else if (r2 - L > W / 2) R = Math.min(R, r2);
   }
+  const pr = popRight();   // and of the changes drawer on the left, unless that leaves too little room (the caller then closes the drawer)
+  if (pr && R - pr >= STRIP) L = Math.max(L, pr);
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   pts.forEach(n => { x0 = Math.min(x0, n.x); x1 = Math.max(x1, n.x); y0 = Math.min(y0, n.y); y1 = Math.max(y1, n.y); });
   const m = 70 * (pad || 1), bw = Math.max(60, x1 - x0), bh = Math.max(60, y1 - y0);
-  const k = Math.max(0.05, Math.min(5, (R - L - 2*m) / bw, (B - T - 2*m) / bh));
+  const k = Math.max(0.05, Math.min(maxK || 5, (R - L - 2*m) / bw, (B - T - 2*m) / bh));
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, ax = (L + R) / 2, ay = (T + B) / 2;
   tweenCamera(k, cx - (ax - W/2) / k, cy - (ay - H/2) / k, 850);
 }
+// (the narrowest strip worth framing in)
+const STRIP = 280;
+function popRight(){ return !$("chgPop").hidden && innerWidth > 760 ? $("chgPop").getBoundingClientRect().right + 10 : 0; }
+const stripLeft = () => innerWidth - ($("side").classList.contains("open") ? $("side").offsetWidth + 30 : 20) - popRight();
 // One tween for zoom + pan (two separate animated calls cancel each other).
 let camAnim = 0;
 function tweenCamera(k1, x1, y1, ms){
@@ -604,17 +721,18 @@ function renderSide(n){
   const groups = {};
   for (const l of adj.get(n.id)){
     const out = l.s === n.id, other = nodeById.get(out ? l.t : l.s);
-    const key = out ? VERB[l.y] : "← " + VERB[l.y];
+    const verb = VERB[l.y] || String(l.y).replace(/_/g, " ");   // (the lists add link types nightly)
+    const key = out ? verb : "← " + verb;
     (groups[key] = groups[key] || []).push({l, other});
   }
   for (const [k, arr] of Object.entries(groups).sort((a, b) => b[1].length - a[1].length)){
     h += `<div class="grp">${esc(k)} (${arr.length})</div>`;
     arr.sort((a, b) => (b.l.a || 0) - (a.l.a || 0) || b.other.k - a.other.k).slice(0, 30).forEach(({l, other}) => {
       const when = l.d ? (l.d2 && l.d2 !== l.d ? l.d + "–" + l.d2 : l.d) : "";
-      const money = l.a ? " · $" + Math.round(l.a).toLocaleString() + (l.an ? " " + l.an : " reported (one per quarter, amendments not double-counted)") : "";
+      const money = l.a ? " · $" + Math.round(l.a).toLocaleString() + (l.an ? " " + esc(l.an) : " reported (one per quarter, amendments not double-counted)") : "";
       const subm = l.sub ? " · subcontracted through another firm" + (l.sa ? " ($" + Math.round(l.sa).toLocaleString() + ", already inside that firm's fee)" : "") : "";
       const conf = l.c === "L" ? " · LEAD (our inference)" : l.c === "R" ? " · reported, not re-checked" : "";
-      const src = l.u ? `<a href="${esc(l.u)}" target="_blank" rel="noopener">${LIST_HOME.test(l.u) ? "source (home page, not the record)" : "source"}</a>` : "";
+      const src = l.u && safeUrl(l.u) !== "#" ? `<a href="${esc(l.u)}" target="_blank" rel="noopener">${LIST_HOME.test(l.u) ? "source (home page, not the record)" : "source"}</a>` : "";
       h += `<div class="ln"><span class="who" data-id="${esc(other.id)}">${esc(other.n)}</span>${other.s ? ' <span class="sanc-dot" title="' + statusText(other) + '">●</span>' : ""}
         ${l.q ? `<div class="q">“${esc(l.q.length > 220 ? l.q.slice(0, 218) + "…" : l.q)}”</div>` : ""}
         <div class="meta">${[when, l.r, l.pct ? "ownership " + l.pct + "%" : ""].filter(Boolean).map(esc).join(" · ")}${money}${subm}${conf} ${src}</div></div>`;
@@ -626,22 +744,28 @@ function renderSide(n){
 }
 
 // ================= story =================
+// (research keeps ships a list has dropped: count the ones a list names)
+function shipCount(){
+  const ships = KG.nodes.filter(n => n.t === "ship"), listed = ships.filter(n => (n.lists || []).length).length, f = n => n.toLocaleString();
+  return listed === ships.length ? `<b>${f(listed)} tankers and cargo ships</b> on US, UK or EU sanctions lists,`
+    : `<b>${f(listed)} of the ${f(ships.length)} tankers and cargo ships</b> here are on US, UK or EU sanctions lists (research keeps the others),`;
+}
 const STEPS = [
-  {t:"The shadow fleet", x:`<b>${KG.nodes.filter(n => n.t === "ship").length.toLocaleString()} tankers and cargo ships</b> on US, UK or EU sanctions lists, joined by their permanent hull number to the companies that own, manage or operate them. Every ship here is listed; a red ring on a company or person means a government froze its assets.`,
-   s:"UK sanctions list (21 Sep 2026), US Treasury and Commerce lists, EU asset-freeze list, Ukraine's war-sanctions database.", fleet:true},
+  {t:"The shadow fleet", x:`${shipCount()} joined by their permanent hull number to the companies that own, manage or operate them. A red ring on a company or person means a government froze its assets.`,
+   s:`UK, US and EU sanctions lists, rebuilt nightly (this build: ${KG.meta.generated}). Hand-checked links and research as of 25 Sep 2026, including Ukraine's war-sanctions database.`, fleet:true},
   {t:"New name, same hull", x:"A ship's name is paperwork; its hull number is for life. The UK listed <b>CLYDE NOBLE</b> in May 2025. Its manager closed the next month, and the US later listed the same hull as <b>AQUA LIVE</b>.",
    s:"UK list; US Treasury (OFAC) list.", focus:["IMO9282792"], hops:2},
   {t:"The Sovcomflot hub", x:"Russia's state tanker company, <b>Sovcomflot</b>, anchors the Russian cluster. Treasury says it \"sought to circumvent sanctions by transferring the management of tankers to Fornax and Stream\", two Dubai firms.",
    s:"US Treasury press release jy2777, 10 Jan 2025.", focus:["co:sovcomflot", "co:fornax-shipmanagement", "co:stream-shipmanagement"], hops:1},
-  {t:"The front companies don't lobby", x:"We searched US lobbying disclosures for 18 ship managers, front companies and oil traders, including Sovcomflot, Zulu, Fleet Tanqo, Lukoil and Rosneft: <b>zero filings</b> (marked ⊘). That is not proof of no influence; it can run through foreign-agent filings, Brussels or governments.",
+  {t:"The front companies don't lobby", x:"As of 25 September 2026, we searched US lobbying disclosures for 18 ship managers, front companies and oil traders, including Sovcomflot, Zulu, Fleet Tanqo, Lukoil and Rosneft: <b>zero filings</b> (marked ⊘). That is not proof of no influence; it can run through foreign-agent filings, Brussels or governments.",
    s:"US Senate Lobbying Disclosure Act database, searched 25 Sep 2026.", focus:() => nodes.filter(n => n.nolobby).map(n => n.id), hops:1},
   {t:"Their parent companies do", x:"Follow the chain. <b>Nord Stream 2</b> hired Washington firms on a 2017 Russia-sanctions bill (S.722); its filings name <b>Gazprom</b> as the foreign entity behind it. Treasury says Gazprom majority-owns <b>Gazprom Neft</b>, whose subsidiary Gazpromneft Marine Bunker runs listed tankers.",
    s:"Lobbying filings; Treasury press releases jl2629 (2014) and jy2777 (2025).",
    focus:["co:nord-stream-2", "co:gazprom", "co:gazprom-neft", "co:gazpromneft-marine-bunker-liability", "bill:s722", "co:gazpromexport"], hops:1, path:["bill:s722", "co:gazpromneft-marine-bunker-liability"]},
-  {t:"Where the two sides meet", x:"Only a few records join Washington's lobbying to the fleet, and each one is official. The <b>Russian state</b>, named on Nord Stream 2's filings as Gazprom's owner, owns <b>Sovcomflot</b> (Treasury). OFAC links seven shipping companies to <b>Arctic LNG 2</b>, which hired a Washington firm in 2023 on \"Export of gas turbines\". The white lines are those joins.",
+  {t:"Where the two sides meet", x:"Only a few records join Washington's lobbying to the fleet, and each one is official. The <b>Russian state</b>, named on Nord Stream 2's filings as Gazprom's owner, owns <b>Sovcomflot</b> (Treasury). As of 25 September 2026, OFAC links seven shipping companies to <b>Arctic LNG 2</b>, which hired a Washington firm in 2023 on \"Export of gas turbines\". The white lines are those joins.",
    s:"Treasury press releases jy2777 and jl2629; US sanctions list entries 50521, 50524, 50626, 50627, 51967, 51972, 52250; lobbying filing 94c50936.",
    focus:() => nodes.filter(n => n.br).map(n => n.id), hops:1, fams:["ctrl", "money"]},
-  {t:"Banks lobbied on the scope of sanctions", x:"After the 2014 sanctions, <b>Sberbank's US arm</b> hired Podesta Group, the Madison Group, SGR and Venable; one filing's stated issue is \"clarifying scope of sanctions imposed by Executive Order 13660\". <b>VTB</b> and <b>Gazprombank</b> hired firms on the same subject. All three banks are now fully blocked.",
+  {t:"Banks lobbied on the scope of sanctions", x:"After the 2014 sanctions, <b>Sberbank's US arm</b> hired Podesta Group, the Madison Group, SGR and Venable; one filing's stated issue is \"clarifying scope of sanctions imposed by Executive Order 13660\". <b>VTB</b> and <b>Gazprombank</b> hired firms on the same subject. As of 25 September 2026, all three banks are fully blocked.",
    s:"Lobbying filings 8a5bd4fb, 59335ef1, 1b6d490c, 6837f722; US sanctions records 17018, 17013, 17016.",
    focus:["co:sberbank-cib-usa", "co:vtb-bank", "co:gazprombank", "bill:eo13660"], hops:1, fams:["money", "gov", "ctrl"]},
   {t:"The revolving door", x:"Lobbyists must disclose past government jobs. On these accounts: a former <b>Counselor to the Secretary of the Treasury</b> (Hikvision), former senators <b>John Breaux</b> (Gazprombank) and <b>Joseph Lieberman</b> (ZTE), former congressman <b>John Sweeney</b> (Nord Stream 2), and more.",
@@ -671,10 +795,11 @@ function go(i, keepSide){
     fit = [...hlNodes];
   } else {
     const ids = (typeof st.focus === "function" ? st.focus() : st.focus).filter(id => nodeById.has(id));
-    const nb = neighborhood(ids, st.hops, st.fams); hlNodes = nb.ns; hlLinks = nb.ls; fit = [...hlNodes];
+    if (ids.length){ const nb = neighborhood(ids, st.hops, st.fams); hlNodes = nb.ns; hlLinks = nb.ls; fit = [...hlNodes]; }
+    else { hlNodes = hlLinks = null; fit = nodes.filter(nodeVisible).map(n => n.id); }   // (all names left the lists)
   }
-  if (st.path){ const p = shortestPath(st.path[0], st.path[1]); if (p){ pathLinks = new Set(p.links); p.nodes.forEach(x => hlNodes.add(x)); p.links.forEach(x => hlLinks.add(x)); } }
-  setTimeout(() => flyTo(fit, st.fleet ? 0.3 : 1), 0);
+  if (st.path && hlNodes){ const p = shortestPath(st.path[0], st.path[1]); if (p){ pathLinks = new Set(p.links); p.nodes.forEach(x => hlNodes.add(x)); p.links.forEach(x => hlLinks.add(x)); } }
+  setTimeout(() => { if (storyActive) flyTo(fit, st.fleet ? 0.3 : 1); }, 0);
 }
 $("prev").onclick = () => go(step - 1);
 $("next").onclick = () => go(step + 1);
@@ -730,6 +855,7 @@ $("liveBtn").onclick = () => {
 // ================= keyboard =================
 addEventListener("keydown", e => {
   if (e.target.tagName === "INPUT"){ if (e.key === "Escape") e.target.blur(); return; }
+  if (e.target.closest && e.target.closest("#chgPop")) return;   // the drawer's controls keep their keys (the panel stops the arrows and Escape itself)
   if (e.key === "/"){ e.preventDefault(); $("q").focus(); }
   else if (e.key === "0") overview();
   else if (e.key === "ArrowRight") go(step + 1);
@@ -742,15 +868,168 @@ const m = KG.meta.counts;
 if (KG.meta.live) $("liveKey").textContent = `Pulsing ring: seen live on AIS (God's Eye, ${KG.meta.live.taken_utc.replace("T", " ").replace("Z", " UTC")})`;
 $("counts").innerHTML = `${m.nodes.toLocaleString()} nodes · ${m.edges.toLocaleString()} links (${m.lead_edges} leads)<br>${m.lda_filings_kept.toLocaleString()} lobbying filings used · ${m.ships_hidden_no_owner_link} listed ships not drawn (no list names an owner)<br>People named only where an official list, release or their own lobbying disclosure names them.`;
 
+// ================= changes =================
+// The panel (app/changes.js) calls applyWindow with the changes since the chosen day (fleet layer and lobbying layer). Links have no id: a change names its
+// link by its ends and type. Added = green ring (a new link is green, with particles), changed = grey ring, removed = a faint dashed ghost.
+const chgRoot = $("chg-root"), chgPop = $("chgPop"), chgBtn = $("chgBtn");
+const chgById = new Map(), ghostLinkById = new Map(), DAY = /^\d{4}-\d{2}-\d{2}$/;
+let chgPanel = null, ready = false, pendingFocus = null;
+const edgesOf = c => { const ep = c.endpoint_ids; return Array.isArray(ep) ? edgeByKey.get(ep[0] + "|" + ep[1] + "|" + c.node_type) : undefined; };
+const redraw = () => Graph.zoom(Graph.zoom());   // (moving the canvas redraws it; most setters re-run the layout)
+function markChanges(){
+  const node = new Map(), link = new Map(), lost = new Map(), lostLinks = [];
+  for (const c of chg.changes){
+    if (c.item === "edge"){
+      const ls = edgesOf(c);
+      if (c.kind === "removed"){ if (!ls) lostLinks.push(c); }   // (back on the graph: neither)
+      else if (c.kind === "added" && ls) ls.forEach(l => link.set(l.id, "new"));
+    } else if (nodeById.has(c.id)){
+      if (c.kind === "added") node.set(c.id, "new"); else if (c.kind === "changed" && node.get(c.id) !== "new") node.set(c.id, "changed");   // (new wins over changed)
+    } else if (c.kind === "removed" && !lost.has(c.id)) lost.set(c.id, c);
+  }
+  // A removed link is drawn between two ends that are nodes here or ghosts; any other is skipped.
+  const end = id => nodeById.has(id) || lost.has(id) ? id : null, near = new Map(), around = new Map(), seen = new Set();
+  chg.ghostLinks = []; ghostLinkById.clear();
+  for (const c of lostLinks){
+    const ep = Array.isArray(c.endpoint_ids) ? c.endpoint_ids : [], a = end(ep[0]), b = end(ep[1]);
+    if (!a || !b || a === b || seen.has(c.id)) continue;
+    seen.add(c.id);
+    const gl = {id:c.id, a, b}; chg.ghostLinks.push(gl); ghostLinkById.set(c.id, gl);
+    if (lost.has(a) && nodeById.has(b) && !near.has(a)) near.set(a, b);
+    if (lost.has(b) && nodeById.has(a) && !near.has(b)) near.set(b, a);
+  }
+  chg.ghostNodes = []; chg.index.clear();
+  lost.forEach((c, id) => {
+    const type = c.node_type === "ship" ? "ship" : c.node_type === "company" ? "company" : "person", anchor = near.get(id) || null;
+    const g = {id, name:String(c.name == null ? id : c.name), type, r:type === "ship" ? 3.5 : 6, anchor, dx:0, dy:0, x:0, y:0};
+    if (anchor){ const k = around.get(anchor) || 0; around.set(anchor, k + 1); g.dx = (24 + 7 * Math.floor(k / 6)) * Math.cos(k * 2.4); g.dy = (24 + 7 * Math.floor(k / 6)) * Math.sin(k * 2.4); }
+    chg.ghostNodes.push(g); chg.index.set(id, g);
+  });
+  chg.node = node; chg.link = link;
+  const lit = [hlLinks, pathLinks]; hlLinks = pathLinks = null;   // (the particles are built once, so build them as when nothing is lit)
+  Graph.linkDirectionalParticles(Graph.linkDirectionalParticles());   // (new links get theirs; no re-layout)
+  [hlLinks, pathLinks] = lit;
+  placeLoose();
+}
+// Ghosts with no node to sit beside stand in a row under the graph, headed REMOVED.
+function placeLoose(){
+  const loose = chg.ghostNodes.filter(g => !g.anchor);
+  if (!loose.length){ chg.row = null; redraw(); return; }
+  let x0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const n of nodes) if (n.x != null){ x0 = Math.min(x0, n.x); x1 = Math.max(x1, n.x); y1 = Math.max(y1, n.y); }
+  const cx = isFinite(x0) ? (x0 + x1) / 2 : 0, y = isFinite(y1) ? y1 + 140 : 0, cols = Math.min(10, loose.length);
+  chg.row = {x:cx, y};
+  loose.forEach((g, i) => { g.x = cx + ((i % 10) - (cols - 1) / 2) * 90; g.y = y + Math.floor(i / 10) * 80; });
+  redraw();
+}
+function applyWindow(since, changes){ chg.changes = changes; chg.focus = null; markChanges(); settle(); }
+function leaveStory(){ if (storyActive){ storyActive = false; showStory(false); } }
+function focusOn(id){ const n = nodeById.get(id); if (!nodeVisible(n)) setAllProg(); select(n); flyTo([...hlNodes]); }
+function centreGhost(id){
+  const g = chg.index.get(id), l = ghostLinkById.get(id), ends = g ? [id] : l ? [l.a, l.b] : [];
+  if (ends.some(e => chg.index.has(e) ? !ghostShown(chg.index.get(e)) : !nodeVisible(nodeById.get(e)))) setAllProg();   // (hidden by a filter)
+  if (selected) clearFocus();
+  chg.focus = g ? id : null;
+  flyTo((g ? [chg.at(id), g.anchor && nodeById.get(g.anchor)] : [chg.at(l.a), chg.at(l.b)]).filter(Boolean), 1.4, 2.5);
+}
+// An item named by a row or the hash: a node (or a link's start) is selected, a removed one centred on its ghost, anything else ignored. From the hash the story steps aside.
+function goTo(id, leave, given){
+  const c = given || chgById.get(id), ls = c && c.item === "edge" ? edgesOf(c) : null;
+  const node = nodeById.has(id) ? id : ls ? ls[0].s : null, ghost = !node && (chg.index.has(id) || ghostLinkById.has(id));
+  if (!node && !ghost) return false;
+  if (leave) leaveStory();
+  if (node) focusOn(node); else centreGhost(id);
+  if (!chgPop.hidden && (matchMedia("(max-width: 760px)").matches || stripLeft() < STRIP)){ const held = chgPop.contains(document.activeElement); openChg(false); if (held) chgBtn.focus(); }   // (it covers the graph, or leaves no room beside the details)
+  return true;
+}
+// A link to a removed item waits for the first view and the panel's window.
+function settle(){
+  if (pendingFocus && ready && chgPanel){ const f = pendingFocus; pendingFocus = null; if (chgById.has(f)) goTo(f, true); }
+}
+// If the record or the panel's code is missing the drawer says so (not "no changes"), and its Retry asks again for what failed.
+function loadChanges(refocus){
+  Promise.all([window.__load.rec, window.__load.mod]).then(r => {
+    if (r[0] && r[1]){ mountPanel(r[0], r[1]); return; }
+    chgRoot.innerHTML = '<p class="chg-empty" role="status">Changes unavailable right now.</p><button type="button" class="btn" data-chg-retry>Retry</button>';
+    if (refocus) chgRoot.querySelector("[data-chg-retry]").focus();
+  });
+}
+chgRoot.addEventListener("click", ev => {
+  if (!ev.target.closest("[data-chg-retry]")) return;
+  chgRoot.textContent = "Loading changes…";
+  window.__load.retry();
+  loadChanges(true);
+});
+// The panel gets what this page can show: changes to nodes or links drawn here, or to ones that left (a ghost; a removed link needs both ends here or removed
+// that day). Every day keeps its sources, so the notes about lists that were down survive.
+function onNetwork(rec){
+  return {...rec, days:rec.days.map(d => {
+    const gone = new Set(d.changes.filter(c => c.item !== "edge" && c.kind === "removed" && !nodeById.has(c.id)).map(c => c.id)), here = id => nodeById.has(id) || gone.has(id);
+    return {...d, changes:d.changes.filter(c => {
+      if (c.item !== "edge") return nodeById.has(c.id) || gone.has(c.id);
+      const ep = Array.isArray(c.endpoint_ids) ? c.endpoint_ids : [];
+      return !!edgesOf(c) || (c.kind === "removed" && ep[0] !== ep[1] && here(ep[0]) && here(ep[1]));
+    })};
+  })};
+}
+function mountPanel(all, mod){
+  const rec = onNetwork(all);
+  rec.days.forEach(d => d.changes.forEach(c => { if (!chgById.has(c.id)) chgById.set(c.id, c); }));
+  chgPanel = mod.mountChangesPanel(chgRoot, {record:rec, graph:["fleet", "lobby"], today:String(KG.meta.generated || "").slice(0, 10), updatesHref:"../../updates/index.html",
+    onWindow:applyWindow, onSelect:c => { if (c) goTo(c.id, false, c); }});
+  const since = parseHash().since;
+  if (DAY.test(since || "")) chgPanel.setSince(since);
+}
+loadChanges(false);
+// The drawer: opened from the top bar; closed by its button, by Escape (after the calendar inside) or by the bar button.
+function openChg(open){
+  chgPop.hidden = !open; chgBtn.setAttribute("aria-expanded", open);
+  if (!open) return;
+  (chgPop.querySelector(".chg-btn, [data-chg-retry]") || $("chgClose")).focus();
+}
+chgBtn.onclick = () => openChg(chgPop.hidden);
+$("chgClose").onclick = () => { openChg(false); chgBtn.focus(); };
+chgPop.addEventListener("keydown", e => {   // (capture: runs before the panel stops Escape)
+  if (e.key !== "Escape") return;
+  const pick = chgRoot.querySelector("[data-pick]");
+  if (pick && pick.getAttribute("aria-expanded") === "true") return;
+  e.stopPropagation(); openChg(false); chgBtn.focus();
+}, true);
+
+// ================= deep links =================
+// #focus=<id>&since=YYYY-MM-DD: a node here, or the id of a change in the record (a link, or an item that left); since: the window's first day.
+function parseHash(){
+  const hp = Object.create(null);
+  String(location.hash || "").replace(/^#/, "").split("&").forEach(kv => {
+    const i = kv.indexOf("=");
+    if (i > 0) try { hp[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1)); } catch (e) {}   // a broken % loses its own pair only
+  });
+  return hp;
+}
+const HP = parseHash();
+const bootFocus = typeof HP.focus === "string" && nodeById.has(HP.focus) ? HP.focus : null;
+addEventListener("hashchange", () => {
+  const hp = parseHash();
+  if (chgPanel && DAY.test(hp.since || "")) chgPanel.setSince(hp.since);
+  if (typeof hp.focus === "string" && (nodeById.has(hp.focus) || chgById.has(hp.focus))) goTo(hp.focus, true);
+});
+
 // ================= start =================
-// Panels sit under the bar, which wraps to two or three rows on narrow screens.
-const setBarH = () => document.documentElement.style.setProperty("--bar-h", $("bar").offsetHeight + "px");
-setBarH(); new ResizeObserver(setBarH).observe($("bar"));
 new ResizeObserver(() => { if (el.clientWidth && el.clientHeight) Graph.width(el.clientWidth).height(el.clientHeight); }).observe(el);
-window.__kg = {Graph, nodeById, go, flyTo};
+window.__kg = {Graph, nodeById, go, flyTo, select, clearFocus, fitAll:overview, chg, chgColour:TOKEN.chgNew,
+  state:() => ({selected:selected ? selected.id : null, step, storyActive, ready, hl:hlNodes ? [...hlNodes] : null})};
 let settled = false;
-Graph.onEngineStop(() => { if (!settled){ settled = true; if (storyActive) go(step, true); } });
-setTimeout(() => { $("loading").style.display = "none"; go(0); }, 50);
+Graph.onEngineStop(() => {
+  if (settled) return;
+  settled = true; placeLoose();
+  if (storyActive) go(step, true); else if (bootFocus && selected && selected.id === bootFocus) flyTo([...hlNodes]);   // (the layout moved a little)
+});
+setTimeout(() => {
+  $("loading").style.display = "none";
+  if (bootFocus){ leaveStory(); focusOn(bootFocus); } else { pendingFocus = HP.focus || null; go(0); }
+  ready = true; settle();
+}, 50);
+}
 })();
 </script>
 </body>

@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app/style.css">
 <script type="module" src="app/main.js"></script>
+<script type="module" src="app/stats.js"></script>
 </head>
 <body>
 
@@ -23,6 +24,7 @@
   <nav class="nav-graphs" aria-label="Graphs"><ul>
     <li><a href="stories/shadow-fleet/network/shadow_fleet_map.html">Shadow fleet map</a></li>
     <li><a href="stories/who-lobbies/influence-network/index.html">Influence network</a></li>
+    <li><a href="stories/updates/index.html">Updates</a></li>
   </ul></nav>
 </header>
 
@@ -50,9 +52,9 @@
   <h2>Four investigations, one dataset</h2>
   <ul class="stories">
     <li class="story"><a href="stories/how-sanctions-work/index.html"><span class="big">Start <small>here</small></span><h3>How sanctions work</h3><p>Lists, licences and the tricks that get around them, in plain language.</p></a></li>
-    <li class="story"><a href="stories/shadow-fleet/network/shadow_fleet_map.html"><span class="big">1,724 <small>ships</small></span><h3>The shadow fleet</h3><p>Tankers and companies behind Russia's and Iran's oil trade, joined by hull number. Interactive map.</p></a></li>
+    <li class="story"><a href="stories/shadow-fleet/network/shadow_fleet_map.html"><span class="big"><span data-stat="fleet.ships">1,747</span> <small>ships</small></span><h3>The shadow fleet</h3><p>Tankers and companies behind Russia's and Iran's oil trade, joined by hull number. Interactive map.</p></a></li>
     <li class="story"><a href="stories/chips-into-russia/viz/index.html"><span class="big"><span id="chips-months">20</span> <small>months · median wait to list a new chip firm</small></span><h3>Semiconductors into Russia</h3><p>Who reported sending semiconductor chips to Russia, and how long US lists took to name suppliers set up after the invasion.</p></a></li>
-    <li class="story"><a href="stories/who-lobbies/influence-network/index.html"><span class="big">1,513 <small>reports</small></span><h3>Who lobbies</h3><p>US lobbying filed for the owners, banks and parents of sanctioned fleets.</p></a></li>
+    <li class="story"><a href="stories/who-lobbies/influence-network/index.html"><span class="big"><span data-stat="kg.filings_kept">1,499</span> <small>reports</small></span><h3>Who lobbies</h3><p>US lobbying filed for the owners, banks and parents of sanctioned fleets.</p></a></li>
   </ul>
 </section>
 </main>

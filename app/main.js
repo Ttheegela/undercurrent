@@ -1,5 +1,6 @@
 import { prepareQuery, searchResearch, searchLists, loadJson, LIST_IDS, latestOnly, listStatus } from "./search.js";
 import { setupWalkthrough } from "./walkthrough.js";
+import { loadAndFill } from "./stats.js";
 import { connectionsQuery, renderConnections, renderConnectionsLoading } from "./connections.js";
 import {
   renderResearch, renderLists, renderWider, renderEmpty, renderHint, renderLoading, renderLayerError,
@@ -53,7 +54,10 @@ async function checkWider(text, isLatest) {
     next = { kind: "link" };
   }
   const slot = $("#wider");
-  if (isLatest() && slot) slot.innerHTML = renderWider(next, text);
+  if (isLatest() && slot) {
+    slot.innerHTML = renderWider(next, text);
+    loadAndFill(slot);   // (the note names how many sources OpenSanctions compiles: the nightly figure)
+  }
 }
 
 async function loadConnections(entry, isLatest) {

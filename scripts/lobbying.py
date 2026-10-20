@@ -191,12 +191,22 @@ def money(r: dict) -> float:
     return 0.0
 
 
+def exclusion_set(names) -> set[str]:
+    """Normalised exclude_lobbyists (takedown requests). The filing builder and the graph builders all match with it."""
+    return {normalize_name(n) for n in names} - {""}
+
+
+def is_excluded(excluded: set[str], *spellings: str) -> bool:
+    """True when any spelling of a lobbyist's name (the full name, first + last name) is in the exclusion set."""
+    return bool({normalize_name(n) for n in spellings} & excluded)
+
+
 def extract(filings, config: dict) -> dict:
     filings = filings if isinstance(filings, dict) else {r["filing_uuid"]: r for r in filings}
     client_re = [(re.compile(c["pattern"]), c["id"], c["name"], c["group"]) for c in config["clients"]]
     fe_re = [(re.compile(p, re.I), fid, t, n) for p, fid, t, n in config["foreign_entity_aliases"]]
     assoc = set(config["associations"])
-    excluded = {normalize_name(n) for n in config["exclude_lobbyists"]}
+    excluded = exclusion_set(config["exclude_lobbyists"])
 
     def match_client(name: str):
         for rx, cid, disp, grp in client_re:
@@ -317,7 +327,7 @@ def extract(filings, config: dict) -> dict:
                     continue
                 pn = person_name(p)
                 short = " ".join(x.strip() for x in (p.get("first_name"), p.get("last_name")) if x and x.strip())
-                if not pn or {normalize_name(n) for n in (pn, short)} & excluded:
+                if not pn or is_excluded(excluded, pn, short):
                     continue
                 pid = "p:" + slug(pn)
                 cov = clean_text(entry.get("covered_position") or "")
@@ -360,4 +370,8 @@ def extract(filings, config: dict) -> dict:
         if not e["amount"]:
             e.pop("amount")
         edges.append(e)
-    return {"nodes": list(nodes.values()), "edges": edges, "filings_kept": kept, "filings_scanned": len(filings)}
+    # the day each kept filing was posted (LDA posts late, so the graph builders can tell a new filing from a backfill)
+    posted = {u: filings[u]["dt_posted"][:10] for u in sorted({u for e in edges for u in e["filings"]})
+              if filings[u].get("dt_posted")}
+    return {"nodes": list(nodes.values()), "edges": edges, "filings_kept": kept, "filings_scanned": len(filings),
+            "filing_posted": posted}

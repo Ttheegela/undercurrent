@@ -32,6 +32,15 @@ def test_amendment_counted_once_latest_amount_wins():
     assert hired["n_filings"] == 2
 
 
+def test_extract_records_when_each_kept_filing_was_posted():
+    out = lb.extract({"a": filing("a", posted="2018-04-20T14:03:24.123456-04:00"),
+                      "b": filing("b", year=2019, posted="2019-05-02T00:00:00Z"),
+                      "c": filing("c", year=2020, posted=None),
+                      "x": filing("x", client="SOMEONE ELSE", client_id=2, posted="2018-04-20T00:00:00Z")}, CONFIG)
+    # a date per filing the graph kept (the day it was posted, whatever the time zone); none where the API gave none
+    assert out["filing_posted"] == {"a": "2018-04-20", "b": "2019-05-02"}
+
+
 def test_version_with_amount_beats_later_blank():
     out = lb.extract({"a": filing("a", income="40000", posted="2020-01-01T00:00:00Z"),
                       "b": filing("b", income=None, posted="2020-02-01T00:00:00Z")}, CONFIG)

@@ -351,13 +351,15 @@ test("every sentence of a maintainer-note section is unquotable, in the committe
   }
 });
 
-test("NOT_FOUND renders only when the reader's span holds a name-like token: a capitalised word or a digit", () => {
+test("NOT_FOUND renders only when the reader's span holds a name-like token: a capitalised word, a digit or an uncommon word", () => {
   // the reader asked about TASSOS and the model searched a word of the question: "sanctioned is not on the lists" is never said
   const word = E.sanctioned[0];
   assert.deepEqual([word.query, word.found, word.near], ["sanctioned", false, []]);
   assert.deepEqual(checkAnswer(answer(claim("not_found", word.id)), E.sanctioned, TASSOS_Q), FALLBACK_ANSWER);
-  // a name typed all in lower case has no name-like token either
-  assert.deepEqual(checkAnswer(answer(claim("not_found", E.gatik[0].id)), E.gatik, { question: "is gatik ship management listed?" }), FALLBACK_ANSWER);
+  // a name typed all in lower case is still a name: "gatik" is not a common word
+  assert.deepEqual(texts(checkAnswer(answer(claim("not_found", E.gatik[0].id)), E.gatik, { question: "is gatik ship management listed?" })), [NOT_FOUND("gatik ship management")]);
+  // a span of only common words names nothing
+  assert.deepEqual(checkAnswer(answer(claim("not_found", word.id)), E.sanctioned, { question: "is the ship sanctioned?" }), FALLBACK_ANSWER);
   // a digit is name-like: an IMO number
   const imo = E.unknownImo[0];
   assert.deepEqual([imo.found, imo.near], [false, []]);

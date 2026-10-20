@@ -37,6 +37,13 @@ const listable = (e) => typeof e.entity?.name === "string" &&
 // reader's own span of the question, with control and format characters (a right-to-left override, a zero-width space) stripped.
 const WORD = /[\p{L}\p{N}]+/gu;
 const NAME_LIKE = /(?<![\p{L}\p{N}])\p{Lu}|\p{N}/u; // a capitalised word or a digit
+// Words that never name anything on their own, so a span made only of them ("the ship", "sanctioned") is not a name.
+const COMMON = new Set(("a an the is are was were be been it its this that these those any all some of on in at to for by with and or "
+  + "who what which whose where when why how does do did has have had not no yes still now ever "
+  + "ship ships vessel vessels tanker tankers boat company companies firm firms person people man woman group bank banks "
+  + "owner owners manager managers operator operators entity entities list lists listed listing sanction sanctions sanctioned "
+  + "blocked designated frozen us uk eu un imo").split(" "));
+const nameLike = (span) => NAME_LIKE.test(span) || (span.match(WORD) ?? []).some((w) => w.length >= 3 && !COMMON.has(w.toLowerCase()));
 function typedSpan(query, question) {
   if (typeof query !== "string" || typeof question !== "string") return null;
   const want = (query.match(WORD) ?? []).map((w) => w.toLowerCase());
@@ -45,7 +52,7 @@ function typedSpan(query, question) {
     if (!want.every((w, j) => words[i + j][0].toLowerCase() === w)) continue;
     const last = words[i + want.length - 1];
     const span = question.slice(words[i].index, last.index + last[0].length).replace(/\s+/g, " ").replace(/[\p{Cc}\p{Cf}]/gu, "").replace(/ +/g, " ").trim();
-    return NAME_LIKE.test(span) ? span : null; // "sanctioned is not on the lists" is never said
+    return nameLike(span) ? span : null; // "sanctioned is not on the lists" is never said; "gatik" typed in lower case still is a name
   }
   return null;
 }

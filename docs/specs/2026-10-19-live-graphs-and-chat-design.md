@@ -2,6 +2,8 @@
 
 Date: 2026-10-19 · Status: approved 2026-10-19 · Owner: Tarun Theegela
 
+Part 1 was built on branch `feat/live-graphs` (2026-10-20).
+
 ## Intent
 
 The shadow-fleet map and the Who lobbies influence network are frozen at the 25 September 2026 research snapshot. Everything else on Undercurrent refreshes nightly. The owner wants the graphs to stay current, and wants people to see **what changed**, day by day, without reading raw lists. The Updates page is the shared record of those changes. The chatbot then lets anyone ask about anything on the site, including "what are the updates from the past 10 days?", and get a short, sourced answer that points them into the graphs.

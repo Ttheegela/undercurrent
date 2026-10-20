@@ -25,6 +25,7 @@ jobs:
       cx: ${{ steps.cxbuild.outcome }}
       lob: ${{ steps.lobbuild.outcome }}
       chips: ${{ steps.chipsbuild.outcome }}
+      graphs: ${{ steps.graphsbuild.outcome }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -68,6 +69,14 @@ jobs:
         continue-on-error: true
         run: python scripts/build_chips.py
 
+      # Needs build/raw/{us,uk}.csv, data/lists/, data/lobbying-meta.json and build/lobbying.json.gz from the steps above,
+      # and fetches two OpenSanctions CSVs. Exits 1 whenever it kept yesterday's fleet; data/live-graphs-meta.json says why.
+      - name: Build live graphs
+        id: graphsbuild
+        timeout-minutes: 20
+        continue-on-error: true
+        run: python scripts/build_live_graphs.py
+
       # The paths the publish job commits, plus the release assets, staged in one
       # folder so the artifact always keeps repo-relative paths.
       - name: Collect outputs
@@ -75,7 +84,7 @@ jobs:
         run: |
           out="$RUNNER_TEMP/nightly"
           mkdir -p "$out"
-          for p in data/lists data/opensanctions-meta.json data/connections-meta.json data/lobbying-meta.json stories/chips-into-russia/data/routes.json stories/chips-into-russia/data/coverage.json stories/chips-into-russia/data/listing_lag.json stories/chips-into-russia/data/summary.json stories/chips-into-russia/data/chips-meta.json build/*.json.gz; do
+          for p in data/lists data/opensanctions-meta.json data/connections-meta.json data/lobbying-meta.json stories/chips-into-russia/data/routes.json stories/chips-into-russia/data/coverage.json stories/chips-into-russia/data/listing_lag.json stories/chips-into-russia/data/summary.json stories/chips-into-russia/data/chips-meta.json stories/shadow-fleet/network/fleet-data.json stories/shadow-fleet/network/nodes.json stories/shadow-fleet/network/edges.json stories/who-lobbies/influence-network/kg.json data/changes/changes.json data/site-stats.json data/live-graphs-meta.json build/*.json.gz; do
             if [ -e "$p" ]; then cp -R --parents "$p" "$out/"; fi
           done
 
@@ -116,7 +125,7 @@ jobs:
           odd=$(find "$src" -mindepth 1 \( -name '.*' -o \( ! -type f ! -type d \) \))
           if [ -n "$odd" ]; then echo "::error::Unexpected entries in artifact: $odd"; exit 1; fi
           if [ -d "$src/data/lists" ]; then rm -rf data/lists && cp -R "$src/data/lists" data/lists; fi
-          for p in data/opensanctions-meta.json data/connections-meta.json data/lobbying-meta.json stories/chips-into-russia/data/routes.json stories/chips-into-russia/data/coverage.json stories/chips-into-russia/data/listing_lag.json stories/chips-into-russia/data/summary.json stories/chips-into-russia/data/chips-meta.json; do
+          for p in data/opensanctions-meta.json data/connections-meta.json data/lobbying-meta.json stories/chips-into-russia/data/routes.json stories/chips-into-russia/data/coverage.json stories/chips-into-russia/data/listing_lag.json stories/chips-into-russia/data/summary.json stories/chips-into-russia/data/chips-meta.json stories/shadow-fleet/network/fleet-data.json stories/shadow-fleet/network/nodes.json stories/shadow-fleet/network/edges.json stories/who-lobbies/influence-network/kg.json data/changes/changes.json data/site-stats.json data/live-graphs-meta.json; do
             if [ -f "$src/$p" ]; then cp "$src/$p" "$p"; fi
           done
 
@@ -153,8 +162,8 @@ jobs:
         run: |
           git config user.name "undercurrent-nightly"
           git config user.email "undercurrent-nightly@users.noreply.github.com"
-          git add data/lists data/opensanctions-meta.json data/connections-meta.json data/lobbying-meta.json stories/chips-into-russia/data/routes.json stories/chips-into-russia/data/coverage.json stories/chips-into-russia/data/listing_lag.json stories/chips-into-russia/data/summary.json stories/chips-into-russia/data/chips-meta.json
-          bad=$(git diff --cached --raw --no-renames | awk '{ if (($2 != "100644" && $2 != "000000") || $6 !~ /^(data\/lists\/[a-z]+\.json|data\/[a-z]+-meta\.json|stories\/chips-into-russia\/data\/[a-z_-]+\.json)$/) print $6 }')
+          git add data/lists data/opensanctions-meta.json data/connections-meta.json data/lobbying-meta.json stories/chips-into-russia/data/routes.json stories/chips-into-russia/data/coverage.json stories/chips-into-russia/data/listing_lag.json stories/chips-into-russia/data/summary.json stories/chips-into-russia/data/chips-meta.json stories/shadow-fleet/network/fleet-data.json stories/shadow-fleet/network/nodes.json stories/shadow-fleet/network/edges.json stories/who-lobbies/influence-network/kg.json data/changes/changes.json data/site-stats.json data/live-graphs-meta.json
+          bad=$(git diff --cached --raw --no-renames | awk '{ if (($2 != "100644" && $2 != "000000") || $6 !~ /^(data\/lists\/[a-z]+\.json|data\/[a-z-]+-meta\.json|data\/site-stats\.json|data\/changes\/changes\.json|stories\/chips-into-russia\/data\/[a-z_-]+\.json|stories\/shadow-fleet\/network\/(fleet-data|nodes|edges)\.json|stories\/who-lobbies\/influence-network\/kg\.json)$/) print $6 }')
           if [ -n "$bad" ]; then echo "::error::Unexpected staged paths: $bad"; exit 1; fi
           if git diff --cached --quiet; then
             echo "No changes."
@@ -169,7 +178,7 @@ jobs:
           fi
 
       - name: Open or update the failure issue
-        if: needs.build.result != 'success' || needs.build.outputs.build == 'failure' || needs.build.outputs.os == 'failure' || steps.osupload.outcome == 'failure' || needs.build.outputs.cx == 'failure' || steps.cxupload.outcome == 'failure' || needs.build.outputs.lob == 'failure' || steps.lobupload.outcome == 'failure' || needs.build.outputs.chips == 'failure' || failure()
+        if: needs.build.result != 'success' || needs.build.outputs.build == 'failure' || needs.build.outputs.os == 'failure' || steps.osupload.outcome == 'failure' || needs.build.outputs.cx == 'failure' || steps.cxupload.outcome == 'failure' || needs.build.outputs.lob == 'failure' || steps.lobupload.outcome == 'failure' || needs.build.outputs.chips == 'failure' || needs.build.outputs.graphs == 'failure' || failure()
         env:
           GH_TOKEN: ${{ github.token }}
           OS_UPLOAD: ${{ steps.osupload.outcome }}
@@ -178,6 +187,7 @@ jobs:
           LOB_BUILD: ${{ needs.build.outputs.lob }}
           LOB_UPLOAD: ${{ steps.lobupload.outcome }}
           CHIPS_BUILD: ${{ needs.build.outputs.chips }}
+          GRAPHS_BUILD: ${{ needs.build.outputs.graphs }}
           DL: ${{ steps.dl.outcome }}
           COMMIT: ${{ steps.commit.outcome }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -192,6 +202,14 @@ jobs:
             src=$(jq -r '{"routes":"UN Comtrade/Eurostat","coverage":"UN Comtrade","listing_lag":"OFAC"} as $n | [.outputs | to_entries[] | select(.value.status != "fresh") | ($n[.key] // error("unknown output"))] | unique | join(" + ")' stories/chips-into-russia/data/chips-meta.json 2>/dev/null || echo "build crashed")
             up="${up}, chips (${src:-build crashed})"
           fi
+          note=""
+          if [ "$GRAPHS_BUILD" = "failure" ]; then
+            up="${up}, live graphs"
+            # The build's own note on why it kept yesterday's graphs. It can echo a download, so it is untrusted: read with jq,
+            # never evaluated, only tonight's note, control characters and backticks dropped, 500 characters, inline code.
+            err=$(jq -r --arg d "$(date -u +%F)" 'select(.checked_at[0:10] == $d) | .error | select(type == "string") | gsub("[\\p{Cc}\u0060]"; " ") | .[0:500]' "$RUNNER_TEMP/nightly/data/live-graphs-meta.json" 2>/dev/null || true)
+            if [ -n "$err" ]; then note=$(printf ' Live graphs said: `%s`.' "$err"); fi
+          fi
           failed=$(jq -r '[.lists | to_entries[] | select(.value.status != "fresh") | .key] | join(", ")' data/lists/meta.json) || failed="build crashed"
           if [ "$failed" != "build crashed" ] && [ "$(jq -r '.status' data/opensanctions-meta.json 2>/dev/null)" != "fresh" ]; then
             failed="${failed:+${failed}, }opensanctions"
@@ -201,7 +219,7 @@ jobs:
           [ "$COMMIT" = "failure" ] && what="${what:+${what}, }commit/push to main"
           [ "$DL" = "failure" ] && what="artifact missing"
           title="Nightly lists: ${what:-smoke check} failed $(date -u +%F)"
-          body="Run: ${RUN_URL}. The site keeps serving the previous copy. Details in data/lists/meta.json, data/opensanctions-meta.json, data/connections-meta.json, data/lobbying-meta.json and stories/chips-into-russia/data/chips-meta.json."
+          body="Run: ${RUN_URL}. The site keeps serving the previous copy. Details in data/lists/meta.json, data/opensanctions-meta.json, data/connections-meta.json, data/lobbying-meta.json, data/live-graphs-meta.json and stories/chips-into-russia/data/chips-meta.json.${note}"
           existing=$(gh issue list --state open --search "Nightly lists in:title" --json number --jq '.[0].number')
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --body "$title. $body"

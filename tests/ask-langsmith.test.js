@@ -5,14 +5,16 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { runEvals } from "../scripts/ask-langsmith.mjs";
+import { execFileSync } from "node:child_process";
+import { backfillNotes, runEvals, runOptions, syncDataset } from "../scripts/ask-langsmith.mjs";
 import { MODEL, runAsk } from "../api/ask.js";
 import { checkAnswer } from "../api/_ask_check.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
 import { TOOLS } from "../api/_ask_tools.js";
 import { FALLBACK } from "../scripts/ask-oracle.mjs";
 
-const LIVE = JSON.parse(readFileSync(new URL("./ask-eval.json", import.meta.url), "utf8")).filter((c) => c.live !== false);
+const CASES = JSON.parse(readFileSync(new URL("./ask-eval.json", import.meta.url), "utf8"));
+const LIVE = CASES.filter((c) => c.live !== false);
 const byId = (id) => LIVE.find((c) => c.id === id);
 const SHA = "0123abcdef4567890123abcdef4567890123abcd";
 const NOW = new Date("2026-10-21T13:00:00Z");
@@ -56,19 +58,94 @@ const fakeEvaluate = (cases, calls, rows, traceable) => async (target, options) 
 };
 
 const fakeClient = (calls) => ({
+  hasDataset: async (args) => (calls.push(["hasDataset", args]), true),
   readProject: async (args) => (calls.push(["readProject", args]), { id: "exp-1" }),
   getDatasetUrl: async (args) => (calls.push(["getDatasetUrl", args]), "https://smith.test/o/t/datasets/ds-1"),
   createFeedback: async (args) => (calls.push(["createFeedback", args]), {}),
 });
 
+/** LangSmith's datasets and examples, in memory. Like the server, it adds metadata.dataset_split to an example it creates. */
+const fakeDatasets = (calls) => {
+  const datasets = new Map(); // name -> {id, examples: Map(id -> example)}
+  let n = 0;
+  const examples = (datasetId) => [...datasets.values()].find((d) => d.id === datasetId).examples;
+  const store = ({ id, dataset_id, inputs, outputs, metadata }) => examples(dataset_id).set(id, structuredClone({ id, inputs, outputs, metadata }));
+  return {
+    datasets,
+    hasDataset: async (args) => (calls.push(["hasDataset", args]), datasets.has(args.datasetName)),
+    readDataset: async (args) => (calls.push(["readDataset", args]), { id: datasets.get(args.datasetName).id }),
+    createDataset: async (name, options) => {
+      calls.push(["createDataset", name, options]);
+      datasets.set(name, { id: `ds-${++n}`, examples: new Map() });
+      return { id: datasets.get(name).id };
+    },
+    listExamples: async function* (args) {
+      calls.push(["listExamples", args]);
+      yield* structuredClone([...examples(args.datasetId).values()]);
+    },
+    createExamples: async (uploads) => {
+      calls.push(["createExamples", uploads]);
+      for (const u of uploads) store({ ...u, id: `ex-${++n}`, metadata: { ...u.metadata, dataset_split: ["base"] } });
+    },
+    updateExamples: async (updates) => {
+      calls.push(["updateExamples", updates]);
+      for (const u of updates) store(u);
+    },
+    deleteExamples: async (ids) => {
+      calls.push(["deleteExamples", ids]);
+      for (const d of datasets.values()) for (const id of ids) d.examples.delete(id);
+    },
+  };
+};
+
+const UNDER_REVIEW = "Under review · 2026-10-21 · 0123abc";
+
+/**
+ * Two weekly experiments over the same three examples, as LangSmith holds them. In each, area-research-1 failed: its root run has an
+ * "Under review" note beside its pass score.
+ */
+const fakeExperiments = (calls) => {
+  const projects = { "ask-weekly-1a2b3c4d": "exp-1", "ask-weekly-5e6f7a8b": "exp-2" };
+  const examples = ["area-research-1", "area-lists-1", "off-topic-1"].map((case_id, i) => ({ id: `ex-${i}`, metadata: { case_id, category: "x", dataset_split: ["base"] } }));
+  const runs = Object.values(projects).flatMap((session_id) => examples.map((ex) => ({ id: `${session_id}-${ex.id}`, session_id, reference_example_id: ex.id })));
+  const feedback = runs.flatMap((r) => [
+    { id: `pass-${r.id}`, run_id: r.id, key: "pass", comment: null },
+    ...(r.reference_example_id === "ex-0" ? [{ id: `note-${r.id}`, run_id: r.id, key: "note", comment: UNDER_REVIEW }] : []),
+  ]);
+  return {
+    feedback,
+    hasProject: async (args) => (calls.push(["hasProject", args]), args.projectName in projects),
+    readProject: async (args) => (calls.push(["readProject", args]), { id: projects[args.projectName], reference_dataset_id: "ds-1" }),
+    listExamples: async function* (args) {
+      calls.push(["listExamples", args]);
+      if (args.datasetId === "ds-1") yield* structuredClone(examples);
+    },
+    listRuns: async function* (args) {
+      calls.push(["listRuns", args]);
+      yield* structuredClone(runs.filter((r) => r.session_id === args.projectId));
+    },
+    listFeedback: async function* (args) {
+      calls.push(["listFeedback", args]);
+      assert.ok(args.runIds?.length, "listFeedback without runIds lists every feedback there is");
+      yield* structuredClone(feedback.filter((f) => args.runIds.includes(f.run_id) && args.feedbackKeys.includes(f.key)));
+    },
+    updateFeedback: async (id, update) => {
+      calls.push(["updateFeedback", id, update]);
+      Object.assign(feedback.find((f) => f.id === id), update);
+    },
+  };
+};
+
 /**
  * Ask's loop in miniature, through `wrap` as runAsk calls it: a model call, a tool call that hands over the case's recorded evidence,
  * a second model call, then the checker on the case's recorded answer. `script[case id]` changes that: `stop` ends it at the first
- * model call, `answer` replaces the checker's answer, `download` records a failed download, `usage` is what each model call reports.
+ * model call, `answer` replaces the checker's answer, `download` records a failed download, `usage` is what each model call reports,
+ * and `throws` makes runAsk throw.
  */
 const fakeAsk = (script) => async (history, now, { wrap }) => {
   const c = LIVE.find((x) => x.question === history.at(-1).content);
   const plan = script[c.id];
+  if (plan.throws) throw new Error(`the request failed: ${JSON.stringify({ messages: history, key: ENV.OPENROUTER_API_KEY })}`);
   const model = wrap("callModel", async () => (plan.stop ? { stop: plan.stop } : { message: { role: "assistant", content: null }, usage: plan.usage === undefined ? USAGE : plan.usage }));
   const tool = wrap("runTool", async (name, args, ev, ctx) => {
     ev.push(...structuredClone(c.evidence));
@@ -169,7 +246,7 @@ test("metadata carries commit, trigger, pr, model and a 12-hex prompt_hash", asy
   assert.match(options.metadata.prompt_hash, /^[0-9a-f]{12}$/);
   assert.equal(MODEL, "anthropic/claude-haiku-5.5");
   assert.deepEqual([options.data, options.experimentPrefix, options.maxConcurrency, options.numRepetitions, options.evaluators.length, options.client], ["undercurrent-ask", "ask-pr-31", 2, 1, 1, deps.client]);
-  assert.deepEqual(calls.filter(([name]) => name !== "evaluate"), [["readProject", { projectName: "ask-pr-31-1a2b3c4d" }], ["getDatasetUrl", { datasetName: "undercurrent-ask" }]]);
+  assert.deepEqual(calls.filter(([name]) => name !== "evaluate"), [["hasDataset", { datasetName: "undercurrent-ask" }], ["readProject", { projectName: "ask-pr-31-1a2b3c4d" }], ["getDatasetUrl", { datasetName: "undercurrent-ask" }]]);
   assert.deepEqual(result, {
     experiment: "ask-pr-31-1a2b3c4d",
     url: "https://smith.test/o/t/datasets/ds-1/compare?selectedSessions=exp-1",
@@ -228,4 +305,99 @@ test("cost_usd is null when usage has no cost", async () => {
   const spent = Object.fromEntries(rows.map(({ run: { outputs: o }, example }) => [example.metadata.case_id, [o.tokens_in, o.tokens_out, o.cost_usd]]));
   assert.deepEqual(spent, { "area-lists-1": [14, 6, null], "area-research-1": [0, 0, null], "area-chips-1": [2000, 100, 0.004] });
   assert.deepEqual(Object.values(scoresOf(rows)).map((s) => s.cost_usd.score), [null, null, 0.004]);
+});
+
+test("a runAsk that throws makes its case unavailable and logs one fixed line, without the error", async (t) => {
+  const errors = t.mock.method(console, "error", () => {});
+  const script = { "area-lists-1": {}, "off-topic-2": { throws: true } };
+  const { rows, deps } = setup(Object.keys(script).map(byId), fakeAsk(script));
+  const result = await runEvals(WEEKLY, deps);
+  assert.deepEqual(errors.mock.calls.map((c) => c.arguments), [["ask-langsmith: runAsk threw on case off-topic-2"]]);
+  const scores = scoresOf(rows)["off-topic-2"];
+  assert.deepEqual([scores.outcome.value, scores.pass], ["unavailable", undefined]);
+  assert.deepEqual(result.counts, { quality: 1, pass: 1, fail: 0, unavailable: 1, budget: 0, download_failed: 0 });
+});
+
+test("run --commit SHA sets the commit metadata and the note's short sha; without it the commit is HEAD", async () => {
+  const HEAD_SHA = "fedcba9876543210fedcba9876543210fedcba98"; // a PR's head, where HEAD is the merge commit
+  const opts = runOptions(["--trigger", "pr", "--pr", "31", "--commit", HEAD_SHA]);
+  assert.deepEqual(opts, { trigger: "pr", pr: 31, sync: false, commit: HEAD_SHA, out: undefined });
+  const script = { "area-research-1": { answer: UNGROUNDED } };
+  const { calls, deps } = setup(Object.keys(script).map(byId), fakeAsk(script));
+  await runEvals(opts, deps);
+  const [[, options]] = calls.filter(([name]) => name === "evaluate");
+  assert.equal(options.metadata.commit, HEAD_SHA);
+  assert.deepEqual(calls.filter(([name]) => name === "createFeedback").map(([, args]) => args.comment), ["Under review · 2026-10-21 · fedcba9"]);
+  assert.equal(runOptions(["--trigger", "weekly"]).commit, execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim());
+  for (const bad of ["fedcba9", "", HEAD_SHA.toUpperCase()]) assert.throws(() => runOptions(["--trigger", "weekly", "--commit", bad]), { exit: 2 });
+});
+
+test("sync creates the dataset once and upserts by case_id; an edited case updates, a removed case is deleted", async () => {
+  const calls = [];
+  const client = fakeDatasets(calls);
+  const stored = () => [...client.datasets.get("undercurrent-ask").examples.values()];
+  const exampleOf = (c) => ({ inputs: { question: c.question }, outputs: { expect: c.expect }, metadata: { case_id: c.id, category: c.category, dataset_split: ["base"] } });
+  // the first sync creates the dataset and one example per live case, in the shape the runner reads
+  assert.deepEqual(await syncDataset(CASES, { client }), { created: 20, updated: 0, removed: 0 });
+  assert.deepEqual(stored().map(({ id, ...ex }) => ex), LIVE.map(exampleOf));
+  // nothing changed, nothing to do (the server's dataset_split is not a change)
+  const second = calls.length;
+  assert.deepEqual(await syncDataset(CASES, { client }), { created: 0, updated: 0, removed: 0 });
+  assert.deepEqual(calls.slice(second).map(([name]) => name), ["hasDataset", "readDataset", "listExamples"]);
+  // an edited case, a case set to live: false, a new case, and a stray copy of an example
+  const kept = stored().find((ex) => ex.metadata.case_id === "area-lists-1").id;
+  client.datasets.get("undercurrent-ask").examples.set("ex-copy", { ...structuredClone(stored()[1]), id: "ex-copy" });
+  const edited = CASES.map((c) => (c.id === "area-lists-1" ? { ...c, expect: { ...c.expect, fallback: false } } : c.id === "off-topic-6" ? { ...c, live: false } : c));
+  const added = { ...byId("off-topic-1"), id: "off-topic-7", question: "What is the weather like in Lisbon?" };
+  const third = calls.length;
+  assert.deepEqual(await syncDataset([...edited, added], { client }), { created: 1, updated: 1, removed: 2 });
+  const live = [...edited, added].filter((c) => c.live !== false);
+  assert.deepEqual(stored().map(({ id, ...ex }) => ex).sort((a, b) => a.metadata.case_id.localeCompare(b.metadata.case_id)), live.map(exampleOf).sort((a, b) => a.metadata.case_id.localeCompare(b.metadata.case_id)));
+  assert.equal(stored().find((ex) => ex.metadata.case_id === "area-lists-1").id, kept); // the same example, so its history carries on
+  const writes = calls.slice(third).filter(([name]) => /^(create|update|delete)/.test(name));
+  assert.deepEqual(writes.map(([name, arg]) => [name, arg.length]), [["createExamples", 1], ["updateExamples", 1], ["deleteExamples", 2]]);
+  assert.equal(writes[1][1][0].id, kept);
+  assert.deepEqual(calls.filter(([name]) => name === "createDataset").map(([, name]) => name), ["undercurrent-ask"]);
+});
+
+test("run without --sync on a missing dataset exits 1 with the message", async () => {
+  const { calls, deps } = setup([byId("off-topic-1")], fakeAsk({ "off-topic-1": {} }));
+  Object.assign(deps.client, fakeDatasets(calls)); // (no dataset yet)
+  await assert.rejects(runEvals(WEEKLY, deps), (err) => err.message === "dataset undercurrent-ask not found: run the workflow manually on main first" && err.exit === undefined);
+  assert.deepEqual(calls, [["hasDataset", { datasetName: "undercurrent-ask" }]]);
+  // with --sync, a run on main creates it from tests/ask-eval.json before it evaluates
+  const result = await runEvals({ ...WEEKLY, sync: true }, deps);
+  assert.deepEqual(result.sync, { created: 20, updated: 0, removed: 0 });
+  assert.deepEqual(calls.slice(1).map(([name]) => name), ["hasDataset", "createDataset", "listExamples", "createExamples", "evaluate", "readProject", "getDatasetUrl"]);
+});
+
+test("a PR run with --sync exits 2 before any call", async () => {
+  const { calls, steps, deps } = setup([byId("off-topic-1")], fakeAsk({ "off-topic-1": {} }));
+  await assert.rejects(runEvals({ trigger: "pr", pr: 31, sync: true, commit: SHA }, deps), { exit: 2, message: "a PR run never syncs the dataset" });
+  assert.deepEqual([calls, steps], [[], []]);
+});
+
+test("notes replaces the Under-review comment on the matching run only, and reports an unknown experiment", async () => {
+  const calls = [];
+  const client = fakeExperiments(calls);
+  const entries = [
+    { experiment: "ask-weekly-1a2b3c4d", case: "area-research-1", note: "Model slip, no change: passed on the next run." },
+    { experiment: "ask-weekly-0000dead", case: "area-research-1", note: "An experiment that doesn't exist." },
+    { experiment: "ask-weekly-1a2b3c4d", case: "area-gone-1", note: "A case that isn't in the experiment." },
+    { experiment: "ask-weekly-1a2b3c4d", case: "area-lists-1", note: "A case that passed, so it has no note to replace." },
+  ];
+  assert.deepEqual(await backfillNotes(entries, { client }), { updated: 1, missing: entries.slice(1) });
+  assert.deepEqual(calls.filter(([name]) => name === "updateFeedback"), [["updateFeedback", "note-exp-1-ex-0", { comment: entries[0].note }]]);
+  // the same case's note in the other experiment, and every score, are left as they were
+  assert.deepEqual(client.feedback.filter((f) => f.comment).map((f) => [f.id, f.comment]), [["note-exp-1-ex-0", entries[0].note], ["note-exp-2-ex-0", UNDER_REVIEW]]);
+  assert.ok(!calls.some(([name, args]) => name === "readProject" && args.projectName === "ask-weekly-0000dead"));
+  // run again, it writes the same note: the run keeps one current note
+  assert.deepEqual(await backfillNotes(entries.slice(0, 1), { client }), { updated: 1, missing: [] });
+  assert.deepEqual(client.feedback.filter((f) => f.run_id === "exp-1-ex-0" && f.key === "note").map((f) => f.comment), [entries[0].note]);
+  // an entry missing a field is refused before any call
+  const before = calls.length;
+  for (const bad of [{ experiment: "ask-weekly-1a2b3c4d", note: "no case" }, { experiment: "ask-weekly-1a2b3c4d", case: "area-research-1", note: "" }, null]) {
+    await assert.rejects(backfillNotes([entries[0], bad], { client }), /each note needs an experiment, a case and a note/);
+  }
+  assert.equal(calls.length, before);
 });

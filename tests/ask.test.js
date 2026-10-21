@@ -96,9 +96,9 @@ function openrouter(...steps) {
 let visitor = 0;
 let ip; // a new visitor for every test
 const ask = (text) => ({ messages: [{ role: "user", text }] });
-function post(body, { origin = ORIGIN, type = "application/json", forwarded = ip, headers = {} } = {}) {
+function post(body, { origin = ORIGIN, type = "application/json", forwarded = ip, headers = {}, url = `${ORIGIN}/api/ask` } = {}) {
   const h = { ...(type && { "content-type": type }), ...(origin && { origin }), ...(forwarded && { "x-forwarded-for": forwarded }), ...headers };
-  return new Request(`${ORIGIN}/api/ask`, { method: "POST", headers: h, body: typeof body === "string" ? body : JSON.stringify(body) });
+  return new Request(url, { method: "POST", headers: h, body: typeof body === "string" ? body : JSON.stringify(body) });
 }
 async function run(body, options) {
   const res = await POST(post(body, options));
@@ -165,6 +165,7 @@ test("GET reports enabled and public flags from env", async () => {
     const res = await GET(new Request(`${ORIGIN}/api/ask`));
     assert.equal(res.status, 200);
     assert.equal(res.headers.get("content-type"), "application/json");
+    assert.equal(res.headers.get("cache-control"), "public, s-maxage=60"); // the health check is shared; an answer never is
     return res.json();
   };
   assert.deepEqual(await get(), { ok: true, enabled: true, public: false });
@@ -216,6 +217,33 @@ test("rejects wrong origin, non-JSON, oversize, 11 messages, assistant-last", as
   const ten = { messages: Array.from({ length: 10 }, (_, i) => ({ role: i % 2 ? "user" : "assistant", text: "x".repeat(500) })) };
   assert.equal((await run(ten)).res.status, 200);
   assert.equal((await run(ask("hi"), { type: "application/json; charset=utf-8" })).res.status, 200);
+});
+
+test("the Origin may be the request's own origin or https:// plus the forwarded host", async () => {
+  // behind a proxy request.url can carry http:// while the browser's Origin is https:// and the host header says which site it is
+  const http = "http://undercurrent.test/api/ask";
+  openrouter(...Array.from({ length: 5 }, () => answer({ kind: "refusal", sentences: [] })));
+  const ok = (options) => run(ask("hi"), { url: http, ...options });
+  assert.equal((await ok({ headers: { "x-forwarded-host": "undercurrent.test" } })).res.status, 200);
+  assert.equal((await ok({ headers: { host: "undercurrent.test" } })).res.status, 200);
+  assert.equal((await ok({ headers: { "x-forwarded-host": "undercurrent.test, internal.local" } })).res.status, 200); // the first host in a chain
+  assert.equal((await ok({ headers: { "x-forwarded-host": "undercurrent.test", host: "internal.local" } })).res.status, 200); // x-forwarded-host wins over host
+  assert.equal((await run(ask("hi"), { url: "https://undercurrent.test/api/ask" })).res.status, 200); // the request's own origin still works
+  const sentBefore = sent.length;
+  const refused = [
+    ["another origin", { origin: "https://evil.example", headers: { "x-forwarded-host": "undercurrent.test" } }],
+    ["a spoofed forwarded host that is not the Origin", { headers: { "x-forwarded-host": "evil.example" } }],
+    ["a spoofed host header", { headers: { host: "evil.example" } }],
+    ["the forwarded host over http", { url: "https://internal.local/api/ask", origin: "http://undercurrent.test", headers: { "x-forwarded-host": "undercurrent.test" } }],
+    ["a sibling of the forwarded host", { origin: "https://undercurrent.test.evil.example", headers: { "x-forwarded-host": "undercurrent.test" } }],
+    ["no host to compare with", {}],
+    ["no Origin", { origin: "", headers: { "x-forwarded-host": "undercurrent.test" } }],
+  ];
+  for (const [label, options] of refused) {
+    const { res, json: out } = await ok(options);
+    assert.deepEqual([res.status, out], [403, { ok: false, reason: "forbidden" }], label);
+  }
+  assert.equal(sent.length, sentBefore);
 });
 
 test("21st question in an hour from one IP gets busy", async () => {

@@ -22,11 +22,11 @@ const HOUR = 3_600_000;
 const MAX_VISITORS = 5000;
 const UNAVAILABLE = { ok: false, reason: "unavailable" };
 
-const reply = (status, body) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
+const reply = (status, body, cache = "no-store") => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": cache } });
 const refuse = (status, reason) => reply(status, { ok: false, reason });
 
 export async function GET() {
-  return reply(200, { ok: true, enabled: Boolean(process.env.OPENROUTER_API_KEY), public: process.env.ASK_PUBLIC === "1" });
+  return reply(200, { ok: true, enabled: Boolean(process.env.OPENROUTER_API_KEY), public: process.env.ASK_PUBLIC === "1" }, "public, s-maxage=60"); // (a new deployment gets a new cache)
 }
 
 // ---- the per-visitor limit ----------------------------------------------------------------------------------------
@@ -50,6 +50,13 @@ function allowed(request, now) {
 }
 
 // ---- reading the request ------------------------------------------------------------------------------------------
+
+/** True when the Origin is this site's: the request's own origin, or https:// plus the forwarded host (request.url can arrive as http:// behind a proxy). */
+function fromThisSite(request) {
+  const origin = request.headers.get("origin");
+  const host = (request.headers.get("x-forwarded-host") || request.headers.get("host") || "").split(",")[0].trim();
+  return Boolean(origin) && (origin === new URL(request.url).origin || (host !== "" && origin === `https://${host}`));
+}
 
 /** The body as text, or null when it is over 16 KB (the declared length is checked first, the bytes as they arrive). */
 async function readBody(request) {
@@ -172,7 +179,7 @@ async function converse(history, now) {
 
 export async function POST(request) {
   try {
-    if (request.headers.get("origin") !== new URL(request.url).origin) return refuse(403, "forbidden");
+    if (!fromThisSite(request)) return refuse(403, "forbidden");
     if (!/^application\/json\s*(;|$)/i.test(request.headers.get("content-type") ?? "")) return refuse(415, "unsupported");
     if (!process.env.OPENROUTER_API_KEY) return refuse(503, "disabled");
     const text = await readBody(request);

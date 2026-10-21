@@ -71,6 +71,25 @@ gh secret set NIGHTLY_DEPLOY_KEY --env nightly -R Ttheegela/undercurrent < ~/.ss
 
 Then run the workflow once (`gh workflow run update-lists.yml --ref main`), check both jobs pass, and delete the old deploy key.
 
+## Ask
+
+A chat panel on every page that answers questions about what is on the site: the official lists, ship and company connections, lobbying, the semiconductor data, the research and the daily updates. An independent project, so it answers only from the site's own data and refuses anything else, including legal or compliance advice.
+
+- **How it answers:** the model writes no sentences. `api/ask.js` runs it through OpenRouter (Claude Haiku 5.5, `provider.data_collection: deny`) for at most four rounds of lookups in `api/_ask_tools.js`, then forces one `answer` call. That call only cites evidence ids. `api/_ask_check.js` writes every sentence itself, either fixed copy ("appears on the … list", "not on the lists we check", changes and source gaps) or one sentence copied word for word from the cited item. Anything it cannot build is dropped, and an answer with nothing left is a fixed fallback. The system prompt is `api/_ask_prompt.js`.
+- **Privacy:** no accounts, and the conversation lives only in the browser tab. The server logs no message text and stores none. For the hourly limit it keeps, in memory, a hash of the visitor's address and the times of their last questions.
+- **Limits:** 10 messages of at most 500 characters, a 16 KB body, 20 questions per visitor per rolling hour (best effort, per function instance), 20 s per model call and 25 s per question. Requests must come from the site's own origin as JSON.
+- **Endpoint:** `GET /api/ask` returns `{"ok":true,"enabled":…,"public":…}` and never calls the model. `POST /api/ask` takes `{"messages":[{"role":"user"|"assistant","text":"…"}]}` and returns `{"ok":true,"answer":…}`, or `{"ok":false,"reason":…}` with `bad_request`, `forbidden`, `unsupported`, `too_large`, `busy`, `disabled`, `resting` (with `resets`, a date) or `unavailable`.
+
+| Variable | Where | Meaning |
+|---|---|---|
+| `OPENROUTER_API_KEY` | Vercel, Production, Secret | A dedicated OpenRouter key with a $5 limit that resets monthly. The owner enters it with `vercel env add OPENROUTER_API_KEY production` at the hidden prompt. It is never in the repo, a log, a test or a chat. Unset: `POST /api/ask` answers 503 `disabled`. |
+| `ASK_PUBLIC` | Vercel, Production | `1` shows the Ask button on every page. Unset, the button stays hidden but the endpoint still answers, so the live evaluation can run against production before launch. |
+
+- **Budget:** the key's $5 monthly limit is the hard cap. When it is spent (or the account has no credit) OpenRouter answers 402 or 403, and Ask says it is resting until the key resets (the first of the next month, UTC, unless OpenRouter gives a date). The rest of the site is unaffected. Buy credits with auto top-up off.
+- **Cost estimate:** at $0.10 / $0.50 per million input / output tokens (OpenRouter's list, 19 Oct 2026), a typical answer is two or three model calls of about 4,000 input tokens and 1,000 output tokens, roughly $0.0017. That is about 3,000 answers a month inside $5. A question makes at most five calls, which is about half a cent at the very most.
+- **Firewall:** the rule that denies non-read methods on `/api/` must allow `POST` on `/api/ask` only, and `POST /api/search` must still be refused.
+- **Live evaluation:** `node scripts/ask-live-eval.mjs --base https://undercurrent-research.vercel.app` posts the evaluation questions to a deployed endpoint, prints each answer with its timing, and exits non-zero if any case fails. It needs no key and costs a few cents. Run it before launch and after any change to the prompt or the model.
+
 ## Security
 
 - **Headers:** set in `vercel.json` and enforced.
@@ -79,8 +98,8 @@ Then run the workflow once (`gh workflow run update-lists.yml --ref main`), chec
   - HSTS comes from Vercel.
 - **Firewall:** set in the Vercel dashboard, not in this repo.
   - `/api/` is rate-limited to 120 requests a minute per IP.
-  - Any method other than GET, HEAD or OPTIONS is denied.
-- **APIs:** answer GET only. Queries over 200 characters are rejected with 400, and so are names that normalise to under two characters.
+  - Any method other than GET, HEAD or OPTIONS is denied. Ask's launch adds one exception (see Ask).
+- **APIs:** answer GET only; the one exception is `POST /api/ask` (see Ask). Queries over 200 characters are rejected with 400, and so are names that normalise to under two characters.
 - **Data:** the sanctions side names people only as official lists or government documents name them. Lobbyists are named only from their own US lobbying filings. Names in `exclude_lobbyists` (in `data/lobbying-clients.json`) are never shown. Corrections and removal requests go through GitHub issues, as described on the About page.
 
 ## Monitoring

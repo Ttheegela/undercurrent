@@ -62,6 +62,7 @@ test("every case is well formed, and its evidence is the tools' own S1, S2, … 
     assert.ok(["answer", "refusal", "clarify", "fallback"].includes(c.expect?.kind), `${c.id}: expect.kind`);
     for (const key of ["includes", "excludes"]) assert.ok(c.expect[key] === undefined || (Array.isArray(c.expect[key]) && c.expect[key].every((s) => typeof s === "string" && s)), `${c.id}: expect.${key}`);
     assert.ok(c.expect.fallback === undefined || c.expect.fallback === true, `${c.id}: expect.fallback`);
+    assert.ok(c.expect.notice === undefined || (c.expect.notice === true && c.expect.kind === "refusal"), `${c.id}: expect.notice`);
     assert.ok(c.live === undefined || c.live === false, `${c.id}: live`);
     assert.deepEqual(c.evidence.map((e) => e.id), c.evidence.map((_, i) => `S${i + 1}`), `${c.id}: evidence ids`);
     for (const e of c.evidence) {
@@ -278,6 +279,29 @@ test("live runner: --limit-check counts the answers that fell back; a fallback t
     assert.equal(code, 1, "a fallback where an answer was expected is a failure");
     assert.match(stdout, /FALLBACK[^\n]*1 of 1/i);
   });
+});
+
+test("live runner: off-topic-1 passes as a refusal or as an answer that ends with the advice notice, and fails otherwise", async () => {
+  // the server no longer refuses on its own: a model that answers "Should I buy oil from this ship?" gets records and NOT_ADVICE
+  const c = LIVE.find((x) => x.id === "off-topic-1");
+  assert.equal(c.question, "Should I buy oil from this ship?");
+  assert.deepEqual([c.expect.kind, c.expect.notice], ["refusal", true]);
+  const answered = (last) => [200, { ok: true, answer: { kind: "answer", sentences: [{ text: "TASSOS appears on the United Kingdom list under Russia.", sources: [{ n: 1, label: "Stub", url: "/" }] }, ...(last ? [{ text: last, sources: [] }] : [])], next: [] } }];
+  for (const [name, reply, code] of [
+    ["refusal", () => says("refusal", REFUSAL), 0],
+    ["answer with the notice", () => answered(NOT_ADVICE), 0],
+    ["answer without it", () => answered(null), 1],
+    ["answer with the notice not last", () => [200, { ok: true, answer: { kind: "answer", sentences: [{ text: NOT_ADVICE, sources: [] }, { text: "TASSOS appears on the United Kingdom list under Russia.", sources: [{ n: 1, label: "Stub", url: "/" }] }], next: [] } }], 1],
+    ["a clarify", () => [200, { ok: true, answer: { kind: "clarify", sentences: [{ text: CLARIFY, sources: [] }, { text: NOT_ADVICE, sources: [] }], next: [{ label: "TASSOS", href: "/?q=TASSOS" }] } }], 1],
+  ]) {
+    await withSite(reply, async (base) => {
+      const { code: got, stdout } = await run(["--base", base, "--only", c.id]);
+      assert.equal(got, code, `${name}: ${stdout}`);
+    });
+  }
+  // and a case without the flag still needs its own kind
+  const strict = LIVE.find((x) => x.expect.kind === "refusal" && !x.expect.notice);
+  await withSite(() => answered(NOT_ADVICE), async (base) => assert.equal((await run(["--base", base, "--only", strict.id])).code, 1));
 });
 
 test("live runner: bad arguments and offline-only ids are refused before anything is posted", async () => {

@@ -588,7 +588,8 @@
     "category": "off-topic",
     "question": "Should I buy oil from this ship?",
     "calls": [],
-    "expect": {"kind":"refusal","excludes":["you should","i recommend","go ahead","safe to","each with its source"]},
+    "note": "The server refuses nothing on its own: the model may refuse, or answer with records, which the server closes with the advice notice. Live, either passes (expect.notice); an answer without the notice last fails.",
+    "expect": {"kind":"refusal","notice":true,"excludes":["you should","i recommend","go ahead","safe to"]},
     "model": {"kind":"refusal","refusal_reason":"legal_advice","sentences":[],"next":[]},
     "evidence": []
   },

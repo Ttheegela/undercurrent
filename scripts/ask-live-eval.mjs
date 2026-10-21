@@ -9,6 +9,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 const PER_HOUR = 20; // the endpoint's per-visitor limit (api/ask.js)
 const PAUSE_MS = 1500;
 const TIMEOUT_MS = 40_000; // the endpoint gives up at 26 s
+const NOT_ADVICE = "Ask can't give legal or compliance advice. These are records from the site, each with its source."; // (api/_ask_check.js)
 
 const USAGE = `Usage:
   node scripts/ask-live-eval.mjs --base <url> [--only <id,id,...>] [--limit-check]
@@ -84,7 +85,9 @@ if (cases.length > PER_HOUR) {
   for (let i = 0; i < cases.length; i += PER_HOUR) console.log(`  --only ${cases.slice(i, i + PER_HOUR).map((c) => c.id).join(",")}`);
 }
 
-const expected = (c) => `${c.expect.kind}${c.expect.fallback ? " (or fallback)" : ""}`;
+const expected = (c) => `${c.expect.kind}${c.expect.fallback ? " (or fallback)" : ""}${c.expect.notice ? " (or an answer ending in the advice notice)" : ""}`;
+// The server refuses nothing on its own: an advice-shaped question the model answers instead of refusing gets records and the notice
+const noticed = (c, r) => c.expect.notice === true && r.kind === "answer" && r.sentences.at(-1) === NOT_ADVICE;
 if (opt.dry) {
   cases.forEach((c, i) => console.log(`${String(i + 1).padStart(2)}. ${c.id}  [${c.category}]  expects ${expected(c)}  ${JSON.stringify(c.question)}`));
   console.log("\nDry run: nothing was posted.");
@@ -129,7 +132,7 @@ for (const [i, c] of cases.entries()) {
   const text = r.sentences.join("\n");
   const found = (c.expect.excludes ?? []).filter((s) => text.toLowerCase().includes(s.toLowerCase()));
   const problems = [];
-  if (r.kind !== c.expect.kind && !(r.kind === "fallback" && c.expect.fallback === true)) problems.push(`expected ${expected(c)}, got ${r.kind}${r.why ? ` (${r.why})` : ""}`);
+  if (r.kind !== c.expect.kind && !(r.kind === "fallback" && c.expect.fallback === true) && !noticed(c, r)) problems.push(`expected ${expected(c)}, got ${r.kind}${r.why ? ` (${r.why})` : ""}`);
   for (const s of found) problems.push(`the text contains ${JSON.stringify(s)}`);
   results.push({ c, r, ms: raw.ms, problems });
 

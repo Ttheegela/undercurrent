@@ -6,10 +6,10 @@ import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
 import { inspect } from "node:util";
 import { createHash } from "node:crypto";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { GET, POST, visitors } from "../api/ask.js";
+import { GET, POST, MODEL, runAsk, visitors } from "../api/ask.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
 import { TOOLS, resetAskCache } from "../api/_ask_tools.js";
 import { INDEX_URL, resetIndexCache } from "../api/search.js";
@@ -823,4 +823,76 @@ test("never logs message text", async () => {
   assert.ok(logged.length > 0); // it does log: the fixed phrases that say what failed
   const text = logged.join("\n");
   for (const secret of [question, "ZORBEX", "4471", "secret case", KEY, "sk-or"]) assert.ok(!text.includes(secret), `a log line holds ${JSON.stringify(secret)}: ${text.slice(0, 400)}`);
+});
+
+// ---- runAsk: what POST runs, and the seam the eval runner wraps --------------------------------------------------------
+
+const history = (text) => [{ role: "user", content: text }];
+
+test("runAsk without wrap gives the same reply as POST for the same stubbed model", async () => {
+  const flows = [ // (factories: a Response can be read only once)
+    () => [reply(call("check_lists", { query: "TASSOS" })), listedAnswer],
+    () => [answer({ kind: "refusal", sentences: [] })],
+    () => [limit(403, { metadata: { limit_source: "openrouter_key_limit", resets_at: "2026-11-01T00:00:00Z" } })],
+    () => [json({}, 500)],
+  ];
+  for (const flow of flows) {
+    openrouter(...flow());
+    const viaPost = (await run(ask("Is TASSOS sanctioned?"))).json;
+    const postBodies = sent.map((s) => s.body);
+    openrouter(...flow());
+    assert.deepEqual(await runAsk(history("Is TASSOS sanctioned?"), new Date(Date.now())), viaPost);
+    assert.deepEqual(sent.map((s) => s.body), postBodies); // the same calls, with the same request bodies
+  }
+});
+
+test("runAsk calls wrap once each for callModel, runTool and checkAnswer, and uses what it returns", async () => {
+  const SENTINEL = { kind: "sentinel" };
+  const wrapped = [];
+  const calls = { callModel: 0, runTool: 0 };
+  let checked; // what the checker was handed
+  const wrap = (name, fn) => {
+    wrapped.push(name);
+    if (name === "checkAnswer") return (...args) => ((checked = args), SENTINEL);
+    return (...args) => (calls[name]++, fn(...args));
+  };
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
+  assert.deepEqual(await runAsk(history("Is TASSOS sanctioned?"), new Date(Date.now()), { wrap }), { ok: true, answer: SENTINEL });
+  assert.deepEqual(wrapped.sort(), ["callModel", "checkAnswer", "runTool"]);
+  assert.deepEqual(calls, { callModel: 2, runTool: 1 });
+  assert.equal(sent.length, 2);
+  assert.equal(checked[0].kind, "answer");
+  assert.ok(checked[1].length > 0); // the evidence check_lists returned
+  assert.deepEqual(checked[2], { question: "Is TASSOS sanctioned?" });
+  // once a request, whether or not a tool runs
+  wrapped.length = 0;
+  openrouter(answer({ kind: "refusal", sentences: [] }));
+  assert.deepEqual(await runAsk(history("hi"), new Date(Date.now()), { wrap }), { ok: true, answer: SENTINEL });
+  assert.deepEqual(wrapped.sort(), ["callModel", "checkAnswer", "runTool"]);
+  assert.deepEqual(calls, { callModel: 3, runTool: 1 });
+});
+
+test("the wrapped callModel resolves to {message, usage} with OpenRouter's usage", async () => {
+  const usage = { prompt_tokens: 10, completion_tokens: 2, cost: 0.0001 };
+  const results = [];
+  const wrap = (name, fn) => (name === "callModel" ? async (...args) => { const out = await fn(...args); results.push(out); return out; } : fn);
+  const first = reply(call("check_lists", { query: "TASSOS" }));
+  openrouter({ ...first, usage }, listedAnswer); // the second reply carries no usage
+  assert.equal((await runAsk(history("Is TASSOS sanctioned?"), new Date(Date.now()), { wrap })).ok, true);
+  assert.deepEqual(results[0], { message: first.choices[0].message, usage });
+  assert.equal(results[1].message.tool_calls[0].function.name, "answer");
+  assert.equal(results[1].usage, null);
+  assert.equal(MODEL, "anthropic/claude-haiku-5.5");
+  assert.equal(sent[0].body.model, MODEL);
+});
+
+test("nothing under api/ imports langsmith, and package.json has it only in devDependencies", () => {
+  const api = new URL("../api/", import.meta.url);
+  const files = readdirSync(api, { recursive: true }).filter((f) => f.endsWith(".js"));
+  assert.ok(files.includes("ask.js"));
+  for (const f of files) assert.ok(!readFileSync(new URL(f, api), "utf8").includes("langsmith"), `api/${f} names langsmith`);
+  const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  for (const [key, deps] of Object.entries(pkg)) {
+    if (/dependencies$/i.test(key) && key !== "devDependencies") assert.ok(!JSON.stringify(deps).includes("langsmith"), `langsmith is in ${key}`);
+  }
 });

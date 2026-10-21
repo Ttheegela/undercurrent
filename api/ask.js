@@ -8,7 +8,7 @@ import { checkAnswer } from "./_ask_check.js";
 import { SYSTEM_PROMPT } from "./_ask_prompt.js";
 
 const OPENROUTER = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL = "anthropic/claude-haiku-5.5";
+export const MODEL = "anthropic/claude-haiku-5.5";
 const FORCE_ANSWER = { type: "function", function: { name: "answer" } };
 const TOOL_ROUNDS = 4; // then one call forced to `answer`
 const CALLS_PER_ROUND = 6;
@@ -105,7 +105,7 @@ function resetsOn(at, now) {
   return /^\d{4}-\d\d-\d\d$/.test(day) ? day : nextMonth(now);
 }
 
-/** One call: {message} on success, else {stop: the reply to give the reader}. */
+/** One call: {message, usage} on success (usage is OpenRouter's, or null), else {stop: the reply to give the reader}. */
 async function callModel(messages, toolChoice, deadline, now) {
   const left = deadline - Date.now();
   if (left < MIN_CALL_MS) return { stop: UNAVAILABLE };
@@ -140,7 +140,7 @@ async function callModel(messages, toolChoice, deadline, now) {
     return { stop: UNAVAILABLE };
   }
   const message = body?.choices?.[0]?.message;
-  if (message && typeof message === "object") return { message };
+  if (message && typeof message === "object") return { message, usage: body.usage ?? null };
   console.error("ask: the model reply had no message");
   return { stop: UNAVAILABLE };
 }
@@ -156,8 +156,12 @@ const parse = (args) => {
 /**
  * Up to four rounds of tool calls (ten calls in all), then one call forced to `answer`. The answer call's arguments go to the checker
  * with the evidence the tools returned in this request, which is the only evidence there is: earlier turns are plain context.
+ * callModel, runTool and checkAnswer are used as `wrap` returns them, for this request only.
  */
-async function converse(history, now) {
+async function converse(history, now, wrap) {
+  const model = wrap("callModel", callModel);
+  const tool = wrap("runTool", runTool);
+  const check = wrap("checkAnswer", checkAnswer);
   const today = now.toISOString().slice(0, 10);
   const question = history.at(-1).content;
   const deadline = Date.now() + TOTAL_MS;
@@ -167,13 +171,13 @@ async function converse(history, now) {
   let used = 0;
   for (let round = 0; round <= TOOL_ROUNDS; round++) {
     const forced = round === TOOL_ROUNDS || used >= MAX_TOOL_CALLS;
-    const { message, stop } = await callModel(messages, forced ? FORCE_ANSWER : "auto", deadline, now);
+    const { message, stop } = await model(messages, forced ? FORCE_ANSWER : "auto", deadline, now);
     if (stop) return stop;
     const calls = (Array.isArray(message.tool_calls) ? message.tool_calls : []).filter((c) => typeof c?.function?.name === "string");
     const final = calls.find((c) => c.function.name === "answer");
     // An answer call is final, but only alone: beside lookups it was written before their results, so it cannot cite them and would
     // read as complete without them. A forced call that is not an answer, and a reply with no call, are the fallback.
-    if (final || forced || !calls.length) return { ok: true, answer: checkAnswer(final && calls.length === 1 ? parse(final.function.arguments) : undefined, ev, { question }) };
+    if (final || forced || !calls.length) return { ok: true, answer: check(final && calls.length === 1 ? parse(final.function.arguments) : undefined, ev, { question }) };
     const asked = calls.slice(0, Math.min(CALLS_PER_ROUND, MAX_TOOL_CALLS - used)).map((c, i) => ({
       id: typeof c.id === "string" && c.id ? c.id : `call_${round}_${i}`,
       type: "function",
@@ -183,8 +187,23 @@ async function converse(history, now) {
     messages.push({ role: "assistant", content: null, tool_calls: asked });
     for (const c of asked) {
       if (deadline - Date.now() <= 0) return UNAVAILABLE;
-      messages.push({ role: "tool", tool_call_id: c.id, content: JSON.stringify(await runTool(c.function.name, parse(c.function.arguments), ev, ctx)) });
+      messages.push({ role: "tool", tool_call_id: c.id, content: JSON.stringify(await tool(c.function.name, parse(c.function.arguments), ev, ctx)) });
     }
+  }
+}
+
+/**
+ * One question, end to end: {ok: true, answer} or {ok: false, reason, resets?}, which is what POST replies with. `wrap(name, fn)` is
+ * the eval runner's hook to trace callModel, runTool and checkAnswer; it defaults to leaving them as they are, and POST never passes it.
+ */
+export async function runAsk(history, now, { wrap = (name, fn) => fn } = {}) {
+  // the whole request is abandoned at 26 s, even if a tool is stuck (it is checked between steps too, so nothing new starts after that)
+  let timer;
+  const late = new Promise((resolve) => { timer = setTimeout(resolve, TOTAL_MS, UNAVAILABLE); });
+  try {
+    return await Promise.race([converse(history, now, wrap), late]);
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -201,14 +220,7 @@ export async function POST(request) {
     if (!history) return refuse(400, "bad_request");
     const now = new Date(Date.now());
     if (!allowed(request, now.getTime())) return refuse(429, "busy");
-    // the whole request is abandoned at 26 s, even if a tool is stuck (it is checked between steps too, so nothing new starts after that)
-    let timer;
-    const late = new Promise((resolve) => { timer = setTimeout(resolve, TOTAL_MS, UNAVAILABLE); });
-    try {
-      return reply(200, await Promise.race([converse(history, now), late]));
-    } finally {
-      clearTimeout(timer);
-    }
+    return reply(200, await runAsk(history, now));
   } catch {
     console.error("ask: unexpected failure"); // (no error text: it can quote the request)
     return reply(200, UNAVAILABLE);

@@ -1920,18 +1920,71 @@ test("open moves focus in; Esc closes and returns focus", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test("Tab stays inside the open panel", async ({ page }) => {
+test("as a sheet (below 640px) the panel is modal and Tab stays inside it; as a drawer it is not, and Tab can leave", async ({ page }) => {
+  await stubAsk(page);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+  await askOpen(page);
+  await expect(askPanel(page)).toHaveAttribute("aria-modal", "true");
+  for (const key of ["Tab", "Shift+Tab"]) {
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press(key);
+      expect(await page.evaluate(() => !!document.activeElement.closest(".ask-panel"))).toBe(true);
+    }
+  }
+  // wide: the page behind stays usable, so the dialog does not claim to be modal and does not hold the Tab key
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(askPanel(page)).toHaveAttribute("aria-modal", "false"); // (it follows the width while open)
+  await page.getByRole("button", { name: "Send" }).focus();
+  await page.keyboard.press("Tab");
+  expect(await page.evaluate(() => !!document.activeElement.closest(".ask-panel"))).toBe(false);
+  await page.keyboard.press("Escape"); // (focus is on the page now; the panel closes from inside it)
+  await expect(askPanel(page)).toBeVisible();
+  await askBox(page).focus();
+  await page.keyboard.press("Escape");
+  await expect(askPanel(page)).toBeHidden();
+  await askOpen(page);
+  await expect(askPanel(page)).toHaveAttribute("aria-modal", "false");
+});
+
+test("the panel says what Ask does, and what happens to a question, without claiming more than that", async ({ page }) => {
   await stubAsk(page);
   await page.goto("/");
   await askOpen(page);
-  for (let i = 0; i < 12; i++) {
-    await page.keyboard.press("Tab");
-    expect(await page.evaluate(() => !!document.activeElement.closest(".ask-panel"))).toBe(true);
-  }
-  for (let i = 0; i < 12; i++) {
-    await page.keyboard.press("Shift+Tab");
-    expect(await page.evaluate(() => !!document.activeElement.closest(".ask-panel"))).toBe(true);
-  }
+  await expect(page.locator(".ask-intro")).toHaveText("Ask doesn't write answers of its own: it shows records and sentences from this site, each with its source. It can't give legal or compliance advice.");
+  await expect(page.locator(".ask-note")).toHaveText("Your question and data from this site go to an AI model. The conversation isn't stored. How Ask handles questions");
+  await expect(page.getByRole("link", { name: "How Ask handles questions" })).toHaveAttribute("href", "/stories/about-the-data.html#ask");
+  await page.getByRole("button", { name: "Is TASSOS sanctioned?" }).click();
+  await expect(askLog(page).locator(".ask-a .label")).toHaveText(["Sources", "See also"]);
+});
+
+test("a clarify answer's choices follow its question with no heading, as links to the search", async ({ page }) => {
+  const clarify = { kind: "clarify", sentences: [{ text: "Which of these did you mean?", sources: [] }], next: [{ label: "Tassos", href: "/?q=Tassos" }, { label: "Tasso", href: "/?q=Tasso" }] };
+  await stubAsk(page, { post: () => ({ json: { ok: true, answer: clarify } }) });
+  await page.goto("/");
+  await askOpen(page);
+  await askSend(page, "Who manages TASSOS?");
+  const log = askLog(page);
+  await expect(log.getByRole("link", { name: "Tassos" })).toHaveAttribute("href", "/?q=Tassos");
+  await expect(log.locator(".ask-a .label")).toHaveCount(0);
+  await log.getByRole("link", { name: "Tassos" }).click(); // the link runs the search on the home page
+  await expect(page.locator("#q")).toHaveValue("Tassos");
+  await expect(page.locator("#results")).toBeVisible();
+});
+
+test("a question that failed is not sent again with the next one", async ({ page }) => {
+  const ask = await stubAsk(page, { post: (body, n) => (n === 1 ? { status: 429, json: { ok: false, reason: "busy" } } : { json: { ok: true, answer: CITED } }) });
+  await page.goto("/");
+  await askOpen(page);
+  await askSend(page, "will be refused");
+  await expect(askLog(page).locator(".ask-status")).toBeVisible();
+  await askSend(page, "second");
+  await expect(askLog(page).locator(".ask-a")).toBeVisible();
+  expect(ask.seen[1]).toEqual({ messages: [{ role: "user", text: "second" }] });
+  await askSend(page, "third");
+  await expect(askLog(page).locator(".ask-a")).toHaveCount(2);
+  expect(ask.seen[2].messages.map((m) => m.text).filter((t, i) => i !== 1)).toEqual(["second", "third"]);
+  await expect(askLog(page).locator(".ask-q")).toHaveCount(3); // (the page still shows all it was asked)
 });
 
 test("starter question shows answer with numbered source links", async ({ page }) => {
@@ -2001,8 +2054,8 @@ test("unavailable, busy, disabled, an empty 4xx and a network error each say so,
   const UNAVAILABLE = "Ask isn't available right now. Try the search on the home page.";
   const cases = [
     [{ json: { ok: false, reason: "unavailable" } }, UNAVAILABLE],
-    [{ status: 429, json: { ok: false, reason: "busy" } }, /asked a lot of questions|a short break/],
-    [{ status: 503, json: { ok: false, reason: "disabled" } }, /isn't switched on/],
+    [{ status: 429, json: { ok: false, reason: "busy" } }, "Ask takes a limited number of questions an hour from each visitor, and that limit has been reached. Try again later; the search on the home page still works."],
+    [{ status: 503, json: { ok: false, reason: "disabled" } }, "Ask isn't switched on right now. Try the search on the home page."],
     [{ status: 403, body: "" }, UNAVAILABLE], // the firewall, say: no body
     [{ status: 400, json: { ok: false, reason: "bad_request" } }, UNAVAILABLE],
     [{ status: 200, body: "<html>not json</html>", contentType: "text/html" }, UNAVAILABLE],
@@ -2196,19 +2249,29 @@ test("the panel is a right-hand drawer on a wide screen and a full-height sheet 
   expect((await askPanel(page).boundingBox()).width).toBeLessThan(640);
 });
 
-/** The visible buttons, inputs, selects and role=button elements that the Ask button covers (it paints over them, inside its box). */
-const underAsk = (page) => page.evaluate(() => {
-  const ask = document.querySelector(".ask-open"), a = ask.getBoundingClientRect();
-  return [...document.querySelectorAll("button, input, select, textarea, [role=button]")].filter((el) => el !== ask)
-    .map((el) => ({ el, r: el.getBoundingClientRect() }))
-    .filter(({ r }) => r.width > 0 && r.height > 0 && r.left < a.right && r.right > a.left && r.top < a.bottom && r.bottom > a.top)
-    .filter(({ el, r }) => { // (clipped or hidden ones are not under it, and one the page paints over the button is not covered by it)
-      const x = (Math.max(r.left, a.left) + Math.min(r.right, a.right)) / 2, y = (Math.max(r.top, a.top) + Math.min(r.bottom, a.bottom)) / 2;
-      const stack = document.elementsFromPoint(x, y);
-      return stack.includes(el) && stack.indexOf(ask) < stack.indexOf(el);
-    })
-    .map(({ el }) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.className ? `.${String(el.className).trim().replace(/\s+/g, ".")}` : ""} "${(el.textContent || el.value || el.getAttribute("aria-label") || "").trim().slice(0, 20)}"`);
-});
+const CONTROLS = "button, input, select, textarea, [role=button], a[href]";
+/**
+ * The visible controls (buttons, inputs, selects, role=button elements and links) that the Ask button covers: it paints over them, inside its box.
+ * With `scroll`, each control is first scrolled to the bottom of its scroller and, if the button still covers it, the page is scrolled on by as much
+ * as the button reaches up (what a reader does to uncover it): what is returned then is what no scrolling clears.
+ */
+const underAsk = (page, scroll = false) => page.evaluate(([selector, scroll]) => {
+  const ask = document.querySelector(".ask-open");
+  const covered = (el) => {
+    const a = ask.getBoundingClientRect(), r = el.getBoundingClientRect();
+    if (!(r.width > 0 && r.height > 0 && r.left < a.right - 1 && r.right > a.left + 1 && r.top < a.bottom - 1 && r.bottom > a.top + 1)) return false; // (a pixel of slack: boxes sit on fractions)
+    const x = (Math.max(r.left, a.left) + Math.min(r.right, a.right)) / 2, y = (Math.max(r.top, a.top) + Math.min(r.bottom, a.bottom)) / 2;
+    const stack = document.elementsFromPoint(x, y); // (clipped or hidden ones are not under it, and one the page paints over the button is not covered by it)
+    return stack.includes(el) && stack.indexOf(ask) < stack.indexOf(el);
+  };
+  return [...document.querySelectorAll(selector)].filter((el) => el !== ask && !el.closest(".ask-panel")).filter((el) => {
+    if (scroll) {
+      el.scrollIntoView({ block: "end", inline: "nearest", behavior: "instant" });
+      if (covered(el)) window.scrollBy({ top: innerHeight - ask.getBoundingClientRect().top + 1, behavior: "instant" });
+    }
+    return covered(el);
+  }).map((el) => `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.className ? `.${String(el.className).trim().replace(/\s+/g, ".")}` : ""} "${(el.textContent || el.value || el.getAttribute("aria-label") || "").trim().slice(0, 24)}"`);
+}, [CONTROLS, scroll]);
 /** Can the button be pressed, that is, is it the top element at its centre (no page card over it)? */
 const askReachable = (page) => page.evaluate(() => {
   const ask = document.querySelector(".ask-open"), r = ask.getBoundingClientRect();
@@ -2265,6 +2328,79 @@ for (const [width, height] of [[1280, 800], [375, 812], [320, 640]]) {
     await check("network, changes open", { reachable: false });
   });
 }
+
+for (const [width, height] of [[320, 640], [375, 812], [1280, 800]]) {
+  test(`every control on every reader-facing page can be scrolled clear of the Ask button at ${width}px`, async ({ page }) => {
+    test.setTimeout(120_000);
+    const pages = execFileSync("git", ["ls-files", "*.html"], { encoding: "utf8" }).split("\n").filter((f) => f && !f.startsWith("docs/"));
+    await page.setViewportSize({ width, height });
+    await stubAsk(page);
+    await stubMap(page);
+    await stubNet(page);
+    await stubUpdates(page);
+    for (const file of pages) {
+      if (file === MAP.slice(1)) await mapReady(page);
+      else if (file === NETWORK.slice(1)) await netReady(page);
+      else if (file === UPDATES.slice(1)) await updReady(page);
+      else {
+        await page.goto(`/${file}`);
+        await page.waitForLoadState("networkidle");
+      }
+      await expect(askButton(page), file).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), `${file}: sideways scroll`).toBeLessThanOrEqual(0);
+      expect(await underAsk(page, true), file).toEqual([]);
+    }
+  });
+}
+
+test("the panel looks the same on every reader-facing page: no page rule reaches into it", async ({ page }) => {
+  test.setTimeout(120_000);
+  const pages = execFileSync("git", ["ls-files", "*.html"], { encoding: "utf8" }).split("\n").filter((f) => f && !f.startsWith("docs/"));
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await stubAsk(page);
+  await stubMap(page);
+  await stubNet(page);
+  await stubUpdates(page);
+  const SELECTORS = { panel: ".ask-panel", head: ".ask-head", h2: ".ask-head h2", close: ".ask-close", intro: ".ask-intro", label: ".ask-start .label", starter: ".ask-starter", note: ".ask-note", box: ".ask-form textarea", send: ".ask-form .btn" };
+  const PROPS = ["padding", "margin", "overflow", "fontFamily", "fontSize", "fontWeight", "textTransform", "letterSpacing", "lineHeight", "color", "textAlign", "display", "borderTopWidth", "borderLeftWidth"];
+  const fingerprint = () => page.evaluate(([selectors, props]) => Object.fromEntries(Object.entries(selectors).map(([name, sel]) => {
+    const el = document.querySelector(sel), cs = el && getComputedStyle(el);
+    return [name, el ? { ...Object.fromEntries(props.map((p) => [p, cs[p]])), width: Math.round(el.getBoundingClientRect().width) } : null];
+  })), [SELECTORS, PROPS]);
+  let home;
+  for (const file of ["index.html", ...pages.filter((f) => f !== "index.html")]) {
+    if (file === MAP.slice(1)) await mapReady(page);
+    else if (file === NETWORK.slice(1)) await netReady(page);
+    else if (file === UPDATES.slice(1)) await updReady(page);
+    else await page.goto(`/${file}`);
+    await page.addStyleTag({ content: "*, *::before, *::after { transition: none !important; animation: none !important; }" });
+    await askOpen(page);
+    const start = await fingerprint();
+    await page.getByRole("button", { name: "Is TASSOS sanctioned?" }).click();
+    await expect(askLog(page).locator(".ask-a")).toBeVisible();
+    const after = await page.evaluate(([props]) => Object.fromEntries(Object.entries({ answer: ".ask-a p:not(.label)", label: ".ask-a .label", source: ".ask-src li", ref: ".ask-ref", question: ".ask-q" }).map(([name, sel]) => {
+      const el = document.querySelector(sel), cs = getComputedStyle(el);
+      return [name, Object.fromEntries(props.map((p) => [p, cs[p]]))];
+    })), [PROPS]);
+    const seen = { ...start, ...after };
+    home ??= seen;
+    expect(seen, file).toEqual(home);
+    await page.keyboard.press("Escape");
+  }
+});
+
+test("the map keeps its footer at the bottom of the screen with Ask on, and the stacked page leaves the end room", async ({ page }) => {
+  await stubAsk(page);
+  await stubMap(page);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await mapReady(page);
+  await expect(askButton(page)).toBeVisible();
+  expect(await page.evaluate(() => [document.querySelector(".app > footer").getBoundingClientRect().bottom, document.documentElement.scrollHeight - innerHeight, parseFloat(getComputedStyle(document.body).paddingBottom)])).toEqual([800, 0, 0]);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const gap = await page.evaluate(() => innerHeight - document.querySelector(".app > footer").getBoundingClientRect().bottom);
+  expect(gap).toBeGreaterThanOrEqual(76); // the button's height, its offset and a gap
+});
 
 test("a page whose right-hand column is all buttons puts Ask bottom-left with data-ask-side", async ({ page }) => {
   await stubAsk(page);

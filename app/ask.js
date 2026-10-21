@@ -8,4 +8,5 @@ fetch("/api/ask").then((r) => r.ok && r.json()).then((s) => {
   b.setAttribute("aria-haspopup", "dialog");
   b.onclick = () => import("/app/ask-panel.js").then((m) => m.openAsk(b), () => b.remove());
   document.body.append(b);
+  document.documentElement.classList.add("ask-on");
 }).catch(() => {});

@@ -7,7 +7,7 @@ import { escapeHtml, safeUrl, formatDate } from "./render.js";
 export const STARTERS = ["What changed this week?", "Is TASSOS sanctioned?", "Who manages TASSOS?", "How long does it take to list a new semiconductor firm?"];
 const NOTES = {
   unavailable: "Ask isn't available right now. Try the search on the home page.",
-  busy: "You've asked a lot of questions this hour, so Ask needs a short break. Try again later; the search on the home page still works.",
+  busy: "Ask takes a limited number of questions an hour from each visitor, and that limit has been reached. Try again later; the search on the home page still works.",
   disabled: "Ask isn't switched on right now. Try the search on the home page.",
 };
 const SENT = 10; // messages sent with a question
@@ -15,12 +15,14 @@ const WAIT_MS = 35_000; // the server gives up at 26 s
 const NEW_TAB = ' target="_blank" rel="noopener noreferrer"'; // a source opens beside the panel, so the conversation is not lost
 
 const isText = (s) => typeof s?.text === "string" && s.text.trim() !== "";
-const safe = (url) => (typeof url === "string" && safeUrl(url) !== "#" ? url : null);
+const SITE_OR_WEB = /^(https?:\/\/|\/(?![\/\\]))/i; // an http(s) address or a path on this site, never //host or /\host (safeUrl allows those)
+const safe = (url) => (typeof url === "string" && safeUrl(url) !== "#" && SITE_OR_WEB.test(url) ? url : null);
+const isDay = (s) => { const t = /^\d{4}-\d\d-\d\d$/.test(s) ? Date.parse(`${s}T00:00:00Z`) : NaN; return !Number.isNaN(t) && new Date(t).toISOString().startsWith(s); }; // (not 2026-02-30)
 const link = (url, inner, attrs = "") => (safe(url) ? `<a href="${escapeHtml(url)}"${attrs}>${inner}</a>` : inner);
 
 /** A status note: resting (with its date), unavailable, busy or disabled. Anything else, or a date that is not one, says unavailable. */
 export function renderStatus(reason, resets) {
-  const day = reason === "resting" && typeof resets === "string" && /^\d{4}-\d\d-\d\d$/.test(resets) && !Number.isNaN(Date.parse(resets)) ? formatDate(resets) : "";
+  const day = reason === "resting" && typeof resets === "string" && isDay(resets) ? formatDate(resets) : "";
   const key = day ? "resting" : Object.hasOwn(NOTES, reason) ? reason : "unavailable";
   const text = day ? `Ask has used its budget for this month and is resting until ${day}. Everything else on the site works as usual.` : NOTES[key];
   return `<div class="ask-msg ask-status" data-reason="${key}"><p>${escapeHtml(text)}</p></div>`;
@@ -46,14 +48,14 @@ export function renderAnswer(rendered) {
   const kind = ["answer", "refusal", "clarify", "fallback"].includes(rendered.kind) ? rendered.kind : "answer";
   return `<div class="ask-msg ask-a" data-kind="${kind}">${body}`
     + (sources ? `<p class="label">Sources</p><ol class="ask-src">${sources}</ol>` : "")
-    + (next ? `<p class="label">Next</p><ul class="ask-next">${next}</ul>` : "") + "</div>";
+    + (next ? `${rendered.kind === "clarify" ? "" : '<p class="label">See also</p>'}<ul class="ask-next">${next}</ul>` : "") + "</div>"; // (a clarify answer's choices follow its question)
 }
 
 /** What the server is told an assistant turn said: its sentences, joined by spaces (it cuts the text to 500 characters). */
 export const assistantText = (rendered) => (Array.isArray(rendered?.sentences) ? rendered.sentences.filter(isText).map((s) => s.text).join(" ") : "");
 
-/** The last 10 messages, role and text only. */
-export const lastMessages = (convo) => convo.slice(-SENT).map(({ role, text }) => ({ role, text }));
+/** The last 10 messages, role and text only. An assistant turn is cut to 500 characters, as the server cuts it, so the body stays under its 16 KB limit. */
+export const lastMessages = (convo) => convo.slice(-SENT).map(({ role, text }) => ({ role, text: role === "assistant" ? text.slice(0, 500).replace(/[\ud800-\udbff]$/, "") : text }));
 
 // ---- the panel -------------------------------------------------------------------------------------------------
 
@@ -65,13 +67,16 @@ function build() {
   const el = document.createElement("aside");
   el.className = "ask-panel";
   el.setAttribute("role", "dialog");
-  el.setAttribute("aria-modal", "true");
+  const sheet = matchMedia("(max-width: 639px)"); // a sheet covers the page, so it is modal and holds Tab; the drawer leaves the page usable beside it
+  const modal = () => el.setAttribute("aria-modal", String(sheet.matches));
+  modal();
+  sheet.addEventListener("change", modal);
   el.setAttribute("aria-labelledby", "ask-title");
   el.hidden = true;
   el.innerHTML = `<div class="ask-head"><h2 id="ask-title">Ask</h2><button type="button" class="ask-close" aria-label="Close Ask">&times;</button></div>
 <div class="ask-body">
   <div class="ask-start">
-    <p class="ask-intro">Ask answers only from this site's data, and every line shows its source. It can't give legal or compliance advice.</p>
+    <p class="ask-intro">Ask doesn't write answers of its own: it shows records and sentences from this site, each with its source. It can't give legal or compliance advice.</p>
     <p class="label">Try asking</p>
     <ul class="ask-starters">${STARTERS.map((q) => `<li><button type="button" class="btn ask-starter">${escapeHtml(q)}</button></li>`).join("")}</ul>
   </div>
@@ -81,7 +86,7 @@ function build() {
   <label class="label" for="ask-q">Your question</label>
   <textarea id="ask-q" rows="2" maxlength="500" autocomplete="off" enterkeyhint="send"></textarea>
   <div class="ask-row">
-    <p class="ask-note">Your question and data from this site go to an AI model. Nothing is stored. <a href="/stories/about-the-data.html#ask"${NEW_TAB}>Details</a></p>
+    <p class="ask-note">Your question and data from this site go to an AI model. The conversation isn't stored. <a href="/stories/about-the-data.html#ask"${NEW_TAB}>How Ask handles questions</a></p>
     <button type="submit" class="btn btn-accent">Send</button>
   </div>
 </form>`;
@@ -97,7 +102,7 @@ function build() {
     e.stopPropagation(); // the graph pages step their story, jump to their search and clear focus on keys like these
     if (e.key === "Escape") { e.preventDefault(); close(); return; }
     if (e.key === "Enter" && e.target === box && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask(box.value); return; }
-    if (e.key !== "Tab") return;
+    if (e.key !== "Tab" || !sheet.matches) return;
     const stops = [...el.querySelectorAll("a[href], button:not(:disabled), textarea")].filter((x) => x.getClientRects().length);
     const edge = stops[e.shiftKey ? 0 : stops.length - 1];
     if (document.activeElement === edge) { e.preventDefault(); stops[e.shiftKey ? stops.length - 1 : 0].focus(); }
@@ -164,10 +169,12 @@ async function ask(raw) {
       html = renderAnswer(body.answer);
       convo.push({ role: "assistant", text: assistantText(body.answer) });
     } else {
+      convo.pop(); // a question that failed is not sent again with the next
       html = renderStatus(body?.reason, body?.resets);
     }
   } catch {
     if (pending !== mine) return;
+    convo.pop();
     html = renderStatus("unavailable");
   } finally {
     clearTimeout(timer);

@@ -83,6 +83,25 @@ test("renderAnswer numbers the sources, once each, and links the next steps", ()
   assert.ok(/<p[^>]*>Fixed copy\.<\/p>/.test(html), "a sentence with no sources has none");
 });
 
+test("renderAnswer heads the next steps See also, and a clarify answer's choices have no heading", () => {
+  const next = [{ label: "Tassos", href: "/?q=Tassos" }, { label: "Tasso", href: "/?q=Tasso" }];
+  const answer = text(renderAnswer({ kind: "answer", sentences: [{ text: "Done.", sources: [] }], next }));
+  assert.ok(answer.includes("See also") && !/\bNext\b/.test(answer), answer);
+  const clarify = renderAnswer({ kind: "clarify", sentences: [{ text: "Which of these did you mean?", sources: [] }], next });
+  assert.ok(!text(clarify).includes("See also") && !/\bNext\b/.test(text(clarify)), "the choices follow the question directly");
+  assert.deepEqual(tags(clarify).filter((t) => t.name === "a" && !t.close).map((t) => t.attrs.href), ["/?q=Tassos", "/?q=Tasso"]);
+});
+
+test("renderAnswer shows a protocol-relative or backslash url as text, for a source and a next step alike", () => {
+  const forms = ["//evil.example/x", "/\\evil.example/x", "\\\\evil.example/x", " /stories/x.html", "stories/x.html", "x.html"];
+  const html = renderAnswer({ kind: "answer", sentences: [{ text: "A.", sources: forms.map((url, i) => ({ n: i + 1, label: `L${i + 1}`, url })) }], next: forms.map((href, i) => ({ label: `N${i + 1}`, href })) });
+  assertPlain(html, "protocol-relative");
+  assert.deepEqual(tags(html).filter((t) => t.name === "a" && !t.close), [], "none of them is a link");
+  for (let i = 1; i <= forms.length; i++) assert.ok(text(html).includes(`L${i}`) && text(html).includes(`N${i}`));
+  const ok = renderAnswer({ kind: "answer", sentences: [{ text: "A.", sources: [{ n: 1, label: "Site", url: "/stories/x.html#a" }, { n: 2, label: "Out", url: "https://example.org/x" }] }], next: [{ label: "Home", href: "/" }, { label: "Search", href: "/?q=A%20B" }] });
+  assert.equal(tags(ok).filter((t) => t.name === "a" && !t.close).length, 6, "a site path and an http(s) address are links");
+});
+
 test("renderAnswer shows every kind of answer, and an empty or malformed one as unavailable", () => {
   for (const kind of ["answer", "refusal", "clarify", "fallback"]) assert.ok(renderAnswer({ kind, sentences: [{ text: "Hi.", sources: [] }], next: [] }).includes(`data-kind="${kind}"`));
   for (const bad of [undefined, null, {}, { sentences: "x" }, { kind: "answer", sentences: [] }, { kind: "answer", sentences: [{ text: 5 }, null, "x"] }]) {
@@ -129,13 +148,12 @@ test("renderStatus: resting shows the reset date as d MMM yyyy, the others their
   const unavailable = "Ask isn't available right now. Try the search on the home page.";
   assert.equal(text(renderStatus("unavailable")), unavailable);
   // a reset date that is not a date, and a reason nobody knows, say unavailable rather than a broken sentence
-  for (const resets of [undefined, "", "soon", "2026-13-40", 20261101, "<img src=x>"]) assert.equal(text(renderStatus("resting", resets)), unavailable);
+  for (const resets of [undefined, "", "soon", "2026-13-40", "2026-02-30", "2026-04-31", 20261101, "<img src=x>"]) assert.equal(text(renderStatus("resting", resets)), unavailable);
   assert.equal(text(renderStatus("something-new")), unavailable);
-  for (const reason of ["busy", "disabled"]) {
-    const t = text(renderStatus(reason));
-    assert.ok(t.length > 20 && t !== unavailable && /home page|later/.test(t), `${reason}: ${t}`);
-    assert.ok(!/team/i.test(t), "no team wording");
-  }
+  // busy is a per-visitor limit over a rolling hour, so it says that, not that Ask is tired
+  assert.equal(text(renderStatus("busy")), "Ask takes a limited number of questions an hour from each visitor, and that limit has been reached. Try again later; the search on the home page still works.");
+  assert.equal(text(renderStatus("disabled")), "Ask isn't switched on right now. Try the search on the home page.");
+  for (const reason of ["busy", "disabled"]) assert.ok(!/team/i.test(text(renderStatus(reason))), "no team wording");
   for (const [reason, resets] of [["resting", "2026-11-01"], ["busy"], ["disabled"], ["unavailable"], ["<x>", "<y>"]]) assertPlain(renderStatus(reason, resets), reason);
 });
 
@@ -145,6 +163,13 @@ test("the panel sends the last 10 messages, an assistant turn as its sentences j
   const convo = Array.from({ length: 13 }, (_, i) => ({ role: i % 2 ? "assistant" : "user", text: `m${i}` }));
   assert.deepEqual(lastMessages(convo).map((m) => m.text), ["m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10", "m11", "m12"]);
   assert.deepEqual(lastMessages(convo.slice(0, 2)), [{ role: "user", text: "m0" }, { role: "assistant", text: "m1" }]);
+  // an assistant turn is cut to 500 characters as the server cuts it (never through a surrogate pair), so a long conversation stays under its 16 KB body limit
+  const long = { role: "assistant", text: `${"x".repeat(499)}\u{1F6A2}tail` };
+  const sent = lastMessages([{ role: "user", text: "q" }, long, { role: "user", text: "y".repeat(500) }]);
+  assert.equal(sent[1].text, "x".repeat(499), "cut before the half of a pair");
+  assert.equal(lastMessages([{ role: "assistant", text: "z".repeat(900) }])[0].text.length, 500);
+  assert.equal(sent[2].text.length, 500, "a user turn is never cut");
+  assert.equal(assistantText({ sentences: [{ text: "z".repeat(900), sources: [] }] }).length, 900, "the turn itself is whole");
   // only role and text leave the page
   assert.deepEqual(Object.keys(lastMessages([{ role: "user", text: "q", extra: "x", html: "<b>" }])[0]).sort(), ["role", "text"]);
 });

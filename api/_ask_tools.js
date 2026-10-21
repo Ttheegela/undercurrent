@@ -499,11 +499,12 @@ async function checkLists(args, ev, ctx = {}) {
   // removed, is context. It is judged over every strong research hit, not only the three shown.
   const found = strong.lists.some((m) => m.size) || strong.os.size > 0 || allResearch.some((x) => x.hit.listings.some((l) => !delisted(l)));
   // a name one letter off the query's one word, only when nothing was found: that is when "not on the lists" could be said
-  const typos = found ? [] : [
-    ...attempt("Undercurrent research", () => oneEditNames(variants[0].q, entries(), (e) => (placeholder(e) ? [] : e.keys.map((k) => [k, publishedName(e, k)])))),
-    ...LIST_IDS.flatMap((id) => attempt(`the ${LIST_LABELS[id]} list`, () => oneEditNames(variants[0].q, doc(id).records, (r) => [[r[1], r[0]]]))),
-    ...oneEditNames(variants[0].q, entities, (e) => (governmental(e) ? e.keys.map((k, i) => [k, e.names[i]]) : [])),
-  ];
+  // (over every reading of the query: "MV TASOSS" and "TASOSS tanker" are also "TASOSS")
+  const typos = found ? [] : variants.flatMap(({ q }) => [
+    ...attempt("Undercurrent research", () => oneEditNames(q, entries(), (e) => (placeholder(e) ? [] : e.keys.map((k) => [k, publishedName(e, k)])))),
+    ...LIST_IDS.flatMap((id) => attempt(`the ${LIST_LABELS[id]} list`, () => oneEditNames(q, doc(id).records, (r) => [[r[1], r[0]]]))),
+    ...oneEditNames(q, entities, (e) => (governmental(e) ? e.keys.map((k, i) => [k, e.names[i]]) : [])),
+  ]);
   const near = nearNames(contained, partial, taken, typos);
   // With a source unchecked, "nothing found" would be a claim we cannot back: say so instead of adding a search item.
   if (!found && down.size) return fail(`${joinAnd([...down])} could not be checked just now, so there is nothing to report`);

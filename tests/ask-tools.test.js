@@ -415,6 +415,25 @@ test("fix round 0 (4): a one-word query of five letters or more, one edit from a
   assert.match(ev[0].text, /Names similar to the query exist/);
 });
 
+test("fix round 1 (I2): the one-edit check also reads the name left once hull and noise words are dropped", async () => {
+  const near = async (query) => {
+    ev = [];
+    await run("check_lists", { query });
+    return [ev[0].found, ev[0].near, ev.length];
+  };
+  for (const query of ["MV TASOSS", "M/V TASOSS", "TASOSS tanker", "the TASOSS", "tanker TASOSS vessel"]) {
+    assert.deepEqual(await near(query), [false, ["TASSOS"], 1], query);
+  }
+  assert.deepEqual(await near("MV Sovcomflt"), [false, ["SOVCOMFLOT"], 1]);
+  assert.deepEqual(await near("MV Magnolya"), [false, ["MAGNOLIA"], 1]);
+  assert.deepEqual((await near("MV Zephyr"))[1], []); // a hull word alone adds no name
+  assert.deepEqual((await near("MV TAXXOS"))[1], []); // two edits, with or without the hull word
+  // the same name reached through two readings of the query is offered once
+  assert.deepEqual((await near("TASOSS vessel"))[1], ["TASSOS"]);
+  // and an IMO number inside the query is still an exact find, not a near name
+  assert.deepEqual((await near("TASOSS (IMO 9408695)")).slice(0, 2), [true, []]);
+});
+
 test("fix round 0 (4): the one-edit check looks at names of nearly the same length only, and stays quick", async () => {
   // a few thousand one-word names, found by length: the check must not read every name for every query
   const names = Array.from({ length: 4000 }, (_, i) => `Zq${i.toString(36).padStart(5, "q")}x`);

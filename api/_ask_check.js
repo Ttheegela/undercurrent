@@ -6,7 +6,7 @@
 import { LIST_LABELS, formatDate } from "../app/render.js";
 import { siteVocabulary } from "./_ask_tools.js";
 
-// ---- fixed copy (global-constraints.md, verbatim; the range, one-day, OpenSanctions, clarify, before-start and part-answer forms by ruling) -------
+// ---- fixed copy (global-constraints.md, verbatim; the range, one-day, OpenSanctions, clarify, before-start, part-answer and not-advice forms by ruling) -------
 
 const REFUSAL = "I can only answer questions about what's on Undercurrent: sanctions lists, ship and company connections, lobbying, the semiconductor data, the research and the daily updates. I can't give legal or compliance advice.";
 const FALLBACK = "I couldn't check an answer to that against the site's data, so I won't guess. Try the search on the home page.";
@@ -15,6 +15,7 @@ const day = (iso) => formatDate(iso) || iso; // d MMM yyyy; a bare year stays as
 const NOT_FOUND = (name) => `${name} is not on the lists we check (US, UK, EU, UN, OpenSanctions). Not being found isn't proof.`;
 const NO_CHANGES = (from, to) => (from === to ? `No changes were recorded on ${day(from)}.` : `No changes were recorded between ${day(from)} and ${day(to)}.`);
 const PARTIAL = "I could only answer part of the question. Ask about each name on its own to check the rest.";
+const NOT_ADVICE = "Ask can't give legal or compliance advice. These are records from the site, each with its source.";
 const BEFORE_START = (first) => `Daily updates started on ${day(first)}, so there is no record before then.`;
 const SOURCE_GAP = (g) => (g.date || g.from === g.to
   ? `${g.source} was unavailable on ${day(g.date ?? g.from)}, so changes from it that day aren't recorded.`
@@ -24,6 +25,32 @@ function LISTED(e) {
   return e.kind === "opensanctions"
     ? `${e.entity.name} appears in OpenSanctions${e.program ? ` as listed by ${e.program}` : ""}${since}.`
     : `${e.entity.name} appears on the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}${since}.`;
+}
+
+// ---- the notice on advice-shaped questions -----------------------------------------------------------------------------------
+// Ask cannot give advice: no model word is ever shown, only records and their sources. A question that asks for it ("Should I buy oil
+// from this ship?") still gets the model's answer, and that answer ends with NOT_ADVICE so the records are not read as a verdict. The
+// net is wide on purpose (a notice on an ordinary question does no harm): a modal or advice word, or a rating word such as legal, safe or
+// wise, within eight words of a business verb. Letters are folded first: width forms, format characters (as a gap and as nothing),
+// look-alike Cyrillic letters and spaced-out letters ("S h o u l d").
+const CUES = new Set(("should can could would may might must shall need needs allowed permitted legal illegal lawful safe unsafe risk risky ok okay fine wise "
+  + "advisable acceptable advice advise advised advising recommend recommends recommended recommending whether").split(" "));
+const BUSINESS = /^(?:trad(?:e|es|ed|ing)|buy\w*|bought|purchas\w*|sell\w*|sold|insur\w*|charter\w*|pay\w*|paid|ship\w*|work\w*|deal\w*|business|invest\w*|hir(?:e|es|ed|ing)|us(?:e|es|ed|ing)|tak(?:e|es|ing)|took|import\w*|export\w*|contract\w*|sign\w*|accept\w*)$/;
+const LOOKALIKES = { "\u0430": "a", "\u0435": "e", "\u043e": "o", "\u0440": "p", "\u0441": "c", "\u0445": "x", "\u0443": "y", "\u0456": "i" };
+const wordsOf = (text) => text.toLowerCase().replace(/[\u0430\u0435\u043e\u0440\u0441\u0445\u0443\u0456]/g, (c) => LOOKALIKES[c])
+  .replace(/\b(?:[a-z]\s){3,}[a-z]\b/g, (run) => run.replace(/\s/g, "").replace(/(?<=....)i$/, " i")).match(/[a-z]+/g) ?? []; // ("s h o u l d i" is "should i")
+function adviceIn(text) {
+  const words = wordsOf(text);
+  const cue = (i) => CUES.has(words[i]) || (words[i] === "have" && words[i + 1] === "to") || (words[i] === "yes" && words[i + 1] === "or" && words[i + 2] === "no");
+  if (words.some((w, i) => (w === "legal" || w === "compliance") && words[i + 1] === "advice")) return true;
+  const cues = words.flatMap((w, i) => (cue(i) ? [i] : []));
+  return words.some((w, j) => BUSINESS.test(w) && cues.some((i) => i !== j && Math.abs(i - j) <= 8));
+}
+/** True when the reader's message looks like a request for advice on doing business (a wide net: see above). */
+export function adviceIntent(question) {
+  if (typeof question !== "string") return false;
+  const text = question.normalize("NFKC");
+  return adviceIn(text.replace(/[\p{Cf}\p{M}]/gu, "")) || adviceIn(text.replace(/[\p{Cf}]/gu, " "));
 }
 
 const only = (kind, text, next = []) => ({ kind, sentences: [{ text, sources: [] }], next });
@@ -136,11 +163,14 @@ function finish(kind, pieces, next) {
 }
 
 /** The fixed question, with the near names of the cited searches and the cited entities as the choices. */
-function clarify(items) {
+function clarify(items, ctx) {
   const options = unique(items.flatMap((e) => (e.kind === "search" ? (e.near ?? []).map(choice)
     : e.entity?.name && (e.link || e.url) ? [{ label: e.entity.name, href: e.link || e.url }] : [])), "label");
-  return options.length ? finish("clarify", [{ text: CLARIFY, items: [] }], options) : fallback();
+  return options.length ? finish("clarify", [{ text: CLARIFY, items: [] }, ...notice(ctx)], options) : fallback();
 }
+
+/** NOT_ADVICE, as a piece to close an answer or a clarify, when the reader's question asks for advice. */
+const notice = (ctx) => (adviceIntent(ctx?.question) ? [{ text: NOT_ADVICE, items: [] }] : []);
 
 /**
  * raw: the model's `answer` arguments {kind, refusal_reason?, sentences: [{claim, sources, quote?}], next: [{source}]};
@@ -157,11 +187,11 @@ export function checkAnswer(raw, ev, ctx) {
     const items = cite(s.sources, byId);
     return items ? [{ s, items }] : [];
   });
-  if (raw.kind === "clarify") return clarify([...cited.flatMap((c) => c.items), ...linked]);
+  if (raw.kind === "clarify") return clarify([...cited.flatMap((c) => c.items), ...linked], ctx);
 
   // "not on the lists" is never said while a close spelling exists: ask which one was meant
   const near = cited.filter(({ s }) => s.claim === "not_found").flatMap(({ items }) => items).filter((e) => e.kind === "search" && e.found === false && e.near?.length);
-  if (near.length) return finish("clarify", [{ text: CLARIFY, items: [] }], unique(near.flatMap((e) => e.near.map(choice)), "label"));
+  if (near.length) return finish("clarify", [{ text: CLARIFY, items: [] }, ...notice(ctx)], unique(near.flatMap((e) => e.near.map(choice)), "label"));
 
   const all = [...byId.values()];
   const pieces = [];
@@ -172,6 +202,7 @@ export function checkAnswer(raw, ev, ctx) {
     pieces.push(...shown);
   }
   if (state.partial && pieces.length) pieces.push({ text: PARTIAL, items: [] }); // never a lone "part of the question": with nothing else to say it is the fallback
+  if (pieces.length) pieces.push(...notice(ctx)); // last, after the part-answer line; an answer with nothing to say is the fallback and carries no notice
   // a next step is the cited item's own label and link (or url)
   const next = unique(linked.filter((e) => e.link || e.url).map((e) => ({ label: e.label, href: e.link || e.url })), "href");
   return finish("answer", pieces, next);

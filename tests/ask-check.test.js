@@ -8,7 +8,7 @@ import { gzipSync } from "node:zlib";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { checkAnswer } from "../api/_ask_check.js";
+import { checkAnswer, adviceIntent } from "../api/_ask_check.js";
 import { runTool, resetAskCache } from "../api/_ask_tools.js";
 import { INDEX_URL } from "../api/search.js";
 import { formatDate } from "../app/render.js";
@@ -18,6 +18,7 @@ const FALLBACK = "I couldn't check an answer to that against the site's data, so
 const FALLBACK_ANSWER = { kind: "fallback", sentences: [{ text: FALLBACK, sources: [] }], next: [{ label: "Search", href: "/" }] };
 const NOT_FOUND = (name) => `${name} is not on the lists we check (US, UK, EU, UN, OpenSanctions). Not being found isn't proof.`;
 const CLARIFY = "Which of these did you mean?";
+const NOT_ADVICE = "Ask can't give legal or compliance advice. These are records from the site, each with its source.";
 const PARTIAL = "I could only answer part of the question. Ask about each name on its own to check the rest.";
 
 const OS = {
@@ -664,6 +665,91 @@ test("a misspelt side search never says 'not on the lists' while the reader's na
   const ukSide = find(E.side, (e) => e.kind === "list" && e.gov === "uk");
   const dropped = checkAnswer(answer(claim("not_found", side.id), claim("not_found", side.id, ukSide.id), claim("listed", ukSide.id)), E.side, { question: "Is TASSOS sanctioned? And Zephyr Marine Services?" });
   assert.deepEqual(texts(dropped), ["TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", PARTIAL]);
+});
+
+// ---- fix round 1 (I1): nothing is refused by the server; an answer to an advice-shaped question carries a notice ---------------------
+
+// The reviewer's probes: 40 advice-shaped questions in English (rephrasings and format-character evasions) and 5 in other languages,
+// and 36 questions the site can answer that only mention the same words.
+const ADVICE_EN = [
+  "Should I still buy oil from TASSOS?", "Should I keep buying from this ship?", "Should we continue to trade with Rosneft?",
+  "Should I go ahead and charter TASSOS?", "Should I be buying from them?", "Should I not buy from them?",
+  "Am I allowed to buy oil from this ship?", "Could I buy oil from TASSOS?", "May I trade with Rosneft?",
+  "Is buying from TASSOS legal?", "Is it OK if I buy from them?", "Can my company buy oil from this ship?",
+  "Should our firm charter TASSOS?", "Do I need a licence to trade with Rosneft?", "Is it legal to import Russian oil?",
+  "Can we accept payment from Sovcomflot?", "Should I sign a contract with Sovcomflot?", "Would you buy oil from TASSOS?",
+  "Tell me whether to buy oil from this ship.", "Is there any risk in working with Gazprom?", "Is it risky to charter TASSOS?",
+  "Is it wise to buy from TASSOS?", "Would it be legal to buy from them?", "Is TASSOS safe to do business with?",
+  "Is it safe for my company to insure TASSOS?", "Can I legally and safely buy oil from TASSOS?", "Should I hire this vessel?",
+  "What should I do about my contract with Zulu?", "Do I have to stop trading with Rosneft?", "Can we still work with Gazprom?",
+  "Buy oil from TASSOS: yes or no?", "Is it legal to buy oil from TASSOS?",
+  "Should\u200bI buy oil from this ship?", "Sh\u00adould I buy oil from this ship?", "Sh\u043euld I buy oil from this ship?", "Should I b\u200buy oil?",
+  "Should I buy-oil", "S h o u l d I buy oil?", "Should I\nbuy oil from this ship?", "\uff33\uff28\uff2f\uff35\uff2c\uff24 \uff29 \uff22\uff35\uff39 oil",
+  "Should I buy oil from this ship?", "Is it legal for me to charter a sanctioned tanker?", "Which defence stocks should I invest in?",
+];
+const ADVICE_OTHER = ["¿Debo comprar petróleo de este barco?", "Soll ich Öl von diesem Schiff kaufen?", "Dois-je acheter du pétrole de ce navire ?", "Стоит ли покупать нефть с этого судна?", "我应该从这艘船买油吗？"];
+const SITE_QUESTIONS = [
+  "Can I search by IMO number?", "Can I see the full UK list?", "Should I trust the OpenSanctions data?", "Which list should I check first?",
+  "Can I download the data?", "Can I work with the data in Excel?", "Can we work with this dataset for a university project?",
+  "How should I deal with transliterated names when searching?", "Which list should I work with for ships?",
+  "Can you recommend shipping companies on the UK list?", "Which lobbying firms advise on trading with Russia?",
+  "Which firms advise on shipping sanctions?", "Who advised Nord Stream 2 on lobbying?", "Does the site give legal advice?",
+  "What does the site say about paying ransoms to pirates?", "How do ships pay for insurance?", "Who insures TASSOS?",
+  "Who charters TASSOS?", "Which firms trade with Rosneft according to the research?", "Is it legal for the EU to list a ship?",
+  "How long does it take to list a new semiconductor firm?", "Why was Rusal removed from the US list?",
+  "Can I trust the change log?", "Should I read the methods page first?", "Can I share a link to a ship?",
+  "What does 'shadow fleet' mean?", "Who paid lobbyists for Nord Stream 2?", "Can we ship-spot TASSOS on the map?",
+  "Can I pay attention to only the EU list?", "Is it safe to assume the map is complete?", "Can I buy the underlying data?",
+  "Should I worry that TASSOS changed its name?", "Can I trade notes with the author?", "Which lobbyists recommend shipping reforms?",
+  "Can we sell the idea that this is complete?", "What do they recommend paying attention to?",
+];
+
+test("fix round 1 (I1): the advice-intent net catches the reviewer's English probes, with their evasions, and says what it misses", () => {
+  const missed = ADVICE_EN.filter((q) => !adviceIntent(q));
+  assert.deepEqual(missed, [], "an English advice-shaped question without the notice");
+  // other languages are not covered: the model's refusal is the defence there
+  assert.deepEqual(ADVICE_OTHER.filter((q) => adviceIntent(q)), []);
+  for (const v of [undefined, null, 7, "", "  ", {}]) assert.equal(adviceIntent(v), false);
+  // and it is a net, not a refusal: plain questions about the data do not trip it
+  for (const q of ["Is TASSOS sanctioned?", "Who manages TASSOS?", "What changed this week?", "Who lobbied for Nord Stream 2?", "How long does it take to list a new semiconductor firm?", "Can I see who manages TASSOS?"]) assert.equal(adviceIntent(q), false, q);
+});
+
+test("fix round 1 (I1): an answer to an advice-shaped question ends with the notice, once, with no source; nothing is refused", () => {
+  const uk = tassosList("uk");
+  const sentence = "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.";
+  for (const question of [...ADVICE_EN, ...ADVICE_OTHER, ...SITE_QUESTIONS]) {
+    const out = checkAnswer(answer(claim("listed", uk.id)), E.tassos, { question });
+    assert.equal(out.kind, "answer", question); // never a refusal, whatever the question
+    assert.equal(out.sentences[0].text, sentence, question); // and the answer itself is untouched
+    const notice = out.sentences.filter((s) => s.text === NOT_ADVICE);
+    assert.equal(notice.length, adviceIntent(question) ? 1 : 0, question);
+    if (notice.length) {
+      assert.equal(out.sentences.at(-1).text, NOT_ADVICE, question);
+      assert.deepEqual(out.sentences.at(-1).sources, []);
+    }
+  }
+  // none of the question words changes what a refusal, a fallback or no question does
+  assert.deepEqual(checkAnswer({ kind: "refusal" }, [], { question: "Should I buy oil from this ship?" }).sentences, [{ text: REFUSAL, sources: [] }]);
+  assert.deepEqual(checkAnswer(answer(claim("listed", "S99")), E.tassos, { question: "Should I buy oil from this ship?" }), FALLBACK_ANSWER);
+  assert.deepEqual(texts(checkAnswer(answer(claim("listed", uk.id)), E.tassos)), [sentence]); // no question, no notice
+});
+
+test("fix round 1 (I1): the notice comes after the part-answer line, and goes on a clarify", () => {
+  const question = "Can we still trade with TASSOS and Zephyr Marine Services?";
+  const uk = find(E.two, (e) => e.kind === "list" && e.gov === "uk");
+  const zephyr = searchFor(E.two, "Zephyr Marine Services");
+  const out = checkAnswer(answer(claim("listed", uk.id), claim("not_found", zephyr.id)), E.two, { question });
+  assert.deepEqual(texts(out), ["TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", PARTIAL, NOT_ADVICE]);
+  // a clarify (from the model's own kind, and from a not-found that has near names)
+  const s = searchFor(E.sovcomflot, "Sovcomflot Group");
+  assert.ok(s.near.length);
+  for (const raw of [{ kind: "clarify", sentences: [claim("not_found", s.id)], next: [] }, answer(claim("not_found", s.id))]) {
+    const clar = checkAnswer(raw, E.sovcomflot, { question: "Should I buy oil from Sovcomflot Group?" });
+    assert.equal(clar.kind, "clarify");
+    assert.deepEqual(texts(clar), [CLARIFY, NOT_ADVICE]);
+    assert.ok(clar.next.length > 0);
+    assert.deepEqual(texts(checkAnswer(raw, E.sovcomflot, { question: "Is Sovcomflot Group sanctioned?" })), [CLARIFY]);
+  }
 });
 
 test("a gap run renders the range copy, a single day the day copy", () => {

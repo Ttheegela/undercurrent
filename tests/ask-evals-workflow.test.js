@@ -1,5 +1,5 @@
 // The Ask evals workflow (.github/workflows/ask-evals.yml), read as plain text: its triggers, which job holds which secret and
-// permission, the fork guard, and the two scripts that decide something (the runner's arguments, the failure issue). Those two are run
+// permission, the fork guard, the judge-check job, and the two scripts that decide something (the runner's arguments, the failure issue). Those two are run
 // under bash with `node` and `gh` replaced by stubs that record what they are called with. Nothing here reaches LangSmith, OpenRouter
 // or GitHub. The issue script needs jq, which GitHub's runners have.
 import { test } from "node:test";
@@ -15,7 +15,7 @@ const [TOP, JOBS_TEXT] = TEXT.split(/^jobs:\n/m);
 const JOBS = {}; // job name -> its lines
 let current;
 for (const line of JOBS_TEXT.split("\n")) {
-  const m = line.match(/^ {2}([a-z]+):$/);
+  const m = line.match(/^ {2}([a-z-]+):$/);
   if (m) JOBS[(current = m[1])] = [];
   else if (current) JOBS[current].push(line);
 }
@@ -54,7 +54,7 @@ const secretLines = (lines) => lines.map((l) => l.trim()).filter((l) => !l.start
 
 // ---- what the workflow is -------------------------------------------------------------------------------------------------
 
-test("it runs weekly on Monday, by hand (with an optional model to compare), once per opened or ready PR that touches Ask, and on a push of the notes to main", () => {
+test("it runs weekly on Monday, by hand (with an optional model to compare, or the judge check instead), once per opened or ready PR that touches Ask, and on a push of the notes to main", () => {
   assert.deepEqual(block(TOP.split("\n"), "on:"), [
     "schedule:",
     '- cron: "0 13 * * 1"',
@@ -65,6 +65,11 @@ test("it runs weekly on Monday, by hand (with an optional model to compare), onc
     "type: string",
     "required: false",
     'default: ""',
+    "task:",
+    'description: "What to run: the evals, or the relevance judge\'s check against its hand labels"',
+    "type: choice",
+    "options: [evals, judge-check]",
+    "default: evals",
     "pull_request:",
     "types: [opened, ready_for_review]",
     "paths:",
@@ -79,7 +84,7 @@ test("it runs weekly on Monday, by hand (with an optional model to compare), onc
     "branches: [main]",
     "paths: [tests/ask-eval-notes.json]",
   ]);
-  assert.deepEqual(Object.keys(JOBS), ["evals", "issue", "notes"]);
+  assert.deepEqual(Object.keys(JOBS), ["evals", "issue", "notes", "judge-check"]);
 });
 
 test("secrets reach only the one step in evals that runs the cases (with the relevance judge's key) and the one in notes that posts the notes", () => {
@@ -89,13 +94,16 @@ test("secrets reach only the one step in evals that runs the cases (with the rel
   assert.deepEqual(secretLines(step("evals", "Run the evals")), secretLines(JOBS.evals));
   assert.deepEqual(secretLines(JOBS.notes), ["LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}"]);
   assert.deepEqual(secretLines(step("notes", "Post the notes")), secretLines(JOBS.notes));
+  assert.deepEqual(secretLines(JOBS["judge-check"]), ["TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}"]);
+  assert.deepEqual(secretLines(step("judge-check", "Check the relevance judge")), secretLines(JOBS["judge-check"]));
   assert.ok(!/secrets:\s*inherit/.test(TEXT));
 });
 
-test("permissions: none by default, read-only for evals and notes, issues: write only for the issue job", () => {
+test("permissions: none by default, read-only for evals, notes and judge-check, issues: write only for the issue job", () => {
   assert.ok(TOP.includes("\npermissions: {}\n"));
   assert.deepEqual(block(JOBS.evals, "    permissions:"), ["contents: read"]);
   assert.deepEqual(block(JOBS.notes, "    permissions:"), ["contents: read"]);
+  assert.deepEqual(block(JOBS["judge-check"], "    permissions:"), ["contents: read"]);
   assert.deepEqual(block(JOBS.issue, "    permissions:"), ["issues: write"]);
 });
 
@@ -131,10 +139,13 @@ test("every action is pinned to a full commit SHA with a version comment that ch
 
 // ---- the evals job --------------------------------------------------------------------------------------------------------
 
-/** The job's `if:` as GitHub evaluates it, for these event shapes: its expression is plain JavaScript once the ${{ }} is off. */
-function runs(github) {
-  const expr = JOBS.evals.find((l) => l.startsWith("    if: ")).slice(8).replace(/^\$\{\{\s*|\s*\}\}$/g, "");
-  return new Function("github", `return ${expr}`)(github);
+/**
+ * A job's `if:` as GitHub evaluates it, for these event shapes and inputs (none outside a dispatch): its expression is plain JavaScript
+ * once the ${{ }} is off.
+ */
+function runs(github, inputs = {}, job = "evals") {
+  const expr = JOBS[job].find((l) => l.startsWith("    if: ")).slice(8).replace(/^\$\{\{\s*|\s*\}\}$/g, "");
+  return new Function("github", "inputs", `return ${expr}`)(github, inputs);
 }
 
 test("evals runs on schedule, dispatch and same-repo PRs that are not drafts, and skips a push, a draft and a fork", () => {
@@ -146,6 +157,9 @@ test("evals runs on schedule, dispatch and same-repo PRs that are not drafts, an
   assert.equal(runs(pr("someone/undercurrent", false)), false);
   assert.equal(runs({ event_name: "push", event: {} }), false);
   assert.ok(JOBS.evals.join("\n").includes("github.event.pull_request.head.repo.full_name == github.repository"));
+  // a dispatch runs the evals unless it asks for the judge check
+  assert.equal(runs({ event_name: "workflow_dispatch", event: {} }, { task: "evals", model: "" }), true);
+  assert.equal(runs({ event_name: "workflow_dispatch", event: {} }, { task: "judge-check", model: "" }), false);
 });
 
 test("evals gets 20 minutes, one concurrency group per ref that never cancels a run, and uploads the result", () => {
@@ -214,6 +228,27 @@ test("a model input that is not vendor/model fails the step with a fixed message
       return true;
     });
   }
+});
+
+// ---- the judge-check job ------------------------------------------------------------------------------------------------
+
+test("judge-check runs only on a dispatch that asks for it: it checks out, installs and runs the check, with the TypeSafe key alone", () => {
+  const dispatch = { event_name: "workflow_dispatch", event: {} };
+  assert.equal(runs(dispatch, { task: "judge-check", model: "" }, "judge-check"), true);
+  assert.equal(runs(dispatch, { task: "evals", model: "" }, "judge-check"), false);
+  for (const event_name of ["schedule", "pull_request", "push"]) assert.equal(runs({ event_name, event: {} }, {}, "judge-check"), false, event_name);
+  const job = JOBS["judge-check"];
+  assert.ok(job.includes("    timeout-minutes: 10"));
+  const checkout = job.findIndex((l) => l.includes("actions/checkout@"));
+  assert.deepEqual(block(job.slice(checkout), "        with:"), ["persist-credentials: false"]);
+  assert.ok(job.includes("      - run: npm ci"));
+  assert.deepEqual(step("judge-check", "Check the relevance judge").map((l) => l.trim()).filter(Boolean), [
+    "- name: Check the relevance judge",
+    "env:",
+    "TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}",
+    "run: node scripts/ask-langsmith.mjs judge-check",
+  ]);
+  assert.ok(!/LANGSMITH|OPENROUTER/.test(job.join("\n")));
 });
 
 // ---- the issue job --------------------------------------------------------------------------------------------------------

@@ -7,6 +7,7 @@
 //
 //   node scripts/ask-langsmith.mjs run --trigger weekly|manual|pr [--pr N] [--sync] [--commit SHA] [--model ID] [--out FILE]
 //   node scripts/ask-langsmith.mjs notes
+//   node scripts/ask-langsmith.mjs judge-check
 //
 // `run` evaluates the dataset's cases. --sync first makes the dataset match the live cases in tests/ask-eval.json; only runs on main
 // sync, so a PR run evaluates main's cases and refuses --sync. --commit is the commit the run is recorded against (default: HEAD; a PR
@@ -19,6 +20,11 @@
 //
 // `notes` posts each note in tests/ask-eval-notes.json, an array of {experiment, case, note}, as the comment of the `note` feedback on
 // that case's run in that experiment, replacing "Under review". Exit 1 when an entry's experiment, case or note feedback isn't found.
+//
+// `judge-check` runs the relevance judge on the hand-labelled answers in tests/ask-relevance-labels.json and prints, per label, the
+// judge's relevance and unrelated and whether it agrees with the label (THRESHOLDS in scripts/ask-relevance.mjs), then how many agree
+// and the judge's input tokens. It is informational: exit 0 whatever the agreement, 1 when the judge was unavailable for a label, 2
+// without TYPESAFE_API_KEY (the only key it reads, and never prints).
 //
 // The SDK calls used, as langsmith 0.11.0 defines them (node_modules/langsmith/lib/*.d.ts):
 // - evaluate(target, {data, evaluators, experimentPrefix, metadata, maxConcurrency, numRepetitions, client}) from
@@ -53,16 +59,18 @@ import { TOOLS } from "../api/_ask_tools.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
 import { judge } from "./ask-judge.mjs";
 import { groundingProblems } from "./ask-oracle.mjs";
-import { JUDGE_MODEL, judgeRelevance } from "./ask-relevance.mjs";
+import { checkReport, JUDGE_MODEL, judgeCheck, judgeRelevance } from "./ask-relevance.mjs";
 
 const DATASET = "undercurrent-ask";
 const TRIGGERS = ["weekly", "manual", "pr"];
 const DESCRIPTION = "The questions Undercurrent's Ask is evaluated on with the real model, synced from tests/ask-eval.json on main.";
 const CASES = new URL("../tests/ask-eval.json", import.meta.url);
 const NOTES = new URL("../tests/ask-eval-notes.json", import.meta.url);
+const LABELS = new URL("../tests/ask-relevance-labels.json", import.meta.url);
 const USAGE = [
   "Usage: node scripts/ask-langsmith.mjs run --trigger weekly|manual|pr [--pr N] [--sync] [--commit SHA] [--model ID] [--out FILE]",
   "       node scripts/ask-langsmith.mjs notes",
+  "       node scripts/ask-langsmith.mjs judge-check",
 ].join("\n");
 const PROMPT_HASH = createHash("sha256").update(SYSTEM_PROMPT + JSON.stringify(TOOLS)).digest("hex").slice(0, 12);
 const UNAVAILABLE = { ok: false, reason: "unavailable" };
@@ -323,6 +331,7 @@ export function runOptions(args) {
 async function main(argv) {
   const [command, ...rest] = argv;
   if (command === "notes" && !rest.length) return notes();
+  if (command === "judge-check" && !rest.length) return checkTheJudge();
   if (command !== "run") throw usageError(USAGE);
   const opts = runOptions(rest);
   const { Client } = await import("langsmith"); // (loaded here, so the tests never load the SDK)
@@ -342,6 +351,14 @@ async function notes() {
   const { updated, missing } = await backfillNotes(entries, { client: new Client() });
   console.log(`ask-langsmith: ${updated} of ${entries.length} notes posted`);
   if (missing.length) throw new Error(missing.map((e) => `no note to replace for case ${e.case} in ${e.experiment}`).join("\n"));
+}
+
+async function checkTheJudge() {
+  const apiKey = process.env.TYPESAFE_API_KEY;
+  if (!apiKey) throw usageError("TYPESAFE_API_KEY is not set");
+  const result = await judgeCheck(JSON.parse(readFileSync(LABELS, "utf8")), { fetch, apiKey });
+  console.log(checkReport(result));
+  if (result.unavailable) throw new Error(`the judge was unavailable for ${result.unavailable} ${result.unavailable === 1 ? "label" : "labels"}, so the check is incomplete`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

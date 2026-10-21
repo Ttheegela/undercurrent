@@ -1,8 +1,10 @@
 name: Ask evals
 
 # Runs Ask's real-model cases in LangSmith (scripts/ask-langsmith.mjs). Weekly and manual runs on main sync the dataset first; a pull
-# request evaluates main's cases and never syncs. Each secret reaches one step: the one that runs the cases, or the one that posts the notes.
-# A manual run can name another OpenRouter model to run the same cases on, for comparison; the site itself keeps its own model.
+# request evaluates main's cases and never syncs. Secrets reach three steps only: the one that runs the cases, the one that posts the
+# notes, and the judge check.
+# A manual run can name another OpenRouter model to run the same cases on, for comparison; the site itself keeps its own model. A manual
+# run can instead check the relevance judge against its hand labels (task: judge-check), in a job of its own that holds the TypeSafe key alone.
 on:
   schedule:
     - cron: "0 13 * * 1"
@@ -13,6 +15,11 @@ on:
         type: string
         required: false
         default: ""
+      task:
+        description: "What to run: the evals, or the relevance judge's check against its hand labels"
+        type: choice
+        options: [evals, judge-check]
+        default: evals
   pull_request:
     types: [opened, ready_for_review]
     paths:
@@ -30,9 +37,10 @@ on:
 permissions: {}
 
 jobs:
-  # Same-repo pull requests only, and not drafts: a fork gets no secrets, so it is skipped rather than failed.
+  # Same-repo pull requests only, and not drafts: a fork gets no secrets, so it is skipped rather than failed. A dispatch that asks for
+  # the judge check runs that job instead (inputs.task is empty outside a dispatch).
   evals:
-    if: ${{ github.event_name != 'push' && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft)) }}
+    if: ${{ github.event_name != 'push' && inputs.task != 'judge-check' && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -155,3 +163,25 @@ jobs:
         env:
           LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
         run: node scripts/ask-langsmith.mjs notes
+
+  # The relevance judge on the hand-labelled answers in tests/ask-relevance-labels.json, by hand only: one row per label and how many
+  # agree. Informational: disagreements do not fail it. The TypeSafe key alone.
+  judge-check:
+    if: github.event_name == 'workflow_dispatch' && inputs.task == 'judge-check'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Check the relevance judge
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: node scripts/ask-langsmith.mjs judge-check

@@ -1,8 +1,11 @@
-// The relevance judge (scripts/ask-relevance.mjs), with fetch faked: nothing here reaches TypeSafe or the network. The fake answers
+// The relevance judge (scripts/ask-relevance.mjs) and its check against the hand labels in tests/ask-relevance-labels.json, with fetch
+// faked: nothing here reaches TypeSafe or the network. The fake answers
 // in the shape the System One docs give (https://docs.typesafe.ai/api/system-one.md): {model, answers: {<name>: …}, usage}.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { judgeRelevance, QUESTIONS } from "../scripts/ask-relevance.mjs";
+import { readFileSync } from "node:fs";
+import { agrees, checkReport, judgeCheck, judgeRelevance, QUESTIONS, THRESHOLDS } from "../scripts/ask-relevance.mjs";
+import { checkAnswer } from "../api/_ask_check.js";
 
 const KEY = "ts-test-SENTINEL-key-0000";
 const ASKED = {
@@ -145,4 +148,90 @@ test("a judgment that comes back logs nothing", async (t) => {
   const [r, lines] = await logged(t, () => judgeRelevance(ASKED, { fetch: fakeFetch().fetch, apiKey: KEY }));
   assert.ok(r);
   assert.deepEqual(lines, []);
+});
+
+// ---- the judge check ------------------------------------------------------------------------------------------------------
+
+const LABELS = JSON.parse(readFileSync(new URL("./ask-relevance-labels.json", import.meta.url), "utf8"));
+const CASES = JSON.parse(readFileSync(new URL("./ask-eval.json", import.meta.url), "utf8"));
+
+// The owner's questions on the live site (21 Oct 2026) and the sentences Ask answered with, word for word
+const OWNER = [
+  ["How long does it take to list a new semiconductor firm?", "good", ["The median time to list a new chip supplier (US Treasury OFAC) is 20.3 months from founding to OFAC listing, across 25 firms founded after 24 February 2022 (the middle half took 16.1 to 25.8 months)."]],
+  ["how old are the sanctions on dji?", "partial", ["DJI appears on the United States list under Entity List (EL) since 18 Dec 2020.", "SZ DJI Technology Co., Ltd. appears on the United States list under Chinese military companies."]],
+  ["any sanctions on ships which are related to iran?", "partial", ["FORTUNE appears on the United States list under Iran since 20 Apr 2023.", "IRAN PARAK appears on the United States list under Iran since 20 Apr 2023.", "IRAN CHARAK appears on the United States list under Iran since 20 Apr 2023.", "HAYAN appears in OpenSanctions as listed by US."]],
+  ["how many ships have changed their name of their ship?", "bad", ["Across all sources, each hull had a median of 4 names (range 2 to 7)."]],
+  ["please check if there are any companies related to iran in the recent updates!", "bad", ["New bill: H.R.6058 · 21 Oct 2026", "NVIDIA lobbied on H.R.8800 · 20 Oct 2026"]],
+];
+
+test("the labels: well formed, the owner's five live answers word for word, and the rest sentences the checker renders for the recorded cases", () => {
+  const ids = new Set();
+  for (const l of LABELS) {
+    assert.deepEqual(Object.keys(l), ["id", "question", "sentences", "label", "why"], l.id);
+    assert.match(l.id, /^[a-z0-9-]+$/);
+    assert.ok(!ids.has(l.id), `duplicate id ${l.id}`);
+    ids.add(l.id);
+    assert.ok(typeof l.question === "string" && l.question.trim(), l.id);
+    assert.ok(Array.isArray(l.sentences) && l.sentences.length && l.sentences.every((x) => typeof x === "string" && x.trim()), l.id);
+    assert.ok(["good", "partial", "bad"].includes(l.label), l.id);
+    assert.ok(typeof l.why === "string" && l.why.trim(), l.id);
+  }
+  assert.equal(LABELS.length, 12);
+  const owner = LABELS.filter((l) => l.id.startsWith("owner-"));
+  assert.deepEqual(owner.map((l) => [l.question, l.label, l.sentences]), OWNER);
+  const rendered = new Set(CASES.flatMap((c) => checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question }).sentences.map((x) => x.text)));
+  for (const l of LABELS.filter((x) => !x.id.startsWith("owner-"))) for (const x of l.sentences) assert.ok(rendered.has(x), `${l.id}: ${x}`);
+  const count = (label) => LABELS.filter((l) => l.label === label).length;
+  assert.deepEqual([count("good"), count("partial"), count("bad")], [5, 2, 5]);
+});
+
+test("the agreement rule: one exported set of provisional thresholds, applied at its edges", () => {
+  assert.deepEqual(THRESHOLDS, { good: { relevance: 0.67, unrelated: 0.5 }, bad: { relevance: 0.5, unrelated: 0.5 }, partial: { low: 0.33, high: 0.9 } });
+  const at = (relevance, unrelated) => ({ relevance, unrelated });
+  // good: relevance at least 0.67 and unrelated under 0.5
+  assert.deepEqual([at(0.67, 0.49), at(1, 0), at(0.66, 0), at(1, 0.5)].map((r) => agrees("good", r)), [true, true, false, false]);
+  // bad: relevance under 0.5, or unrelated at least 0.5
+  assert.deepEqual([at(0.49, 0), at(1, 0.5), at(0.5, 0.49), at(1, 0)].map((r) => agrees("bad", r)), [true, true, false, false]);
+  // partial: 0.33 up to, not including, 0.9; unrelated does not count
+  assert.deepEqual([at(0.33, 0.9), at(0.89, 0), at(0.32, 0), at(0.9, 0)].map((r) => agrees("partial", r)), [true, true, false, false]);
+});
+
+test("judgeCheck judges every label on its question and sentences alone, and reports each verdict, the agreements and the tokens", async (t) => {
+  t.mock.method(console, "error", () => {}); // (the label the judge fails on logs its fixed line)
+  const labels = [
+    { id: "a-good", question: "Q1?", sentences: ["S1."], label: "good", why: "w" },
+    { id: "b-bad", question: "Q2?", sentences: ["S2.", "S3."], label: "bad", why: "w" },
+    { id: "c-partial", question: "Q3?", sentences: ["S4."], label: "partial", why: "w" },
+    { id: "d-good", question: "Q4?", sentences: ["S5."], label: "good", why: "w" },
+  ];
+  const verdicts = { "Q1?": [3, 0.05], "Q2?": [3, 0.1], "Q3?": [1.5, 0.3] }; // Q4? fails
+  const requests = [];
+  const fetch = async (url, init) => {
+    const body = JSON.parse(init.body);
+    requests.push(body.state);
+    const v = verdicts[body.state.question];
+    if (!v) return new Response("{}", { status: 500 });
+    return Response.json({ ...BODY, answers: { addresses: { ...BODY.answers.addresses, score: v[0] }, unrelated: { type: "noul", noul: v[1] } } });
+  };
+  const result = await judgeCheck(labels, { fetch, apiKey: KEY });
+  assert.deepEqual(requests, labels.map((l) => ({ question: l.question, answer: l.sentences, sources: [] })));
+  assert.deepEqual(result, {
+    rows: [
+      { id: "a-good", label: "good", relevance: 1, unrelated: 0.05, verdict: "agree" },
+      { id: "b-bad", label: "bad", relevance: 1, unrelated: 0.1, verdict: "disagree" },
+      { id: "c-partial", label: "partial", relevance: 0.5, unrelated: 0.3, verdict: "agree" },
+      { id: "d-good", label: "good", relevance: null, unrelated: null, verdict: "unavailable" },
+    ],
+    agreed: 2, unavailable: 1, total: 4, input_tokens: 3 * 412, judge_models: ["jev-1.13.0"],
+  });
+  assert.equal(checkReport(result), [
+    "id         label    relevance  unrelated  verdict",
+    "a-good     good     1.00       0.05       agree",
+    "b-bad      bad      1.00       0.10       disagree",
+    "c-partial  partial  0.50       0.30       agree",
+    "d-good     good     -          -          unavailable",
+    "",
+    "2 of 4 agree, 1 unavailable. Judge input tokens: 1236 (jev-1.13.0).",
+  ].join("\n"));
+  assert.match(checkReport({ ...result, unavailable: 0 }), /\n2 of 4 agree\. Judge input tokens: 1236 \(jev-1\.13\.0\)\.$/);
 });

@@ -64,3 +64,51 @@ export async function judgeRelevance({ question, sentences, sources }, { fetch, 
     clearTimeout(timer);
   }
 }
+
+// ---- the judge check: does the judge agree with hand labels? -------------------------------------------------------------
+
+/** When a judgment agrees with a hand label (good, partial or bad). Provisional: to be tuned once the check has run. */
+export const THRESHOLDS = {
+  good: { relevance: 0.67, unrelated: 0.5 }, // relevance at least 0.67 and unrelated under 0.5
+  bad: { relevance: 0.5, unrelated: 0.5 }, // relevance under 0.5, or unrelated at least 0.5
+  partial: { low: 0.33, high: 0.9 }, // relevance from 0.33 up to, not including, 0.9
+};
+const RULES = {
+  good: (r, t) => r.relevance >= t.relevance && r.unrelated < t.unrelated,
+  bad: (r, t) => r.relevance < t.relevance || r.unrelated >= t.unrelated,
+  partial: (r, t) => r.relevance >= t.low && r.relevance < t.high,
+};
+export const agrees = (label, r) => RULES[label](r, THRESHOLDS[label]);
+
+/**
+ * Runs the judge on each hand-labelled answer, {id, question, sentences, label, why}, one at a time. A label carries no source
+ * labels, so the judge gets none. Resolves to {rows: [{id, label, relevance, unrelated, verdict: agree|disagree|unavailable}],
+ * agreed, unavailable, total, input_tokens, judge_models}.
+ */
+export async function judgeCheck(labels, { fetch, apiKey }) {
+  const rows = [];
+  const models = new Set();
+  let tokens = 0;
+  for (const l of labels) {
+    const r = await judgeRelevance({ question: l.question, sentences: l.sentences, sources: [] }, { fetch, apiKey });
+    if (r) {
+      tokens += r.input_tokens;
+      models.add(r.judge_model);
+    }
+    rows.push({ id: l.id, label: l.label, relevance: r?.relevance ?? null, unrelated: r?.unrelated ?? null, verdict: !r ? "unavailable" : agrees(l.label, r) ? "agree" : "disagree" });
+  }
+  const n = (verdict) => rows.filter((r) => r.verdict === verdict).length;
+  return { rows, agreed: n("agree"), unavailable: n("unavailable"), total: rows.length, input_tokens: tokens, judge_models: [...models] };
+}
+
+/** The check as plain text: one row per label, then how many agree and what the judge read. */
+export function checkReport({ rows, agreed, unavailable, total, input_tokens, judge_models }) {
+  const cell = (x) => (x === null ? "-" : x.toFixed(2));
+  const table = [["id", "label", "relevance", "unrelated", "verdict"], ...rows.map((r) => [r.id, r.label, cell(r.relevance), cell(r.unrelated), r.verdict])];
+  const width = table[0].map((_, i) => Math.max(...table.map((row) => row[i].length)));
+  return [
+    ...table.map((row) => row.map((c, i) => c.padEnd(width[i])).join("  ").trimEnd()),
+    "",
+    `${agreed} of ${total} agree${unavailable ? `, ${unavailable} unavailable` : ""}. Judge input tokens: ${input_tokens}${judge_models.length ? ` (${judge_models.join(", ")})` : ""}.`,
+  ].join("\n");
+}

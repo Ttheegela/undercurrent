@@ -3,9 +3,12 @@
 // the runner's header): processInputs when the call starts, the payload serialized only at the end, and a promise for every call.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { backfillNotes, runEvals, runOptions, summary, syncDataset } from "../scripts/ask-langsmith.mjs";
 import { MODEL, runAsk } from "../api/ask.js";
 import { checkAnswer } from "../api/_ask_check.js";
@@ -553,4 +556,69 @@ test("notes replaces the Under-review comment on the matching run only, and repo
     await assert.rejects(backfillNotes([entries[0], bad], { client }), /each note needs an experiment, a case and a note/);
   }
   assert.equal(calls.length, before);
+});
+
+// ---- judge-check ----------------------------------------------------------------------------------------------------------
+
+const RUNNER = new URL("../scripts/ask-langsmith.mjs", import.meta.url).pathname;
+const LABELS = JSON.parse(readFileSync(new URL("./ask-relevance-labels.json", import.meta.url), "utf8"));
+
+/**
+ * Runs `judge-check` as the workflow does, with fetch replaced (through --import) by a fake System One that logs each request and
+ * judges every answer fully relevant except those to "Is TASSOS sanctioned?" (not at all), and fails with HTTP 500 for `fail`.
+ */
+function judgeCheckRun(env, fail = "") {
+  const dir = mkdtempSync(join(tmpdir(), "judge-check-"));
+  const stub = join(dir, "fetch.mjs");
+  writeFileSync(stub, `import { appendFileSync } from "node:fs";
+globalThis.fetch = async (url, init) => {
+  const body = JSON.parse(init.body);
+  appendFileSync(${JSON.stringify(join(dir, "requests"))}, JSON.stringify({ url, auth: init.headers.Authorization, state: body.state }) + "\\n");
+  if (body.state.question === ${JSON.stringify(fail)}) return new Response("{}", { status: 500 });
+  const score = body.state.question === "Is TASSOS sanctioned?" ? 0 : 3;
+  return Response.json({ model: "jev-1.13.0", answers: { addresses: { type: "score", score, confidence: 0.9, probabilities: {}, legend: {} }, unrelated: { type: "noul", noul: 0.1 } }, usage: { input_tokens: 100, output_tokens: 5 } });
+};
+`);
+  const r = spawnSync(process.execPath, ["--import", pathToFileURL(stub).href, RUNNER, "judge-check"], { encoding: "utf8", env: { PATH: process.env.PATH, ...env } });
+  let requests = [];
+  try { requests = readFileSync(join(dir, "requests"), "utf8").trim().split("\n").map((l) => JSON.parse(l)); } catch {}
+  return { ...r, requests };
+}
+
+test("judge-check without TYPESAFE_API_KEY exits 2 before anything is fetched", () => {
+  for (const env of [{}, { TYPESAFE_API_KEY: "" }]) {
+    const r = judgeCheckRun(env);
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /^TYPESAFE_API_KEY is not set$/m);
+    assert.deepEqual(r.requests, []);
+  }
+  const extra = spawnSync(process.execPath, [RUNNER, "judge-check", "--now"], { encoding: "utf8", env: { PATH: process.env.PATH } });
+  assert.equal(extra.status, 2);
+  assert.match(extra.stderr, /node scripts\/ask-langsmith\.mjs judge-check/);
+});
+
+test("judge-check judges every label, prints a row each and the agreements, and exits 0 even where the judge disagrees", () => {
+  const r = judgeCheckRun({ TYPESAFE_API_KEY: "ts-test" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(r.requests.map((q) => [q.url, q.auth, q.state]), LABELS.map((l) => ["https://api.typesafe.ai/v1/systemone", "Bearer ts-test", { question: l.question, answer: l.sentences, sources: [] }]));
+  const lines = r.stdout.trim().split("\n");
+  assert.match(lines[0], /^id +label +relevance +unrelated +verdict$/);
+  const rows = Object.fromEntries(lines.slice(1, 1 + LABELS.length).map((l) => l.split(/ +/)).map(([id, ...rest]) => [id, rest]));
+  assert.deepEqual(Object.keys(rows), LABELS.map((l) => l.id));
+  assert.deepEqual(rows["owner-chips-lag"], ["good", "1.00", "0.10", "agree"]);
+  assert.deepEqual(rows["tassos-listed"], ["good", "0.00", "0.10", "disagree"]);
+  assert.deepEqual(rows["tassos-lobbying"], ["bad", "0.00", "0.10", "agree"]);
+  assert.deepEqual(rows["owner-dji-age"], ["partial", "1.00", "0.10", "disagree"]);
+  assert.equal(lines.at(-1), "5 of 12 agree. Judge input tokens: 1200 (jev-1.13.0).");
+  assert.ok(!(r.stdout + r.stderr).includes("ts-test"));
+});
+
+test("judge-check exits 1 when the judge was unavailable for a label, after printing the rest", () => {
+  const r = judgeCheckRun({ TYPESAFE_API_KEY: "ts-test" }, "Who manages TASSOS?");
+  assert.equal(r.status, 1);
+  assert.equal(r.requests.length, LABELS.length);
+  assert.match(r.stdout, /^tassos-manager +good +- +- +unavailable$/m);
+  assert.match(r.stdout, /\n4 of 12 agree, 1 unavailable\. Judge input tokens: 1100 \(jev-1\.13\.0\)\.\n$/);
+  assert.match(r.stderr, /ask-relevance: judge unavailable/);
+  assert.match(r.stderr, /the judge was unavailable for 1 label, so the check is incomplete/);
 });

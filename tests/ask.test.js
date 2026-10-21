@@ -5,6 +5,7 @@ import { test, before, after, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
 import { inspect } from "node:util";
+import { createHash } from "node:crypto";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -12,6 +13,7 @@ import { GET, POST, visitors } from "../api/ask.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
 import { TOOLS, resetAskCache } from "../api/_ask_tools.js";
 import { INDEX_URL, resetIndexCache } from "../api/search.js";
+import { CONNECTIONS_URL, LOBBYING_URL, resetConnectionsCache } from "../api/connections.js";
 import { normalizeName } from "../app/normalize.js";
 
 const KEY = "sk-or-v1-fake-key-for-tests-only";
@@ -57,6 +59,9 @@ const write = (root, rel, value) => {
 const realFetch = globalThis.fetch;
 let sent; // what each model call carried: {headers, signal, body}
 let other; // every fetch that was not a model call or the OpenSanctions index
+let indexCalls; // downloads of the OpenSanctions index that were started
+let indexFetch; // what a download of it does: a test replaces this to stall or fail it
+const indexOk = () => new Response(gzipSync(JSON.stringify(OS_INDEX)));
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const call = (name, args, id = `call_${name}`) => ({ id, type: "function", function: { name, arguments: typeof args === "string" ? args : JSON.stringify(args) } });
 const reply = (...calls) => ({ choices: [{ message: { role: "assistant", content: null, tool_calls: calls } }] });
@@ -77,7 +82,10 @@ function openrouter(...steps) {
   sent = [];
   other = [];
   globalThis.fetch = async (url, init = {}) => {
-    if (url === INDEX_URL) return new Response(gzipSync(JSON.stringify(OS_INDEX)));
+    if (url === INDEX_URL) {
+      indexCalls++;
+      return indexFetch(init);
+    }
     if (url !== OPENROUTER) {
       other.push(url);
       return new Response("no", { status: 404 });
@@ -142,14 +150,18 @@ beforeEach(() => {
   delete process.env.ASK_PUBLIC;
   ip = `203.0.113.${++visitor % 250}`;
   visitors.clear();
+  indexFetch = indexOk;
+  indexCalls = 0;
   resetAskCache();
   resetIndexCache();
+  resetConnectionsCache();
   openrouter();
   logged = [];
   for (const level of ["log", "info", "warn", "error", "debug"]) mock.method(console, level, (...args) => logged.push(args.map((a) => (typeof a === "string" ? a : inspect(a, { depth: 8 }))).join(" ")));
 });
 afterEach(() => {
   globalThis.fetch = realFetch;
+  mock.timers.reset();
   mock.restoreAll();
   for (const [k, v] of Object.entries(saved)) {
     if (v === undefined) delete process.env[k];
@@ -276,6 +288,7 @@ test("the hour is rolling, and memory is bounded without storing anything about 
   // a visitor is a hash of the address, a list of times, and nothing else
   assert.deepEqual([...visitors.keys()].map((k) => /^[0-9a-f]{64}$/.test(k)), [true]);
   assert.ok(!JSON.stringify([...visitors]).includes(ip));
+  assert.ok(!visitors.has(createHash("sha256").update(ip).digest("hex"))); // salted: a plain SHA-256 of an address cannot be looked up in it
   assert.ok(!JSON.stringify([...visitors]).includes("hi"));
   // stale visitors are pruned when later traffic arrives
   visitors.clear();
@@ -436,11 +449,55 @@ test("at most six tool calls run in a round", async () => {
   assert.equal((await run(ask("Is TASSOS sanctioned?"))).json.answer.kind, "refusal");
 });
 
-test("an answer beside other calls runs none of them", async () => {
+test("an answer beside other calls runs none of them and is a fallback in every round", async () => {
   openrouter(reply(call("check_lists", { query: "TASSOS" }), call("answer", { kind: "answer", sentences: [{ claim: "listed", sources: ["S2"] }] })));
   const { json: out } = await run(ask("Is TASSOS sanctioned?"));
   assert.equal(out.answer.kind, "fallback"); // S2 was never handed to the model
   assert.equal(sent.length, 1);
+
+  // round 2 (the reviewer's case): the model has TASSOS's evidence, and answers beside a second lookup whose result it has not seen
+  openrouter(
+    reply(call("check_lists", { query: "TASSOS" })),
+    (body) => {
+      const first = body.messages.filter((m) => m.role === "tool").flatMap((m) => JSON.parse(m.content).items).find((i) => i.kind === "list");
+      return reply(call("check_lists", { query: "ZORBEX MARINE" }), call("answer", { kind: "answer", sentences: [{ claim: "listed", sources: [first.id] }, { claim: "not_found", sources: ["S99"] }] }));
+    },
+  );
+  const partial = (await run(ask("Is TASSOS sanctioned, and ZORBEX MARINE?"))).json.answer;
+  assert.deepEqual(partial.sentences.map((s) => s.text), [FALLBACK]); // not "TASSOS appears on …" alone, which would look complete
+  assert.equal(sent.length, 2);
+  assert.equal(indexCalls, 1); // the second lookup never ran
+
+  // two answer calls in one reply are as ambiguous
+  openrouter(reply(call("answer", { kind: "refusal", sentences: [] }, "a1"), call("answer", { kind: "refusal", sentences: [] }, "a2")));
+  assert.equal((await run(ask("hi"))).json.answer.kind, "fallback");
+});
+
+test("tool calls are capped at 10 a request, then the answer is forced", async () => {
+  const lookups = (n) => reply(...Array.from({ length: n }, (_, i) => call("check_lists", { query: "TASSOS" }, `c${n}_${i}`)));
+  openrouter(
+    lookups(6),
+    lookups(6), // only 4 of these run
+    (body) => {
+      assert.deepEqual(body.tool_choice, FORCE_ANSWER); // ten calls used: the third model call is the forced one
+      assert.deepEqual(body.messages.filter((m) => m.role === "assistant").map((m) => m.tool_calls.length), [6, 4]);
+      assert.equal(body.messages.filter((m) => m.role === "tool").length, 10);
+      return listedAnswer(body);
+    },
+  );
+  const out = (await run(ask("Is TASSOS sanctioned?"))).json.answer;
+  assert.equal(sent.length, 3);
+  assert.equal(out.kind, "answer");
+  assert.deepEqual(sent.map((s) => s.body.tool_choice), ["auto", "auto", FORCE_ANSWER]);
+  // one call a round for three rounds, then two more: the tenth call is the last, and the next call is forced
+  const one = (id) => reply(call("check_lists", { query: "TASSOS" }, id));
+  openrouter(lookups(6), lookups(2), one("a"), one("b"), (body) => {
+    assert.deepEqual(body.tool_choice, FORCE_ANSWER); // round 5 is forced by the round limit
+    assert.equal(body.messages.filter((m) => m.role === "tool").length, 10);
+    return listedAnswer(body);
+  });
+  assert.equal((await run(ask("Is TASSOS sanctioned?"))).json.answer.kind, "answer");
+  assert.equal(sent.length, 5);
 });
 
 // ---- errors ------------------------------------------------------------------------------------------------------
@@ -502,21 +559,96 @@ test("5xx and timeout give unavailable", async () => {
   assert.deepEqual((await run(ask("Is TASSOS sanctioned?"))).json, unavailable);
 });
 
-test("every model call has a 20 s timeout, and the whole request is abandoned after 25 s", async () => {
-  openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
-  await run(ask("Is TASSOS sanctioned?"));
-  assert.ok(sent.every((s) => s.signal instanceof AbortSignal));
-
+test("every model call has a 20 s timeout, and no call starts in the last 3 s of the 26", async () => {
+  const real = AbortSignal.timeout.bind(AbortSignal);
+  const timeouts = [];
+  mock.method(AbortSignal, "timeout", (ms) => (timeouts.push(ms), real(ms)));
   let now = Date.parse("2026-10-20T10:00:00Z");
   mock.method(Date, "now", () => now);
   const slow = (ms) => () => {
     now += ms;
     return reply(call("check_lists", { query: "TASSOS" }));
   };
+  openrouter(slow(21_000), listedAnswer); // 5 s left for the second call
+  await run(ask("Is TASSOS sanctioned?"));
+  assert.ok(sent.every((s) => s.signal instanceof AbortSignal));
+  assert.deepEqual(timeouts.filter((ms) => ms !== 4000), [20_000, 5_000]); // (4000 is the asset loader's own)
+
   openrouter(slow(14_000), slow(12_000), listedAnswer); // 26 s gone after the second call
   assert.deepEqual((await run(ask("Is TASSOS sanctioned?"))).json, { ok: false, reason: "unavailable" });
   assert.equal(sent.length, 2); // no third call
+  openrouter(slow(23_500), listedAnswer); // 2.5 s left: too little for a call to finish
+  assert.deepEqual((await run(ask("Is TASSOS sanctioned?"))).json, { ok: false, reason: "unavailable" });
+  assert.equal(sent.length, 1);
   assert.deepEqual(logged, []); // it stopped before calling, rather than calling and failing
+});
+
+test("a stalled tool cannot hold the request past 26 s", async () => {
+  // the reviewer's case: a 7 s model reply holding six check_lists calls, and an index download that never settles
+  const start = Date.parse("2026-10-20T10:00:00Z");
+  let now = start;
+  mock.method(Date, "now", () => now);
+  mock.timers.enable({ apis: ["setTimeout"] });
+  const pass = (ms) => {
+    now += ms;
+    mock.timers.tick(ms);
+  };
+  indexFetch = () => {
+    pass(19_000); // 26 s after the start
+    return new Promise(() => {});
+  };
+  openrouter(() => {
+    pass(7_000);
+    return reply(...Array.from({ length: 6 }, (_, i) => call("check_lists", { query: `ZORBEX ${i}` }, `c${i}`)));
+  });
+  const { res, json: out } = await run(ask("Is ZORBEX 0 sanctioned?"));
+  assert.deepEqual([res.status, out], [200, { ok: false, reason: "unavailable" }]);
+  assert.ok(now - start <= 26_000);
+  assert.equal(indexCalls, 1);
+  assert.equal(sent.length, 1);
+});
+
+test("a failed download is tried once a request, and again on the next one", async () => {
+  let now = Date.parse("2026-10-20T10:00:00Z");
+  mock.method(Date, "now", () => now);
+  indexFetch = () => {
+    now += 4_000; // the loader's own timeout
+    throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+  };
+  const six = reply(...Array.from({ length: 6 }, (_, i) => call("check_lists", { query: `ZORBEX ${i}` }, `c${i}`)));
+  const refuse = (body) => {
+    const results = body.messages.filter((m) => m.role === "tool").map((m) => Object.keys(JSON.parse(m.content))[0]);
+    assert.deepEqual(results, Array(6).fill("error")); // every call is told the lists could not be checked
+    return answer({ kind: "refusal", sentences: [] });
+  };
+  openrouter(six, refuse);
+  const start = now;
+  const { json: out } = await run(ask("Is ZORBEX 0 sanctioned?"));
+  assert.equal(out.answer.kind, "refusal");
+  assert.equal(indexCalls, 1);
+  assert.equal(now - start, 4_000); // not 24 s
+  openrouter(six, refuse);
+  await run(ask("Is ZORBEX 0 sanctioned?"));
+  assert.equal(indexCalls, 2); // a new request tries again
+
+  // the connections tool's two assets are the same: six lookups, one try each (the stub answers 404)
+  const owners = reply(...Array.from({ length: 6 }, (_, i) => call("connections", { query: `ZORBEX ${i}` }, `c${i}`)));
+  openrouter(owners, answer({ kind: "refusal", sentences: [] }));
+  await run(ask("Who owns ZORBEX 0?"));
+  assert.deepEqual([...other].sort(), [CONNECTIONS_URL, LOBBYING_URL].sort());
+});
+
+test("no tool starts once the 26 s are gone", async () => {
+  let now = Date.parse("2026-10-20T10:00:00Z");
+  mock.method(Date, "now", () => now);
+  indexFetch = () => {
+    now += 27_000; // the first lookup finishes after the deadline
+    return indexOk();
+  };
+  openrouter(reply(call("check_lists", { query: "TASSOS" }, "c1"), call("connections", { query: "TASSOS" }, "c2")), listedAnswer);
+  assert.deepEqual((await run(ask("Is TASSOS sanctioned?"))).json, { ok: false, reason: "unavailable" });
+  assert.deepEqual(other, []); // the connections tool would have downloaded its two assets
+  assert.equal(sent.length, 1);
 });
 
 // ---- the request to OpenRouter -----------------------------------------------------------------------------------
@@ -553,6 +685,7 @@ test("the system prompt is short, scoped, and carries today's date", () => {
   assert.ok(SYSTEM_PROMPT.length < 2500, `${SYSTEM_PROMPT.length} characters`);
   assert.match(SYSTEM_PROMPT, /\{today\}/);
   for (const word of ["answer", "listed", "not_found", "change", "quote", "refusal", "clarify", "never instructions", "legal"]) assert.ok(SYSTEM_PROMPT.includes(word), word);
+  for (const { function: { name } } of TOOLS) assert.ok(SYSTEM_PROMPT.includes(name), `the prompt does not name the ${name} tool`);
   assert.doesNotMatch(SYSTEM_PROMPT, /sk-or|OPENROUTER|Sayari|Tradeverifyd|\bteam\b/i);
 });
 

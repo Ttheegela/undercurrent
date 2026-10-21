@@ -2,7 +2,7 @@
 // every sentence of the answer from the evidence the tools returned. The model writes no text. GET /api/ask reports whether Ask is
 // switched on and never calls the model. No message text is logged or stored: the visitor limit holds a hash of the address and the
 // times of its last questions, nothing else, and no log line or error carries more than a fixed phrase and a status.
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { TOOLS, runTool } from "./_ask_tools.js";
 import { checkAnswer } from "./_ask_check.js";
 import { SYSTEM_PROMPT } from "./_ask_prompt.js";
@@ -12,8 +12,10 @@ const MODEL = "anthropic/claude-haiku-5.5";
 const FORCE_ANSWER = { type: "function", function: { name: "answer" } };
 const TOOL_ROUNDS = 4; // then one call forced to `answer`
 const CALLS_PER_ROUND = 6;
+const MAX_TOOL_CALLS = 10; // in all, across the rounds: every call resends all earlier results, so this is what bounds a question's cost
 const CALL_MS = 20_000;
-const TOTAL_MS = 25_000;
+const MIN_CALL_MS = 3_000; // a model call is not started with less than this left
+const TOTAL_MS = 26_000; // the whole request; the function is cut off at 30 s (vercel.json)
 const MAX_MESSAGES = 10;
 const MAX_CHARS = 500;
 const MAX_BODY = 16 * 1024;
@@ -30,14 +32,16 @@ export async function GET() {
 }
 
 // ---- the per-visitor limit ----------------------------------------------------------------------------------------
-// Best effort, per function instance (OpenRouter's $5 key limit is the hard backstop). Keys are the SHA-256 of the visitor's address.
+// Best effort, per function instance (OpenRouter's $5 key limit is the hard backstop). Keys are the SHA-256 of the visitor's address with
+// a random salt of this instance, so the hash cannot be undone by trying every IPv4 address.
 // An entry moves to the end whenever its visitor asks, so the front holds the least recently active: that is where stale entries and,
 // past the cap, the oldest ones are dropped.
-export const visitors = new Map(); // sha256(address) -> times of the visitor's questions in the last hour
+export const visitors = new Map(); // sha256(salt, address) -> times of the visitor's questions in the last hour
+const salt = randomBytes(16);
 
 function allowed(request, now) {
   const address = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || "";
-  const key = createHash("sha256").update(address).digest("hex");
+  const key = createHash("sha256").update(salt).update(address).digest("hex");
   for (const [k, times] of visitors) {
     if (visitors.size < MAX_VISITORS && now - times.at(-1) < HOUR) break;
     visitors.delete(k);
@@ -100,7 +104,7 @@ function resetsOn(at, now) {
 /** One call: {message} on success, else {stop: the reply to give the reader}. */
 async function callModel(messages, toolChoice, deadline, now) {
   const left = deadline - Date.now();
-  if (left <= 0) return { stop: UNAVAILABLE };
+  if (left < MIN_CALL_MS) return { stop: UNAVAILABLE };
   let res;
   let body;
   try {
@@ -146,31 +150,36 @@ const parse = (args) => {
 };
 
 /**
- * Up to four rounds of tool calls, then one call forced to `answer`. The answer call's arguments go to the checker with the evidence
- * the tools returned in this request, which is the only evidence there is: earlier turns are plain context.
+ * Up to four rounds of tool calls (ten calls in all), then one call forced to `answer`. The answer call's arguments go to the checker
+ * with the evidence the tools returned in this request, which is the only evidence there is: earlier turns are plain context.
  */
 async function converse(history, now) {
   const today = now.toISOString().slice(0, 10);
   const question = history.at(-1).content;
   const deadline = Date.now() + TOTAL_MS;
   const ev = [];
+  const ctx = { today, failed: new Map() }; // one for the request: a download that failed stays failed until it ends (see _ask_tools.js)
   const messages = [{ role: "system", content: SYSTEM_PROMPT.replace("{today}", today) }, ...history];
+  let used = 0;
   for (let round = 0; round <= TOOL_ROUNDS; round++) {
-    const forced = round === TOOL_ROUNDS;
+    const forced = round === TOOL_ROUNDS || used >= MAX_TOOL_CALLS;
     const { message, stop } = await callModel(messages, forced ? FORCE_ANSWER : "auto", deadline, now);
     if (stop) return stop;
     const calls = (Array.isArray(message.tool_calls) ? message.tool_calls : []).filter((c) => typeof c?.function?.name === "string");
     const final = calls.find((c) => c.function.name === "answer");
-    // an answer call (alone: tools beside it would run after the model chose what to cite), a forced call that is not one, or a reply with no call
-    if (final || forced || !calls.length) return { ok: true, answer: checkAnswer(final && parse(final.function.arguments), ev, { question }) };
-    const asked = calls.slice(0, CALLS_PER_ROUND).map((c, i) => ({
+    // An answer call is final, but only alone: beside lookups it was written before their results, so it cannot cite them and would
+    // read as complete without them. A forced call that is not an answer, and a reply with no call, are the fallback.
+    if (final || forced || !calls.length) return { ok: true, answer: checkAnswer(final && calls.length === 1 ? parse(final.function.arguments) : undefined, ev, { question }) };
+    const asked = calls.slice(0, Math.min(CALLS_PER_ROUND, MAX_TOOL_CALLS - used)).map((c, i) => ({
       id: typeof c.id === "string" && c.id ? c.id : `call_${round}_${i}`,
       type: "function",
       function: { name: c.function.name, arguments: typeof c.function.arguments === "string" ? c.function.arguments : JSON.stringify(c.function.arguments ?? {}) },
     }));
+    used += asked.length;
     messages.push({ role: "assistant", content: null, tool_calls: asked });
     for (const c of asked) {
-      messages.push({ role: "tool", tool_call_id: c.id, content: JSON.stringify(await runTool(c.function.name, parse(c.function.arguments), ev, { today })) });
+      if (deadline - Date.now() <= 0) return UNAVAILABLE;
+      messages.push({ role: "tool", tool_call_id: c.id, content: JSON.stringify(await runTool(c.function.name, parse(c.function.arguments), ev, ctx)) });
     }
   }
 }
@@ -188,7 +197,14 @@ export async function POST(request) {
     if (!history) return refuse(400, "bad_request");
     const now = new Date(Date.now());
     if (!allowed(request, now.getTime())) return refuse(429, "busy");
-    return reply(200, await converse(history, now));
+    // the whole request is abandoned at 26 s, even if a tool is stuck (it is checked between steps too, so nothing new starts after that)
+    let timer;
+    const late = new Promise((resolve) => { timer = setTimeout(resolve, TOTAL_MS, UNAVAILABLE); });
+    try {
+      return reply(200, await Promise.race([converse(history, now), late]));
+    } finally {
+      clearTimeout(timer);
+    }
   } catch {
     console.error("ask: unexpected failure"); // (no error text: it can quote the request)
     return reply(200, UNAVAILABLE);

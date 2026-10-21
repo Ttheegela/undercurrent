@@ -49,6 +49,19 @@ export function siteVocabulary() {
   return vocab;
 }
 
+// An asset that failed to download stays failed for the rest of a request, when the caller passes `ctx.failed` (a Map it makes per
+// request): six lookups then wait for one 4 s timeout, not six. A later request tries again. (The shared loader keeps no failure when
+// it has no copy to serve; /api/search and /api/connections rely on that.)
+async function loaded(ctx, name, load) {
+  if (ctx.failed?.has(name)) throw ctx.failed.get(name);
+  try {
+    return await load();
+  } catch (err) {
+    ctx.failed?.set(name, err);
+    throw err;
+  }
+}
+
 // ---- small helpers --------------------------------------------------------------------------------------------
 
 const fail = (error) => ({ error });
@@ -376,7 +389,7 @@ function osEntity(entities, url) {
   return osIds.get(entities).get(decodeURIComponent(/\/entities\/([^/]+)\/$/.exec(url)?.[1] ?? ""));
 }
 
-async function checkLists(args, ev) {
+async function checkLists(args, ev, ctx = {}) {
   const query = textArg(args.query);
   if (!query) return fail("query must be a bare name or a bare IMO number of 2 to 200 characters");
   const variants = queryVariants(query);
@@ -389,7 +402,7 @@ async function checkLists(args, ev) {
   const doc = (id) => data(`data/lists/${id}.json`);
   let entities = [];
   try {
-    entities = await loadIndex();
+    entities = await loaded(ctx, "opensanctions", loadIndex);
   } catch {
     down.add("OpenSanctions");
   }
@@ -681,13 +694,13 @@ function lobbyItems(res, lob, who) {
   return items;
 }
 
-async function connectionsTool(args, ev) {
+async function connectionsTool(args, ev, ctx = {}) {
   const query = textArg(args.query);
   if (!query) return fail("query must be a name or IMO number of 2 to 200 characters");
   const imo = parseImo(query) ?? [...query.matchAll(IMO_IN)][0]?.[1] ?? null; // an IMO number inside the query counts
   const name = imo ? "" : bareWords(query).join(" ") || query;
   if (!imo && !normalizeName(query)) return fail("query has no Latin letters to match; write the name in Latin letters");
-  const [g, l] = await Promise.allSettled([loadGraph(), loadLobby()]);
+  const [g, l] = await Promise.allSettled([loaded(ctx, "connections", loadGraph), loaded(ctx, "lobbying", loadLobby)]);
   const safe = (settled, fn) => {
     if (settled.status !== "fulfilled") return null;
     try { return fn(settled.value); } catch { return null; }

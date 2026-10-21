@@ -11,18 +11,10 @@ import { createServer } from "node:http";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { checkAnswer } from "../api/_ask_check.js";
-import { LIST_LABELS, formatDate } from "../app/render.js";
+import { groundingProblems, REFUSAL, FALLBACK, CLARIFY, NOT_ADVICE } from "../scripts/ask-oracle.mjs";
 
 const CASES = JSON.parse(readFileSync(new URL("./ask-eval.json", import.meta.url), "utf8"));
 const SCRIPT = fileURLToPath(new URL("../scripts/ask-live-eval.mjs", import.meta.url));
-
-const REFUSAL = "I can only answer questions about what's on Undercurrent: sanctions lists, ship and company connections, lobbying, the semiconductor data, the research and the daily updates. I can't give legal or compliance advice.";
-const FALLBACK = "I couldn't check an answer to that against the site's data, so I won't guess. Try the search on the home page.";
-const CLARIFY = "Which of these did you mean?";
-const PARTIAL = "I could only answer part of the question. Ask about each name on its own to check the rest.";
-const NOT_ADVICE = "Ask can't give legal or compliance advice. These are records from the site, each with its source.";
-const FIXED = new Set([REFUSAL, FALLBACK, CLARIFY, PARTIAL, NOT_ADVICE]); // fixed copy: written by the server, so it has no source
-const NOT_FOUND = /^(.+) is not on the lists we check \(US, UK, EU, UN, OpenSanctions\)\. Not being found isn't proof\.$/;
 
 // the least a case must cover: the owner's four fears, one case per data area, and the probes
 const MINIMUM = {
@@ -76,75 +68,7 @@ test("every case is well formed, and its evidence is the tools' own S1, S2, … 
 
 // ---- the invariant: no sentence the model chose the words of, and every sentence has its source ----------------------------------
 
-const day = (iso) => formatDate(iso) || iso;
-const clean = (s) => s.normalize("NFKC").replace(/[\p{Cf}\p{M}\uFEFF]/gu, "").replace(/\s+/g, " ").toLowerCase();
-
-/**
- * Every sentence the checker may write for this evidence, from its fixed copy and the evidence alone, and which items can have produced
- * it: text -> Set of evidence items. A quote comes from the items that hold it, a claim from the items it is built from.
- */
-function producers(ev) {
-  const made = new Map();
-  const add = (text, e) => made.set(text, (made.get(text) ?? new Set()).add(e));
-  for (const e of ev) {
-    for (const q of e.quotes) add(q, e);
-    const since = e.date ? ` since ${day(e.date)}` : "";
-    if (e.kind === "opensanctions") add(`${e.entity.name} appears in OpenSanctions${e.program ? ` as listed by ${e.program}` : ""}${since}.`, e);
-    if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted) add(`${e.entity.name} appears on the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}${since}.`, e);
-    if (e.kind === "change" && e.before_start) add(`Daily updates started on ${day(e.first_run)}, so there is no record before then.`, e);
-    else if (e.kind === "change" && e.trimmed) add(`Days before ${day(e.started)} are no longer kept.`, e);
-    else if (e.kind === "change" && e.not_yet) add("Today's nightly update hasn't run yet.", e);
-    else if (e.kind === "change" && e.found === false) add(e.from === e.to ? `No changes were recorded on ${day(e.from)}.` : `No changes were recorded between ${day(e.from)} and ${day(e.to)}.`, e);
-    else if (e.kind === "change") add(`${e.summary} · ${day(e.date)}`, e);
-    if (e.kind === "gap") {
-      add(e.date || e.from === e.to
-        ? `${e.source} was unavailable on ${day(e.date ?? e.from)}, so changes from it that day aren't recorded.`
-        : `${e.source} was unavailable from ${day(e.from)} to ${day(e.to)}, so changes from it on those days aren't recorded.`, e);
-    }
-  }
-  return made;
-}
-
-function assertNoLeak(c, out) {
-  const ev = c.evidence;
-  const made = producers(ev);
-  const labelled = (items, src) => [...items].some((e) => e.label === src.label && e.url === src.url);
-  for (const s of out.sentences) {
-    if (FIXED.has(s.text)) {
-      assert.deepEqual(s.sources, [], `${c.id}: fixed copy has no source: ${s.text.slice(0, 60)}`);
-      continue;
-    }
-    let from = made.get(s.text);
-    const name = NOT_FOUND.exec(s.text)?.[1];
-    if (name !== undefined) {
-      // the one sentence built from a typed word: the reader's own plain-ASCII span, never the model's query; from a search that found nothing
-      assert.match(name, /^[A-Za-z0-9 .,&'-]+$/, `${c.id}: not-found name is not plain ASCII`);
-      assert.ok(clean(c.question).includes(clean(name)), `${c.id}: "${name}" is not in the question`);
-      from = ev.filter((e) => e.kind === "search" && e.found === false);
-    }
-    assert.ok(from, `${c.id}: not fixed copy, a server claim or a quote: ${JSON.stringify(s.text).slice(0, 140)}`);
-    // every other sentence names the evidence it was built from, and only that evidence: a quote its own item, a claim its items
-    assert.ok(s.sources.length >= 1, `${c.id}: no source: ${JSON.stringify(s.text).slice(0, 100)}`);
-    for (const src of s.sources) assert.ok(labelled(from, src), `${c.id}: "${src.label}" did not produce ${JSON.stringify(s.text).slice(0, 100)}`);
-  }
-  // the part-answer line and the notice come last (the notice after the line), once each, and only after something else
-  const texts = out.sentences.map((s) => s.text);
-  const tail = texts.filter((t) => t === PARTIAL || t === NOT_ADVICE);
-  assert.deepEqual(texts.slice(texts.length - tail.length), tail, `${c.id}: the closing lines are not last`);
-  assert.ok(tail.length === new Set(tail).size && (tail.length < 2 || tail[0] === PARTIAL), `${c.id}: ${tail.length} closing lines, out of order`);
-  if (tail.length) assert.ok(texts.length > tail.length || texts[0] === CLARIFY, `${c.id}: a closing line alone`);
-  // sources are numbered 1, 2, … in order of first citation
-  const numbered = new Map();
-  for (const s of out.sentences) for (const src of s.sources) numbered.set(src.n, src.label);
-  assert.deepEqual([...numbered.keys()].sort((a, b) => a - b), [...numbered.keys()].map((_, i) => i + 1), `${c.id}: source numbers`);
-  // next steps: the home-page search, an evidence item's label and link, or a near name's search
-  const near = ev.flatMap((e) => e.near ?? []);
-  for (const n of out.next) {
-    const own = ev.some((e) => (n.label === e.label || n.label === e.entity?.name) && n.href === (e.link || e.url));
-    const search = (n.label === "Search" && n.href === "/") || (near.includes(n.label) && n.href === `/?q=${encodeURIComponent(n.label)}`);
-    assert.ok(own || search, `${c.id}: next step ${JSON.stringify(n)}`);
-  }
-}
+const assertNoLeak = (c, out) => assert.deepEqual(groundingProblems(c.question, c.evidence, out), [], c.id);
 
 const endpoint = (c) => checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question });
 

@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "experiment": "ask-manual-95bde11f",
+    "case": "not-on-lists-4",
+    "note": "Expectation too strict, not an Ask error. The question spells TASSOS with a Cyrillic Т and А; Haiku read it as TASSOS and gave the ship's real US, EU and UK listings, each with its source, and never said 'not on the lists'. The case now also accepts a grounded answer (PR #32)."
+  },
+  {
+    "experiment": "ask-manual-95bde11f",
+    "case": "clarify-1",
+    "note": "Expectation too strict, not an Ask error. Instead of asking which Sovcomflot was meant, Haiku listed all seven Sovcomflot entities on the lists, each named and with its source. The case now also accepts a grounded answer (PR #32)."
+  },
+  {
+    "experiment": "ask-manual-95bde11f",
+    "case": "date-range-1",
+    "note": "Ask error, fixed. The model asked to quote the nightly-update record for January, which has nothing to quote, so the answer check refused and Ask fell back. A quote of an update or gap record now shows that record's own fixed sentence: 'Daily updates started on 20 Oct 2026, so there is no record before then.' (PR #32)."
+  }
+]

@@ -55,6 +55,19 @@ test("judge allows a fallback where the case does, and reports includes only whe
   assert.equal(judge(CASES.find((x) => !x.expect.includes), reply("answer", "x")).includesOk, null);
 });
 
+test("judge accepts a kind listed in expect.also, still rejects an unlisted one, and also does nothing when absent", () => {
+  for (const [id, kind] of [["not-on-lists-4", "fallback"], ["clarify-1", "clarify"]]) {
+    const c = byId(id);
+    assert.deepEqual([c.expect.kind, c.expect.also], [kind, ["answer"]], id);
+    for (const ok of [kind, "answer"]) assert.deepEqual(judge(c, reply(ok, "TASSOS appears on the United Kingdom list under Russia.")).problems, [], `${id} ${ok}`);
+    const wrong = judge(c, reply("refusal", REFUSAL));
+    assert.deepEqual([wrong.kindOk, wrong.problems], [false, [`expected ${kind} (or answer), got refusal`]], id);
+    const { also, ...without } = c.expect;
+    const strict = judge({ ...c, expect: without }, reply("answer", "TASSOS appears on the United Kingdom list under Russia."));
+    assert.deepEqual([strict.kindOk, strict.problems], [false, [`expected ${kind}, got answer`]], id);
+  }
+});
+
 test("groundingProblems is [] for every case's recorded model answer through checkAnswer, and names the sentence for an injected free-text sentence", () => {
   for (const c of CASES) {
     const out = checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question });

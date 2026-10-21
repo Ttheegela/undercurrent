@@ -8,6 +8,9 @@ Only the Markdown the notes use is supported: headings, paragraphs, lists
 (nested), tables, code spans and blocks, links, bold, italic, blockquotes and
 horizontal rules. All text is HTML-escaped before any markup is added.
 
+Every h2 and h3 gets an id, a slug of its Markdown text ("## Part 1. Who lobbies" is id="part-1-who-lobbies", a repeat
+gets -2, -3, ...), so a link to a section lands on it.
+
 A count the nightly build changes is written {{stat:kg.nodes}} (a dotted path into data/site-stats.json). It becomes
 <span data-stat="kg.nodes">3,235</span>: the figure as of this run is the fallback text, and app/stats.js, which a
 page with such a span loads, replaces it with the latest nightly figure.
@@ -38,6 +41,11 @@ BOLD = re.compile(r"\*\*(?=\S)(.+?)(?<=\S)\*\*", re.S)
 ITALIC = re.compile(r"(?<![\w*])\*(?=[^\s*])(.+?)(?<=[^\s*])\*(?![\w*])", re.S)
 HOLD = re.compile(r"\x00(\d+)\x01")
 STAT = re.compile(r"\{\{stat:([A-Za-z0-9_.]+)\}\}")
+
+
+def slug(text: str) -> str:
+    """Heading text -> an id. Made from the Markdown, not the HTML, so a {{stat:...}} figure does not move it."""
+    return re.sub(r"[\W_]+", "-", LINK.sub(r"\1", text).lower()).strip("-") or "section"
 
 
 def esc(text: str) -> str:
@@ -82,6 +90,7 @@ class Converter:
         self.base = base          # folder of the .md file, to check relative links
         self.title = ""
         self.tables = 0
+        self.ids: set[str] = set()   # heading ids so far, to keep them unique
 
     # ---- inline -------------------------------------------------------
 
@@ -135,6 +144,17 @@ class Converter:
 
     # ---- blocks -------------------------------------------------------
 
+    def heading_id(self, level: int, text: str) -> str:
+        if level not in (2, 3):
+            return ""
+        base = anchor = slug(text)
+        n = 1
+        while anchor in self.ids:
+            n += 1
+            anchor = f"{base}-{n}"
+        self.ids.add(anchor)
+        return f' id="{anchor}"'
+
     def interrupts(self, lines: list[str], i: int) -> bool:
         """Does this line end a paragraph?"""
         line = lines[i]
@@ -160,7 +180,7 @@ class Converter:
                 if len(level) == 1 and not self.title:
                     self.title = text
                 else:
-                    out.append(f"<h{len(level)}>{self.inline(text)}</h{len(level)}>")
+                    out.append(f"<h{len(level)}{self.heading_id(len(level), text)}>{self.inline(text)}</h{len(level)}>")
                 i += 1
             elif HR.match(line):
                 out.append("<hr>")
@@ -301,6 +321,8 @@ PAGE = Template("""<!DOCTYPE html>
   .doc td { vertical-align: top; padding: var(--space-sm) var(--space-md) var(--space-sm) 0; border-top: var(--rule-hair) solid var(--color-rule); }
   .doc td code { overflow-wrap: break-word; }
 </style>
+<link rel="stylesheet" href="/app/ask.css">
+<script type="module" src="/app/ask.js"></script>
 </head>
 <body>
 <header class="wrap top">

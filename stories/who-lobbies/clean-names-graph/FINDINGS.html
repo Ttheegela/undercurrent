@@ -44,6 +44,8 @@
   .doc td { vertical-align: top; padding: var(--space-sm) var(--space-md) var(--space-sm) 0; border-top: var(--rule-hair) solid var(--color-rule); }
   .doc td code { overflow-wrap: break-word; }
 </style>
+<link rel="stylesheet" href="/app/ask.css">
+<script type="module" src="/app/ask.js"></script>
 </head>
 <body>
 <header class="wrap top">
@@ -66,19 +68,19 @@
 <div class="doc">
 <p><em>How companies on US sanctions or export blacklists show up in lobbying records through names that are not listed. Trace the Unseen, 25 September 2026. Six research angles, each checked by an independent verifier; graph built from the verified links only.</em></p>
 <p><strong>Open <code>index.html</code></strong> (works from disk). Hover a dot or line for its source; filter by listed company, country, or documented links only.</p>
-<h2>The pattern</h2>
+<h2 id="the-pattern">The pattern</h2>
 <p>A listed company rarely signs a lobbying form itself. A <strong>clean name</strong> signs instead, and the listed company appears only in the small print:</p>
 <ul><li><strong>A US subsidiary as the client:</strong> Hikvision USA, Huawei Technologies USA, Futurewei, Sberbank CIB USA.</li><li><strong>A parent as the client:</strong> En+ Group for Rusal.</li><li><strong>A law firm &quot;on behalf of&quot;:</strong> &quot;Akin Gump on behalf of SMIC&quot;.</li><li><strong>A funded project company:</strong> Nord Stream 2 AG for Gazprom.</li><li><strong>A trade association or coalition:</strong> drone coalitions funded by DJI; the US-China Business Council.</li><li><strong>A government:</strong> Bulgaria for Lukoil&#x27;s Burgas refinery; Russian ministries for state banks.</li></ul>
 <p>US lobbying filings have a <strong>&quot;foreign entities&quot;</strong> box where the client must name foreign companies that own, control or fund it. That box is where many listed parents appear: Hangzhou Hikvision and its state-owned parent CETC behind Hikvision USA (2022), and Huawei behind Huawei Technologies USA and Futurewei (2022).</p>
 <p>Lobbying is legal. Being listed is a legal status; nothing here says any lobbying was unlawful.</p>
-<h2>By the numbers</h2>
+<h2 id="by-the-numbers">By the numbers</h2>
 <ul><li><strong>61 organisations:</strong> 17 listed companies, 12 clean intermediaries, 6 trade associations or coalitions, 20 lobbying or law firms, 6 governments or lawmakers.</li><li><strong>60 links: 48 Documented</strong> (an official record shows the link) and <strong>12 Leads</strong> (plausible, not yet proven, drawn dashed).</li><li><strong>228 lobbying filings</strong> with foreign entities from Russia, Belarus, Iran, China, Hong Kong, the UAE, Turkey or Kazakhstan were scanned, and 616 names checked against the lists. Most pre-2022 hits (Alfa-Bank, Gazprom, VEB) came <strong>years before</strong> those firms were listed, so they show the channel, not lobbying while listed.</li></ul>
-<h2>Strongest cases</h2>
+<h2 id="strongest-cases">Strongest cases</h2>
 <ol><li><strong>Hikvision</strong> (on the US export blacklist since 9 Oct 2019). Its US arm, Hikvision USA, paid Sidley Austin up to <strong>$500,000 a quarter</strong> (2018 to 2021). A 2022 filing through The Elevation Association names Hangzhou Hikvision and state-owned CETC as foreign entities. <em>Documented.</em></li><li><strong>Rusal via En+.</strong> Rusal filed nothing under its own name. Its parent En+ paid Mercury Public Affairs <strong>$108,500 a month</strong> (later $54,250) from 2019 to 2022 under the foreign-agent law, and DCI Group $10,000 to $40,000 a quarter from 2021 to 2025. The hiring is <em>documented</em>; the ownership link as drawn is a <em>lead</em>.</li><li><strong>SMIC</strong> (on the US export blacklist). &quot;<strong>Akin Gump on behalf of SMIC</strong>&quot; reported $50,000 to $140,000 a quarter (2020 to 2022) on export eligibility; Capitol Counsel also named SMIC as a foreign entity. <em>Documented.</em></li><li><strong>Sberbank.</strong> Its US arm, Sberbank CIB USA, paid the Madison Group ($50,000 to $105,000) and the Podesta Group ($20,000 to $110,000) a quarter in 2016 and 2017. <em>Documented.</em></li><li><strong>Gazprom via Nord Stream 2.</strong> Capitol Counsel and Roberti Global lobbied on pipeline permitting (Q3 2017). The filings themselves say Gazprom funds 50% of the pipeline company and the Russian state owns 38% of Gazprom. <em>Documented.</em></li></ol>
 <p>Also on the graph: <strong>Huawei</strong> through Huawei Technologies USA (Squire Patton Boggs) and Futurewei; <strong>DJI</strong> as a funder of drone coalitions (its US arm&#x27;s link to the listed parent is a lead); <strong>Arctic LNG 2</strong>, which is itself listed and filed <strong>directly</strong>, the reverse pattern; <strong>Lukoil</strong> through the government of Bulgaria; <strong>Alrosa</strong> and the Antwerp World Diamond Centre (a lead, from press reporting).</p>
-<h2>What we could not see</h2>
+<h2 id="what-we-could-not-see">What we could not see</h2>
 <ul><li>Lobbying outside US disclosure systems (Brussels, national capitals, think tanks) is mostly invisible; Russian-linked entities are barred from the EU Transparency Register.</li><li>Only 8 links carry a dollar amount; many filings report none.</li><li>Some foreign-agent exhibits black out the client&#x27;s name. One figure ($573,618.62 in a Sidley Austin foreign-agent filing) is unverified, so it is kept in the data but not used for line thickness.</li><li>Where verifiers disagreed about a corporate link, it was marked as a lead.</li></ul>
-<h2>Files</h2>
+<h2 id="files">Files</h2>
 <ul><li><code>index.html</code>: the interactive graph (data embedded).</li><li><code>nodes.json</code>, <code>edges.json</code>: every organisation and link, with type, dates, amounts, evidence grade and source reference (filing ID or URL).</li></ul>
 </div>
 </main>

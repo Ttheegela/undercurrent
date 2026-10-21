@@ -44,6 +44,8 @@
   .doc td { vertical-align: top; padding: var(--space-sm) var(--space-md) var(--space-sm) 0; border-top: var(--rule-hair) solid var(--color-rule); }
   .doc td code { overflow-wrap: break-word; }
 </style>
+<link rel="stylesheet" href="/app/ask.css">
+<script type="module" src="/app/ask.js"></script>
 </head>
 <body>
 <header class="wrap top">
@@ -68,16 +70,16 @@
 node and line in the chart comes from, how we joined the sources, and what the chart cannot show. The chart is now rebuilt
 every night from the official lists: the counts and sources below are those of the 25 September build, and the map&#x27;s
 &quot;What the data covers&quot; panel names the lists each night&#x27;s build used.</p>
-<h2>What the chart shows</h2>
+<h2 id="what-the-chart-shows">What the chart shows</h2>
 <ul><li><strong>Ships</strong>, identified by their IMO number: a 7-digit hull number issued under the International Maritime Organization
 scheme that stays with the hull for life, whatever the ship is called.</li><li><strong>Companies</strong> that own, manage, operate, insure, trade for or register these ships.</li><li><strong>People</strong>, only where an official list, government release, indictment or court record names them, and only in that role.</li><li><strong>Countries</strong>: flag states (where a ship is registered), company registration countries, and the governments that list
 ships and firms (United States, United Kingdom, European Union).</li></ul>
 <p>Every line carries its type, date where known, one or more sources (link and saved file name), and a confidence tag:</p>
 <ul><li><strong>Documented</strong>: stated by an official list, a government release or a court record.</li><li><strong>Lead</strong>: our own inference, or a non-official source (ship database, study, press). A Lead is a
 question to investigate, not a finding.</li></ul>
-<h2>Sources</h2>
+<h2 id="sources">Sources</h2>
 <div class="tablebox" role="region" aria-label="Table 1" tabindex="0"><table class="c3"><thead><tr><th scope="col">Source</th><th scope="col">What it gives</th><th scope="col">File</th></tr></thead><tbody><tr><td>UK sanctions list (FCDO/OFSI), report of 21 Sep 2026</td><td>625 ships under the Russia regime with IMO, date listed, current and previous flag, &quot;current owner/operator&quot;; listed firms and people with the UK statement of reasons</td><td><code>UK-Sanctions-List.csv</code></td></tr><tr><td>US Treasury OFAC list (OpenSanctions export, 25 Sep 2026)</td><td>ships and firms with programme, first-seen date</td><td><code>us_ofac_sdn.csv</code></td></tr><tr><td>US Consolidated Screening List (trade.gov)</td><td>OFAC ship entries with &quot;Linked To&quot; company, flag, former flags, radio ID (MMSI), registered owner</td><td><code>us_csl/consolidated.csv</code></td></tr><tr><td>EU Official Journal ship list (OpenSanctions export, 25 Sep 2026)</td><td>733 EU-listed ships with IMO, listing date and legal ground</td><td><code>eu_journal_sanctions.csv</code></td></tr><tr><td>EU financial-sanctions file (OpenSanctions export)</td><td>EU-listed firms and people with act and date</td><td><code>eu_fsf.csv</code></td></tr><tr><td>Ukraine War and Sanctions database (run by Ukraine&#x27;s military intelligence, GUR)</td><td>former names, flag countries, dated owner and manager records. A government database, <strong>not a sanctions list</strong></td><td><code>ua_war_sanctions.csv</code> + saved pages</td></tr><tr><td>Official releases: US Treasury, US Justice Department, EUR-Lex / EU Council, gov.uk, CENTCOM, Finnish government</td><td>named people and firms, roles, quotes</td><td>saved under <code>pulls/tavily/</code></td></tr><tr><td>Studies: KSE Institute, CREA, S&amp;P Global, Windward, RUSI, OCCRP, Atlantic Council, Lloyd&#x27;s List</td><td>fleet-wide counts for the legend</td><td>saved under <code>pulls/tavily/</code></td></tr></tbody></table></div>
-<h2>How the graph was built</h2>
+<h2 id="how-the-graph-was-built">How the graph was built</h2>
 <ol><li><strong>Join by IMO number</strong> (<code>build_base.py</code>). Every ship on the UK Russia list, the EU ship list, or the US list under an
 Iran, Russia, terrorism or Venezuela programme becomes one node keyed <code>IMO&lt;number&gt;</code>. Yachts and passenger ships are
 dropped. Names from each list and former names from Ukraine&#x27;s database are kept on the node.</li><li><strong>Lines from the lists.</strong> UK &quot;current owner/operator&quot; -&gt; operates; OFAC &quot;Linked To&quot; -&gt; linked to; OFAC registered
@@ -89,22 +91,22 @@ format with sources.</li><li><strong>Independent verification.</strong> Every an
 re-derived numbers, checked IMO check digits and people&#x27;s names against the lists, and wrote a corrected file plus a
 claim-by-claim table. The research and verification files stay with the team&#x27;s working files and are not published, because they name unlisted firms. Only the corrected files feed the chart. Examples of what verifiers
 caught: two wrong IMO numbers dropped; a strike date corrected from 9 to 8 September 2026; the EU act number question settled (2026/1843 regulation and 2026/1845 decision are one listing).</li><li><strong>Merge</strong> (<code>merge.py</code>) de-duplicates lines, keeps every source on a line, and applies the naming policy below.</li></ol>
-<h2>Naming policy (set 25 Sep 2026)</h2>
+<h2 id="naming-policy-set-25-sep-2026">Naming policy (set 25 Sep 2026)</h2>
 <ul><li>Documented conduct is stated plainly and attributed (&quot;Treasury says ...&quot;). Conduct words, not legal conclusions, unless
 a court or agency used them.</li><li><strong>People</strong> appear only when an official record names them, in that role. Anyone else is &quot;an individual&quot;.</li><li><strong>Firms not on a sanctions list</strong> keep their name only when an official record names them in that role (for example,
 the UK list names them as operator of a ship it sanctions). Firms known only from Ukraine&#x27;s database or studies
 are shown by description, such as &quot;unlisted UAE ship manager&quot;. Their names are removed from the published data
 files, including quoted text (<code>release_check.py</code> enforces this).</li></ul>
-<h2>Key numbers and their filters</h2>
+<h2 id="key-numbers-and-their-filters">Key numbers and their filters</h2>
 <ul><li><strong>54</strong> ships are on a Russia ship list (UK or EU) and on the US list under an Iran-related programme. UK list alone: 46.
 The strict filter in the team&#x27;s published analysis (US entry carries an Iran programme tag, UK Russia list only): 42.</li><li>For 39 of the 54, the US Iran listing came before the first UK or EU Russia listing.</li><li>US listing dates are the date a ship first appeared on the OFAC list in the OpenSanctions export. They match Treasury&#x27;s
 releases on the dates we checked (30 Jul 2025, 15 Apr 2026).</li></ul>
-<h2>What the chart cannot show</h2>
+<h2 id="what-the-chart-cannot-show">What the chart cannot show</h2>
 <ul><li>No line does not mean no relationship. Our sources cover listed ships and firms and the firms named next to them.</li><li>Ukraine&#x27;s database dates can be database refresh dates:
 of 6 ships with a record dated within 30 days after a listing, 4 share one date (30 Jul 2025, the US listing day) and a
 fifth falls on its own listing day. Only CLYDE NOBLE (28 days after its UK listing) looks like a real change, and it
 stays a Lead.</li><li>Manager fields on lists can be stale (the UK list still names Zulu Ships Management for 8 hulls).</li><li>Cargo: we show &quot;carried cargo for&quot; only where an official release says so; we hold no voyage or cargo data.</li><li>One-ship companies, frequent renaming and flag changes are also common in lawful shipping. They are patterns, not proof.</li></ul>
-<h2>Parent groups, lobbying and cargo (added 25 Sep 2026, afternoon)</h2>
+<h2 id="parent-groups-lobbying-and-cargo-added-25-sep-2026-afternoon">Parent groups, lobbying and cargo (added 25 Sep 2026, afternoon)</h2>
 <ul><li><strong>Parent groups.</strong> A ninth research angle linked big operators to their parent groups from official texts: Treasury calls
 Rosnefteflot Rosneft&#x27;s &quot;marine transportation arm&quot;, Gazpromneft Marine Bunker &quot;a Gazprom Neft subsidiary&quot; and Sovcomflot
 &quot;Russia&#x27;s state-owned shipping company&quot;; the UK statement of reasons says the state leasing company GTLK is directly
@@ -116,7 +118,7 @@ PDVSA and GTLK were not checked. Lobbying is legal; nothing here says any lobbyi
 (listed by OFAC as ADISA, IMO 9304667) carried about 3 million barrels of Iranian crude to Syria in 2024 and was seized
 with about 1.8 million barrels in December 2025. These tankers move oil through ship-to-ship transfers to non-US buyers,
 which customs data rarely covers.</li></ul>
-<h2>Reproduce</h2>
+<h2 id="reproduce">Reproduce</h2>
 <pre tabindex="0"><code>set PYTHONUTF8=1
 python build_base.py        # list join -&gt; base_nodes.json, base_edges.json
 python merge.py             # + verified research -&gt; out/nodes.json, out/edges.json, out/meta.json, out/graph_data.js

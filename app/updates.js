@@ -98,7 +98,8 @@ export function mountUpdates() {
     const q = parseQuery(location.search, latest);
     for (const name of ["from", "to", "graph"]) if (fixInputs || !form.elements[name].value) form.elements[name].value = q[name]; // (never rewrite what is being typed)
     results.innerHTML = renderUpdates(record, q);
-    status.textContent = results.querySelector(".upd-total, .upd-empty")?.textContent ?? ""; // (the count, or that the range holds no day)
+    const line = results.querySelector(".upd-total, .upd-empty"); // (the count, or that the range holds no day: moved into the live status, so it shows once)
+    status.replaceChildren(...(line ? [line] : []));
   }
 
   async function load(retry) {

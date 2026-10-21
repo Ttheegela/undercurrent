@@ -66,6 +66,27 @@ def test_blocks(tmp_path):
     assert html_of(tmp_path, "```\n<b>&\n```\n---") == '<pre tabindex="0"><code>&lt;b&gt;&amp;</code></pre><hr>'
 
 
+def test_h2_and_h3_get_stable_unique_ids(tmp_path, monkeypatch):
+    stats = tmp_path / "site-stats.json"
+    stats.write_text('{"kg": {"nodes": 3235}}', encoding="utf-8")
+    monkeypatch.setattr(b, "STATS_FILE", stats)
+    out = html_of(tmp_path, "# Title\n\n## One: 50%\n\n### Sub\n\n## Sub\n\n#### Deep\n\n## ???\n\n## One: 50%\n\n"
+                            "## **Bold** [link](https://e.org/x) end\n\n## {{stat:kg.nodes}} nodes")
+    assert re.findall(r"<h([2-4])( id=\"[^\"]*\")?>", out) == [
+        ("2", ' id="one-50"'), ("3", ' id="sub"'), ("2", ' id="sub-2"'), ("4", ""), ("2", ' id="section"'),
+        ("2", ' id="one-50-2"'), ("2", ' id="bold-link-end"'), ("2", ' id="stat-kg-nodes-nodes"')]
+
+
+def test_generated_headings_carry_unique_ids():
+    for md in DOCS:
+        page = md.with_suffix(".html").read_text(encoding="utf-8")
+        tags = re.findall(r"<h[23]\b[^>]*>", page)
+        ids = [re.search(r'(?<![\w-])id="([^"]+)"', tag) for tag in tags]
+        assert tags and all(ids), md
+        everything = re.findall(r'(?<![\w-])id="([^"]*)"', page)   # no heading id may repeat any other id on the page
+        assert len(set(everything)) == len(everything) and {i[1] for i in ids} <= set(everything), md
+
+
 def test_stat_token_becomes_a_span_with_the_current_figure_as_fallback(tmp_path, monkeypatch):
     stats = tmp_path / "site-stats.json"
     stats.write_text('{"generated": "2026-10-20", "kg": {"nodes": 3235}}', encoding="utf-8")

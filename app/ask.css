@@ -1,0 +1,7 @@
+/* Ask's button, on every page; the panel's styles load on the first click (ask-panel.css). Placement: see the README. */
+.ask-open { position: fixed; z-index: 4; right: var(--space-md); bottom: calc(var(--space-md) + var(--ask-lift, 0px)); min-height: 2.75rem; padding: 0 1.1rem; font: 700 var(--text-sm)/1 var(--font-display); color: var(--color-ink); background: var(--color-paper-3); border: var(--rule-hair) solid var(--color-muted); border-radius: var(--radius-sm); box-shadow: 0 12px 24px -12px var(--color-shadow); cursor: pointer; }
+.ask-open:hover { border-color: var(--color-ink); }
+html[data-ask-side="left"] .ask-open { right: auto; left: var(--space-md); }
+/* room under the last control, so every control scrolls clear of the button; a page that does not scroll sets --ask-pad: 0px */
+html.ask-on body { padding-bottom: var(--ask-pad, calc(2.75rem + 2 * var(--space-md) + var(--ask-lift, 0px))); }
+@media print { .ask-open { display: none; } }

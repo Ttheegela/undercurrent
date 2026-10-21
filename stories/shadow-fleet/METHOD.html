@@ -44,6 +44,8 @@
   .doc td { vertical-align: top; padding: var(--space-sm) var(--space-md) var(--space-sm) 0; border-top: var(--rule-hair) solid var(--color-rule); }
   .doc td code { overflow-wrap: break-word; }
 </style>
+<link rel="stylesheet" href="/app/ask.css">
+<script type="module" src="/app/ask.js"></script>
 </head>
 <body>
 <header class="wrap top">
@@ -66,13 +68,13 @@
 <div class="doc">
 <p>These are the steps behind <a href="FINDINGS.html">FINDINGS.md</a>. The scripts in
 ../../tools/fleet/ run steps 1 to 4 on public files.</p>
-<h2>1. Get the public list files</h2>
+<h2 id="1-get-the-public-list-files">1. Get the public list files</h2>
 <div class="tablebox" role="region" aria-label="Table 1" tabindex="0"><table class="c3"><thead><tr><th scope="col">File</th><th scope="col">Where it comes from</th><th scope="col">What we use</th></tr></thead><tbody><tr><td>UK Sanctions List (CSV)</td><td>UK government, Office of Financial Sanctions Implementation / FCDO</td><td>ship rows: IMO number, regime, &quot;Date Designated&quot;, &quot;Current owner/operator (s)&quot;, &quot;Previous owner/operator (s)&quot;</td></tr><tr><td>US OFAC SDN list</td><td>OpenSanctions export (&quot;targets.simple&quot; CSV)</td><td>vessel rows: IMO in the identifiers field, programme text, &quot;first seen&quot; date</td></tr><tr><td>US Consolidated Screening List (optional)</td><td>US government trade.gov download</td><td>a second view of the US programme codes</td></tr><tr><td>EU financial sanctions (optional)</td><td>OpenSanctions export of the EU list</td><td>company names, for the manager check</td></tr><tr><td>EU ship annex (optional)</td><td>The EU act on EUR-Lex (for July 2026: Regulation 2026/1848, entries 652 to 692)</td><td>you type or paste the IMO numbers into a small <code>imo,date</code> CSV</td></tr></tbody></table></div>
-<h2>2. Join by IMO number, nothing else</h2>
+<h2 id="2-join-by-imo-number-nothing-else">2. Join by IMO number, nothing else</h2>
 <ul><li>Keep only seven-digit IMO numbers. Strip spaces and the letters &quot;IMO&quot;.</li><li>One hull can have several rows on one list (for example one per regime, or one per past
 name). Collapse them per IMO and keep the <strong>earliest</strong> designation date.</li><li>Join the UK Russia-regime hulls (625 in the file we used, report dated 21 September 2026)
 to the US vessel entries on that number.</li></ul>
-<h2>3. State the programme filter, every time</h2>
+<h2 id="3-state-the-programme-filter-every-time">3. State the programme filter, every time</h2>
 <p>This is the trap. The word &quot;Iran&quot; appears in two different ways in the US data:</p>
 <ol><li>as a <strong>programme code</strong> on the entry (upper case, such as <code>IRAN-EO13902</code> or <code>IFSR</code>), and</li><li>as a <strong>cited order</strong> inside a Russia action (text such as &quot;Executive Order 13846 (Iran)&quot;).</li></ol>
 <p>Counting the first only gives one number; counting both gives another. Adding a second US
@@ -81,18 +83,18 @@ file, or the US terrorism programme, moves it again. With our files:</p>
 <p>None of the US Russia-programme ships fall inside the strict 42. Any number quoted from this
 work should carry its filter in the same sentence. Two teammates got 42 and 45 from the
 same files before we found this.</p>
-<h2>4. Compare dates and names on the joined hulls</h2>
+<h2 id="4-compare-dates-and-names-on-the-joined-hulls">4. Compare dates and names on the joined hulls</h2>
 <ul><li><strong>Who listed first:</strong> UK date minus US date, in days. Positive means the US was first.</li><li><strong>Name mismatch:</strong> compare the UK name with the US primary name after removing spaces and
 punctuation. The UK list sometimes writes a ship as <code>IMO 9417464 (&#x27;TANI&#x27;)</code>; use the quoted
 name. Say whether US aliases count: 16 of 42 differ on the primary name, 13 if aliases count.</li></ul>
-<h2>Why names fail</h2>
+<h2 id="why-names-fail">Why names fail</h2>
 <ul><li>A hull can carry a different name on each list, and the same name can belong to
 different hulls over time. Across all sources, the 42 hulls had a median of 4 names each
 (range 2 to 7).</li><li>Search by name also returns the wrong ship. One search for a listed tanker returned a
 different ship with a different IMO number, which we dropped. Always confirm the IMO number
 on each page you use.</li><li>Managers change too. Companies named after the ship they own, or after one of its former
 names, are common. Screening a new company name finds nothing; screening the hull finds it.</li></ul>
-<h2>Checking managers</h2>
+<h2 id="checking-managers">Checking managers</h2>
 <ul><li>Read the UK list&#x27;s &quot;Current owner/operator&quot; column for each joined hull and match those
 names against the US, EU and UK company entries after normalising (upper case, drop
 punctuation and suffixes such as LTD, LLC, FZE).</li><li>Exact normalised matching misses spelling variants and transliterations, so &quot;no hit&quot;
@@ -100,14 +102,14 @@ means &quot;not found by this matcher&quot;, not &quot;proven unlisted&quot;.</l
 file; a Seychelles address had 16 rows across unrelated programmes. Treat an address
 shared by more than about 15 listed firms as an agent&#x27;s address, not a cluster.</li><li><strong>Publishing rule:</strong> <code>tools/fleet/mgrs.py</code> replaces the name of any manager with no list
 hit by <code>UNLISTED-nn</code>. Keep it that way for anything public.</li></ul>
-<h2>Dates and sources we could not fully trust</h2>
+<h2 id="dates-and-sources-we-could-not-fully-trust">Dates and sources we could not fully trust</h2>
 <ul><li><strong>US dates</strong> are OpenSanctions &quot;first seen&quot; dates. Entries dated 20 or 21 April 2023 are
 the start of that dataset, not listing dates.</li><li><strong>Manager changes:</strong> for &quot;when did the manager change&quot; questions, we used the dated ship
 pages of Ukraine&#x27;s war-sanctions database, which is not a sanctions list, and treated those
 as single-source leads.</li><li><strong>EU act numbers:</strong> the July 2026 ship act is Regulation 2026/1848. The act that froze the
 shipping firms is cited as Implementing Regulation 2026/1843 on the EUR-Lex page we read
 and as 2026/1845 in the OpenSanctions EU export. We have not resolved which is right.</li></ul>
-<h2>What would make this stronger</h2>
+<h2 id="what-would-make-this-stronger">What would make this stronger</h2>
 <p>Dated ship histories (the free Equasis registry, AIS tracking, or commercial ship
 databases) would let us test whether manager and flag changes follow listings. We did not
 have those on the day.</p>

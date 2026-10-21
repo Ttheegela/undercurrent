@@ -44,6 +44,8 @@
   .doc td { vertical-align: top; padding: var(--space-sm) var(--space-md) var(--space-sm) 0; border-top: var(--rule-hair) solid var(--color-rule); }
   .doc td code { overflow-wrap: break-word; }
 </style>
+<link rel="stylesheet" href="/app/ask.css">
+<script type="module" src="/app/ask.js"></script>
 </head>
 <body>
 <header class="wrap top">
@@ -66,16 +68,16 @@
 <div class="doc">
 <p>Part of <strong>Trace the Unseen</strong> (Sanctions track, hackathon of 25 September 2026).</p>
 <p><strong>Status:</strong> facts from official lists, government releases and EU law are stated as facts with their source. Our own inferences are marked <strong>Lead</strong> and say how solid they are. We describe conduct; we don&#x27;t make legal findings.</p>
-<h2>The idea in one paragraph</h2>
+<h2 id="the-idea-in-one-paragraph">The idea in one paragraph</h2>
 <p>A tanker has a seven-digit <strong>IMO number</strong> that is stamped on the hull and stays with it for
 life. Its name, flag, owner and manager can all change. When we join the UK&#x27;s Russia
 sanctions list to the US Iran lists by IMO number, <strong>42 tankers show up on both</strong>. Many of
 them go by different names on the two lists, and most are run by small, recently created
 companies that manage one ship each. Following the name loses the ship; following the
 hull number keeps it.</p>
-<h2>What is in this folder</h2>
+<h2 id="what-is-in-this-folder">What is in this folder</h2>
 <div class="tablebox" role="region" aria-label="Table 1" tabindex="0"><table class="c2"><thead><tr><th scope="col">File</th><th scope="col">What it holds</th></tr></thead><tbody><tr><td><a href="FINDINGS.html">FINDINGS.md</a></td><td>What the records show: the Russia and Iran overlap, who listed first, renamed hulls, young one-ship managers, two manager case studies, the EU July 2026 act, and the climate link</td></tr><tr><td><a href="METHOD.html">METHOD.md</a></td><td>How to join lists by IMO number, the filter trap that moves the count from 42 to 54, and why matching by name fails</td></tr><tr><td><a href="network/shadow_fleet_map.html">network/shadow_fleet_map.html</a></td><td>Full interactive network map of tankers, companies, people and countries</td></tr><tr><td>../../tools/fleet/</td><td>The three scripts that reproduce the counts from public list files you download yourself</td></tr></tbody></table></div>
-<h2>Ground rules we followed</h2>
+<h2 id="ground-rules-we-followed">Ground rules we followed</h2>
 <ul><li><strong>Companies are named only when they appear on an official US, UK, EU or UN list, or in an
 official government release</strong>, with the list and date given. Firms we did not find on any
 of those lists are described in general terms (&quot;an unlisted UAE firm&quot;). No private
@@ -83,7 +85,7 @@ individuals are named.</li><li><strong>Ships are named</strong> because every sh
 the &quot;first seen&quot; dates in the OpenSanctions export of the US list. These matched the
 Treasury press releases on the two action days we checked (30 July 2025 and 15 April
 2026), but treat them as close to, not identical with, the official date.</li></ul>
-<h2>Innocent explanations to keep in mind</h2>
+<h2 id="innocent-explanations-to-keep-in-mind">Innocent explanations to keep in mind</h2>
 <ul><li>Old tankers are sold and renamed often, for ordinary commercial reasons.</li><li>Owning each ship through its own one-ship company is standard, legal practice in shipping.</li><li>Manager names in list files and ship databases can be out of date.</li><li>A record change on a listing day may be a data provider updating its file, not a real sale.</li></ul>
 </div>
 </main>

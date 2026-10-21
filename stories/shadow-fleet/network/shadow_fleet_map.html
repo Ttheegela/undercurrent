@@ -215,6 +215,8 @@ abbr { text-decoration: underline dotted; cursor: help; }
   .rail-kicker { display: none; }
   .rail h1 { margin: 0 0 2px; }
 }
+/* Ask's button (app/ask.css) rides above the footer row; this page does not scroll, so it takes no bottom padding. Stacked (below), the page scrolls and does. */
+@media (min-width: 761px) { html { --ask-lift: 2.25rem; --ask-pad: 0px; } }
 @media (max-width: 760px) {
   body { height: auto; min-height: 100dvh; }
   .app, .app.panel-closed { display: flex; flex-direction: column; flex: none; }
@@ -230,6 +232,8 @@ abbr { text-decoration: underline dotted; cursor: help; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
+<link rel="stylesheet" href="/app/ask.css">
+<script type="module" src="/app/ask.js"></script>
 </head>
 <body>
 <header class="top">

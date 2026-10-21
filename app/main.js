@@ -218,3 +218,10 @@ function wire() {
 
 wire();
 setupWalkthrough({ runSearch });
+
+// A link can carry a search, /?q=NAME (Ask offers one for a near name). The value goes through the same search as typing it; over 200 characters is ignored.
+const linked = new URLSearchParams(location.search).get("q");
+if (linked && linked.length <= 200) {
+  $("#q").value = linked;
+  runSearch(linked);
+}

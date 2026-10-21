@@ -180,6 +180,9 @@ export function lobbyingFor(lob, ...names) {
 const graphAsset = createAssetLoader(CONNECTIONS_URL, buildGraph);
 const lobbyAsset = createAssetLoader(LOBBYING_URL, buildLobby);
 
+export const loadGraph = (fetchFn = fetch, now = Date.now()) => graphAsset.load(fetchFn, now);
+export const loadLobby = (fetchFn = fetch, now = Date.now()) => lobbyAsset.load(fetchFn, now);
+
 export function resetConnectionsCache() {
   graphAsset.reset();
   lobbyAsset.reset();

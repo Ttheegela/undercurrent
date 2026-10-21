@@ -1,12 +1,15 @@
 // The LangSmith runner (scripts/ask-langsmith.mjs), with fakes for LangSmith's client, `evaluate` and `traceable` that record what they
-// are handed. Nothing here reaches LangSmith, OpenRouter or the network. The fake traceable records a step by the SDK's own rules (see
+// are handed, and a fake fetch for the relevance judge. Nothing here reaches LangSmith, OpenRouter, TypeSafe or the network. The fake traceable records a step by the SDK's own rules (see
 // the runner's header): processInputs when the call starts, the payload serialized only at the end, and a promise for every call.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
-import { backfillNotes, runEvals, runOptions, syncDataset } from "../scripts/ask-langsmith.mjs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { backfillNotes, runEvals, runOptions, summary, syncDataset } from "../scripts/ask-langsmith.mjs";
 import { MODEL, runAsk } from "../api/ask.js";
 import { checkAnswer } from "../api/_ask_check.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
@@ -18,10 +21,11 @@ const LIVE = CASES.filter((c) => c.live !== false);
 const byId = (id) => LIVE.find((c) => c.id === id);
 const SHA = "0123abcdef4567890123abcdef4567890123abcd";
 const NOW = new Date("2026-10-21T13:00:00Z");
-const ENV = { LANGSMITH_API_KEY: "lsv2_test", OPENROUTER_API_KEY: "sk-or-test" };
+const ENV = { LANGSMITH_API_KEY: "lsv2_test", OPENROUTER_API_KEY: "sk-or-test", TYPESAFE_API_KEY: "ts-test" };
 const WEEKLY = { trigger: "weekly", pr: null, sync: false, commit: SHA };
 const USAGE = { prompt_tokens: 1000, completion_tokens: 50, cost: 0.002 };
 const SIGNALS = ["outcome", "tool_calls", "latency_s", "tokens_in", "tokens_out", "cost_usd"]; // every case has these
+const JUDGED = ["relevance", "unrelated"]; // answered cases whose answer is an answer have these too
 const UNAVAILABLE = { ok: false, reason: "unavailable" };
 const RESTING = { ok: false, reason: "resting", resets: "2026-11-01" };
 const UNGROUNDED = { kind: "answer", sentences: [{ text: "It is fine to trade with.", sources: [] }], next: [] };
@@ -162,12 +166,27 @@ const fakeAsk = (script) => async (history, now, { wrap }) => {
   return { ok: true, answer: await check(structuredClone(c.model), ev, { question: c.question }) };
 };
 
-function setup(cases, ask, env = ENV) {
+/**
+ * TypeSafe's System One as the judge sees it: each request is recorded, and the answer is `verdicts[question]` ({score, noul}; by
+ * default a full score and a low noul), or `status` for an HTTP error.
+ */
+const fakeJudge = (verdicts = {}) => {
+  const requests = [];
+  const fetch = async (url, init) => {
+    requests.push({ url, headers: init.headers, body: JSON.parse(init.body) });
+    const v = verdicts[JSON.parse(init.body).state.question] ?? { score: 3, noul: 0.1 };
+    if (v.status) return new Response("{}", { status: v.status });
+    return Response.json({ model: "jev-1.13.0", answers: { addresses: { type: "score", score: v.score, confidence: 0.9, probabilities: {}, legend: {} }, unrelated: { type: "noul", noul: v.noul } }, usage: { input_tokens: 300, output_tokens: 20 } });
+  };
+  return { requests, fetch };
+};
+
+function setup(cases, ask, env = ENV, judge = fakeJudge()) {
   const calls = [];
   const steps = [];
   const rows = [];
   const traceable = fakeTraceable(steps);
-  return { calls, steps, rows, deps: { client: fakeClient(calls), evaluate: fakeEvaluate(cases, calls, rows, traceable), traceable, runAsk: ask, now: () => NOW, env } };
+  return { calls, steps, rows, judge, deps: { client: fakeClient(calls), evaluate: fakeEvaluate(cases, calls, rows, traceable), traceable, runAsk: ask, now: () => NOW, env, fetch: judge.fetch } };
 }
 
 /** case id -> feedback key -> what the evaluator returned for it */
@@ -207,7 +226,7 @@ test("each case is scored: pass only for quality outcomes; unavailable, resting 
   assert.equal(scores["area-lists-1"].pass.comment, undefined);
   // the answer's own signals go with pass (includes_ok where the case has includes); the costs go with every case
   for (const [id, s] of Object.entries(scores)) {
-    const answered = s.outcome.value === "quality" ? ["pass", "fallback", ...(byId(id).expect.includes ? ["includes_ok"] : [])] : [];
+    const answered = s.outcome.value === "quality" ? ["pass", "fallback", ...(byId(id).expect.includes ? ["includes_ok"] : []), ...JUDGED] : []; // (both answers here are kind answer)
     assert.deepEqual(Object.keys(s).sort(), [...SIGNALS, ...answered].sort(), id);
   }
   assert.deepEqual([scores["area-lists-1"].includes_ok.score, scores["area-research-1"].includes_ok.score, scores["area-lists-1"].fallback.score], [1, 0, 0]);
@@ -242,7 +261,7 @@ test("metadata carries commit, trigger, pr, model and a 12-hex prompt_hash", asy
   const { calls, deps } = setup([byId("off-topic-1")], fakeAsk({ "off-topic-1": {} }));
   const result = await runEvals({ trigger: "pr", pr: 31, sync: false, commit: SHA }, deps);
   const [[, options]] = calls.filter(([name]) => name === "evaluate");
-  assert.deepEqual(options.metadata, { commit: SHA, trigger: "pr", pr: 31, model: MODEL, prompt_hash: promptHash });
+  assert.deepEqual(options.metadata, { commit: SHA, trigger: "pr", pr: 31, model: MODEL, prompt_hash: promptHash, judge_model: "jev-latest" });
   assert.match(options.metadata.prompt_hash, /^[0-9a-f]{12}$/);
   assert.equal(MODEL, "anthropic/claude-haiku-5.5");
   assert.deepEqual([options.data, options.experimentPrefix, options.maxConcurrency, options.numRepetitions, options.evaluators.length, options.client], ["undercurrent-ask", "ask-pr-31", 2, 1, 1, deps.client]);
@@ -251,15 +270,167 @@ test("metadata carries commit, trigger, pr, model and a 12-hex prompt_hash", asy
     experiment: "ask-pr-31-1a2b3c4d",
     url: "https://smith.test/o/t/datasets/ds-1/compare?selectedSessions=exp-1",
     trigger: "pr",
+    model: MODEL,
     commit: SHA,
     counts: { quality: 1, pass: 1, fail: 0, unavailable: 0, budget: 0, download_failed: 0 },
     failures: [],
     allInfra: false,
+    relevance: { judged: 0, mean_relevance: null, mean_unrelated: null, judge_tokens: 0, judge_models: [], unavailable: 0, clarified: 0 }, // (a refusal is not judged)
   });
   const weekly = setup([byId("off-topic-1")], fakeAsk({ "off-topic-1": {} }));
   await runEvals(WEEKLY, weekly.deps);
   const [[, w]] = weekly.calls.filter(([name]) => name === "evaluate");
   assert.deepEqual([w.experimentPrefix, w.metadata.trigger, w.metadata.pr], ["ask-weekly", "weekly", null]);
+});
+
+/** The labels a reader sees with an answer: its sentences' sources, then its links. */
+const labelsOf = (a) => [...new Set([...a.sentences.flatMap((s) => s.sources.map((x) => x.label)), ...a.next.map((n) => n.label)])];
+const NONE = { judged: 0, mean_relevance: null, mean_unrelated: null, judge_tokens: 0, judge_models: [], unavailable: 0, clarified: 0 };
+
+test("the relevance judge scores answered cases whose answer is an answer, on what the reader saw; a clarify is counted, not judged", async () => {
+  const script = {
+    "area-lists-1": {}, // an answer
+    "clarify-1": {}, // a clarify: counted apart, not judged
+    "area-research-1": { answer: UNGROUNDED }, // an answer that fails pass is judged all the same
+    "off-topic-2": {}, // a refusal: fixed copy, not judged
+    "relevance-2": {}, // a fallback: fixed copy, not judged
+    "off-topic-3": { stop: UNAVAILABLE }, // infrastructure: no answer
+  };
+  const judge = fakeJudge({ [byId("area-research-1").question]: { score: 0, noul: 0.9 } });
+  const { calls, rows, deps } = setup(Object.keys(script).map(byId), fakeAsk(script), ENV, judge);
+  const result = await runEvals(WEEKLY, deps);
+  const scores = scoresOf(rows);
+  const judged = ["area-lists-1", "area-research-1"];
+  assert.deepEqual(Object.keys(scores).filter((id) => scores[id].relevance || scores[id].unrelated), judged);
+  assert.deepEqual(judged.map((id) => [scores[id].relevance.score, scores[id].unrelated.score]), [[1, 0.1], [0, 0.9]]);
+  assert.deepEqual([scores["clarify-1"].pass.score, scores["off-topic-2"].pass.score, scores["relevance-2"].fallback.score], [1, 1, 1]); // (answered, scored, not judged)
+  assert.equal(rows.find((r) => r.example.metadata.case_id === "clarify-1").run.outputs.result.answer.kind, "clarify");
+  // one request per judged case: the question, the sentences and the labels the reader saw, with the key as a bearer token
+  assert.deepEqual(judge.requests.map((r) => [r.url, r.headers.Authorization, r.body.model, r.body.state.question]), judged.map((id) => ["https://api.typesafe.ai/v1/systemone", "Bearer ts-test", "jev-latest", byId(id).question]));
+  const c = byId("area-lists-1");
+  const shown = checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question });
+  assert.deepEqual(judge.requests[0].body.state, { question: c.question, answer: shown.sentences.map((x) => x.text), sources: labelsOf(shown) });
+  assert.ok(judge.requests[0].body.state.answer.length >= 2 && judge.requests[0].body.state.sources.length >= 2);
+  // the run's totals: the experiment names the judge asked for; the result and the summary carry the means, the judge's tokens and
+  // the version that answered, and the clarifies apart
+  assert.equal(calls.find(([name]) => name === "evaluate")[1].metadata.judge_model, "jev-latest");
+  assert.deepEqual(result.relevance, { judged: 2, mean_relevance: 0.5, mean_unrelated: 0.5, judge_tokens: 600, judge_models: ["jev-1.13.0"], unavailable: 0, clarified: 1 });
+  assert.match(summary(result), /^- Relevance \(Jev\): 2 judged, mean relevance 0\.5, mean unrelated 0\.5, 600 judge input tokens \(jev-1\.13\.0\); asked to clarify: 1\.$/m);
+});
+
+test("the judge never changes pass or any other score: the same answers judged as badly as can be, and not judged at all", async (t) => {
+  t.mock.method(console, "log", () => {}); // (the run without a key says the judge was skipped)
+  const script = { "area-lists-1": {}, "area-research-1": { answer: UNGROUNDED }, "clarify-1": {}, "relevance-3": {}, "off-topic-2": {} };
+  const worst = fakeJudge(Object.fromEntries(Object.keys(script).map((id) => [byId(id).question, { score: 0, noul: 1 }])));
+  const run = async (env, judge) => {
+    const { rows, deps } = setup(Object.keys(script).map(byId), fakeAsk(script), env, judge);
+    const { relevance, ...result } = await runEvals(WEEKLY, deps);
+    const scores = scoresOf(rows);
+    const rest = Object.fromEntries(Object.entries(scores).map(([id, s]) => [id, Object.fromEntries(Object.entries(s).filter(([key]) => !JUDGED.includes(key) && key !== "latency_s"))]));
+    return { scores, rest, result, relevance };
+  };
+  const judged = await run(ENV, worst);
+  const plain = await run({ ...ENV, TYPESAFE_API_KEY: undefined });
+  assert.deepEqual([judged.relevance.judged, judged.relevance.clarified], [3, 1]);
+  assert.deepEqual([plain.relevance.judged, plain.relevance.clarified], [0, 1]);
+  assert.deepEqual(judged.rest, plain.rest);
+  assert.deepEqual(judged.result, plain.result);
+  assert.deepEqual(Object.values(judged.scores).map((s) => s.pass.score), [1, 0, 1, 1, 1]);
+});
+
+test("without TYPESAFE_API_KEY the judge is skipped with one line: nothing is fetched and the run goes on", async (t) => {
+  const logs = t.mock.method(console, "log", () => {});
+  for (const value of [undefined, ""]) { // (a secret that was never set reaches a job as "")
+    logs.mock.resetCalls();
+    const script = { "area-lists-1": {}, "clarify-1": {} };
+    const { calls, rows, judge, deps } = setup(Object.keys(script).map(byId), fakeAsk(script), { ...ENV, TYPESAFE_API_KEY: value });
+    const result = await runEvals(WEEKLY, deps);
+    assert.deepEqual(logs.mock.calls.map((c) => c.arguments), [["ask-langsmith: TYPESAFE_API_KEY is not set, so the relevance judge was skipped"]]);
+    assert.equal(judge.requests.length, 0);
+    assert.deepEqual(Object.values(scoresOf(rows)).map((s) => [s.pass.score, s.relevance, s.unrelated]), [[1, undefined, undefined], [1, undefined, undefined]]);
+    assert.equal(calls.find(([name]) => name === "evaluate")[1].metadata.judge_model, null);
+    assert.deepEqual(result.relevance, { ...NONE, clarified: 1 });
+    assert.match(summary(result), /^- Relevance \(Jev\): no case judged; asked to clarify: 1\.$/m);
+  }
+});
+
+test("a case the judge could not judge gets no relevance scores and is counted as unavailable, not judged", async (t) => {
+  const errors = t.mock.method(console, "error", () => {});
+  const script = { "area-lists-1": {}, "area-research-1": {} };
+  const judge = fakeJudge({ [byId("area-research-1").question]: { status: 503 } });
+  const { rows, deps } = setup(Object.keys(script).map(byId), fakeAsk(script), ENV, judge);
+  const result = await runEvals(WEEKLY, deps);
+  assert.deepEqual(errors.mock.calls.map((c) => c.arguments), [["ask-relevance: judge unavailable"]]);
+  const scores = scoresOf(rows);
+  assert.deepEqual([scores["area-lists-1"].relevance.score, scores["area-research-1"].relevance, scores["area-research-1"].pass.score], [1, undefined, 1]);
+  assert.deepEqual(result.relevance, { judged: 1, mean_relevance: 1, mean_unrelated: 0.1, judge_tokens: 300, judge_models: ["jev-1.13.0"], unavailable: 1, clarified: 0 });
+  assert.match(summary(result), /^- Relevance \(Jev\): 1 judged, mean relevance 1, mean unrelated 0\.1, 300 judge input tokens \(jev-1\.13\.0\); judge unavailable for 1 case; asked to clarify: 0\.$/m);
+});
+
+test("a key that is set but a judge that fails every time: the summary says the judge was unavailable, not that no case was judged", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const script = { "area-lists-1": {}, "area-research-1": {}, "clarify-1": {} };
+  const judge = fakeJudge(Object.fromEntries(Object.keys(script).map((id) => [byId(id).question, { status: 500 }])));
+  const { deps } = setup(Object.keys(script).map(byId), fakeAsk(script), ENV, judge);
+  const result = await runEvals(WEEKLY, deps);
+  assert.equal(judge.requests.length, 2); // (the clarify is not sent)
+  assert.deepEqual(result.relevance, { ...NONE, unavailable: 2, clarified: 1 });
+  const line = summary(result).split("\n").find((l) => l.startsWith("- Relevance"));
+  assert.equal(line, "- Relevance (Jev): judge unavailable for 2 cases; asked to clarify: 1.");
+});
+
+/** fakeAsk, also recording the model each case's runAsk was given. */
+const recordingAsk = (script, models) => (history, now, options) => (models.push(options.model), fakeAsk(script)(history, now, options));
+
+test("run --model: runAsk, the model calls' traces, the metadata, the result and the summary all name it, and the prefix gets its slug", async () => {
+  const opts = runOptions(["--trigger", "manual", "--model", "deepseek/deepseek-v4.1-flash", "--commit", SHA]);
+  assert.deepEqual(opts, { trigger: "manual", pr: null, sync: false, commit: SHA, model: "deepseek/deepseek-v4.1-flash", out: undefined });
+  const models = [];
+  const script = { "area-lists-1": {}, "off-topic-1": {} };
+  const { calls, steps, deps } = setup(Object.keys(script).map(byId), recordingAsk(script, models));
+  const result = await runEvals(opts, deps);
+  assert.deepEqual(models, ["deepseek/deepseek-v4.1-flash", "deepseek/deepseek-v4.1-flash"]);
+  assert.deepEqual([...new Set(steps.filter((s) => s.name === "callModel").map((s) => s.metadata.ls_model_name))], ["deepseek/deepseek-v4.1-flash"]);
+  const [[, options]] = calls.filter(([name]) => name === "evaluate");
+  assert.equal(options.metadata.model, "deepseek/deepseek-v4.1-flash");
+  assert.equal(options.experimentPrefix, "ask-manual-deepseek-v4.1-flash");
+  assert.deepEqual([result.experiment, result.model], ["ask-manual-deepseek-v4.1-flash-1a2b3c4d", "deepseek/deepseek-v4.1-flash"]);
+  assert.match(summary(result), /^Trigger: manual, model `deepseek\/deepseek-v4\.1-flash`, commit 0123abc\. /m);
+  // the slug is the part after the slash, lowercased, with anything outside [a-z0-9.-] made a dash; a PR run keeps its number
+  const prefix = async (args) => {
+    const s = setup([byId("off-topic-1")], fakeAsk({ "off-topic-1": {} }));
+    await runEvals(runOptions([...args, "--commit", SHA]), s.deps);
+    return s.calls.find(([name]) => name === "evaluate")[1].experimentPrefix;
+  };
+  assert.equal(await prefix(["--trigger", "manual", "--model", "anthropic/claude-sonnet-5.5"]), "ask-manual-claude-sonnet-5.5");
+  assert.equal(await prefix(["--trigger", "manual", "--model", "qwen/qwen3.8-27b"]), "ask-manual-qwen3.8-27b");
+  assert.equal(await prefix(["--trigger", "manual", "--model", "qwen/qwen3.8_27b:free"]), "ask-manual-qwen3.8-27b-free");
+  assert.equal(await prefix(["--trigger", "pr", "--pr", "31", "--model", "qwen/qwen3.8-27b"]), "ask-pr-31-qwen3.8-27b");
+  assert.equal(await prefix(["--trigger", "weekly", "--model", MODEL]), "ask-weekly"); // the site's own model is no comparison
+});
+
+test("run without --model keeps today's behaviour: MODEL everywhere and the prefix unchanged", async () => {
+  const opts = runOptions(["--trigger", "manual", "--commit", SHA]);
+  assert.equal(opts.model, MODEL);
+  for (const o of [opts, WEEKLY]) { // (from the command line, and from a caller that leaves model out)
+    const models = [];
+    const { calls, steps, deps } = setup([byId("off-topic-1")], recordingAsk({ "off-topic-1": {} }, models));
+    const result = await runEvals(o, deps);
+    const [[, options]] = calls.filter(([name]) => name === "evaluate");
+    assert.deepEqual([models, options.metadata.model, result.model, options.experimentPrefix], [[MODEL], MODEL, MODEL, `ask-${o.trigger}`]);
+    assert.ok(steps.filter((s) => s.name === "callModel").every((s) => s.metadata.ls_model_name === MODEL));
+  }
+});
+
+test("a --model that is not vendor/model exits 2 before any call", async () => {
+  for (const bad of ["x; rm -rf /", "$(id)", "`id`", "deepseek", "Anthropic/Claude-Haiku-5.5", "/x", "a/", "a/b/c", "-a/b", "a/-b", "a/b\nc", "a/b ", "", "a/b;c"]) {
+    assert.throws(() => runOptions(["--trigger", "manual", `--model=${bad}`, "--commit", SHA]), (err) => err.exit === 2 && err.message.startsWith("--model must look like vendor/model\n"), JSON.stringify(bad));
+  }
+  // the script itself: refused before it reads a key (none is set here) or loads the SDK
+  const script = new URL("../scripts/ask-langsmith.mjs", import.meta.url).pathname;
+  const r = spawnSync(process.execPath, [script, "run", "--trigger", "manual", "--model", "$(id)"], { encoding: "utf8", env: { PATH: process.env.PATH } });
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /^--model must look like vendor\/model\n/);
 });
 
 test("no traced payload contains the OpenRouter key", async (t) => {
@@ -321,7 +492,7 @@ test("a runAsk that throws makes its case unavailable and logs one fixed line, w
 test("run --commit SHA sets the commit metadata and the note's short sha; without it the commit is HEAD", async () => {
   const HEAD_SHA = "fedcba9876543210fedcba9876543210fedcba98"; // a PR's head, where HEAD is the merge commit
   const opts = runOptions(["--trigger", "pr", "--pr", "31", "--commit", HEAD_SHA]);
-  assert.deepEqual(opts, { trigger: "pr", pr: 31, sync: false, commit: HEAD_SHA, out: undefined });
+  assert.deepEqual(opts, { trigger: "pr", pr: 31, sync: false, commit: HEAD_SHA, model: MODEL, out: undefined });
   const script = { "area-research-1": { answer: UNGROUNDED } };
   const { calls, deps } = setup(Object.keys(script).map(byId), fakeAsk(script));
   await runEvals(opts, deps);
@@ -338,7 +509,7 @@ test("sync creates the dataset once and upserts by case_id; an edited case updat
   const stored = () => [...client.datasets.get("undercurrent-ask").examples.values()];
   const exampleOf = (c) => ({ inputs: { question: c.question }, outputs: { expect: c.expect }, metadata: { case_id: c.id, category: c.category, dataset_split: ["base"] } });
   // the first sync creates the dataset and one example per live case, in the shape the runner reads
-  assert.deepEqual(await syncDataset(CASES, { client }), { created: 20, updated: 0, removed: 0 });
+  assert.deepEqual(await syncDataset(CASES, { client }), { created: 39, updated: 0, removed: 0 });
   assert.deepEqual(stored().map(({ id, ...ex }) => ex), LIVE.map(exampleOf));
   // nothing changed, nothing to do (the server's dataset_split is not a change)
   const second = calls.length;
@@ -367,7 +538,7 @@ test("run without --sync on a missing dataset exits 1 with the message", async (
   assert.deepEqual(calls, [["hasDataset", { datasetName: "undercurrent-ask" }]]);
   // with --sync, a run on main creates it from tests/ask-eval.json before it evaluates
   const result = await runEvals({ ...WEEKLY, sync: true }, deps);
-  assert.deepEqual(result.sync, { created: 20, updated: 0, removed: 0 });
+  assert.deepEqual(result.sync, { created: 39, updated: 0, removed: 0 });
   assert.deepEqual(calls.slice(1).map(([name]) => name), ["hasDataset", "createDataset", "listExamples", "createExamples", "evaluate", "readProject", "getDatasetUrl"]);
 });
 
@@ -400,4 +571,70 @@ test("notes replaces the Under-review comment on the matching run only, and repo
     await assert.rejects(backfillNotes([entries[0], bad], { client }), /each note needs an experiment, a case and a note/);
   }
   assert.equal(calls.length, before);
+});
+
+// ---- judge-check ----------------------------------------------------------------------------------------------------------
+
+const RUNNER = new URL("../scripts/ask-langsmith.mjs", import.meta.url).pathname;
+const LABELS = JSON.parse(readFileSync(new URL("./ask-relevance-labels.json", import.meta.url), "utf8"));
+
+/**
+ * Runs `judge-check` as the workflow does, with fetch replaced (through --import) by a fake System One that logs each request and
+ * judges every answer fully relevant except those to "Is TASSOS sanctioned?" (not at all), and fails with HTTP 500 for `fail`.
+ */
+function judgeCheckRun(env, fail = "") {
+  const dir = mkdtempSync(join(tmpdir(), "judge-check-"));
+  const stub = join(dir, "fetch.mjs");
+  writeFileSync(stub, `import { appendFileSync } from "node:fs";
+globalThis.fetch = async (url, init) => {
+  const body = JSON.parse(init.body);
+  appendFileSync(${JSON.stringify(join(dir, "requests"))}, JSON.stringify({ url, auth: init.headers.Authorization, state: body.state }) + "\\n");
+  if (body.state.question === ${JSON.stringify(fail)}) return new Response("{}", { status: 500 });
+  const score = body.state.question === "Is TASSOS sanctioned?" ? 0 : 3;
+  return Response.json({ model: "jev-1.13.0", answers: { addresses: { type: "score", score, confidence: 0.9, probabilities: {}, legend: {} }, unrelated: { type: "noul", noul: 0.1 } }, usage: { input_tokens: 100, output_tokens: 5 } });
+};
+`);
+  const r = spawnSync(process.execPath, ["--import", pathToFileURL(stub).href, RUNNER, "judge-check"], { encoding: "utf8", env: { PATH: process.env.PATH, ...env } });
+  let requests = [];
+  try { requests = readFileSync(join(dir, "requests"), "utf8").trim().split("\n").map((l) => JSON.parse(l)); } catch {}
+  return { ...r, requests };
+}
+
+test("judge-check without TYPESAFE_API_KEY exits 2 before anything is fetched", () => {
+  for (const env of [{}, { TYPESAFE_API_KEY: "" }]) {
+    const r = judgeCheckRun(env);
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /^TYPESAFE_API_KEY is not set$/m);
+    assert.deepEqual(r.requests, []);
+  }
+  const extra = spawnSync(process.execPath, [RUNNER, "judge-check", "--now"], { encoding: "utf8", env: { PATH: process.env.PATH } });
+  assert.equal(extra.status, 2);
+  assert.match(extra.stderr, /node scripts\/ask-langsmith\.mjs judge-check/);
+});
+
+test("judge-check judges every label, prints a row each and the agreements, and exits 0 even where the judge disagrees", () => {
+  const r = judgeCheckRun({ TYPESAFE_API_KEY: "ts-test" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(r.requests.map((q) => [q.url, q.auth, q.state]), LABELS.map((l) => ["https://api.typesafe.ai/v1/systemone", "Bearer ts-test", { question: l.question, answer: l.sentences, sources: l.sources ?? [] }]));
+  assert.ok(r.requests.some((q) => q.state.sources.length));
+  const lines = r.stdout.trim().split("\n");
+  assert.match(lines[0], /^id +label +relevance +unrelated +verdict$/);
+  const rows = Object.fromEntries(lines.slice(1, 1 + LABELS.length).map((l) => l.split(/ +/)).map(([id, ...rest]) => [id, rest]));
+  assert.deepEqual(Object.keys(rows), LABELS.map((l) => l.id));
+  assert.deepEqual(rows["owner-chips-lag"], ["good", "1.00", "0.10", "agree"]);
+  assert.deepEqual(rows["tassos-listed"], ["good", "0.00", "0.10", "disagree"]);
+  assert.deepEqual(rows["tassos-lobbying"], ["bad", "0.00", "0.10", "agree"]);
+  assert.deepEqual(rows["owner-dji-age"], ["partial", "1.00", "0.10", "disagree"]);
+  assert.equal(lines.at(-1), "5 of 12 agree. Judge input tokens: 1200 (jev-1.13.0).");
+  assert.ok(!(r.stdout + r.stderr).includes("ts-test"));
+});
+
+test("judge-check exits 1 when the judge was unavailable for a label, after printing the rest", () => {
+  const r = judgeCheckRun({ TYPESAFE_API_KEY: "ts-test" }, "Who manages TASSOS?");
+  assert.equal(r.status, 1);
+  assert.equal(r.requests.length, LABELS.length);
+  assert.match(r.stdout, /^tassos-manager +good +- +- +unavailable$/m);
+  assert.match(r.stdout, /\n4 of 12 agree, 1 unavailable\. Judge input tokens: 1100 \(jev-1\.13\.0\)\.\n$/);
+  assert.match(r.stderr, /ask-relevance: judge unavailable/);
+  assert.match(r.stderr, /the judge was unavailable for 1 label, so the check is incomplete/);
 });

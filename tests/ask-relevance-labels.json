@@ -1,0 +1,93 @@
+[
+  {
+    "id": "owner-chips-lag",
+    "question": "How long does it take to list a new semiconductor firm?",
+    "sentences": ["The median time to list a new chip supplier (US Treasury OFAC) is 20.3 months from founding to OFAC listing, across 25 firms founded after 24 February 2022 (the middle half took 16.1 to 25.8 months)."],
+    "label": "good",
+    "why": "Asked on the live site on 21 Oct. It gives the time asked for, with the firms it covers and the spread."
+  },
+  {
+    "id": "owner-dji-age",
+    "question": "how old are the sanctions on dji?",
+    "sentences": ["DJI appears on the United States list under Entity List (EL) since 18 Dec 2020.", "SZ DJI Technology Co., Ltd. appears on the United States list under Chinese military companies."],
+    "label": "partial",
+    "why": "Asked on the live site on 21 Oct. It gives a date, not an age."
+  },
+  {
+    "id": "owner-iran-ships",
+    "question": "any sanctions on ships which are related to iran?",
+    "sentences": ["FORTUNE appears on the United States list under Iran since 20 Apr 2023.", "IRAN PARAK appears on the United States list under Iran since 20 Apr 2023.", "IRAN CHARAK appears on the United States list under Iran since 20 Apr 2023.", "HAYAN appears in OpenSanctions as listed by US."],
+    "label": "partial",
+    "why": "Asked on the live site on 21 Oct. These are examples presented as if complete."
+  },
+  {
+    "id": "owner-renamed-ships",
+    "question": "how many ships have changed their name of their ship?",
+    "sentences": ["Across all sources, each hull had a median of 4 names (range 2 to 7)."],
+    "label": "bad",
+    "why": "Asked on the live site on 21 Oct. It answers a different question: names per hull, not how many ships."
+  },
+  {
+    "id": "owner-iran-updates",
+    "question": "please check if there are any companies related to iran in the recent updates!",
+    "sentences": ["New bill: H.R.6058 · 21 Oct 2026", "NVIDIA lobbied on H.R.8800 · 20 Oct 2026"],
+    "label": "bad",
+    "why": "Asked on the live site on 21 Oct. The records are unrelated to the question."
+  },
+  {
+    "id": "tassos-listed",
+    "question": "Is TASSOS sanctioned?",
+    "sentences": ["TASSOS appears on the United States list under Iran since 30 Jul 2025.", "TASSOS appears on the European Union list under Russia since 24 Oct 2025.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "TASSOS appears on the United States list under Iran."],
+    "sources": ["Undercurrent research: TASSOS · United States", "Undercurrent research: TASSOS · European Union", "Undercurrent research: TASSOS · United Kingdom", "United Kingdom list · TASSOS", "United States list · TASSOS"],
+    "label": "good",
+    "why": "Each sentence is one of the ship's listings, which is what was asked (area-lists-1's answer)."
+  },
+  {
+    "id": "tassos-manager",
+    "question": "Who manages TASSOS?",
+    "sentences": ["Manager of TASSOS: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C."],
+    "sources": ["Undercurrent research: TASSOS · United States"],
+    "label": "good",
+    "why": "It names the manager asked about (area-research-1's answer)."
+  },
+  {
+    "id": "january-changes",
+    "question": "What changed in January 2026?",
+    "sentences": ["Daily updates started on 20 Oct 2026, so there is no record before then."],
+    "sources": ["No record before 20 Oct 2026"],
+    "label": "good",
+    "why": "The honest answer: the record starts after the month asked about (date-range-1's answer)."
+  },
+  {
+    "id": "zephyr-not-found",
+    "question": "Is Zephyr Marine Services sanctioned?",
+    "sentences": ["Zephyr Marine Services is not on the lists we check (US, UK, EU, UN, OpenSanctions). Not being found isn't proof."],
+    "sources": ["Search of the lists, research and OpenSanctions"],
+    "label": "good",
+    "why": "It answers for the name asked about and says what a miss does not prove (not-on-lists-1's answer)."
+  },
+  {
+    "id": "tassos-lobbying",
+    "question": "Is TASSOS sanctioned?",
+    "sentences": ["NVIDIA lobbied on H.R.8800 · 20 Oct 2026"],
+    "sources": ["20 Oct 2026: NVIDIA lobbied on H.R.8800"],
+    "label": "bad",
+    "why": "A lobbying update about another company says nothing about the ship's listings."
+  },
+  {
+    "id": "nord-stream-tassos",
+    "question": "Who lobbied for Nord Stream 2?",
+    "sentences": ["TASSOS appears on the United States list under Iran since 30 Jul 2025."],
+    "sources": ["Undercurrent research: TASSOS · United States"],
+    "label": "bad",
+    "why": "A ship's listing does not say who lobbied for the pipeline company."
+  },
+  {
+    "id": "chips-lobbying",
+    "question": "How long does it take to list a new semiconductor firm?",
+    "sentences": ["NVIDIA lobbied on S.4784 · 20 Oct 2026"],
+    "sources": ["20 Oct 2026: NVIDIA lobbied on S.4784"],
+    "label": "bad",
+    "why": "A chip maker's lobbying gives no time to listing: the right subject area, not an answer."
+  }
+]

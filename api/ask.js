@@ -105,8 +105,8 @@ function resetsOn(at, now) {
   return /^\d{4}-\d\d-\d\d$/.test(day) ? day : nextMonth(now);
 }
 
-/** One call: {message, usage} on success (usage is OpenRouter's, or null), else {stop: the reply to give the reader}. */
-async function callModel(messages, toolChoice, deadline, now) {
+/** One call to `model`: {message, usage} on success (usage is OpenRouter's, or null), else {stop: the reply to give the reader}. */
+async function callModel(messages, toolChoice, deadline, now, model) {
   const left = deadline - Date.now();
   if (left < MIN_CALL_MS) return { stop: UNAVAILABLE };
   let res;
@@ -121,7 +121,7 @@ async function callModel(messages, toolChoice, deadline, now) {
         "HTTP-Referer": "https://undercurrent-research.vercel.app",
         "X-Title": "Undercurrent",
       },
-      body: JSON.stringify({ model: MODEL, max_tokens: 800, provider: { data_collection: "deny" }, messages, tools: TOOLS, tool_choice: toolChoice }),
+      body: JSON.stringify({ model, max_tokens: 800, provider: { data_collection: "deny" }, messages, tools: TOOLS, tool_choice: toolChoice }),
     });
     body = await res.json();
   } catch {
@@ -159,7 +159,7 @@ const parse = (args) => {
  * callModel, runTool and checkAnswer are used as `wrap` returns them, for this request only, and each is awaited: a tracing wrapper
  * returns a promise even for the checker.
  */
-async function converse(history, now, wrap) {
+async function converse(history, now, wrap, modelId) {
   const model = wrap("callModel", callModel);
   const tool = wrap("runTool", runTool);
   const check = wrap("checkAnswer", checkAnswer);
@@ -172,7 +172,7 @@ async function converse(history, now, wrap) {
   let used = 0;
   for (let round = 0; round <= TOOL_ROUNDS; round++) {
     const forced = round === TOOL_ROUNDS || used >= MAX_TOOL_CALLS;
-    const { message, stop } = await model(messages, forced ? FORCE_ANSWER : "auto", deadline, now);
+    const { message, stop } = await model(messages, forced ? FORCE_ANSWER : "auto", deadline, now, modelId);
     if (stop) return stop;
     const calls = (Array.isArray(message.tool_calls) ? message.tool_calls : []).filter((c) => typeof c?.function?.name === "string");
     const final = calls.find((c) => c.function.name === "answer");
@@ -195,14 +195,15 @@ async function converse(history, now, wrap) {
 
 /**
  * One question, end to end: {ok: true, answer} or {ok: false, reason, resets?}, which is what POST replies with. `wrap(name, fn)` is
- * the eval runner's hook to trace callModel, runTool and checkAnswer; it defaults to leaving them as they are, and POST never passes it.
+ * the eval runner's hook to trace callModel, runTool and checkAnswer; it defaults to leaving them as they are. `model` is the OpenRouter
+ * model id the eval runner compares; it defaults to MODEL. POST passes neither, so the site always uses MODEL.
  */
-export async function runAsk(history, now, { wrap = (name, fn) => fn } = {}) {
+export async function runAsk(history, now, { wrap = (name, fn) => fn, model = MODEL } = {}) {
   // the whole request is abandoned at 26 s, even if a tool is stuck (it is checked between steps too, so nothing new starts after that)
   let timer;
   const late = new Promise((resolve) => { timer = setTimeout(resolve, TOTAL_MS, UNAVAILABLE); });
   try {
-    return await Promise.race([converse(history, now, wrap), late]);
+    return await Promise.race([converse(history, now, wrap, model), late]);
   } finally {
     clearTimeout(timer);
   }

@@ -888,6 +888,25 @@ test("the wrapped callModel resolves to {message, usage} with OpenRouter's usage
   assert.equal(sent[0].body.model, MODEL);
 });
 
+test("runAsk sends MODEL unless it is given a model, and the given one on every call, with the rest of the body unchanged", async () => {
+  const flow = () => [reply(call("check_lists", { query: "TASSOS" })), listedAnswer];
+  openrouter(...flow());
+  const usual = await runAsk(history("Is TASSOS sanctioned?"), new Date(Date.now()));
+  const usualBodies = sent.map((s) => s.body);
+  assert.deepEqual(usualBodies.map((b) => b.model), [MODEL, MODEL]);
+  openrouter(...flow());
+  assert.deepEqual(await runAsk(history("Is TASSOS sanctioned?"), new Date(Date.now()), { model: "deepseek/deepseek-v4.1-flash" }), usual);
+  assert.deepEqual(sent.map((s) => s.body.model), ["deepseek/deepseek-v4.1-flash", "deepseek/deepseek-v4.1-flash"]);
+  assert.deepEqual(sent.map((s) => ({ ...s.body, model: MODEL })), usualBodies); // max_tokens, provider, tools, tool_choice, messages
+});
+
+test("POST always sends MODEL, whatever the request body holds", async () => {
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
+  const { json: body } = await run({ ...ask("Is TASSOS sanctioned?"), model: "deepseek/deepseek-v4.1-flash" });
+  assert.equal(body.ok, true);
+  assert.deepEqual(sent.map((s) => s.body.model), [MODEL, MODEL]);
+});
+
 test("nothing under api/ imports langsmith, and package.json has it only in devDependencies", () => {
   const api = new URL("../api/", import.meta.url);
   const files = readdirSync(api, { recursive: true }).filter((f) => /\.[cm]?js$/.test(f));

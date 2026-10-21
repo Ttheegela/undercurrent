@@ -16,12 +16,16 @@ import { groundingProblems, REFUSAL, FALLBACK, CLARIFY, NOT_ADVICE } from "../sc
 const CASES = JSON.parse(readFileSync(new URL("./ask-eval.json", import.meta.url), "utf8"));
 const SCRIPT = fileURLToPath(new URL("../scripts/ask-live-eval.mjs", import.meta.url));
 
-// the least a case must cover: the owner's four fears, one case per data area, and the probes
+// the least a case must cover: the owner's four fears, one case per data area, the probes, questions asked on the live site that
+// Ask answered beside the point, and the question patterns the relevance judge is measured on (counts, durations, topic filters on the
+// updates, lists by programme or country, honest "none" answers, two-part questions and a near-miss name)
 const MINIMUM = {
   "fear-false-listing": 4, "fear-invented-update": 4, "fear-no-source": 4, "fear-off-topic": 4,
   "area-lists": 1, "area-research": 1, "area-opensanctions": 1, "area-connections": 1, "area-lobbying": 1, "area-chips": 1, "area-docs": 1, "area-changes": 1,
-  "off-topic": 6, injection: 4, "not-on-lists": 4, "date-range": 3, clarify: 3,
+  "off-topic": 6, injection: 4, "not-on-lists": 4, "date-range": 3, clarify: 3, relevance: 3,
+  count: 3, duration: 2, topic: 2, programme: 3, none: 2, multi: 2, near: 1,
 };
+const PATTERNS = ["count", "duration", "topic", "programme", "none", "multi", "near"];
 const SPEC_QUESTIONS = ["What changed this week?", "Is TASSOS sanctioned?", "Who lobbied for Nord Stream 2?", "Should I buy oil from this ship?", "What's the weather?", "Is Rusal sanctioned?"];
 
 // ---- the set itself ------------------------------------------------------------------------------------------------
@@ -58,6 +62,8 @@ test("every case is well formed, and its evidence is the tools' own S1, S2, … 
     assert.ok(c.expect.also === undefined || (Array.isArray(c.expect.also) && c.expect.also.length && c.expect.also.every((k) => ["answer", "refusal", "clarify"].includes(k) && k !== c.expect.kind)), `${c.id}: expect.also`);
     assert.ok(c.expect.notice === undefined || (c.expect.notice === true && c.expect.kind === "refusal"), `${c.id}: expect.notice`);
     assert.ok(c.live === undefined || c.live === false, `${c.id}: live`);
+    // a question-pattern case says what a good answer would be, so a judged answer can be read against it
+    if (PATTERNS.includes(c.category)) assert.ok(typeof c.note === "string" && c.note.trim(), `${c.id}: note`);
     assert.deepEqual(c.evidence.map((e) => e.id), c.evidence.map((_, i) => `S${i + 1}`), `${c.id}: evidence ids`);
     for (const e of c.evidence) {
       assert.equal(typeof e.kind, "string", c.id);
@@ -124,11 +130,16 @@ async function withSite(reply, fn) {
 const says = (kind, text = "Stub answer.") => [200, { ok: true, answer: { kind, sentences: [{ text, sources: [{ n: 1, label: "Stub", url: "/" }] }], next: [] } }];
 const byQuestion = (body) => LIVE.find((c) => c.question === body.messages?.[0]?.text);
 
-test("live runner: a full run fits one hour's limit of 20 questions, one question each", () => {
-  assert.ok(LIVE.length >= 18 && LIVE.length <= 20, `${LIVE.length} live cases`);
+test("live runner: the 39 questions go in two batches an hour apart, each within one hour's limit of 20", async () => {
+  assert.equal(LIVE.length, 39);
   const questions = LIVE.map((c) => c.question);
   assert.equal(new Set(questions).size, questions.length, "a question is posted twice");
   for (const q of SPEC_QUESTIONS) assert.ok(questions.includes(q), `${q} is not live`);
+  const { code, stdout } = await run(["--dry-run"]);
+  assert.equal(code, 0);
+  const batches = [...stdout.matchAll(/^ {2}--only (\S+)$/gm)].map((m) => m[1].split(","));
+  assert.deepEqual(batches.map((b) => b.length), [20, 19]);
+  assert.deepEqual(batches.flat(), LIVE.map((c) => c.id)); // every live case once
 });
 
 test("live runner: --help works and never reads a key", async () => {
@@ -142,7 +153,7 @@ test("live runner: --dry-run prints the plan and posts nothing", async () => {
   const { code, stdout } = await run(["--base", "https://undercurrent.invalid", "--dry-run"]);
   assert.equal(code, 0);
   for (const c of LIVE) assert.ok(stdout.includes(c.id) && stdout.includes(c.question), c.id);
-  assert.match(stdout, /20 questions/);
+  assert.match(stdout, /39 questions/);
   assert.ok(!CASES.filter((c) => c.live === false).some((c) => stdout.includes(`${c.id} `)), "an offline-only case is in the plan");
 });
 

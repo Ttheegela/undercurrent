@@ -83,9 +83,9 @@ const IMO = /^(?:IMO\s*)?\d{7}$/i;
 // of the listed names more than a word list did, most for "Charitable", "Variable" or "Cable").
 const CLEAN_BILL = new RegExp([
   String.raw`\b(?:is|are|was|were|not|no|never|none|nothing|nil|zero)\b|n['’]t\b`, // a predicate or negation makes a span a statement: "isn't", "nothing found"
-  String.raw`\b(?:un|pre)?-?(?:approv|allow|permitt|authori[sz]|licen[cs]|vett|verifi|screen|pass|ok(?:ay)?['’]?|clear|clean|trust|certifi|accredit|validat|endors|pardon|exempt|exonerat|absolv|acquitt)e?d\b|\bscreening\b`, // vetted: "OK'd", "unverified", "pre-approved"
+  String.raw`\b(?:un|non|dis|pre|re)?-?(?:approv|allow|permitt|authori[sz]|licen[cs]|vett|verifi|screen|pass|ok(?:ay)?['’]?|clear|clean|trust|certifi|accredit|validat|endors|pardon|exempt|exonerat|absolv|acquitt)e?d\b|\bscreening\b`, // vetted: "OK'd", "unverified", "pre-approved"
   String.raw`\b\w+(?:able|ible|worthy)\b`, // fit for business: "reliable", "reputable", "permissible", "trustworthy"
-  String.raw`\b(?:clean|clear(?:s|ance)?|safe(?:ly|r|st)?|risk(?:s|y)?|(?:harm|blame|fault|guilt|risk)less|(?:il)?legal(?:ly)?|legit(?:imate)?|lawful|compliant|innocent|exempt|ok(?:ay)?)\b`,
+  String.raw`\b(?:un|non|in|il|dis)?-?(?:clean|clear(?:s|ance)?|safe(?:ly|r|st)?|risk(?:s|y)?|(?:harm|blame|fault|guilt|risk)less|(?:il)?legal(?:ly)?|legit(?:imate)?|lawful|compliant|innocent|exempt|ok(?:ay)?)\b`,
 ].join("|"), "i");
 const verdict = (span) => LISTING.test(span) || AUTHORITY.test(span) || CLEAN_BILL.test(span);
 // Country and nationality words name no ship, firm or person on their own ("Is Iranian oil listed?" searched as "Iranian"): the countries

@@ -1022,7 +1022,8 @@ test("minors (1): a verdict the word list never named falls back: un- listing fo
   for (const words of ["unblocked", "unblock", "un-blocked", "unbanned", "undesignated", "untargeted", "derestricted", "unpunished",
     "trustworthy", "creditworthy", "legit", "legitimate", "reliable", "reputable", "dependable", "acceptable", "permissible", "approved", "pre-approved",
     "compliant", "permitted", "allowed", "lawful", "legal", "authorised", "authorized", "vetted", "verified", "unverified", "whitelisted", "trusted",
-    "screened", "passed screening", "okayed", "OK'd", "pardoned", "certified", "harmless", "nothing found", "zero hits"]) {
+    "screened", "passed screening", "okayed", "OK'd", "pardoned", "certified", "harmless", "nothing found", "zero hits",
+    "unsafe", "unlawful", "unclean", "illegitimate", "noncompliant", "non-compliant", "nonapproved", "disallowed", "reverified"]) {
     const query = `Zorbex ${words}`;
     assert.deepEqual(notFound(search(query), `Look up ${query}`), FALLBACK_ANSWER, words);
   }

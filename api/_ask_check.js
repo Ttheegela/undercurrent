@@ -1,9 +1,10 @@
 // Ask's answer renderer. The model writes no words: each sentence of its `answer` call is a claim type and evidence ids (S1, S2, …),
 // and a `quote` names one item and the number of one of its quotes. This module writes every sentence itself: listing, not-found
 // and change sentences from fixed copy and the cited items, quotes copied verbatim from the cited item. Anything it can't build is
-// dropped, and an answer with nothing left is the fallback. Any `text` or label from the model is ignored. Pure, no I/O. The output
-// is plain text plus {label, url} / {label, href} taken from the evidence: the panel escapes it.
+// dropped, and an answer with nothing left is the fallback. Any `text` or label from the model is ignored. No I/O beyond the site's
+// own prose vocabulary, read once. The output is plain text plus {label, url} / {label, href} taken from the evidence: the panel escapes it.
 import { LIST_LABELS, formatDate } from "../app/render.js";
+import { siteVocabulary } from "./_ask_tools.js";
 
 // ---- fixed copy (global-constraints.md, verbatim; the range, OpenSanctions, clarify and before-start forms by ruling) -------
 
@@ -33,33 +34,48 @@ const listable = (e) => typeof e.entity?.name === "string" &&
   (e.kind === "opensanctions" || ((e.kind === "list" || e.kind === "research") && !e.delisted && Object.hasOwn(LIST_LABELS, e.gov ?? "")));
 
 // The query is the model's own tool argument, so NOT_FOUND names it only when the reader typed it: its words, whole and in order,
-// in the reader's question (case, spacing and punctuation aside; "SSOS" is not in "Is TASSOS sanctioned?"). Control and format
-// characters (a right-to-left override, a zero-width space, a soft hyphen) are stripped from the question first, so "TAS­SOS" is
-// TASSOS and never the halves "TAS SOS"; what is printed is the reader's own span of the stripped question.
+// in the reader's question (case, spacing and punctuation aside; "SSOS" is not in "Is TASSOS sanctioned?"). Before the match the
+// question is NFKC-normalised and stripped of format and combining characters and U+FEFF (then of control characters), so "TAS\u00ADSOS"
+// (a soft hyphen) and "TAS\u034FSOS" (a combining joiner) are TASSOS and never the halves "TAS SOS". What is printed is the reader's own
+// span of that cleaned question, and only when all of these hold:
+//  (1) it is plain ASCII: letters, digits, spaces and . , & ' - (a Cyrillic or Greek lookalike such as "ТАSSOS" is never printed as
+//      if it were the Latin name the search could not find);
+//  (2) it is a seven-digit IMO number, or holds a word of four or more letters outside COMMON and the site's own prose, so "the
+//      registered owner", "technical manager" and "all 300 ships" name nothing, while "gatik" does;
+//  (3) no search of this answer found anything (checked by the renderer: a side search beside a found name never says "not on the lists").
 const WORD = /[\p{L}\p{N}]+/gu;
-// Words that never name anything on their own, whatever their case: pointing words and generic nouns. A span is a name only if it
-// holds a word of three or more letters outside this set ("gatik", "TASSOS") or a run of three or more digits (an IMO number);
-// "THE MANAGER", "This tanker", "its parent company", "all 3" and "the 2nd one" name nothing.
+const PLAIN = /^[A-Za-z0-9 .,&'-]+$/;
+const IMO = /^(?:IMO\s*)?\d{7}$/i;
+// Words that never name anything on their own, whatever their case: pointing words and generic nouns ("beneficial", "mentioned",
+// "mother" and "daughter" are role words the site's prose happens not to use).
 const COMMON = new Set(("it its they them their this these those he she his her both above below here there such former latter other all the "
   + "a an is are was were be been that any some of on in at to for by with and or who what which whose where when why how does do did "
   + "has have had not no yes still now ever my our your we you me so if as up one ones first second third next last same each every new old name names number "
   + "ship ships vessel vessels tanker tankers boat boats hull hulls company companies firm firms corporation person persons people man woman group groups "
   + "bank banks owner owners manager managers management operator operators shipowner shipowners parent parents subsidiary subsidiaries affiliate affiliates "
-  + "sister buyer buyers seller sellers supplier suppliers client clients charterer charterers insurer insurers entity entities "
+  + "sister buyer buyers seller sellers supplier suppliers client clients charterer charterers insurer insurers entity entities beneficial mentioned mother daughter "
   + "list lists listed listing sanction sanctions sanctioned blocked designated frozen restricted crude oil gas cargo fleet fleets shipping trading "
   + "holding holdings international limited services marine maritime energy logistics industries flag flagged registry "
   + "us uk eu un imo ofac sdn treasury ofsi bis commerce opensanctions").split(" "));
-const nameLike = (span) => /\p{N}{3}/u.test(span) || (span.match(WORD) ?? []).some((w) => w.length >= 3 && /^\p{L}+$/u.test(w) && !COMMON.has(w.toLowerCase()));
+function nameLike(span) {
+  if (IMO.test(span)) return true;
+  const prose = siteVocabulary();
+  return (span.match(/(?<![A-Za-z0-9])[A-Za-z]{4,}(?![A-Za-z0-9])/g) ?? []).some((w) => !COMMON.has(w.toLowerCase()) && !prose.has(w.toLowerCase()));
+}
 function typedSpan(query, question) {
   if (typeof query !== "string" || typeof question !== "string") return null;
-  const clean = question.replace(/\s+/g, " ").replace(/[\p{Cc}\p{Cf}]/gu, "");
+  const clean = question.normalize("NFKC").replace(/[\p{Cf}\p{M}\uFEFF]/gu, "").replace(/\s+/g, " ").replace(/\p{Cc}/gu, "");
   const want = (query.match(WORD) ?? []).map((w) => w.toLowerCase());
   const words = [...clean.matchAll(WORD)];
   for (let i = 0; want.length && i + want.length <= words.length; i++) {
     if (!want.every((w, j) => words[i + j][0].toLowerCase() === w)) continue;
     const last = words[i + want.length - 1];
     const span = clean.slice(words[i].index, last.index + last[0].length).trim();
-    return nameLike(span) ? span : null; // "sanctioned is not on the lists" is never said; "gatik" typed in lower case still is a name
+    try {
+      return PLAIN.test(span) && nameLike(span) ? span : null; // "sanctioned is not on the lists" is never said; "gatik" typed in lower case still is a name
+    } catch {
+      return null; // no prose vocabulary to hand: never "not on the lists"
+    }
   }
   return null;
 }
@@ -70,6 +86,7 @@ const RENDER = {
   not_found: (items, s, all, ctx) => {
     const searches = items.filter((e) => e.kind === "search");
     if (!searches.length || !searches.every((e) => e.found === false)) return null;
+    if (all.some((e) => e.kind === "search" && e.found === true)) return []; // a name was found in this answer: no "not on the lists" beside it
     return searches.flatMap((e) => {
       const span = typedSpan(e.query, ctx.question);
       return span ? [{ text: NOT_FOUND(span), items: [e] }] : [];

@@ -30,6 +30,7 @@ const US_NOTE = "This is the US Consolidated Screening List, which also carries 
 
 const files = new Map();
 let docs = null;
+let vocab = null;
 
 const data = (rel) => {
   if (!files.has(rel)) files.set(rel, JSON.parse(readFileSync(join(process.cwd(), rel), "utf8")));
@@ -39,6 +40,13 @@ const data = (rel) => {
 export function resetAskCache() {
   files.clear();
   docs = null;
+  vocab = null;
+}
+
+/** Every word of the site's own explainer prose, lower-cased, loaded once: a span made of such words names nothing (NOT_FOUND). */
+export function siteVocabulary() {
+  if (!vocab) vocab = new Set(data("data/ask-docs.json").sections.flatMap((s) => s.text.toLowerCase().match(/[a-z]+/g) ?? []));
+  return vocab;
 }
 
 // ---- small helpers --------------------------------------------------------------------------------------------
@@ -69,7 +77,7 @@ const quoteMax = (kind) => (EXPLAINER.has(kind) ? 20 : 12);
 const SENTENCES = new Intl.Segmenter("en", { granularity: "sentence" });
 // a segment ending in an initialism ("U.S.", "e.g.", "J.") or a common abbreviation ("St.", "Pte.", "LTD.") is not a sentence's end
 const ABBREVIATION = /(?:^|[\s(])(?:(?:[A-Za-z]\.){2,}|[A-Z]\.|(?:St|Co|Ltd|LTD|Pte|PTE|Inc|Rep|Sen|Jr|Sec|Reg|No|Mr|Ms|Dr|vs|etc|approx|incl)\.)$/;
-const LISTING = /\b(?:\w*sanction\w*|\w*list\w*|designat\w*|target(?:s|ed|ing)?|freez\w*|frozen|blocked|penalis\w*|penaliz\w*|penalt\w*|embargo\w*|prohibit\w*|(?:de)?barred|restrict\w*|ban(?:s|ned)?|fine[sd]?|punish\w*|remov(?:e[sd]?|als?)|lift(?:s|ed)?|revok\w*)\b|\bappear(?:s|ed|ing)?\s+on\b/i;
+const LISTING = /\b(?:\w*sanction\w*|\w*list\w*|designat\w*|target(?:s|ed|ing)?|(?:un)?fr(?:o|ee)z\w*|blocked|penalis\w*|penaliz\w*|penalt\w*|embargo\w*|prohibit\w*|(?:de)?barred|restrict\w*|ban(?:s|ned)?|fine[sd]?|punish\w*|remov(?:e[sd]?|als?)|lift(?:s|ed)?|revok\w*)\b|\bappear(?:s|ed|ing)?\s+on\b/i;
 const AUTHORITY = /\b(?:OFAC|SDN|Treasury|OFSI|BIS|Commerce|Entity List)\b/i; // the authority behind a listing counts as listing language
 
 // A sentence with listing language is offered only from a doc or chips item, and only when every capitalised word in it, the first
@@ -82,11 +90,14 @@ const STARTERS = new Set(("A An The Nobody No Anyone Any Every Most Many Some Co
   "Lists Sanctions Asset Export Secondary Sectoral If When Once Under In For To Because Where While").split(" "));
 const CAPITALISED = /(?<![\p{L}\p{N}])\p{Lu}[\p{L}\p{N}'’-]*/gu;
 const generic = (s) => (s.replace(ALLOWED, ",").match(CAPITALISED) ?? []).every((w) => STARTERS.has(w.replace(/['’]s$/, "")));
-// Pointing words take their meaning from the sentence before: pronouns, place and discourse pointers, "the other", "all <n>",
-// "the <n>" and "the <generic noun>" ("the target's money", "the manager", "the ships … above"). No sentence holding one is quotable.
+// Pointing words take their meaning from the sentence before: pronouns, place and discourse pointers (then included), "the other",
+// "all <n>", "the <n>", and "the" followed within three words by a generic noun ("the target's money", "the shipping firms", "the ISM
+// manager", "the old names"). No sentence holding one is quotable. A noun with a capital is part of a name ("the Zulu Ships
+// Management", "the Nickles Group"), so the window takes lower-case nouns only.
 const NUMBER_WORDS = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty thirty forty fifty sixty seventy eighty ninety hundred";
-const GENERIC_NOUNS = "target targets manager managers shipowner shipowners parent parents company companies firm firms ship ships vessel vessels tanker tankers person persons people entity entities bank banks group groups owner owners operator operators";
-const POINTS_AT = new RegExp(String.raw`\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both|above|below|here|there|such|former|latter)\b|\bthe\s+other\b|\b(?:all|the)\s+(?:\d+|${NUMBER_WORDS.split(" ").join("|")})\b|\bthe\s+(?:${GENERIC_NOUNS.split(" ").join("|")})\b`, "i");
+const GENERIC_NOUNS = "target targets shipowner shipowners parent parents tanker tankers firm firms company companies ship ships vessel vessels owner owners manager managers operator operators name names entry entries list lists bank banks group groups entity entities person persons people";
+const POINTS_AT = new RegExp(String.raw`\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both|above|below|here|there|such|former|latter|then)\b|\bthe\s+other\b|\b(?:all|the)\s+(?:\d+|${NUMBER_WORDS.split(" ").join("|")})\b`, "i");
+const NOUN_WINDOW = new RegExp(String.raw`\b[Tt]he(?:\s+[\p{L}\p{N}'’-]+){0,2}\s+(?:${GENERIC_NOUNS.split(" ").join("|")})\b`, "u");
 // Never quotable: "team" wording, present-tense currency wording (the 25 Sep 2026 research would read as current), "no sanctions"
 const NEVER = /\bteam(?:s|mates?)?\b|\bright now\b|\bcurrently\b|\bat present\b|\bat the moment\b|\bon these now\b|\bno sanctions\b/i;
 // A whole sentence opens with a capital or a digit (not a quotation mark, "/" or "#"), closes with . ! or ?, runs to five words or
@@ -98,7 +109,10 @@ const CUT = /^[\p{Lu}\p{N}][\p{Lu}\p{N}./-]{2,},/u;
 const beforeGloss = (s) => { const i = s.lastIndexOf("("); return i > 0 && /^\([^]*\)[.!?]["”’')\]]*$/.test(s.slice(i)) ? s.slice(0, i) : s; };
 const whole = (s) => /^[\p{Lu}\p{N}]/u.test(s) && /[.!?]["”’')\]]*$/.test(s) && beforeGloss(s).trim().split(/\s+/).length >= 5 && !TAIL.test(s) && !CUT.test(s);
 // (a word written in capitals is a name or a code, the ship FEI YUN HE or the flag IT, not a pronoun)
-const points = (s) => POINTS_AT.test(s.replace(/(?<![\p{L}\p{N}])\p{Lu}{2,}(?![\p{L}\p{N}])/gu, " "));
+const points = (s) => {
+  const t = s.replace(/(?<![\p{L}\p{N}])\p{Lu}{2,}(?![\p{L}\p{N}])/gu, " ");
+  return POINTS_AT.test(t) || NOUN_WINDOW.test(t);
+};
 const plain = (s) => whole(s) && !s.includes("(figure unavailable)") && !NEVER.test(s) && !points(s);
 // (the allowed names are not listing words: "OpenSanctions connections data for TASSOS …" is not about a listing)
 const quotable = (kind, s) => plain(s) && ((!LISTING.test(s.replace(ALLOWED, ",")) && !AUTHORITY.test(s)) || (EXPLAINER.has(kind) && generic(s)));
@@ -582,7 +596,7 @@ function sanctionItems(s) {
   if (!s.matched) {
     return [{
       ...built("connection", [
-        "No entity with the name or IMO number asked about is in the OpenSanctions connections data.",
+        "No exact match by name or IMO number exists in the OpenSanctions connections data.", // (worded without "the name": a pointer)
         "Matching there is exact on the whole name or the IMO number, so another spelling may exist; this is not proof of anything.",
       ]),
       found: false, label: "Connections: no exact match", url: OS,

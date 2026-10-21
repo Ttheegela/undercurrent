@@ -70,8 +70,11 @@ before(async () => {
   E.week = await ask([["changes", { since: "2026-10-13" }]]);
   E.early = await ask([["changes", { since: "2026-01-01", until: "2026-01-31" }]]);
   E.chips = await ask([["chips", { topic: "summary" }], ["site_docs", { query: "How long the US took to list new chip suppliers" }]]);
-  // round 4: the halves of "TAS­SOS" (a soft hyphen), as a model might search them; and the final check's sections
+  // round 4: the halves of "TAS\u00ADSOS" (a soft hyphen), as a model might search them; and the final check's sections
   E.halves = await ask([["check_lists", { query: "TAS SOS" }]]);
+  // round 5: a lookalike (Cyrillic Т and А) the search cannot find, and a role phrase searched beside the found ship it belongs to
+  E.cyrillic = await ask([["check_lists", { query: "ТАSSOS" }]]);
+  E.role = await ask([["check_lists", { query: "TASSOS" }], ["check_lists", { query: "technical manager" }]]);
   E.final = await ask(["The 50% rule: blocked without being named", "How sanctions work", "How the lists stay current", "Semiconductors into Russia: what the official records show", "What the map cannot tell you", "7. Why this is a climate story", "Parent groups, lobbying and cargo (added 25 Sep 2026, afternoon)", "Fleet Tanqo (India)", "Strongest cases", "One line for the demo", "2. How long the US took to list new chip suppliers", "How countries and companies evade"].map((query) => ["site_docs", { query }]));
 
   const real = JSON.parse(readFileSync("data/changes/changes.json", "utf8"));
@@ -360,8 +363,8 @@ test("round 4 (d), C1: a format character inside a listed name never makes the h
   for (const cf of ["\u00AD", "\u200B", "\u2060"]) {
     assert.deepEqual(notFound(E.halves, `Is TAS${cf}SOS sanctioned?`), FALLBACK_ANSWER, JSON.stringify(cf));
   }
-  // typed as two words, the halves are what the reader asked about
-  assert.deepEqual(texts(notFound(E.halves, "Is TAS SOS sanctioned?")), [NOT_FOUND("TAS SOS")]);
+  // typed as two words, the halves hold no word of four letters, so they name nothing either (round 5)
+  assert.deepEqual(notFound(E.halves, "Is TAS SOS sanctioned?"), FALLBACK_ANSWER);
 });
 
 test("round 4 (d), C2: NOT_FOUND needs a word that names something, whatever its case; three digits in a row count, capitals do not", () => {
@@ -385,7 +388,7 @@ test("round 4 (d), C2: NOT_FOUND needs a word that names something, whatever its
     assert.deepEqual(notFound(search(query), question), FALLBACK_ANSWER, query);
   }
   for (const [ev, question, shown] of [
-    [search("TASSOS"), "Is TASSOS sanctioned?", "TASSOS"],
+    [search("Gatik"), "Is Gatik sanctioned?", "Gatik"],
     [E.gatik, "is gatik ship management listed?", "gatik ship management"],
     [E.unknownImo, "Is IMO 1234567 on a list?", "1234567"],
     [search("Gatik"), "IS GATIK SANCTIONED?", "GATIK"],
@@ -447,7 +450,9 @@ test("round 4 (a), I4: a sentence naming firms beside OFAC or Treasury is not of
 });
 
 test("round 4 (c), I3: on the committed data every quote is a whole sentence of five or more words with no pointing word", () => {
-  const POINTING = /\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both|above|below|here|there|such|former|latter)\b|\bthe other\b|\bthe\s+(?:target|manager|shipowner|parent|company|firm|ship|vessel|tanker|person|entity|bank|group|owner|operator)s?\b/i;
+  const POINTING = /\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both|above|below|here|there|such|former|latter|then)\b|\bthe other\b/i;
+  const WINDOW = /\b[Tt]he(?:\s+[\p{L}\p{N}'\u2019-]+){0,2}\s+(?:target|shipowner|parent|tanker|firm|company|ship|vessel|owner|manager|operator|name|entry|list|bank|group|entity|person)s?\b|\b[Tt]he(?:\s+[\p{L}\p{N}'\u2019-]+){0,2}\s+(?:companies|entries|entities|people)\b/u;
+  const caps = (q) => q.replace(/(?<![\p{L}\p{N}])\p{Lu}{2,}(?![\p{L}\p{N}])/gu, " ");
   let n = 0;
   for (const ev of Object.values(E)) for (const e of ev) for (const q of e.quotes) {
     n++;
@@ -455,9 +460,84 @@ test("round 4 (c), I3: on the committed data every quote is a whole sentence of 
     assert.ok(q.split(/\s+/).length >= 5, `${e.label}: ${q}`);
     assert.doesNotMatch(q, /^(?:Ltd|LTD|Limited|LIMITED|Co|Corp|Inc|LLC|S\.A|SAL|Pte|PTE)\.?(?:[\s,;:)]|$)/, `${e.label}: ${q}`);
     assert.doesNotMatch(q, /^[\p{Lu}\p{N}][\p{Lu}\p{N}./-]{2,},/u, `${e.label}: ${q}`);
-    assert.doesNotMatch(q, POINTING, `${e.label}: ${q}`);
+    assert.doesNotMatch(caps(q), POINTING, `${e.label}: ${q}`);
+    assert.doesNotMatch(caps(q), WINDOW, `${e.label}: ${q}`);
   }
   assert.ok(n > 100, String(n));
+});
+
+// ---- fix round 5: the round-4 re-review (C2 residual, NC1, NC2, the Minors) ------------------------------------------
+
+test("round 5 (1): a span that is not plain ASCII is never printed as 'not on the lists': lookalike letters, accents, other symbols", () => {
+  const c = E.cyrillic[0];
+  assert.deepEqual([c.query, c.found, c.near], ["\u0422\u0410SSOS", false, []]);
+  assert.deepEqual(notFound(E.cyrillic, "Is \u0422\u0410SSOS sanctioned?"), FALLBACK_ANSWER);
+  for (const [query, question] of [["TASS\u041ES", "Is TASS\u041ES sanctioned?"], ["\u03A4\u0391SSOS", "Is \u03A4\u0391SSOS sanctioned?"], ["SOVCOMFL\u041ET", "Is SOVCOMFL\u041ET sanctioned?"], ["\u0405OVCOMFLOT", "Is \u0405OVCOMFLOT sanctioned?"], ["YEH\u041EPE", "Is YEH\u041EPE sanctioned?"], ["\u0421ASCADE", "Is \u0421ASCADE sanctioned?"], ["T\u00C1SSOS", "Is T\u00C1SSOS sanctioned?"], ["Gatik/SCF", "Is Gatik/SCF sanctioned?"], ["Gatik (Dubai)", "Is Gatik (Dubai) sanctioned?"]]) {
+    assert.deepEqual(notFound(search(query), question), FALLBACK_ANSWER, query);
+  }
+  // the characters a name may carry (the span runs from the first matched word to the last, so a closing "." is not printed);
+  // a fullwidth spelling is read as its plain form
+  assert.deepEqual(texts(notFound(search("Nangle Jilli Ltd."), "Is Nangle Jilli Ltd. sanctioned?")), [NOT_FOUND("Nangle Jilli Ltd")]);
+  assert.deepEqual(texts(notFound(search("Al-Bazzal's"), "Is Al-Bazzal's firm sanctioned?")), [NOT_FOUND("Al-Bazzal's")]);
+  assert.deepEqual(texts(notFound(search("Nangle & Jilli, Co."), "Is Nangle & Jilli, Co. sanctioned?")), [NOT_FOUND("Nangle & Jilli, Co")]);
+  assert.deepEqual(texts(notFound(search("Gatik"), "Is \uFF27\uFF41\uFF54\uFF49\uFF4B sanctioned?")), [NOT_FOUND("Gatik")]);
+});
+
+test("round 5 (1): invisible characters of every class are stripped before the match, the BOM and combining marks included", () => {
+  for (const cf of ["\u00AD", "\u200B", "\u200D", "\u2060", "\uFEFF", "\u034F", "\uFE00"]) {
+    assert.deepEqual(notFound(E.halves, `Is TAS${cf}SOS sanctioned?`), FALLBACK_ANSWER, JSON.stringify(cf)); // the halves never match the whole name
+    assert.deepEqual(notFound(search(`TAS${cf}SOS`), `Is TAS${cf}SOS sanctioned?`), FALLBACK_ANSWER, JSON.stringify(cf)); // nor does the query as typed
+    // halves that would pass the name test on their own ("sovcom" is no word of the prose): the character is stripped before anything
+    // else, so a BOM never becomes the space that would let "SOVCOM FLOT" match
+    assert.deepEqual(notFound(search("SOVCOM FLOT"), `Is SOVCOM${cf}FLOT sanctioned?`), FALLBACK_ANSWER, JSON.stringify(cf));
+  }
+  // a name typed whole with an invisible character inside still matches the cleaned question
+  assert.deepEqual(texts(notFound(E.gatik, "Is Ga\u034Ftik Ship\uFEFF Management listed?")), [NOT_FOUND("Gatik Ship Management")]);
+});
+
+test("round 5 (2): NOT_FOUND needs a seven-digit IMO or a word of four or more letters outside COMMON and the site's own prose", () => {
+  for (const [query, question] of [
+    ["technical manager", "Who is the technical manager of TASSOS, and is the technical manager sanctioned?"],
+    ["the registered owner", "Is the registered owner of TASSOS sanctioned?"],
+    ["THE REGISTERED OWNER", "IS THE REGISTERED OWNER OF TASSOS SANCTIONED?"],
+    ["beneficial owner", "Is the beneficial owner of TASSOS sanctioned?"],
+    ["the commercial manager", "Is the commercial manager of SULEYMAN I listed?"],
+    ["the ISM manager", "Is the ISM manager of TASSOS sanctioned?"],
+    ["the previous owner", "Is the previous owner of TASSOS sanctioned?"],
+    ["the current owner", "Is the current owner sanctioned?"],
+    ["registered manager", "Is the vessel's registered manager listed?"],
+    ["the mentioned company", "Is the mentioned company sanctioned?"],
+    ["mother company", "Is the new buyer's mother company listed?"],
+    ["all 300 ships", "Are all 300 ships sanctioned?"],
+    ["the 100th ship", "Is the 100th ship on the map sanctioned?"],
+    ["WHO MANAGES", "WHO MANAGES TASSOS?"],
+    ["UNDER SANCTIONS", "IS TASSOS STILL UNDER SANCTIONS?"],
+    ["A320", "Is the A320 listed?"],
+    ["94086950", "Is IMO 94086950 listed?"],
+    ["TASS0S", "Is TASS0S sanctioned?"],
+    ["TASSOS", "Is TASSOS sanctioned?"], // the site's own worked example: a word of its prose, and a listed name
+  ]) assert.deepEqual(notFound(search(query), question), FALLBACK_ANSWER, query);
+  for (const [ev, question, shown] of [
+    [E.gatik, "Is Gatik Ship Management sanctioned?", "Gatik Ship Management"],
+    [E.gatik, "IS GATIK SHIP MANAGEMENT SANCTIONED?", "GATIK SHIP MANAGEMENT"],
+    [E.unknownImo, "Is IMO 1234567 on a list?", "1234567"],
+    [search("IMO 1234567"), "Is IMO 1234567 on a list?", "IMO 1234567"],
+    [search("Nangle Jilli Ltd."), "Is Nangle Jilli Ltd. sanctioned?", "Nangle Jilli Ltd"],
+  ]) assert.deepEqual(texts(notFound(ev, question)), [NOT_FOUND(shown)], shown);
+});
+
+test("round 5 (3): with a found search in the answer's evidence, a side search's 'not on the lists' is dropped", () => {
+  // the re-review's render: the manager quote, then "technical manager is not on the lists" while Zulu is US-listed
+  const nf = searchFor(E.role, "technical manager");
+  assert.deepEqual([nf.found, nf.near], [false, []]);
+  const r = find(E.role, (e) => e.kind === "research" && e.entity.name === "TASSOS");
+  const i = r.quotes.findIndex((q) => q.startsWith("Manager of TASSOS: "));
+  const question = "Who is the technical manager of TASSOS, and is the technical manager sanctioned?";
+  assert.deepEqual(texts(checkAnswer(answer(quote(r.id, i), claim("not_found", nf.id)), E.role, { question })), [r.quotes[i]]);
+  // the rule on its own: a misspelling beside the found name is dropped, and renders only with the found search gone from the evidence
+  const typo = searchFor(E.typo, "TASOSS");
+  assert.deepEqual(checkAnswer(answer(claim("not_found", typo.id)), E.typo, { question: "Is TASOSS sanctioned?" }), FALLBACK_ANSWER);
+  assert.deepEqual(texts(checkAnswer(answer(claim("not_found", typo.id)), E.typo.filter((e) => !(e.kind === "search" && e.found)), { question: "Is TASOSS sanctioned?" })), [NOT_FOUND("TASOSS")]);
 });
 
 test("every sentence of a maintainer-note section is unquotable, in the committed index", () => {
@@ -574,9 +654,9 @@ const ATTACKS = [
   ["A synonyms and authorities", "NVIDIA was fined by OFAC.", () => [E.week, WEEK.nvidia]],
   ["A synonyms and authorities", "Treasury named NVIDIA in 2026.", () => [E.week, WEEK.nvidia]],
   ["B Unicode: Cyrillic s", "Brooks Brunson-Pitts is ѕanctioned by the US.", () => [E.week, WEEK.brooks]],
-  ["B Unicode: zero-width space", "Brooks Brunson-Pitts is sanc​tioned by the US.", () => [E.week, WEEK.brooks]],
-  ["B Unicode: soft hyphen", "Brooks Brunson-Pitts is sanc­tioned by the US.", () => [E.week, WEEK.brooks]],
-  ["B Unicode: right-to-left override", "Brooks Brunson-Pitts is ‮denoitcnas‬ by the US.", () => [E.week, WEEK.brooks]],
+  ["B Unicode: zero-width space", "Brooks Brunson-Pitts is sanc\u200Btioned by the US.", () => [E.week, WEEK.brooks]],
+  ["B Unicode: soft hyphen", "Brooks Brunson-Pitts is sanc\u00ADtioned by the US.", () => [E.week, WEEK.brooks]],
+  ["B Unicode: right-to-left override", "Brooks Brunson-Pitts is \u202Edenoitcnas\u202C by the US.", () => [E.week, WEEK.brooks]],
   ["B Unicode: fullwidth digit", "NVIDIA lobbied on ５ bills.", () => [E.week, WEEK.nvidia]],
   ["B number words", "NVIDIA lobbied on five new bills.", () => [E.week, WEEK.nvidia]],
   ["B lowercase name", "TASSOS is managed by gatik ship management.", () => [E.tassos, tassosResearch().id]],
@@ -620,7 +700,7 @@ test("attack groups G, K, L, M, N, P: wrong sources, ids, empty and malformed an
   const cases = [
     ["G change citing a list record", answer(claim("change", tassosList("uk").id)), E.tassos],
     ["K ids", answer(quote("S0", 0), quote("s2", 0), quote(2, 0), { claim: "quote", sources: tassosResearch().id, quote: 0 }, quote("__proto__", 0)), E.tassos],
-    ["L empty", answer(fact("", tassosResearch().id), fact("​", tassosResearch().id), fact("…", tassosResearch().id)), E.tassos],
+    ["L empty", answer(fact("", tassosResearch().id), fact("\u200B", tassosResearch().id), fact("…", tassosResearch().id)), E.tassos],
     ["M malformed", { kind: "answer", sentences: [null, 5, "x", { claim: ["listed"], sources: [tassosList("uk").id] }, { claim: "constructor", sources: ["S1"] }, { claim: "toString", sources: ["S1"] }], next: "x" }, E.tassos],
     ["M prototype key", JSON.parse(`{"kind":"answer","__proto__":{"sentences":[{"claim":"quote","sources":["S2"],"quote":0}]}}`), E.tassos],
     ["N fragment side search", answer(claim("not_found", searchFor(E.fragment, "SSOS").id)), E.fragment],
@@ -659,7 +739,7 @@ function prng(seed) { // mulberry32, so a failure can be replayed
 test("property: 200 random answers against real evidence render only server copy, and never throw", () => {
   const r = prng(20261020);
   const pick = (list) => list[Math.floor(r() * list.length)];
-  const STRINGS = ["", "​", "TASSOS is ѕanctioned", "x".repeat(5000), "__proto__", "constructor", "toString", "hasOwnProperty", "S0", "S999", "s2", "<b>x</b>", "javascript:alert(1)", "safe to trade", "Which of these did you mean?", "listed", "quote", "change", "not_found", "fact"];
+  const STRINGS = ["", "\u200B", "TASSOS is ѕanctioned", "x".repeat(5000), "__proto__", "constructor", "toString", "hasOwnProperty", "S0", "S999", "s2", "<b>x</b>", "javascript:alert(1)", "safe to trade", "Which of these did you mean?", "listed", "quote", "change", "not_found", "fact"];
   const sets = [E.tassos, E.week, E.chips, E.gatik, E.sovcomflot, E.ukDownDay, E.rusal, E.typo, E.stalled];
   const any = (ev, depth = 0) => pick([
     () => pick(STRINGS), () => pick(ev).id, () => Math.floor(r() * 30) - 5, () => r() * 10, () => null, () => undefined, () => NaN, () => true,

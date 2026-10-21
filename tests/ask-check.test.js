@@ -794,7 +794,11 @@ test("NO_CHANGES comes only from the change item that says so", () => {
   const changes = E.week.filter((e) => e.kind === "change");
   assert.ok(changes.length > 0 && changes.every((c) => c.found === undefined));
   assert.deepEqual(texts(checkAnswer(answer(claim("change", ...changes.map((c) => c.id))), E.week)), changes.map((c) => `${c.summary} · ${formatDate(c.date)}`));
-  // a change claim on anything but change or gap items falls back (a quote of a change or gap item is its change claim: the first eval run's test)
+  // a quote of each change is its change claim: the same summary lines, and never "no changes" (more in the first eval run's test)
+  const quoted = checkAnswer(answer(...changes.map((c) => quote(c.id, 0))), E.week);
+  assert.deepEqual(texts(quoted), changes.map((c) => `${c.summary} · ${formatDate(c.date)}`));
+  assert.doesNotMatch(JSON.stringify(quoted), /No changes/i);
+  // a change claim on anything but change or gap items falls back
   assert.deepEqual(checkAnswer(answer(claim("change", tassosList("uk").id)), E.tassos), FALLBACK_ANSWER);
 });
 
@@ -812,7 +816,11 @@ test("first eval run (date-range-1): a quote claim on one change or gap item ren
   assert.equal(before.id, "S1");
   const raw = { kind: "answer", sentences: [{ claim: "quote", quote: 0, sources: ["S1"] }], next: [{ source: "S1" }] };
   const out = checkAnswer(raw, E.early, { question: "What changed in January 2026?" });
-  assert.deepEqual(out.sentences, [{ text: "Daily updates started on 20 Oct 2026, so there is no record before then.", sources: [{ n: 1, label: before.label, url: before.url }] }]);
+  assert.deepEqual(out, {
+    kind: "answer",
+    sentences: [{ text: "Daily updates started on 20 Oct 2026, so there is no record before then.", sources: [{ n: 1, label: before.label, url: before.url }] }],
+    next: [{ label: "No record before 20 Oct 2026", href: "/stories/updates/index.html?from=2026-01-01&to=2026-01-31&graph=all" }],
+  });
   // a change summary line, a gap run, and not yet
   const change = find(E.week, (e) => e.kind === "change");
   assert.deepEqual(texts(checkAnswer(answer(quote(change.id, 0)), E.week)), [`${change.summary} · ${formatDate(change.date)}`]);
@@ -830,7 +838,9 @@ test("first eval run (date-range-1): a quote claim on one change or gap item ren
   // several sources, or a change item beside a research item: today's rule, the quote is dropped
   const research = { ...tassosResearch(), id: "R1" };
   assert.deepEqual(checkAnswer(answer({ claim: "quote", sources: [gap.id, "R1"], quote: 0 }), [...E.ukDown, research]), FALLBACK_ANSWER);
-  assert.deepEqual(checkAnswer(answer({ claim: "quote", sources: ["R1", gap.id], quote: 0 }), [...E.ukDown, research]), FALLBACK_ANSWER);
+  for (const sources of [[before.id, "R1"], ["R1", before.id]]) {
+    assert.deepEqual(checkAnswer(answer({ claim: "quote", sources, quote: 0 }), [...E.early, research]), FALLBACK_ANSWER, sources.join(" "));
+  }
   const two = E.week.filter((e) => e.kind === "change").slice(0, 2).map((e) => e.id);
   assert.deepEqual(checkAnswer(answer({ claim: "quote", sources: two, quote: 0 }), E.week), FALLBACK_ANSWER);
 });
@@ -882,6 +892,7 @@ test("output is plain text, and every link comes from the evidence", () => {
 // as every kind of model text the schema still has room for: a fact, a quote's text, a next-step label and a refusal reason.
 
 const WEEK = { nvidia: "S1", brooks: "S2" }; // NVIDIA → H.R.8800, Brooks Brunson-Pitts → NVIDIA (the committed change record)
+const WEEK_LINE = { S1: "NVIDIA lobbied on H.R.8800 · 20 Oct 2026", S2: "Brooks Brunson-Pitts is a lobbyist at NVIDIA · 20 Oct 2026" }; // what a quote of each renders
 const ATTACKS = [
   ["A synonyms and authorities", "Brooks Brunson-Pitts is an OFAC SDN.", () => [E.week, WEEK.brooks]],
   ["A synonyms and authorities", "NVIDIA was fined by OFAC.", () => [E.week, WEEK.nvidia]],
@@ -927,6 +938,7 @@ for (const [group, words, get] of ATTACKS) {
     const shown = checkAnswer(answer(quote(src, 0, words)), ev);
     const own = item.kind === "change" || item.kind === "gap" ? texts(checkAnswer(answer(claim("change", src)), ev)) : item.quotes.length ? [item.quotes[0]] : [FALLBACK];
     assert.deepEqual(texts(shown), own);
+    if (ev === E.week) assert.deepEqual(texts(shown), [WEEK_LINE[src]], src);
   });
 }
 

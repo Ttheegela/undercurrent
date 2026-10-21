@@ -133,6 +133,10 @@ const DOCS = {
     section("tools", "The main tools", "Asset freeze (also called blocking). Nobody may pay, hold or move the target's money or property. \"An asset freeze means nobody may pay a blocked person.\" Names are compared after removing endings such as LLC or OOO. Companies owned by a listed party can be blocked without being named (section 2). Secondary sanctions (pressure on outsiders). Hollow shapes run listed ships but are on no list themselves. In the US, any company owned 50% or more in total by listed parties is blocked automatically, even through a chain of other companies.", "stories/how-sanctions-work/index.html"),
     // round 4: the final check's pointing sentences (real wording), beside self-contained ones
     section("pointing", "Pointing sentences", "The other lists still update. Every figure here comes from free official sources and is rebuilt nightly by a script. The ships, companies, lobbying reports and counts above are rebuilt every night from the official lists. It was carrying about 800,000 barrels of Russian crude with no recognised Western insurance. These tankers move oil through ship-to-ship transfers to non-US buyers. Treasury says these ships carried more than 20 cargoes of Russian petroleum products in 2025. Its parent En+ paid Mercury Public Affairs $108,500 a month. There are 1,724 ships in the research. Such firms rarely sign a form under a name of their own. The former paid the fees and the latter signed the forms. Both were founded in May 2022. He paid the fees from 2019 to 2022. The manager of the hull is a one-ship company. The shipowner is a one-ship company in Dubai. The parent paid the fees for both. Owners of the two were named in May. Banks, exporters, shippers and insurers do the actual stopping. A seven-digit number is treated as an IMO number by the search. Nobody may pay, hold or move money for a blocked person. Official example: the US Treasury's own entry for RM Design and Development (Kyrgyzstan) says the firm was established on 17 March 2022. Among the 64 firms, 4 have no founding date in the OFAC entry (Abhar Technologies, Innovio Ventures). The act that froze the shipping firms is cited as Implementing Regulation 2026/1843 on the EUR-Lex page we read and as 2026/1845 in the OpenSanctions EU export. The UK entry still shows the old names. Until then, trading is easy. The registered owners of a hull pay the fees. The other hull was renamed in 2024. Fees were paid through the Nickles Group in 2019."),
+    // final wave: a heading glued to the sentence after it (the page's "1 · The machine", one- or two-word terms before their
+    // definition), beside sentences that only look like it
+    section("glued", "Glued headings", "1 · The machine A sanction is a rule that says do not trade. Companies The shipper, the buyer and any middlemen. Routes Which countries the paperwork says the goods left. Reported From an official filing we saw summarised. Ownership Who owns whom, and by how much. Rating: works · works with care · weak. Ships and companies share names in the records. A buyer can be a company or a person on paper."),
+    section("examples", "Examples and places", "Shell firms often register in hubs such as Dubai and Hong Kong. Such firms rarely sign a form under a name of their own. There are 1,724 ships in the research. In 2025, there were 12 renamings in the fleet. Ships flagged there are often old. The hull was renamed there in 2024. Is there a record for every hull in our research?"),
     section("fragments", "Fragments", "12 ships of the fleet were renamed in 2025. Anglo Premier Shipping Pte. Ltd. owns the hull and nothing else. Ltd. is the ending of most names in the data. S.A. is the ending of Spanish names in the data. LIMITED, CONCEPTO SCREEN SAL and TALAQI GROUP FOR TRADE LLC share a director. FIORA, UK-flagged 9 May 2025, appears under a newer name. Four words do not. Five words make a sentence. 2025/933, 20 May 2025). /../tools/fleet/ run steps 1 to 4 on public files. # Method How (tools / recipe) is a heading glued to a line. \"Quoted sentences start with a mark and are not offered.\" Yes, a sentence may open with a short word and a comma."),
   ],
 };
@@ -493,7 +497,7 @@ test("check_lists: one research item per listing, with the listing's own governm
   const eu = rs[1];
   assert.equal(eu.entity.id, "IMO9408695");
   assert.match(eu.text, /Manager of TASSOS: THE ZULU SHIPS MANAGEMENT/);
-  assert.match(eu.text, /Managed by the Zulu Ships Management/);
+  assert.match(eu.text, /TASSOS managed by the Zulu Ships Management/);
   assert.match(eu.text, /Bay Global/);
   assert.match(eu.text, /24 Oct 2025/);
   assert.match(eu.url, /eur-lex/);
@@ -1177,6 +1181,60 @@ test("final wave (4): a range after the first run but wholly before the oldest n
   }
 });
 
+test("final wave (3): a research fact that opens on its verb is given its entity's name, so no research quote lacks its subject", async () => {
+  await run("check_lists", { query: "TASSOS" });
+  await run("check_lists", { query: "SI HE" });
+  await run("check_lists", { query: "Nobody Holdings" });
+  const nobody = ev.find((e) => e.kind === "research" && e.entity.name === "Nobody Holdings");
+  assert.deepEqual(nobody.quotes, ["Nobody Holdings linked to 2 ships in our research."]);
+  await everyTool();
+  const research = ev.filter((e) => e.kind === "research");
+  assert.ok(research.length >= 8);
+  for (const e of research) for (const q of e.quotes) assert.ok(q.includes(e.entity.name), `${e.entity.name}: ${q}`);
+  // a fact with a subject of its own is left as it is
+  const si = ev.find((e) => e.kind === "research" && e.entity.name === "SI HE");
+  assert.match(si.text, /Latvia froze accounts of SI HE in 2023\./);
+});
+
+test("final wave (12): headings and glued one- or two-word header lines are never quotes; they stay in the text", async () => {
+  await run("site_docs", { query: "glued headings" });
+  const doc = ev.find((e) => e.label === "Glued headings");
+  for (const s of ["1 · The machine A sanction", "Companies The shipper", "Routes Which countries", "Reported From an official filing", "Ownership Who owns whom", "Rating: works · works with care"]) {
+    assert.ok(doc.text.includes(s), `in the text: ${s}`);
+    assert.ok(!doc.quotes.some((q) => q.includes(s)), `quotable: ${s}`);
+  }
+  // a chapter label is cut off, and its sentence kept
+  assert.deepEqual(doc.quotes, ["A sanction is a rule that says do not trade.", "Ships and companies share names in the records.", "A buyer can be a company or a person on paper."]);
+  // the head lines of research, connection and lobbying items are their headings: text only
+  ev = [];
+  await everyTool();
+  const heads = [
+    [ev.find((e) => e.kind === "research" && e.entity.name === "TASSOS"), "TASSOS (Oil Tanker, IMO 9408695, flag Liberia) in Undercurrent's research."],
+    [ev.find((e) => e.kind === "connection" && /connections data for TASSOS/.test(e.text)), "OpenSanctions connections data for TASSOS (Vessel, IMO 9408695)."],
+    [ev.find((e) => e.kind === "lobbying" && /Lobbying firms hired/.test(e.text)), "Nord Stream 2 AG in US lobbying filings (LDA; data as of 14 Oct 2026 (2026-10-14))."],
+  ];
+  for (const [e, head] of heads) {
+    assert.ok(e.text.startsWith(head), `${e.label}: ${e.text.slice(0, 90)}`);
+    assert.ok(!e.quotes.includes(head), `${e.label}: the head line is quotable`);
+  }
+  assert.ok(heads[2][0].quotes.some((q) => q.startsWith("Lobbying firms hired: Capitol Counsel LLC")), heads[2][0].quotes.join(" | "));
+});
+
+test("final wave (5): 'such as' and an existential 'there is/are' point nowhere; 'such <noun>' and 'there' as a place still do", async () => {
+  await run("site_docs", { query: "examples and places" });
+  const doc = ev.find((e) => e.label === "Examples and places");
+  assert.deepEqual(doc.quotes, [
+    "Shell firms often register in hubs such as Dubai and Hong Kong.",
+    "There are 1,724 ships in the research.",
+    "In 2025, there were 12 renamings in the fleet.",
+    "Is there a record for every hull in our research?",
+  ]);
+  for (const s of ["Such firms rarely sign", "Ships flagged there are often old.", "The hull was renamed there in 2024."]) {
+    assert.ok(doc.text.includes(s), `in the text: ${s}`);
+    assert.ok(!doc.quotes.some((q) => q.includes(s)), `quotable: ${s}`);
+  }
+});
+
 // ---- arguments, tool list, invariants --------------------------------------------------------------------------
 
 test("bad args (bad date, query over 200 chars, unknown topic) return {error} and add no evidence", async () => {
@@ -1268,7 +1326,7 @@ test("quotes: sentences of doc, chips, connection and lobbying text; none for li
   // every kind that quotes has items with quotes (an item can have none: a table whose every row names a listed firm)
   for (const k of QUOTED) assert.ok(ev.some((e) => e.kind === k && e.quotes.length > 0), k);
   // an always-allowed name is not a listing word: "OpenSanctions" holds "sanction", but this sentence is about connections
-  assert.match(ev.find((e) => e.kind === "connection" && /connections data/.test(e.text)).quotes[0], /^OpenSanctions connections data for TASSOS \(Vessel, IMO 9408695\)/);
+  assert.match(ev.find((e) => e.kind === "connection" && /records the relationship: "TASSOS"/.test(e.text)).quotes[0], /^OpenSanctions records the relationship: "TASSOS"/);
   for (const e of ev) {
     assert.ok(Array.isArray(e.quotes), e.id);
     if (["list", "opensanctions", "search", "change", "gap"].includes(e.kind)) assert.deepEqual(e.quotes, [], `${e.id} ${e.kind}`);
@@ -1337,7 +1395,9 @@ test("explainer sentence with listing language and no entity is offered", async 
   assert.deepEqual(tools.quotes, [
     // not offered: "Asset freeze (also called blocking)." and "Secondary sanctions (pressure on outsiders)." (two words and a
     // bracketed gloss: a label for whatever came before), "Nobody may pay, hold or move the target's money or property." (the target is named elsewhere),
-    // '"An asset freeze means …' (opens with a quotation mark), "… endings such as LLC or OOO." (such), "Hollow shapes …" (not a starter)
+    // '"An asset freeze means …' (opens with a quotation mark), "Hollow shapes …" (not a starter). "… such as LLC or OOO." is offered:
+    // "such as" points nowhere (final wave)
+    "Names are compared after removing endings such as LLC or OOO.",
     "Companies owned by a listed party can be blocked without being named (section 2).",
     "In the US, any company owned 50% or more in total by listed parties is blocked automatically, even through a chain of other companies.",
   ]);
@@ -1372,6 +1432,7 @@ const WHOLE = /^[\p{Lu}\p{N}].*[.!?]["”’')\]]*$/su;
 const TAIL = /^(?:Ltd|LTD|Limited|LIMITED|Co|Corp|Inc|LLC|L\.L\.C|S\.A|SA|SAL|Pte|PTE|GmbH|AG|PJSC|JSC|OOO|PLC)\.?(?:[\s,;:)]|$)/;
 const POINTING = /\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both|above|below|here|there|such|former|latter|then)\b|\bthe other\b|\b(?:all|the)\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b|\b[Tt]he(?:\s+[\p{L}\p{N}'’-]+){0,2}\s+(?:target|shipowner|parent|tanker|firm|company|ship|vessel|owner|manager|operator|name|entry|list|bank|group|entity|person)s?\b|\b[Tt]he(?:\s+[\p{L}\p{N}'’-]+){0,2}\s+(?:companies|entries|entities|people)\b/u;
 const caps = (q) => q.replace(/(?<![\p{L}\p{N}])\p{Lu}{2,}(?![\p{L}\p{N}])/gu, " ");
+const NOT_POINTING = /\bsuch as\b|(?<=^\s*|[,;:]\s*|\b(?:and|but|or|so|because|if|when|while|although|though|since|that|as)\s+)there(?=\s+(?:is|are|was|were)\b)|(?<=^\s*(?:is|are|was|were)\s+)there\b/gi; // final wave
 
 test("round 4 (b): no quote, in any item, carries a pointing word", async () => {
   await run("site_docs", { query: "pointing sentences" });
@@ -1379,12 +1440,13 @@ test("round 4 (b): no quote, in any item, carries a pointing word", async () => 
   assert.ok(doc.text.split(". ").length >= 20);
   // self-contained sentences stay; "Owners of the two were named in May." ("the two") and every pointing sentence go
   assert.deepEqual(doc.quotes, [
+    "There are 1,724 ships in the research.", // an existential "there" points nowhere (final wave)
     "Banks, exporters, shippers and insurers do the actual stopping.",
     "A seven-digit number is treated as an IMO number by the search.",
     "Nobody may pay, hold or move money for a blocked person.",
     "Fees were paid through the Nickles Group in 2019.", // "the Nickles Group" is a name: a capitalised noun is not the generic one
   ]);
-  for (const s of ["The other lists still update.", "Every figure here comes", "counts above are rebuilt", "It was carrying about 800,000 barrels", "These tankers move oil", "Treasury says these ships carried", "Its parent En+ paid", "There are 1,724 ships", "Such firms rarely sign", "The former paid", "Both were founded", "He paid the fees", "The manager of the hull", "The shipowner is a one-ship", "The parent paid", "Owners of the two", "Official example: the US Treasury's own entry for RM Design", "4 have no founding date in the OFAC entry",
+  for (const s of ["The other lists still update.", "Every figure here comes", "counts above are rebuilt", "It was carrying about 800,000 barrels", "These tankers move oil", "Treasury says these ships carried", "Its parent En+ paid", "Such firms rarely sign", "The former paid", "Both were founded", "He paid the fees", "The manager of the hull", "The shipowner is a one-ship", "The parent paid", "Owners of the two", "Official example: the US Treasury's own entry for RM Design", "4 have no founding date in the OFAC entry",
     // round 5: "froze" is listing language and "the shipping firms" points (NC1); "The UK entry … the old names", "Until then" and "The registered owners" point
     "The act that froze the shipping firms", "The UK entry still shows the old names.", "Until then, trading is easy.", "The registered owners of a hull pay the fees.", "The other hull was renamed in 2024."]) {
     assert.ok(doc.text.includes(s), `in the text: ${s}`);
@@ -1394,7 +1456,7 @@ test("round 4 (b): no quote, in any item, carries a pointing word", async () => 
   await everyTool();
   await run("connections", { query: "IMO 6482241" });
   await run("site_docs", { query: "main tools asset freeze" });
-  for (const e of ev) for (const q of e.quotes) assert.doesNotMatch(caps(q), POINTING, `${e.id} ${e.label}: ${q}`);
+  for (const e of ev) for (const q of e.quotes) assert.doesNotMatch(caps(q).replace(NOT_POINTING, " "), POINTING, `${e.id} ${e.label}: ${q}`);
   // the routes caveat is still offered, worded without "These"
   const routes = ev.find((e) => e.kind === "chips" && /declared exports to Russia/.test(e.label));
   assert.ok(routes.quotes.includes("Comtrade figures are declarations, not traced shipments, and fewer countries have reported the most recent years, so the latest totals are incomplete."), routes.quotes.join(" | "));
@@ -1428,7 +1490,7 @@ test("round 4 (c): connection and lobbying quotes are the sentences the tool bui
   await run("connections", { query: "IMO 6482241" });
   const head = ev.find((e) => e.kind === "connection" && e.entity?.name === "Anglo Premier Shipping Pte. Ltd.");
   assert.equal(head.text, "OpenSanctions connections data for Anglo Premier Shipping Pte. Ltd. (Organization, IMO 6482241). 1 direct link.");
-  assert.deepEqual(head.quotes, ["OpenSanctions connections data for Anglo Premier Shipping Pte. Ltd. (Organization, IMO 6482241)."]); // "1 direct link." is three words
+  assert.deepEqual(head.quotes, []); // the head line is a heading, and "1 direct link." is three words
   const link = ev.find((e) => e.kind === "connection" && /Owned by/.test(e.text));
   assert.equal(link.text, 'OpenSanctions records the relationship: "Anglo Premier Shipping Pte. Ltd." — Owned by — "SOVCOMFLOT". Type of SOVCOMFLOT: Company.');
   assert.deepEqual(link.quotes, ['OpenSanctions records the relationship: "Anglo Premier Shipping Pte. Ltd." — Owned by — "SOVCOMFLOT".']); // "Type of SOVCOMFLOT: Company." is four words
@@ -1470,10 +1532,9 @@ test("round 4 (b): a research fact that points elsewhere is not quoted; a name o
   const r = ev.find((e) => e.kind === "research" && e.entity.name === "SI HE");
   assert.match(r.text, /It was carrying about 800,000 barrels of Russian crude in June 2026\./);
   assert.deepEqual(r.quotes, [
-    "SI HE (Oil Tanker, IMO 7654321, flag Panama) in Undercurrent's research.",
     "Other names of SI HE: FEI YUN HE.",
     "Flags flown by SI HE: Panama, IT.",
-    "Has also sailed as FEI YUN HE.",
+    "SI HE has also sailed as FEI YUN HE.",
     // "Latvia froze accounts of SI HE in 2023." is not offered: "froze" is listing language (round 5, NC1)
   ]);
   assert.match(r.text, /Latvia froze accounts of SI HE in 2023\./);
@@ -1485,7 +1546,7 @@ test("round 4 (a): a listing-language sentence made only of generic words is sti
   assert.equal(parent.text, "Sanctions is recorded in the filings as a foreign entity behind Banks."); // every capitalised word is a generic starter
   assert.deepEqual(parent.quotes, []);
   const firms = ev.find((e) => e.kind === "lobbying" && /in US lobbying filings/.test(e.text));
-  assert.deepEqual(firms.quotes, ["Banks in US lobbying filings (LDA; data as of 14 Oct 2026 (2026-10-14))."]); // "… recorded for it …" points
+  assert.deepEqual(firms.quotes, []); // the head line is a heading (final wave), and "… recorded for it …" points
 });
 
 test("round 4: research profile lines name their subject, so none borrows one from the sentence before", async () => {
@@ -1543,7 +1604,8 @@ test("sentences don't break after common abbreviations, and a fragment is not a 
   ev = [];
   await run("connections", { query: "IMO 6467751" });
   const head = ev.find((e) => e.kind === "connection");
-  assert.deepEqual(head.quotes, ["OpenSanctions connections data for Hapuka Marine LTD. (Organization, IMO 6467751).", "No direct links are recorded."]);
+  assert.ok(head.text.startsWith("OpenSanctions connections data for Hapuka Marine LTD. (Organization, IMO 6467751). "), head.text);
+  assert.deepEqual(head.quotes, ["No direct links are recorded."]); // (the head line is a heading: text only)
   assert.ok(ev.every((e) => e.quotes.every((q) => !/^[\p{Ll}(]/u.test(q))));
 });
 
@@ -1551,7 +1613,7 @@ test("research quotes leave out a fact naming the authority, and one that 'appea
   await run("check_lists", { query: "TASSOS" });
   const r = ev.find((e) => e.kind === "research" && e.entity.name === "TASSOS");
   assert.match(r.text, /Named in an OFAC press release/);
-  assert.match(r.text, /Appears on the Equasis register/);
+  assert.match(r.text, /TASSOS appears on the Equasis register/);
   assert.ok(r.quotes.every((q) => !/OFAC|Equasis/.test(q)), r.quotes.join(" | "));
 });
 
@@ -1597,27 +1659,28 @@ test("changes: missing nights are counted from the first run, not from the first
 test("quotes: a research item quotes its facts, never a listing, the authority behind one, or the match", async () => {
   await run("check_lists", { query: "TASSOS" });
   const r = ev.find((e) => e.kind === "research" && e.entity.name === "TASSOS");
+  // (the head line "TASSOS (Oil Tanker, …) in Undercurrent's research." is in the text, never a quote; each fact names its subject)
   assert.deepEqual(r.quotes, [
-    "TASSOS (Oil Tanker, IMO 9408695, flag Liberia) in Undercurrent's research.",
     "Manager of TASSOS: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C.",
     "Other names of TASSOS: Bay Global.",
     "Flags flown by TASSOS: Liberia, Panama.",
-    "9 September 2024: Managed by the Zulu Ships Management & Operation - Sole Proprietorship LLC.",
-    "Has also sailed as Bay Global and Front Balder.",
+    "9 September 2024: TASSOS managed by the Zulu Ships Management & Operation - Sole Proprietorship LLC.",
+    "TASSOS has also sailed as Bay Global and Front Balder.",
   ]);
+  assert.match(r.text, /^TASSOS \(Oil Tanker, IMO 9408695, flag Liberia\) in Undercurrent's research\./);
   // every research item of the entry quotes the same facts
   for (const e of ev.filter((x) => x.kind === "research" && x.entity.name === "TASSOS")) assert.deepEqual(e.quotes, r.quotes);
   ev = [];
   await run("check_lists", { query: "United Company RUSAL" });
   const rusal = ev.find((e) => e.kind === "research");
-  assert.match(rusal.text, /Appears on the US Treasury list from 2018; removed in 2019\./);
-  assert.deepEqual(rusal.quotes, ["United Company RUSAL (Company) in Undercurrent's research.", "Country of United Company RUSAL: Russia."]);
+  assert.match(rusal.text, /United Company RUSAL appears on the US Treasury list from 2018; removed in 2019\./);
+  assert.deepEqual(rusal.quotes, ["Country of United Company RUSAL: Russia."]);
 });
 
 test("quotes: the model sees them numbered from 0, beside the text only where they don't cover it", async () => {
   const out = await run("check_lists", { query: "TASSOS" });
   const shown = (kind) => out.items.find((i) => i.kind === kind);
-  assert.equal(shown("research").quotes[1], "[1] Manager of TASSOS: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C.");
+  assert.equal(shown("research").quotes[0], "[0] Manager of TASSOS: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C.");
   assert.equal(typeof shown("research").text, "string");
   assert.equal("quotes" in shown("list"), false);
   assert.equal("quotes" in shown("search"), false);

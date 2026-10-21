@@ -78,6 +78,9 @@ before(async () => {
   // the final review's case: 05:35 UTC on 21 Oct, before that night's run (the committed record's last night is 20 Oct)
   E.notYet = await ask([["changes", { since: "2026-10-21", until: "2026-10-21" }]], "2026-10-21");
   E.sinceHeld = await ask([["changes", { since: "2026-10-20" }]], "2026-10-21");
+  // the final review's subjectless facts beside another entity's listing, and the pages' glued headings
+  E.alWafa = await ask([["check_lists", { query: "AL WAFA" }], ["check_lists", { query: "TASSOS" }]]);
+  E.glued = await ask(["What's involved", "How sanctions work"].map((query) => ["site_docs", { query }]));
   E.chips = await ask([["chips", { topic: "summary" }], ["site_docs", { query: "How long the US took to list new chip suppliers" }]]);
   // round 4: the halves of "TAS\u00ADSOS" (a soft hyphen), as a model might search them; and the final check's sections
   E.halves = await ask([["check_lists", { query: "TAS SOS" }]]);
@@ -520,6 +523,8 @@ test("round 4 (a), I4: a sentence naming firms beside OFAC or Treasury is not of
 
 test("round 4 (c), I3: on the committed data every quote is a whole sentence of five or more words with no pointing word", () => {
   const POINTING = /\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both|above|below|here|there|such|former|latter|then)\b|\bthe other\b/i;
+  // final wave: "such as" and an existential "there is/are" point nowhere
+  const NOT_POINTING = /\bsuch as\b|(?<=^\s*|[,;:]\s*|\b(?:and|but|or|so|because|if|when|while|although|though|since|that|as)\s+)there(?=\s+(?:is|are|was|were)\b)|(?<=^\s*(?:is|are|was|were)\s+)there\b/gi;
   const WINDOW = /\b[Tt]he(?:\s+[\p{L}\p{N}'\u2019-]+){0,2}\s+(?:target|shipowner|parent|tanker|firm|company|ship|vessel|owner|manager|operator|name|entry|list|bank|group|entity|person)s?\b|\b[Tt]he(?:\s+[\p{L}\p{N}'\u2019-]+){0,2}\s+(?:companies|entries|entities|people)\b/u;
   const caps = (q) => q.replace(/(?<![\p{L}\p{N}])\p{Lu}{2,}(?![\p{L}\p{N}])/gu, " ");
   let n = 0;
@@ -529,7 +534,7 @@ test("round 4 (c), I3: on the committed data every quote is a whole sentence of 
     assert.ok(q.split(/\s+/).length >= 5, `${e.label}: ${q}`);
     assert.doesNotMatch(q, /^(?:Ltd|LTD|Limited|LIMITED|Co|Corp|Inc|LLC|S\.A|SAL|Pte|PTE)\.?(?:[\s,;:)]|$)/, `${e.label}: ${q}`);
     assert.doesNotMatch(q, /^[\p{Lu}\p{N}][\p{Lu}\p{N}./-]{2,},/u, `${e.label}: ${q}`);
-    assert.doesNotMatch(caps(q), POINTING, `${e.label}: ${q}`);
+    assert.doesNotMatch(caps(q).replace(NOT_POINTING, " "), POINTING, `${e.label}: ${q}`);
     assert.doesNotMatch(caps(q), WINDOW, `${e.label}: ${q}`);
   }
   assert.ok(n > 100, String(n));
@@ -1012,4 +1017,35 @@ test("final wave (6): a country or nationality word never names anything on its 
   }
   // beside a real name the span still prints, country word and all
   assert.deepEqual(texts(notFound(search("Zorbex Panama"), "Is Zorbex Panama listed?")), [NOT_FOUND("Zorbex Panama")]);
+});
+
+test("final wave (3): on the committed data every research quote names its entity; the reviewer's AL WAFA and TASSOS answer reads whole", () => {
+  const research = Object.values(E).flat().filter((e) => e.kind === "research");
+  assert.ok(research.length > 10);
+  for (const e of research) for (const q of e.quotes) assert.ok(q.includes(e.entity.name), `${e.entity.name}: ${q}`);
+  // "Is AL WAFA sanctioned, and tell me about TASSOS": the facts after AL WAFA's listing say whose they are
+  const wafa = find(E.alWafa, (e) => e.kind === "list" && /AL WAFA/.test(e.entity.name));
+  const tassos = find(E.alWafa, (e) => e.kind === "research" && e.entity.name === "TASSOS");
+  const said = tassos.quotes.map((q, i) => quote(tassos.id, i));
+  const out = texts(checkAnswer(answer(claim("listed", wafa.id), ...said), E.alWafa, { question: "Is AL WAFA sanctioned, and tell me about TASSOS" }));
+  assert.ok(out.includes("TASSOS has also sailed as Bay Global, Front Balder, Roxen Star and Seasalvia."), out.join(" | "));
+  assert.ok(out.some((t) => /^9 September 2024: TASSOS managed by /.test(t)), out.join(" | "));
+  assert.ok(out.slice(1).every((t) => t.includes("TASSOS")), out.join(" | "));
+});
+
+test("final wave (12): on the committed data no quote holds a heading; a chapter label is cut from its sentence", () => {
+  for (const e of Object.values(E).flat()) {
+    for (const q of e.quotes) {
+      assert.doesNotMatch(q, /·/, `${e.label}: ${q}`);
+      assert.doesNotMatch(q, /in Undercurrent's research\.$|^OpenSanctions connections data for /, `${e.label}: ${q}`);
+    }
+  }
+  const quotes = E.glued.flatMap((e) => e.quotes);
+  for (const s of ["Goods What is traded", "Routes Which countries", "Companies The shipper", "Ownership Who owns whom", "1 · The machine", "2 · The moving parts"]) {
+    assert.ok(E.glued.some((e) => e.text.includes(s)), `in the committed docs: ${s}`);
+    assert.ok(!quotes.some((q) => q.includes(s)), `quotable: ${s}`);
+  }
+  for (const s of ["A sanction is a government rule that says: do not do business with a named person, company or country.", "Every sanctions case is built from the same seven pieces."]) {
+    assert.ok(quotes.includes(s), `not quotable: ${s}`);
+  }
 });

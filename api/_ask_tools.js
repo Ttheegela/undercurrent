@@ -136,15 +136,25 @@ const CUT = /^[\p{Lu}\p{N}][\p{Lu}\p{N}./-]{2,},/u;
 // the five words are counted before a bracketed gloss that closes the sentence: "Asset freeze (also called blocking)." is a label
 const beforeGloss = (s) => { const i = s.lastIndexOf("("); return i > 0 && /^\([^]*\)[.!?]["”’')\]]*$/.test(s.slice(i)) ? s.slice(0, i) : s; };
 const whole = (s) => /^[\p{Lu}\p{N}]/u.test(s) && /[.!?]["”’')\]]*$/.test(s) && beforeGloss(s).trim().split(/\s+/).length >= 5 && !TAIL.test(s) && !CUT.test(s);
+// "such as" introduces examples, and an existential "there is/are" (opening a sentence or a clause, or asking "Is there …") points
+// nowhere; "such firms" and "there" as a place ("Ships flagged there are old") still do
+const NOT_POINTING = /\bsuch\s+as\b|(?<=^\s*|[,;:]\s*|\b(?:and|but|or|so|because|if|when|while|although|though|since|that|as)\s+)there(?=\s+(?:is|are|was|were)\b)|(?<=^\s*(?:is|are|was|were)\s+)there\b/gi;
 // (a word written in capitals is a name or a code, the ship FEI YUN HE or the flag IT, not a pronoun)
 const points = (s) => {
-  const t = s.replace(/(?<![\p{L}\p{N}])\p{Lu}{2,}(?![\p{L}\p{N}])/gu, " ");
+  const t = s.replace(/(?<![\p{L}\p{N}])\p{Lu}{2,}(?![\p{L}\p{N}])/gu, " ").replace(NOT_POINTING, " ");
   return POINTS_AT.test(t) || NOUN_WINDOW.test(t);
 };
 const plain = (s) => whole(s) && !s.includes("(figure unavailable)") && !NEVER.test(s) && !points(s);
-// (the allowed names are not listing words: "OpenSanctions connections data for TASSOS …" is not about a listing)
-const quotable = (kind, s) => plain(s) && ((!LISTING.test(s.replace(ALLOWED, ",")) && !AUTHORITY.test(s)) || (EXPLAINER.has(kind) && generic(s)));
-const quotesOf = (kind, parts) => parts.filter((s) => quotable(kind, s)).slice(0, quoteMax(kind));
+// A heading is never quoted. The page text is flattened, so a heading runs into the sentence after it: the join shows as the
+// separator "·", or as a sentence opener after a word with no stop between them. A chapter label ("1 · The machine A sanction is
+// …") is cut off and the sentence kept; any other heading takes its line with it, since what follows a one- or two-word term is
+// only its definition ("Companies The shipper, the buyer …", "Routes Which countries …").
+const OPENER = String.raw`(?:A|An|The|Which|Who|What|How|Every|Each|From)\s`;
+const LABEL = new RegExp(String.raw`^\d+ · .*?(?<=[\p{Ll}\p{N}])\s+(?=${OPENER})`, "u");
+const GLUED = new RegExp(String.raw`·|(?<=[\p{Ll}\p{N}'’])\s+${OPENER}`, "u");
+// (the allowed names are not listing words: "OpenSanctions records the relationship …" is not about a listing)
+const quotable = (kind, s) => plain(s) && !(EXPLAINER.has(kind) && GLUED.test(s)) && ((!LISTING.test(s.replace(ALLOWED, ",")) && !AUTHORITY.test(s)) || (EXPLAINER.has(kind) && generic(s)));
+const quotesOf = (kind, parts) => parts.map((s) => (EXPLAINER.has(kind) ? s.replace(LABEL, "") : s)).filter((s) => quotable(kind, s)).slice(0, quoteMax(kind));
 
 /** The sentences of a text in reading order, whole across abbreviations: a table row (a line) is one; a lead-in line ("…:") is not. */
 function sentencesOf(text) {
@@ -160,8 +170,9 @@ function sentencesOf(text) {
   return out.filter(Boolean).map((x) => (/[\p{L}\p{N})]$/u.test(x) ? `${x}.` : x));
 }
 // Connection and lobbying items are built from parts that are each one sentence: those parts are the quotes (re-splitting the text
-// would cut "Anglo Premier Shipping Pte. Ltd." in two)
-const built = (kind, parts) => ({ kind, text: sentence(...parts), quotes: quotesOf(kind, parts.filter(Boolean)) });
+// would cut "Anglo Premier Shipping Pte. Ltd." in two). A head line ("OpenSanctions connections data for TASSOS (Vessel, …).") says
+// what the item is about and nothing more: it opens the text and is never a quote.
+const built = (kind, parts, head) => ({ kind, text: sentence(head, ...parts), quotes: quotesOf(kind, parts.filter(Boolean)) });
 
 function add(ev, item) {
   const e = { id: `S${ev.length + 1}`, ...item, quotes: item.quotes ?? (QUOTED.has(item.kind) ? quotesOf(item.kind, sentencesOf(item.text)) : []) };
@@ -358,6 +369,12 @@ const delisted = (l) => /delist|removed|lifted|revoked/i.test(l.date || ""); // 
 const datesIn = (s) => [...s.matchAll(/\d{4}-\d{2}(?:-\d{2})?/g)].map((m) => dt(m[0]));
 const absolute = (u) => (typeof u === "string" && u && !/^([a-z][a-z0-9+.-]*:|\/)/i.test(u) ? `/${u}` : u); // the index holds some site paths without the slash
 
+// The research index writes its facts from a few templates, all opening on the verb, after a date for a change of owner or
+// manager (scripts/build_research_index.py): "Has also sailed as …", "Linked to 2 ships …", "9 September 2024: Managed by …".
+// Such a fact is given its entity as the subject: "TASSOS has also sailed as …", "9 September 2024: TASSOS managed by …".
+const VERB_FIRST = /^((?:(?:\d{1,2} )?[A-Z][a-z]+ \d{4}|\d{4}(?:-\d{2}){0,2}): )?(Has|Linked|Appears|Owned|Managed|Sold|Listed|First|On)\b/;
+const withSubject = (name, text) => text.replace(VERB_FIRST, (_, date = "", verb) => `${date}${name} ${verb.toLowerCase()}`);
+
 function researchItems(e, s, q, how) {
   const story = e.story?.url ? `/${e.story.url}` : undefined;
   const link = story && (/shadow_fleet_map|influence-network/.test(story) ? focusLink(story, e.id) : story);
@@ -365,17 +382,19 @@ function researchItems(e, s, q, how) {
   const former = e.names.filter((n) => !n.current).map((n) => n.name);
   // a fact that restates a listing since removed ("On the … list since 2018-04-06 (delisted 2019-01)") is left out
   const removed = e.listings.filter(delisted).map((l) => l.date);
-  // (each line names the entity, so a quoted line never borrows its subject from the sentence before it)
+  // (each line names the entity, so a quoted line never borrows its subject from the sentence before it; the facts are written
+  // without one, "Has also sailed as …", so they are given it)
   const profile = [
     `${e.name}${ident ? ` (${ident})` : ""} in Undercurrent's research.`,
     e.manager && `Manager of ${e.name}: ${e.manager}.`, e.country && `Country of ${e.name}: ${e.country}.`, e.role && `Role of ${e.name}: ${e.role}.`,
     former.length && `Other names of ${e.name}: ${former.join("; ")}.`,
     e.flags.length > 1 && `Flags flown by ${e.name}: ${e.flags.join(", ")}.`,
-    ...e.facts.filter((f) => !removed.some((d) => f.text.includes(d))).map((f) => f.text),
+    ...e.facts.filter((f) => !removed.some((d) => f.text.includes(d))).map((f) => withSubject(e.name, f.text)),
   ];
   const entity = { id: e.id, name: e.name, ...(e.imo && { imo: e.imo }) };
   // a fact with any listing word (OpenSanctions included) or an authority restates a listing, which only the `listed` claim says
-  const quotes = profile.filter(Boolean).flatMap(sentencesOf).filter((q) => plain(q) && !LISTING.test(q) && !AUTHORITY.test(q)).slice(0, quoteMax("research"));
+  // (the head line, profile[0], is a heading: text only. Each line is one sentence, so none is re-split at "MT." or "CO.")
+  const quotes = profile.slice(1).filter((q) => q && plain(q) && !LISTING.test(q) && !AUTHORITY.test(q)).slice(0, quoteMax("research"));
   return (e.listings.length ? e.listings : [null]).map((l) => {
     const gone = l && delisted(l);
     const plain = l && (!l.date || PLAIN_DATE.test(l.date)); // an empty date is still a listing; "2018-04-06 (delisted 2019-01)" is not a current one
@@ -694,10 +713,9 @@ function sanctionItems(s) {
   const link = researchLink(f.imo, f.name);
   const head = {
     ...built("connection", [
-      `OpenSanctions connections data for ${f.name} (${f.schema}${f.imo ? `, IMO ${f.imo}` : ""}).`, // ("for": five words before the bracket, so it is a sentence)
       total ? `${total} direct ${total === 1 ? "link" : "links"}${shown.length < total ? `, the first ${shown.length} shown` : ""}.` : "No direct links are recorded.",
       s.others && `${s.others} other ${s.others === 1 ? "entity shares" : "entities share"} this exact name in the data; this is the one with the most links.`,
-    ]),
+    ], `OpenSanctions connections data for ${f.name} (${f.schema}${f.imo ? `, IMO ${f.imo}` : ""}).`),
     entity: { id: s.id, name: f.name, ...(f.imo && { imo: f.imo }) },
     label: `Connections: ${f.name}`, url, ...(link && { link }),
   };
@@ -732,15 +750,14 @@ function lobbyItems(res, lob, who) {
   const id = [...(lob.byName.get(normalizeName(client)) || [])].find((x) => lob.nodes.get(x).name === client);
   const link = id && focusLink(NETWORK, id);
   const entity = { id: id ?? normalizeName(client), name: client };
-  const item = (parts, label, url) => ({ ...built("lobbying", parts), entity, label: `Lobbying: ${client} · ${label}`, url: href(url, "https://lda.gov/"), ...(link && { link }) });
+  const item = (parts, label, url, head) => ({ ...built("lobbying", parts, head), entity, label: `Lobbying: ${client} · ${label}`, url: href(url, "https://lda.gov/"), ...(link && { link }) });
   const firmText = (f) => sentence(
     `${f.name}${f.subcontract ? " (as a subcontractor)" : ""}: ${f.filings} ${f.filings === 1 ? "filing" : "filings"}`,
     f.years.length && `from ${span(f.years)}`, f.fees_usd != null && `, fees $${num(f.fees_usd)}`, f.sub_fees_usd != null && `, subcontracted fees $${num(f.sub_fees_usd)}`,
   ).replace(/ ,/g, ",");
   const items = [item([
-    `${client} in US lobbying filings (LDA${res.as_of ? `; data as of ${dt(res.as_of)}` : ""}).`,
     res.firms.length ? `Lobbying firms hired: ${res.firms.slice(0, 5).map(firmText).join("; ")}${res.firms.length > 5 ? `; and ${res.firms.length - 5} more` : ""}.` : "No lobbying firm is recorded for it in the filings checked.",
-  ], "firms", res.firms[0]?.url)];
+  ], "firms", res.firms[0]?.url, `${client} in US lobbying filings (LDA${res.as_of ? `; data as of ${dt(res.as_of)}` : ""}).`)];
   if (res.bodies.length || res.bills.length) {
     items.push(item([
       res.bodies.length && `Where ${client}'s lobbying firms lobbied, by filings: ${res.bodies.slice(0, 5).map((b) => `${b.name} (${b.filings})`).join(", ")}.`,

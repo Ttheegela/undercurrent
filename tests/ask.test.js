@@ -888,7 +888,7 @@ test("the wrapped callModel resolves to {message, usage} with OpenRouter's usage
 
 test("nothing under api/ imports langsmith, and package.json has it only in devDependencies", () => {
   const api = new URL("../api/", import.meta.url);
-  const files = readdirSync(api, { recursive: true }).filter((f) => f.endsWith(".js"));
+  const files = readdirSync(api, { recursive: true }).filter((f) => /\.[cm]?js$/.test(f));
   assert.ok(files.includes("ask.js"));
   for (const f of files) assert.ok(!readFileSync(new URL(f, api), "utf8").includes("langsmith"), `api/${f} names langsmith`);
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));

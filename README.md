@@ -100,7 +100,7 @@ The 20 real-model questions in `tests/ask-eval.json` (the cases without `"live":
 Dashboard: (link added after the first run)
 
 - **What runs and when:** `.github/workflows/ask-evals.yml` runs `scripts/ask-langsmith.mjs`.
-  - **Weekly:** Mondays at 13:00 UTC, and by hand (`gh workflow run ask-evals.yml --ref main`). A run on main first makes the LangSmith dataset `undercurrent-ask` match the live cases, then runs them. The first run has to be a manual one on main, as the dataset does not exist before it.
+  - **Weekly:** Mondays at 13:00 UTC, and by hand (`gh workflow run ask-evals.yml --ref main`). A run on main first makes the LangSmith dataset `undercurrent-ask` match the live cases, then runs them. Until a run on main, weekly or manual, has created the dataset, pull request runs fail with "dataset undercurrent-ask not found".
   - **Per pull request:** once, when it is opened or marked ready for review, if it touches Ask's code, prompt, cases or the runner. A pull request evaluates main's cases and never syncs the dataset, and the run records the pull request's own commit. Drafts and forks are skipped, and later pushes do not re-run it. A manual run on another branch does not sync either.
 - **Experiments:** named `ask-weekly-…`, `ask-manual-…` and `ask-pr-<number>-…`. Each carries `commit`, `trigger`, `pr`, `model` and `prompt_hash` (the first 12 characters of a hash of the system prompt and the tool definitions), so a change in score can be tied to a change in the prompt.
 - **Outcomes:** each case ends as one of four. `quality`: Ask answered. `unavailable`: Ask replied that it is unavailable. `budget`: the eval key's limit was reached. `download_failed`: a lookup could not download its data (this wins over `quality`).

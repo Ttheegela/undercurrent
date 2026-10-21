@@ -13,7 +13,7 @@ const FIXED = new Set([REFUSAL, FALLBACK, CLARIFY, PARTIAL, NOT_ADVICE]); // fix
 const NOT_FOUND = /^(.+) is not on the lists we check \(US, UK, EU, UN, OpenSanctions\)\. Not being found isn't proof\.$/;
 
 const day = (iso) => formatDate(iso) || iso;
-const clean = (s) => s.normalize("NFKC").replace(/[\p{Cf}\p{M}﻿]/gu, "").replace(/\s+/g, " ").toLowerCase();
+const clean = (s) => s.normalize("NFKC").replace(/[\p{Cf}\p{M}\uFEFF]/gu, "").replace(/\s+/g, " ").toLowerCase();
 
 /**
  * Every sentence the checker may write for this evidence, from its fixed copy and the evidence alone, and which items can have produced

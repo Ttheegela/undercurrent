@@ -183,26 +183,32 @@ test("the runner syncs the dataset on main alone, and records the PR's own commi
 
 // ---- the issue job --------------------------------------------------------------------------------------------------------
 
-test("the issue job runs after evals, on schedule only", () => {
+test("the issue job runs after evals, on schedule only, whether evals finished or not, and downloads only a result that was made", () => {
   assert.ok(JOBS.issue.includes("    needs: evals"));
-  assert.ok(JOBS.issue.includes("    if: github.event_name == 'schedule'"));
-  assert.ok(JOBS.issue.some((l) => l.includes("actions/download-artifact@")));
+  assert.ok(JOBS.issue.includes("    if: github.event_name == 'schedule' && !cancelled()"));
+  const download = JOBS.issue.findIndex((l) => l.includes("actions/download-artifact@"));
+  assert.notEqual(download, -1);
+  assert.equal(JOBS.issue[download + 1], "        if: needs.evals.result == 'success'");
+  assert.ok(JOBS.issue.includes("          EVALS_RESULT: ${{ needs.evals.result }}"));
   assert.ok(!JOBS.issue.some((l) => l.includes("actions/checkout@")), "it runs none of the repository's code");
 });
 
-/** Runs the issue script on a result file, with `gh` stubbed. Returns what `gh` was called with, one call per line, arguments tab-separated. */
-function issueCalls(result, { existing = "" } = {}) {
+/**
+ * Runs the issue script on a result file (none when `result` is undefined, as when evals did not finish), with `gh` stubbed and
+ * `needs.evals.result` as `evals`. Returns what `gh` was called with, one call per line, arguments tab-separated.
+ */
+function issueCalls(result, { existing = "", evals = "success" } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "ask-evals-issue-"));
   mkdirSync(join(dir, "bin"));
   mkdirSync(join(dir, "ask-evals"));
   writeFileSync(join(dir, "bin", "gh"), '#!/bin/sh\nprintf "%s\\t" "$@" >> "$GH_LOG"\nprintf "\\n" >> "$GH_LOG"\n[ "$1 $2" = "issue list" ] && printf "%s" "$GH_EXISTING"\nexit 0\n');
   chmodSync(join(dir, "bin", "gh"), 0o755);
-  writeFileSync(join(dir, "ask-evals", "ask-evals.json"), typeof result === "string" ? result : JSON.stringify(result));
+  if (result !== undefined) writeFileSync(join(dir, "ask-evals", "ask-evals.json"), typeof result === "string" ? result : JSON.stringify(result));
   writeFileSync(join(dir, "issue.sh"), script("issue", "Open or update the failure issue"));
   const log = join(dir, "gh.log");
   writeFileSync(log, "");
   execFileSync("bash", ["--noprofile", "--norc", "-e", "-o", "pipefail", join(dir, "issue.sh")], {
-    env: { PATH: `${join(dir, "bin")}:${process.env.PATH}`, RUNNER_TEMP: dir, GH_LOG: log, GH_EXISTING: existing, RUN_URL: "https://github.com/o/r/actions/runs/9", GH_TOKEN: "t", GH_REPO: "o/r" },
+    env: { PATH: `${join(dir, "bin")}:${process.env.PATH}`, RUNNER_TEMP: dir, GH_LOG: log, GH_EXISTING: existing, EVALS_RESULT: evals, RUN_URL: "https://github.com/o/r/actions/runs/9", GH_TOKEN: "t", GH_REPO: "o/r" },
     stdio: "pipe",
   });
   return readFileSync(log, "utf8").split("\n").filter((l) => l && !l.startsWith("issue\tlist\t")).map((l) => l.split("\t").slice(0, -1));
@@ -256,6 +262,31 @@ test("a result file without counts.fail and allInfra fails the job instead of pa
   assert.throws(() => issueCalls({ experiment: "x" }), (e) => e.status === 1);
   assert.throws(() => issueCalls(result({ counts: { fail: "0" } })), (e) => e.status === 1);
   assert.throws(() => issueCalls("not json"), (e) => e.status > 0); // (jq's own status for unreadable input differs between versions)
+});
+
+const RUNNER_ERROR_BODY = "The eval runner did not finish. See the run: https://github.com/o/r/actions/runs/9";
+
+test("a scheduled run whose evals job did not finish opens the issue with fixed text and the run's link, whatever is in the artifact", () => {
+  for (const evals of ["failure", "cancelled"]) { // (a runner error or a crash; the time limit)
+    const calls = issueCalls(undefined, { evals }); // (no artifact: nothing for jq to fail on)
+    assert.equal(calls.length, 1, evals);
+    assert.deepEqual(calls[0].slice(0, 3), ["issue", "create", "--title"]);
+    assert.match(calls[0][3], /^Ask evals: weekly run failed \(\d{4}-\d\d-\d\d\)$/);
+    assert.deepEqual(calls[0].slice(4), ["--body", RUNNER_ERROR_BODY]);
+  }
+  // an artifact left over from somewhere is not read when evals did not succeed
+  const hostile = result({ failures: ["x`## [click](https://evil.example)"], url: "https://smith.langchain.com/x", counts: { ...result().counts, pass: 19, fail: 1 } });
+  assert.deepEqual(issueCalls(hostile, { evals: "failure" })[0].slice(4), ["--body", RUNNER_ERROR_BODY]);
+  assert.deepEqual(issueCalls("not json", { evals: "failure" })[0].slice(4), ["--body", RUNNER_ERROR_BODY]);
+  // evals reported success but its result file is not there: the same issue, not a jq error
+  assert.deepEqual(issueCalls(undefined, { evals: "success" })[0].slice(4), ["--body", RUNNER_ERROR_BODY]);
+});
+
+test("a runner-error issue goes as a comment on an open issue with the same title prefix", () => {
+  const calls = issueCalls(undefined, { evals: "failure", existing: "42" });
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].slice(0, 3), ["issue", "comment", "42"]);
+  assert.match(calls[0][4], /^Ask evals: weekly run failed \(\d{4}-\d\d-\d\d\)\. The eval runner did not finish\. See the run: https:\/\/github\.com\/o\/r\/actions\/runs\/9$/);
 });
 
 // ---- the notes job --------------------------------------------------------------------------------------------------------

@@ -69,16 +69,18 @@ jobs:
           if-no-files-found: error
 
   # Holds no secrets and runs none of the repository's code. The result file comes from another job, so it is read with jq as data: each
-  # field is typed and cut down to the characters it may hold, and the issue is built from fixed text around them.
+  # field is typed and cut down to the characters it may hold, and the issue is built from fixed text around them. When evals did not
+  # finish (a runner error, the time limit, a crash) there is no result file to read: the issue then says so in fixed text and the run's link.
   issue:
     needs: evals
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' && !cancelled()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       issues: write
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        if: needs.evals.result == 'success'
         with:
           name: ask-evals-result
           path: ${{ runner.temp }}/ask-evals
@@ -86,24 +88,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          EVALS_RESULT: ${{ needs.evals.result }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           f="$RUNNER_TEMP/ask-evals/ask-evals.json"
-          # The issue rule: a case that answered and failed, or no case that answered.
-          verdict=$(jq -r 'if (.counts.fail | type) == "number" and (.allInfra | type) == "boolean" then (if .counts.fail > 0 or .allInfra then "open" else "quiet" end) else "bad" end' "$f")
-          case "$verdict" in
-            open) ;;
-            quiet) echo "No answered case failed and some were answered: no issue."; exit 0 ;;
-            *) echo "::error::The result file has no counts.fail or allInfra."; exit 1 ;;
-          esac
-          failed=$(jq -r '[.failures[]? | strings | gsub("[^a-z0-9-]"; "") | .[0:60] | select(length > 0)] | .[0:20] | join(", ")' "$f")
-          infra=$(jq -r '.allInfra' "$f")
-          url=$(jq -r '.url | strings | select(test("\\Ahttps://([a-z]+\\.)?smith\\.langchain\\.com/[A-Za-z0-9/_.?=&-]*\\z"))' "$f")
           title="Ask evals: weekly run failed ($(date -u +%F))"
-          body="The weekly run of the Ask evaluation cases needs a look. Run: ${RUN_URL}."
-          if [ -n "$failed" ]; then body="${body} Failed cases: \`${failed}\`."; fi
-          if [ "$infra" = true ]; then body="${body} No case was answered: each was unavailable, over budget or had a failed download."; fi
-          if [ -n "$url" ]; then body="${body} Experiment: ${url}"; fi
+          if [ "$EVALS_RESULT" != success ] || [ ! -f "$f" ]; then
+            body="The eval runner did not finish. See the run: ${RUN_URL}"
+          else
+            # The issue rule: a case that answered and failed, or no case that answered.
+            verdict=$(jq -r 'if (.counts.fail | type) == "number" and (.allInfra | type) == "boolean" then (if .counts.fail > 0 or .allInfra then "open" else "quiet" end) else "bad" end' "$f")
+            case "$verdict" in
+              open) ;;
+              quiet) echo "No answered case failed and some were answered: no issue."; exit 0 ;;
+              *) echo "::error::The result file has no counts.fail or allInfra."; exit 1 ;;
+            esac
+            failed=$(jq -r '[.failures[]? | strings | gsub("[^a-z0-9-]"; "") | .[0:60] | select(length > 0)] | .[0:20] | join(", ")' "$f")
+            infra=$(jq -r '.allInfra' "$f")
+            url=$(jq -r '.url | strings | select(test("\\Ahttps://([a-z]+\\.)?smith\\.langchain\\.com/[A-Za-z0-9/_.?=&-]*\\z"))' "$f")
+            body="The weekly run of the Ask evaluation cases needs a look. Run: ${RUN_URL}."
+            if [ -n "$failed" ]; then body="${body} Failed cases: \`${failed}\`."; fi
+            if [ "$infra" = true ]; then body="${body} No case was answered: each was unavailable, over budget or had a failed download."; fi
+            if [ -n "$url" ]; then body="${body} Experiment: ${url}"; fi
+          fi
           existing=$(gh issue list --state open --search "Ask evals weekly run failed in:title" --json number,title --jq '[.[] | select(.title | startswith("Ask evals: weekly run failed"))] | .[0].number // empty')
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --body "$title. $body"

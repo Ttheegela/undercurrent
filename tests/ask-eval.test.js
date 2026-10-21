@@ -54,6 +54,7 @@ test("every case is well formed, and its evidence is the tools' own S1, S2, … 
     assert.ok(["answer", "refusal", "clarify", "fallback"].includes(c.expect?.kind), `${c.id}: expect.kind`);
     for (const key of ["includes", "excludes"]) assert.ok(c.expect[key] === undefined || (Array.isArray(c.expect[key]) && c.expect[key].every((s) => typeof s === "string" && s)), `${c.id}: expect.${key}`);
     assert.ok(c.expect.fallback === undefined || c.expect.fallback === true, `${c.id}: expect.fallback`);
+    assert.ok(c.expect.also === undefined || (Array.isArray(c.expect.also) && c.expect.also.length && c.expect.also.every((k) => ["answer", "refusal", "clarify", "fallback"].includes(k) && k !== c.expect.kind)), `${c.id}: expect.also`);
     assert.ok(c.expect.notice === undefined || (c.expect.notice === true && c.expect.kind === "refusal"), `${c.id}: expect.notice`);
     assert.ok(c.live === undefined || c.live === false, `${c.id}: live`);
     assert.deepEqual(c.evidence.map((e) => e.id), c.evidence.map((_, i) => `S${i + 1}`), `${c.id}: evidence ids`);

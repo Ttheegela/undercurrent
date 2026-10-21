@@ -740,7 +740,7 @@
     "question": "Is ТАSSOS sanctioned?",
     "calls": [["check_lists",{"query":"ТАSSOS"}]],
     "note": "Cyrillic Т and А in a Latin name: the search finds nothing, and 'not on the lists' is never printed for a lookalike of a listed ship.",
-    "expect": {"kind":"fallback","excludes":["is not on the lists"]},
+    "expect": {"kind":"fallback","also":["answer"],"excludes":["is not on the lists"]},
     "model": {"kind":"answer","sentences":[{"claim":"not_found","sources":["S1"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"search","query":"ТАSSOS","found":false,"near":[],"text":"Searched the US, UK, EU and UN official lists, Undercurrent research and OpenSanctions for the name or IMO number asked about. No record matched. Official lists last downloaded: United States 20 Oct 2026 (2026-10-20); United Kingdom 20 Oct 2026 (2026-10-20); European Union 20 Oct 2026 (2026-10-20); United Nations 20 Oct 2026 (2026-10-20).","label":"Search of the lists, research and OpenSanctions","url":"/","quotes":[]}
@@ -881,7 +881,7 @@
     "question": "Is Sovcomflot Group sanctioned?",
     "calls": [["check_lists",{"query":"Sovcomflot Group"}]],
     "note": "Honest model: the name asked about is not an exact match but a close name is listed, so it asks.",
-    "expect": {"kind":"clarify","includes":["Which of these did you mean?"],"excludes":["is not on the lists"]},
+    "expect": {"kind":"clarify","also":["answer"],"includes":["Which of these did you mean?"],"excludes":["is not on the lists"]},
     "model": {"kind":"clarify","sentences":[{"claim":"not_found","sources":["S1"]}],"next":[]},
     "evidence": [
       {"id":"S1","kind":"search","query":"Sovcomflot Group","found":false,"near":["Sovcomflot"],"text":"Searched the US, UK, EU and UN official lists, Undercurrent research and OpenSanctions for the name or IMO number asked about. No record matched. Official lists last downloaded: United States 20 Oct 2026 (2026-10-20); United Kingdom 20 Oct 2026 (2026-10-20); European Union 20 Oct 2026 (2026-10-20); United Nations 20 Oct 2026 (2026-10-20). Names similar to the query exist (listed in near); they are not matches and say nothing about whether anything is listed.","label":"Search of the lists, research and OpenSanctions","url":"/","quotes":[]}

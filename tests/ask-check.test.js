@@ -75,9 +75,6 @@ before(async () => {
   E.ansan = await ask([["check_lists", { query: "AN SAN 1" }]]);
   E.week = await ask([["changes", { since: "2026-10-13" }]]);
   E.early = await ask([["changes", { since: "2026-01-01", until: "2026-01-31" }]]);
-  // the final review's case: 05:35 UTC on 21 Oct, before that night's run (the committed record's last night is 20 Oct)
-  E.notYet = await ask([["changes", { since: "2026-10-21", until: "2026-10-21" }]], "2026-10-21");
-  E.sinceHeld = await ask([["changes", { since: "2026-10-20" }]], "2026-10-21");
   // the final review's subjectless facts beside another entity's listing, and the pages' glued headings
   E.alWafa = await ask([["check_lists", { query: "AL WAFA" }], ["check_lists", { query: "TASSOS" }]]);
   E.glued = await ask(["What's involved", "How sanctions work"].map((query) => ["site_docs", { query }]));
@@ -90,23 +87,32 @@ before(async () => {
   E.final = await ask(["The 50% rule: blocked without being named", "How sanctions work", "How the lists stay current", "Semiconductors into Russia: what the official records show", "What the map cannot tell you", "7. Why this is a climate story", "Parent groups, lobbying and cargo (added 25 Sep 2026, afternoon)", "Fleet Tanqo (India)", "Strongest cases", "One line for the demo", "2. How long the US took to list new chip suppliers", "How countries and companies evade"].map((query) => ["site_docs", { query }]));
 
   const real = JSON.parse(readFileSync("data/changes/changes.json", "utf8"));
+  const withRecord = async (record, run) => {
+    const dir = mkdtempSync(join(tmpdir(), "ask-check-"));
+    mkdirSync(join(dir, "data/changes"), { recursive: true });
+    writeFileSync(join(dir, "data/changes/changes.json"), JSON.stringify(record));
+    process.chdir(dir);
+    resetAskCache();
+    try {
+      await run();
+    } finally {
+      process.chdir(home);
+      resetAskCache();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
   const FRESH = { us: "fresh", uk: "fresh", eu: "fresh", un: "fresh", lobbying: "fresh" };
   const night = (date) => ({ date, sources: { ...FRESH, uk: "unavailable" }, changes: [] });
-  const record = { ...real, days: [night("2026-10-22"), night("2026-10-21"), real.days.find((d) => d.date === real.started)] };
-  const dir = mkdtempSync(join(tmpdir(), "ask-check-"));
-  mkdirSync(join(dir, "data/changes"), { recursive: true });
-  writeFileSync(join(dir, "data/changes/changes.json"), JSON.stringify(record));
-  process.chdir(dir);
-  resetAskCache();
-  try {
+  await withRecord({ ...real, days: [night("2026-10-22"), night("2026-10-21"), real.days.find((d) => d.date === real.started)] }, async () => {
     E.ukDownDay = await ask([["changes", { since: "2026-10-21", until: "2026-10-21" }]], "2026-10-23");
     E.ukDown = await ask([["changes", { since: "2026-10-21", until: "2026-10-22" }]], "2026-10-23");
     E.stalled = await ask([["changes", { since: "2026-10-23" }]], "2026-10-26"); // the record stops on the 22nd
-  } finally {
-    process.chdir(home);
-    resetAskCache();
-    rmSync(dir, { recursive: true, force: true });
-  }
+  });
+  // the final review's case: 05:35 UTC on 21 Oct, before that night's run (the record as it stood then ends on 20 Oct)
+  await withRecord({ ...real, days: real.days.filter((d) => d.date <= "2026-10-20") }, async () => {
+    E.notYet = await ask([["changes", { since: "2026-10-21", until: "2026-10-21" }]], "2026-10-21");
+    E.sinceHeld = await ask([["changes", { since: "2026-10-20" }]], "2026-10-21");
+  });
 });
 after(() => {
   globalThis.fetch = realFetch;

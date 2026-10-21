@@ -1,0 +1,140 @@
+name: Ask evals
+
+# Runs Ask's real-model cases in LangSmith (scripts/ask-langsmith.mjs). Weekly and manual runs on main sync the dataset first; a pull
+# request evaluates main's cases and never syncs. Each secret reaches one step: the one that runs the cases, or the one that posts the notes.
+on:
+  schedule:
+    - cron: "0 13 * * 1"
+  workflow_dispatch:
+  pull_request:
+    types: [opened, ready_for_review]
+    paths:
+      - api/ask.js
+      - api/_ask_*.js
+      - tests/ask-eval.json
+      - scripts/ask-langsmith.mjs
+      - scripts/ask-judge.mjs
+      - scripts/ask-oracle.mjs
+  push:
+    branches: [main]
+    paths: [tests/ask-eval-notes.json]
+
+permissions: {}
+
+jobs:
+  # Same-repo pull requests only, and not drafts: a fork gets no secrets, so it is skipped rather than failed.
+  evals:
+    if: ${{ github.event_name != 'push' && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft)) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    # Two syncs must not overlap (a weekly run and a manual dispatch). The group is the ref: main's runs share one, each PR has its own.
+    # A run waits for the one before it; nothing is cancelled midway.
+    concurrency:
+      group: ask-evals-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Run the evals
+        env:
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_EVAL_KEY }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          case "$EVENT" in
+            schedule) args=(--trigger weekly --commit "$SHA") ;;
+            workflow_dispatch) args=(--trigger manual --commit "$SHA") ;;
+            pull_request) args=(--trigger pr --pr "$PR" --commit "$HEAD_SHA") ;; # (HEAD there is a merge commit: record the PR's own)
+          esac
+          # The dataset follows main alone, so a manual run on another branch evaluates main's cases as they stand.
+          if [ "$EVENT" != pull_request ] && [ "$REF" = refs/heads/main ]; then args+=(--sync); fi
+          node scripts/ask-langsmith.mjs run "${args[@]}" --out "$RUNNER_TEMP/ask-evals.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ask-evals-result
+          path: ${{ runner.temp }}/ask-evals.json
+          retention-days: 7
+          if-no-files-found: error
+
+  # Holds no secrets and runs none of the repository's code. The result file comes from another job, so it is read with jq as data: each
+  # field is typed and cut down to the characters it may hold, and the issue is built from fixed text around them. When evals did not
+  # finish (a runner error, the time limit, a crash) there is no result file to read: the issue then says so in fixed text and the run's link.
+  issue:
+    needs: evals
+    if: github.event_name == 'schedule' && !cancelled()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        if: needs.evals.result == 'success'
+        with:
+          name: ask-evals-result
+          path: ${{ runner.temp }}/ask-evals
+      - name: Open or update the failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EVALS_RESULT: ${{ needs.evals.result }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          f="$RUNNER_TEMP/ask-evals/ask-evals.json"
+          title="Ask evals: weekly run failed ($(date -u +%F))"
+          if [ "$EVALS_RESULT" != success ] || [ ! -f "$f" ]; then
+            body="The eval runner did not finish. See the run: ${RUN_URL}"
+          else
+            # The issue rule: a case that answered and failed, or no case that answered.
+            verdict=$(jq -r 'if (.counts.fail | type) == "number" and (.allInfra | type) == "boolean" then (if .counts.fail > 0 or .allInfra then "open" else "quiet" end) else "bad" end' "$f")
+            case "$verdict" in
+              open) ;;
+              quiet) echo "No answered case failed and some were answered: no issue."; exit 0 ;;
+              *) echo "::error::The result file has no counts.fail or allInfra."; exit 1 ;;
+            esac
+            failed=$(jq -r '[.failures[]? | strings | gsub("[^a-z0-9-]"; "") | .[0:60] | select(length > 0)] | .[0:20] | join(", ")' "$f")
+            infra=$(jq -r '.allInfra' "$f")
+            url=$(jq -r '.url | strings | select(test("\\Ahttps://([a-z]+\\.)?smith\\.langchain\\.com/[A-Za-z0-9/_.?=&-]*\\z"))' "$f")
+            body="The weekly run of the Ask evaluation cases needs a look. Run: ${RUN_URL}."
+            if [ -n "$failed" ]; then body="${body} Failed cases: \`${failed}\`."; fi
+            if [ "$infra" = true ]; then body="${body} No case was answered: each was unavailable, over budget or had a failed download."; fi
+            if [ -n "$url" ]; then body="${body} Experiment: ${url}"; fi
+          fi
+          existing=$(gh issue list --state open --search "Ask evals weekly run failed in:title" --json number,title --jq '[.[] | select(.title | startswith("Ask evals: weekly run failed"))] | .[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$title. $body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi
+
+  # Replaces "Under review" with the written note when tests/ask-eval-notes.json changes on main. The LangSmith key alone.
+  notes:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Post the notes
+        env:
+          LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+        run: node scripts/ask-langsmith.mjs notes

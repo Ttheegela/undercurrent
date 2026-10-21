@@ -5,11 +5,11 @@
 // is called the way the site's own panel calls it.
 import { readFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
+import { judge, expected } from "./ask-judge.mjs";
 
 const PER_HOUR = 20; // the endpoint's per-visitor limit (api/ask.js)
 const PAUSE_MS = 1500;
 const TIMEOUT_MS = 40_000; // the endpoint gives up at 26 s
-const NOT_ADVICE = "Ask can't give legal or compliance advice. These are records from the site, each with its source."; // (api/_ask_check.js)
 
 const USAGE = `Usage:
   node scripts/ask-live-eval.mjs --base <url> [--only <id,id,...>] [--limit-check]
@@ -85,9 +85,6 @@ if (cases.length > PER_HOUR) {
   for (let i = 0; i < cases.length; i += PER_HOUR) console.log(`  --only ${cases.slice(i, i + PER_HOUR).map((c) => c.id).join(",")}`);
 }
 
-const expected = (c) => `${c.expect.kind}${c.expect.fallback ? " (or fallback)" : ""}${c.expect.notice ? " (or an answer ending in the advice notice)" : ""}`;
-// The server refuses nothing on its own: an advice-shaped question the model answers instead of refusing gets records and the notice
-const noticed = (c, r) => c.expect.notice === true && r.kind === "answer" && r.sentences.at(-1) === NOT_ADVICE;
 if (opt.dry) {
   cases.forEach((c, i) => console.log(`${String(i + 1).padStart(2)}. ${c.id}  [${c.category}]  expects ${expected(c)}  ${JSON.stringify(c.question)}`));
   console.log("\nDry run: nothing was posted.");
@@ -112,15 +109,15 @@ async function post(question) {
   }
 }
 
-/** What the reader would get: the answer's kind, sentences and numbered sources, or why there was none. */
+/** What the reader would get, as the shape runAsk returns ({ok:true, answer} or {ok:false, reason}), with the numbered sources and why there was none. */
 function read({ status, body, error }) {
   const a = status === 200 && body?.ok === true ? body.answer : null;
   if (a && typeof a.kind === "string" && Array.isArray(a.sentences)) {
     const sources = new Map(a.sentences.flatMap((s) => s.sources ?? []).map((s) => [s.n, s]));
-    return { kind: a.kind, sentences: a.sentences.map((s) => String(s.text)), sources: [...sources.values()].sort((x, y) => x.n - y.n) };
+    return { result: { ok: true, answer: a }, sources: [...sources.values()].sort((x, y) => x.n - y.n) };
   }
   const why = error ?? (typeof body?.reason === "string" ? `${body.reason}${body.resets ? ` until ${body.resets}` : ""}` : `HTTP ${status}`);
-  return { kind: error ? "error" : (typeof body?.reason === "string" ? body.reason : `http ${status}`), sentences: [], sources: [], why };
+  return { result: { ok: false, reason: error ? "error" : (typeof body?.reason === "string" ? body.reason : `http ${status}`), why }, sources: [], why };
 }
 
 const results = [];
@@ -128,12 +125,10 @@ let stopped = null;
 for (const [i, c] of cases.entries()) {
   if (i) await sleep(PAUSE_MS);
   const raw = await post(c.question);
-  const r = read(raw);
+  const { result, sources, why } = read(raw);
+  const r = { ...judge(c, result), sources, why };
   const text = r.sentences.join("\n");
-  const found = (c.expect.excludes ?? []).filter((s) => text.toLowerCase().includes(s.toLowerCase()));
-  const problems = [];
-  if (r.kind !== c.expect.kind && !(r.kind === "fallback" && c.expect.fallback === true) && !noticed(c, r)) problems.push(`expected ${expected(c)}, got ${r.kind}${r.why ? ` (${r.why})` : ""}`);
-  for (const s of found) problems.push(`the text contains ${JSON.stringify(s)}`);
+  const { problems } = r;
   results.push({ c, r, ms: raw.ms, problems });
 
   console.log(`\n[${i + 1}/${cases.length}] ${c.id}  (${c.category})  ${raw.ms} ms`);

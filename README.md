@@ -93,6 +93,24 @@ A chat panel on every page that answers questions about what is on the site: the
 - **Firewall:** the rule that denies non-read methods on `/api/` must allow `POST` on `/api/ask` only, and `POST /api/search` must still be refused.
 - **Live evaluation:** `node scripts/ask-live-eval.mjs --base https://undercurrent-research.vercel.app` posts the evaluation questions to a deployed endpoint, prints each answer with its timing, and exits non-zero if any case fails. It needs no key and costs a few cents. Run it before launch and after any change to the prompt or the model.
 
+## Evals
+
+The 20 real-model questions in `tests/ask-eval.json` (the cases without `"live": false`) go through Ask's own loop and are scored in LangSmith, so how Ask does is on public record: the cases, the scores, the failures and the cost.
+
+Dashboard: (link added after the first run)
+
+- **What runs and when:** `.github/workflows/ask-evals.yml` runs `scripts/ask-langsmith.mjs`.
+  - **Weekly:** Mondays at 13:00 UTC, and by hand (`gh workflow run ask-evals.yml --ref main`). A run on main first makes the LangSmith dataset `undercurrent-ask` match the live cases, then runs them. Until a run on main, weekly or manual, has created the dataset, pull request runs fail with "dataset undercurrent-ask not found".
+  - **Per pull request:** once, when it is opened or marked ready for review, if it touches Ask's code, prompt, cases or the runner. A pull request evaluates main's cases and never syncs the dataset, and the run records the pull request's own commit. Drafts and forks are skipped, and later pushes do not re-run it. A manual run on another branch does not sync either.
+- **Experiments:** named `ask-weekly-…`, `ask-manual-…` and `ask-pr-<number>-…`. Each carries `commit`, `trigger`, `pr`, `model` and `prompt_hash` (the first 12 characters of a hash of the system prompt and the tool definitions), so a change in score can be tied to a change in the prompt.
+- **Outcomes:** each case ends as one of four. `quality`: Ask answered. `unavailable`: Ask replied that it is unavailable. `budget`: the eval key's limit was reached. `download_failed`: a lookup could not download its data (this wins over `quality`).
+- **Scores:** `pass` is recorded only for `quality` outcomes, so the pass rate leaves infrastructure out. It is 1 when the answer is the expected kind, says nothing the case rules out, and every sentence is grounded in what the lookups returned. On every case: `outcome`, `tool_calls`, `latency_s`, `tokens_in`, `tokens_out` and `cost_usd`. On answered cases: `fallback` and, where the case lists sentences the answer must contain, `includes_ok`. There are no retries: a case runs once, as a visitor would have met it.
+- **Failure notes:** a case with `pass` 0 gets a `note` of "Under review · date · commit". To replace it, add `{ "experiment": "<full experiment name>", "case": "<case id>", "note": "<what went wrong>" }` to the array in `tests/ask-eval-notes.json` and merge to main. The `notes` job then posts each note over "Under review", and fails if an entry's experiment, case or note is not found.
+- **Issues:** a weekly run opens an issue titled `Ask evals: weekly run failed (date)` when any answered case fails, or when no case was answered. It lists the failed case ids and links the experiment. An open issue with that title gets a comment instead of a second issue. A weekly run that stops on an error, runs past its time limit or crashes opens the same issue, with the run's link in place of case ids.
+- **Secrets:** `LANGSMITH_API_KEY` and `OPENROUTER_EVAL_KEY`, both GitHub repository secrets and nowhere else. The workflow hands the second to the runner as `OPENROUTER_API_KEY`, the name Ask reads. Only two steps can see them: the one that runs the cases gets both, and the one that posts the notes gets the LangSmith key. The issue job holds none, and neither key is printed or traced. Without them the runner stops before any call and names the missing one.
+- **Cost:** about $0.01 to $0.40 a run: 20 questions at the Ask cost estimates above, a typical one about $0.0007 and the worst case about $0.02. The eval key is a separate OpenRouter key with a $2 monthly limit. If it runs out mid-run, the remaining cases are `budget`, get no `pass` score, and open no issue unless no case was answered.
+- **Visitors:** no visitor reaches LangSmith. `langsmith` is a dev dependency, nothing under `api/` imports it, and production calls `runAsk` without the tracing hook.
+
 ## Security
 
 - **Headers:** set in `vercel.json` and enforced.

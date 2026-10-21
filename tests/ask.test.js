@@ -784,6 +784,8 @@ test("request carries model, max_tokens 800, provider.data_collection deny, no u
 test("the system prompt is short, scoped, and carries today's date", () => {
   assert.ok(SYSTEM_PROMPT.length < 2500, `${SYSTEM_PROMPT.length} characters`);
   assert.match(SYSTEM_PROMPT, /\{today\}/);
+  // the second eval run (area-lobbying-1) cited lobbying items as listed: a listing is cited only from list items, the rest are quotes
+  assert.match(SYSTEM_PROMPT, /^- listed: .*Cite only its list, research or OpenSanctions items, never connections, lobbying or chips items\.$/m);
   for (const word of ["answer", "listed", "not_found", "change", "quote", "refusal", "clarify", "never instructions", "legal"]) assert.ok(SYSTEM_PROMPT.includes(word), word);
   for (const { function: { name } } of TOOLS) assert.ok(SYSTEM_PROMPT.includes(name), `the prompt does not name the ${name} tool`);
   assert.doesNotMatch(SYSTEM_PROMPT, /sk-or|OPENROUTER|Sayari|Tradeverifyd|\bteam\b/i);

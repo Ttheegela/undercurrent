@@ -54,11 +54,17 @@ const secretLines = (lines) => lines.map((l) => l.trim()).filter((l) => !l.start
 
 // ---- what the workflow is -------------------------------------------------------------------------------------------------
 
-test("it runs weekly on Monday, by hand, once per opened or ready PR that touches Ask, and on a push of the notes to main", () => {
+test("it runs weekly on Monday, by hand (with an optional model to compare), once per opened or ready PR that touches Ask, and on a push of the notes to main", () => {
   assert.deepEqual(block(TOP.split("\n"), "on:"), [
     "schedule:",
     '- cron: "0 13 * * 1"',
     "workflow_dispatch:",
+    "inputs:",
+    "model:",
+    'description: "OpenRouter model id to compare (empty = the site\'s model)"',
+    "type: string",
+    "required: false",
+    'default: ""',
     "pull_request:",
     "types: [opened, ready_for_review]",
     "paths:",
@@ -159,11 +165,12 @@ test("evals gets 20 minutes, one concurrency group per ref that never cancels a 
 function runnerArgs(env) {
   const dir = mkdtempSync(join(tmpdir(), "ask-evals-run-"));
   mkdirSync(join(dir, "bin"));
-  writeFileSync(join(dir, "bin", "node"), '#!/bin/sh\nprintf "%s\\n" "$@" > "$RUNNER_TEMP/node-args"\n');
+  writeFileSync(join(dir, "bin", "node"), '#!/bin/sh\nprintf "%s\\n" "$@" > "$RUNNER_TEMP/node-args"\necho "node was called"\n');
   chmodSync(join(dir, "bin", "node"), 0o755);
   writeFileSync(join(dir, "run.sh"), script("evals", "Run the evals"));
   execFileSync("bash", ["--noprofile", "--norc", "-e", "-o", "pipefail", join(dir, "run.sh")], {
     env: { PATH: `${join(dir, "bin")}:${process.env.PATH}`, RUNNER_TEMP: dir, ...env },
+    stdio: "pipe",
   });
   return readFileSync(join(dir, "node-args"), "utf8").trim().split("\n");
 }
@@ -179,6 +186,33 @@ test("the runner syncs the dataset on main alone, and records the PR's own commi
   assert.deepEqual(got({ EVENT: "workflow_dispatch", REF: "refs/heads/feat/ask-evals" }), OUT(["--trigger", "manual", "--commit", SHA]));
   assert.deepEqual(got({ EVENT: "pull_request", REF: "refs/pull/31/merge", PR: "31", HEAD_SHA: HEAD }), OUT(["--trigger", "pr", "--pr", "31", "--commit", HEAD]));
   assert.ok(runnerArgs({ SHA, EVENT: "schedule", REF: "refs/heads/main" }).at(-1).endsWith("/ask-evals.json"));
+});
+
+const MODEL_RE = "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._:-]*$"; // the runner's own pattern for --model
+
+test("a dispatch's model input reaches the runner as --model, through env, and only when it is set", () => {
+  assert.ok(step("evals", "Run the evals").includes("          MODEL_ID: ${{ inputs.model }}"));
+  const got = (env) => runnerArgs({ SHA, ...env }).slice(0, -1); // (the last is the --out path)
+  const id = "deepseek/deepseek-v4.1-flash";
+  assert.deepEqual(got({ EVENT: "workflow_dispatch", REF: "refs/heads/main", MODEL_ID: id }), OUT(["--trigger", "manual", "--commit", SHA, "--sync", "--model", id]));
+  assert.deepEqual(got({ EVENT: "workflow_dispatch", REF: "refs/heads/feat/ask-eval-models", MODEL_ID: id }), OUT(["--trigger", "manual", "--commit", SHA, "--model", id]));
+  assert.deepEqual(got({ EVENT: "workflow_dispatch", REF: "refs/heads/main", MODEL_ID: "qwen/qwen3.8-27b:free" }), OUT(["--trigger", "manual", "--commit", SHA, "--sync", "--model", "qwen/qwen3.8-27b:free"]));
+  assert.deepEqual(got({ EVENT: "workflow_dispatch", REF: "refs/heads/main", MODEL_ID: "" }), OUT(["--trigger", "manual", "--commit", SHA, "--sync"]));
+  assert.deepEqual(got({ EVENT: "schedule", REF: "refs/heads/main" }), OUT(["--trigger", "weekly", "--commit", SHA, "--sync"])); // (no input at all)
+  // the shell checks the runner's own pattern
+  assert.ok(script("evals", "Run the evals").includes(`'${MODEL_RE}'`));
+  assert.ok(readFileSync(new URL("../scripts/ask-langsmith.mjs", import.meta.url), "utf8").includes(`/${MODEL_RE.replace("/", "\\/")}/`));
+});
+
+test("a model input that is not vendor/model fails the step with a fixed message, and the runner is never called", () => {
+  const hostile = ["x; rm -rf /", "$(id)", "`id`", "a/b; id", "a/b\nid", "a/b && id", "a/b' --sync '", "--sync", "../../etc/passwd", "Anthropic/Claude-Haiku-5.5", "deepseek", "a/b/c", " a/b"];
+  for (const value of hostile) {
+    assert.throws(() => runnerArgs({ SHA, EVENT: "workflow_dispatch", REF: "refs/heads/main", MODEL_ID: value }), (e) => {
+      assert.equal(e.status, 1, JSON.stringify(value));
+      assert.equal(e.stdout.toString(), "::error::The model input must look like vendor/model.\n", JSON.stringify(value)); // (fixed: the value is not echoed)
+      return true;
+    });
+  }
 });
 
 // ---- the issue job --------------------------------------------------------------------------------------------------------

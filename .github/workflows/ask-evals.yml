@@ -2,10 +2,17 @@ name: Ask evals
 
 # Runs Ask's real-model cases in LangSmith (scripts/ask-langsmith.mjs). Weekly and manual runs on main sync the dataset first; a pull
 # request evaluates main's cases and never syncs. Each secret reaches one step: the one that runs the cases, or the one that posts the notes.
+# A manual run can name another OpenRouter model to run the same cases on, for comparison; the site itself keeps its own model.
 on:
   schedule:
     - cron: "0 13 * * 1"
   workflow_dispatch:
+    inputs:
+      model:
+        description: "OpenRouter model id to compare (empty = the site's model)"
+        type: string
+        required: false
+        default: ""
   pull_request:
     types: [opened, ready_for_review]
     paths:
@@ -52,6 +59,7 @@ jobs:
           SHA: ${{ github.sha }}
           PR: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          MODEL_ID: ${{ inputs.model }}
         run: |
           case "$EVENT" in
             schedule) args=(--trigger weekly --commit "$SHA") ;;
@@ -60,6 +68,13 @@ jobs:
           esac
           # The dataset follows main alone, so a manual run on another branch evaluates main's cases as they stand.
           if [ "$EVENT" != pull_request ] && [ "$REF" = refs/heads/main ]; then args+=(--sync); fi
+          # A model to compare is typed in by hand: it must be vendor/model (the runner's own pattern) before it goes anywhere, and the
+          # message never repeats it.
+          re='^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._:-]*$'
+          if [ -n "$MODEL_ID" ]; then
+            if ! [[ "$MODEL_ID" =~ $re ]]; then echo "::error::The model input must look like vendor/model."; exit 1; fi
+            args+=(--model "$MODEL_ID")
+          fi
           node scripts/ask-langsmith.mjs run "${args[@]}" --out "$RUNNER_TEMP/ask-evals.json"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

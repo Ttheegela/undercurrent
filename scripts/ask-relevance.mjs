@@ -19,12 +19,12 @@ export const QUESTIONS = {
       "The answer is about something other than what the question asks: its records do not bear on the question.",
       "The answer is about the right subject but gives a different kind of information than the question asks for, for example the question asks how many or how long and the answer gives some other figure or fact.",
       "The answer gives only part of what the question asks for and does not say that it is partial or only examples.",
-      "The answer gives what the question asks for, or clearly says it shows only part of it or only examples.",
+      "The answer gives what the question asks for.",
     ],
   },
   unrelated: {
     type: "noul",
-    instructions: "Does the answer include any record or sentence that does not bear on the question, presented as though it answered it?",
+    instructions: "Does the answer include any record or sentence that does not bear on the question?",
     criteria: { true: "At least one sentence is about something the question does not ask about.", false: "Every sentence bears on what the question asks." },
   },
 };
@@ -81,8 +81,8 @@ const RULES = {
 export const agrees = (label, r) => RULES[label](r, THRESHOLDS[label]);
 
 /**
- * Runs the judge on each hand-labelled answer, {id, question, sentences, label, why}, one at a time. A label carries no source
- * labels, so the judge gets none. Resolves to {rows: [{id, label, relevance, unrelated, verdict: agree|disagree|unavailable}],
+ * Runs the judge on each hand-labelled answer, {id, question, sentences, sources?, label, why}, one at a time, sending its sources as
+ * a run sends an answer's (none when it has none, as the owner's live answers have). Resolves to {rows: [{id, label, relevance, unrelated, verdict: agree|disagree|unavailable}],
  * agreed, unavailable, total, input_tokens, judge_models}.
  */
 export async function judgeCheck(labels, { fetch, apiKey }) {
@@ -90,7 +90,7 @@ export async function judgeCheck(labels, { fetch, apiKey }) {
   const models = new Set();
   let tokens = 0;
   for (const l of labels) {
-    const r = await judgeRelevance({ question: l.question, sentences: l.sentences, sources: [] }, { fetch, apiKey });
+    const r = await judgeRelevance({ question: l.question, sentences: l.sentences, sources: l.sources ?? [] }, { fetch, apiKey });
     if (r) {
       tokens += r.input_tokens;
       models.add(r.judge_model);

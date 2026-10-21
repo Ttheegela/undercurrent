@@ -53,12 +53,12 @@ test("it posts the question, the answer's sentences and their sources to System 
           "The answer is about something other than what the question asks: its records do not bear on the question.",
           "The answer is about the right subject but gives a different kind of information than the question asks for, for example the question asks how many or how long and the answer gives some other figure or fact.",
           "The answer gives only part of what the question asks for and does not say that it is partial or only examples.",
-          "The answer gives what the question asks for, or clearly says it shows only part of it or only examples.",
+          "The answer gives what the question asks for.",
         ],
       },
       unrelated: {
         type: "noul",
-        instructions: "Does the answer include any record or sentence that does not bear on the question, presented as though it answered it?",
+        instructions: "Does the answer include any record or sentence that does not bear on the question?",
         criteria: { true: "At least one sentence is about something the question does not ask about.", false: "Every sentence bears on what the question asks." },
       },
     },
@@ -164,10 +164,22 @@ const OWNER = [
   ["please check if there are any companies related to iran in the recent updates!", "bad", ["New bill: H.R.6058 · 21 Oct 2026", "NVIDIA lobbied on H.R.8800 · 20 Oct 2026"]],
 ];
 
-test("the labels: well formed, the owner's five live answers word for word, and the rest sentences the checker renders for the recorded cases", () => {
+// The seven built labels: the recorded case each comes from, and the labels of what its sentences cite there (an answer that is the
+// case's whole answer carries every label a reader saw with it, its links included, as a real run sends them)
+const BUILT = {
+  "tassos-listed": ["area-lists-1", ["Undercurrent research: TASSOS · United States", "Undercurrent research: TASSOS · European Union", "Undercurrent research: TASSOS · United Kingdom", "United Kingdom list · TASSOS", "United States list · TASSOS"]],
+  "tassos-manager": ["area-research-1", ["Undercurrent research: TASSOS · United States"]],
+  "january-changes": ["date-range-1", ["No record before 20 Oct 2026"]],
+  "zephyr-not-found": ["not-on-lists-1", ["Search of the lists, research and OpenSanctions"]],
+  "tassos-lobbying": ["area-changes-1", ["20 Oct 2026: NVIDIA lobbied on H.R.8800"]],
+  "nord-stream-tassos": ["area-lists-1", ["Undercurrent research: TASSOS · United States"]],
+  "chips-lobbying": ["area-changes-1", ["20 Oct 2026: NVIDIA lobbied on S.4784"]],
+};
+
+test("the labels: well formed, the owner's five live answers word for word with no sources, and the rest as the checker renders them, sources included", () => {
   const ids = new Set();
   for (const l of LABELS) {
-    assert.deepEqual(Object.keys(l), ["id", "question", "sentences", "label", "why"], l.id);
+    assert.deepEqual(Object.keys(l), ["id", "question", "sentences", ...(l.id.startsWith("owner-") ? [] : ["sources"]), "label", "why"], l.id);
     assert.match(l.id, /^[a-z0-9-]+$/);
     assert.ok(!ids.has(l.id), `duplicate id ${l.id}`);
     ids.add(l.id);
@@ -179,8 +191,16 @@ test("the labels: well formed, the owner's five live answers word for word, and 
   assert.equal(LABELS.length, 12);
   const owner = LABELS.filter((l) => l.id.startsWith("owner-"));
   assert.deepEqual(owner.map((l) => [l.question, l.label, l.sentences]), OWNER);
-  const rendered = new Set(CASES.flatMap((c) => checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question }).sentences.map((x) => x.text)));
-  for (const l of LABELS.filter((x) => !x.id.startsWith("owner-"))) for (const x of l.sentences) assert.ok(rendered.has(x), `${l.id}: ${x}`);
+  const built = LABELS.filter((x) => !x.id.startsWith("owner-"));
+  assert.deepEqual(built.map((l) => [l.id, l.sources]), Object.entries(BUILT).map(([id, [, sources]]) => [id, sources]));
+  for (const l of built) {
+    const c = CASES.find((x) => x.id === BUILT[l.id][0]);
+    const shown = checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question });
+    const cited = l.sentences.map((x) => shown.sentences.find((y) => y.text === x));
+    assert.ok(cited.every(Boolean), `${l.id}: a sentence ${c.id}'s answer does not render`);
+    assert.deepEqual(l.sources, [...new Set(cited.flatMap((x) => x.sources.map((y) => y.label)))], l.id);
+    if (cited.length === shown.sentences.length) assert.deepEqual(l.sources, [...new Set([...shown.sentences.flatMap((x) => x.sources.map((y) => y.label)), ...shown.next.map((n) => n.label)])], l.id);
+  }
   const count = (label) => LABELS.filter((l) => l.label === label).length;
   assert.deepEqual([count("good"), count("partial"), count("bad")], [5, 2, 5]);
 });
@@ -196,11 +216,11 @@ test("the agreement rule: one exported set of provisional thresholds, applied at
   assert.deepEqual([at(0.33, 0.9), at(0.89, 0), at(0.32, 0), at(0.9, 0)].map((r) => agrees("partial", r)), [true, true, false, false]);
 });
 
-test("judgeCheck judges every label on its question and sentences alone, and reports each verdict, the agreements and the tokens", async (t) => {
+test("judgeCheck judges every label on its question, sentences and sources (none when it has none), and reports each verdict, the agreements and the tokens", async (t) => {
   t.mock.method(console, "error", () => {}); // (the label the judge fails on logs its fixed line)
   const labels = [
     { id: "a-good", question: "Q1?", sentences: ["S1."], label: "good", why: "w" },
-    { id: "b-bad", question: "Q2?", sentences: ["S2.", "S3."], label: "bad", why: "w" },
+    { id: "b-bad", question: "Q2?", sentences: ["S2.", "S3."], sources: ["Label 2", "Label 3"], label: "bad", why: "w" },
     { id: "c-partial", question: "Q3?", sentences: ["S4."], label: "partial", why: "w" },
     { id: "d-good", question: "Q4?", sentences: ["S5."], label: "good", why: "w" },
   ];
@@ -214,7 +234,8 @@ test("judgeCheck judges every label on its question and sentences alone, and rep
     return Response.json({ ...BODY, answers: { addresses: { ...BODY.answers.addresses, score: v[0] }, unrelated: { type: "noul", noul: v[1] } } });
   };
   const result = await judgeCheck(labels, { fetch, apiKey: KEY });
-  assert.deepEqual(requests, labels.map((l) => ({ question: l.question, answer: l.sentences, sources: [] })));
+  assert.deepEqual(requests, labels.map((l) => ({ question: l.question, answer: l.sentences, sources: l.sources ?? [] })));
+  assert.deepEqual(requests[1].sources, ["Label 2", "Label 3"]);
   assert.deepEqual(result, {
     rows: [
       { id: "a-good", label: "good", relevance: 1, unrelated: 0.05, verdict: "agree" },

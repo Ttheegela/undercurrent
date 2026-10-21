@@ -3,7 +3,7 @@
 // process, against the real model on the eval key, and LangSmith records the model calls, the tool calls and the checker as the steps
 // of the case's run. One evaluator scores every case. A case that fails gets an "Under review" note until its real note is written.
 // The relevance judge (scripts/ask-relevance.mjs, TypeSafe's Jev) adds `relevance` and `unrelated` to each answered case whose answer
-// is an answer or a clarify; it never changes `pass`.
+// is an answer (a clarify is counted apart); it never changes `pass`.
 //
 //   node scripts/ask-langsmith.mjs run --trigger weekly|manual|pr [--pr N] [--sync] [--commit SHA] [--model ID] [--out FILE]
 //   node scripts/ask-langsmith.mjs notes
@@ -76,10 +76,10 @@ const PROMPT_HASH = createHash("sha256").update(SYSTEM_PROMPT + JSON.stringify(T
 const UNAVAILABLE = { ok: false, reason: "unavailable" };
 const MODEL_ID = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._:-]*$/; // vendor/model, as OpenRouter names them (the workflow checks the same)
 const usageError = (message) => Object.assign(new Error(message), { exit: 2 });
-const JUDGED = ["answer", "clarify"]; // (a fallback and a refusal are fixed copy: there is nothing to judge)
+const JUDGED = ["answer"]; // (a fallback, a refusal and a clarify's question are fixed copy: there is nothing to judge)
 const round3 = (x) => Math.round(x * 1000) / 1000;
 
-/** The labels a reader sees with an answer: its sentences' sources, then its links (a clarify's options are its links). */
+/** The labels a reader sees with an answer: its sentences' sources, then its links. */
 const labelsOf = (a) => [...new Set([...a.sentences.flatMap((s) => (s.sources ?? []).map((x) => x.label)), ...(a.next ?? []).map((n) => n.label)])];
 
 /** OpenRouter's usage as LangSmith reads it on an llm run. */
@@ -142,7 +142,7 @@ const target = ({ runAsk, traceable, now }, model) => async ({ question }) => {
 
 /**
  * The one evaluator: the outcome and what the case spent, for every case; pass and the answer's signals only where Ask answered; and,
- * when `relevanceOf` is given (the judge runs), relevance and unrelated where that answer is an answer or a clarify.
+ * when `relevanceOf` is given (the judge runs), relevance and unrelated where that answer is an answer.
  */
 const scorer = (relevanceOf) => async ({ inputs, outputs, referenceOutputs }) => {
   const { result, ev, outcome } = outputs;
@@ -213,10 +213,14 @@ export async function runEvals(opts, deps) {
   const { client } = deps;
   const apiKey = deps.env.TYPESAFE_API_KEY;
   if (!apiKey) console.log("ask-langsmith: TYPESAFE_API_KEY is not set, so the relevance judge was skipped");
-  let judgeTokens = 0;
+  const judge = { tokens: 0, models: new Set(), unavailable: 0 };
   const relevanceOf = apiKey && (async (question, answer) => {
     const r = await judgeRelevance({ question, sentences: answer.sentences.map((s) => String(s.text)), sources: labelsOf(answer) }, { fetch: deps.fetch, apiKey });
-    judgeTokens += r?.input_tokens ?? 0;
+    if (!r) judge.unavailable++;
+    else {
+      judge.tokens += r.input_tokens;
+      judge.models.add(r.judge_model); // (the version that answered, as jev-latest resolves it)
+    }
     return r;
   });
   const sync = opts.sync ? await syncDataset(JSON.parse(readFileSync(CASES, "utf8")), deps) : null;
@@ -238,13 +242,14 @@ export async function runEvals(opts, deps) {
   const url = `${await client.getDatasetUrl({ datasetName: DATASET })}/compare?selectedSessions=${id}`;
   const counts = { quality: 0, pass: 0, fail: 0, unavailable: 0, budget: 0, download_failed: 0 };
   const failures = [];
-  const judged = { n: 0, relevance: 0, unrelated: 0 };
+  const judged = { n: 0, relevance: 0, unrelated: 0, clarified: 0 };
   const note = `Under review · ${deps.now().toISOString().slice(0, 10)} · ${opts.commit.slice(0, 7)}`;
   for (const { run, example, evaluationResults } of results.results) {
     if (run.outputs?.threw) console.error(`ask-langsmith: runAsk threw on case ${example.metadata?.case_id}`); // (not the error: it can quote the request)
     const got = Object.fromEntries(evaluationResults.results.map((r) => [r.key, r]));
     if (!got.outcome) throw new Error(`case ${example.metadata?.case_id} has no scores: its evaluator or its feedback upload failed (see the error above)`);
     counts[got.outcome.value]++;
+    if (got.outcome.value === "quality" && run.outputs?.result?.answer?.kind === "clarify") judged.clarified++; // (asked back, not judged)
     if (got.relevance) {
       judged.n++;
       judged.relevance += got.relevance.score;
@@ -260,7 +265,10 @@ export async function runEvals(opts, deps) {
     await client.createFeedback({ runId: run.id, sessionId: id, key: "note", comment: note });
   }
   const mean = (sum) => (judged.n ? round3(sum / judged.n) : null);
-  const relevance = { judged: judged.n, mean_relevance: mean(judged.relevance), mean_unrelated: mean(judged.unrelated), judge_tokens: judgeTokens };
+  const relevance = {
+    judged: judged.n, mean_relevance: mean(judged.relevance), mean_unrelated: mean(judged.unrelated), judge_tokens: judge.tokens,
+    judge_models: [...judge.models], unavailable: judge.unavailable, clarified: judged.clarified,
+  };
   return { experiment, url, trigger: opts.trigger, model, commit: opts.commit, counts, failures, allInfra: counts.quality === 0, ...(sync && { sync }), relevance };
 }
 
@@ -296,6 +304,15 @@ async function noteIds(client, { experiment, case: caseId }) {
   return ids;
 }
 
+/** What the judge made of the run: the judged cases' means, the cases it could not judge, and the clarifies, which it does not judge. */
+function relevanceLine(r) {
+  const parts = [
+    ...(r.judged ? [`${r.judged} judged, mean relevance ${r.mean_relevance}, mean unrelated ${r.mean_unrelated}, ${r.judge_tokens} judge input tokens (${r.judge_models.join(", ")})`] : []),
+    ...(r.unavailable ? [`judge unavailable for ${r.unavailable} ${r.unavailable === 1 ? "case" : "cases"}`] : []),
+  ];
+  return [...(parts.length ? parts : ["no case judged"]), `asked to clarify: ${r.clarified}`].join("; ");
+}
+
 /** The run in a few lines of Markdown, for the job summary. */
 export function summary({ experiment, url, trigger, model, commit, counts: c, failures, sync, relevance: r }) {
   return [
@@ -306,7 +323,7 @@ export function summary({ experiment, url, trigger, model, commit, counts: c, fa
     `- Answered: ${c.quality} (${c.pass} passed, ${c.fail} failed)`,
     `- Unavailable: ${c.unavailable}. Budget reached: ${c.budget}. Download failed: ${c.download_failed}.`,
     ...(failures.length ? [`- Failed: ${failures.join(", ")}`] : []),
-    `- Relevance (Jev): ${r.judged ? `${r.judged} judged, mean relevance ${r.mean_relevance}, mean unrelated ${r.mean_unrelated}, ${r.judge_tokens} judge input tokens.` : "no case judged."}`,
+    `- Relevance (Jev): ${relevanceLine(r)}.`,
     ...(sync ? [`- Dataset synced from main: ${sync.created} added, ${sync.updated} updated, ${sync.removed} removed.`] : []),
     "",
   ].join("\n");

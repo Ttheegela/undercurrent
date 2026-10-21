@@ -25,7 +25,7 @@ const ENV = { LANGSMITH_API_KEY: "lsv2_test", OPENROUTER_API_KEY: "sk-or-test", 
 const WEEKLY = { trigger: "weekly", pr: null, sync: false, commit: SHA };
 const USAGE = { prompt_tokens: 1000, completion_tokens: 50, cost: 0.002 };
 const SIGNALS = ["outcome", "tool_calls", "latency_s", "tokens_in", "tokens_out", "cost_usd"]; // every case has these
-const JUDGED = ["relevance", "unrelated"]; // answered cases whose answer is an answer or a clarify have these too
+const JUDGED = ["relevance", "unrelated"]; // answered cases whose answer is an answer have these too
 const UNAVAILABLE = { ok: false, reason: "unavailable" };
 const RESTING = { ok: false, reason: "resting", resets: "2026-11-01" };
 const UNGROUNDED = { kind: "answer", sentences: [{ text: "It is fine to trade with.", sources: [] }], next: [] };
@@ -275,7 +275,7 @@ test("metadata carries commit, trigger, pr, model and a 12-hex prompt_hash", asy
     counts: { quality: 1, pass: 1, fail: 0, unavailable: 0, budget: 0, download_failed: 0 },
     failures: [],
     allInfra: false,
-    relevance: { judged: 0, mean_relevance: null, mean_unrelated: null, judge_tokens: 0 }, // (a refusal is not judged)
+    relevance: { judged: 0, mean_relevance: null, mean_unrelated: null, judge_tokens: 0, judge_models: [], unavailable: 0, clarified: 0 }, // (a refusal is not judged)
   });
   const weekly = setup([byId("off-topic-1")], fakeAsk({ "off-topic-1": {} }));
   await runEvals(WEEKLY, weekly.deps);
@@ -283,37 +283,39 @@ test("metadata carries commit, trigger, pr, model and a 12-hex prompt_hash", asy
   assert.deepEqual([w.experimentPrefix, w.metadata.trigger, w.metadata.pr], ["ask-weekly", "weekly", null]);
 });
 
-/** The labels a reader sees with an answer: its sentences' sources, then its links (a clarify's options are its links). */
+/** The labels a reader sees with an answer: its sentences' sources, then its links. */
 const labelsOf = (a) => [...new Set([...a.sentences.flatMap((s) => s.sources.map((x) => x.label)), ...a.next.map((n) => n.label)])];
+const NONE = { judged: 0, mean_relevance: null, mean_unrelated: null, judge_tokens: 0, judge_models: [], unavailable: 0, clarified: 0 };
 
-test("the relevance judge scores answered cases whose answer is an answer or a clarify, on what the reader saw", async () => {
+test("the relevance judge scores answered cases whose answer is an answer, on what the reader saw; a clarify is counted, not judged", async () => {
   const script = {
     "area-lists-1": {}, // an answer
-    "clarify-1": {}, // a clarify
+    "clarify-1": {}, // a clarify: counted apart, not judged
     "area-research-1": { answer: UNGROUNDED }, // an answer that fails pass is judged all the same
     "off-topic-2": {}, // a refusal: fixed copy, not judged
     "relevance-2": {}, // a fallback: fixed copy, not judged
     "off-topic-3": { stop: UNAVAILABLE }, // infrastructure: no answer
   };
-  const judge = fakeJudge({ [byId("clarify-1").question]: { score: 1.5, noul: 0.2 }, [byId("area-research-1").question]: { score: 0, noul: 0.9 } });
+  const judge = fakeJudge({ [byId("area-research-1").question]: { score: 0, noul: 0.9 } });
   const { calls, rows, deps } = setup(Object.keys(script).map(byId), fakeAsk(script), ENV, judge);
   const result = await runEvals(WEEKLY, deps);
   const scores = scoresOf(rows);
-  const judged = ["area-lists-1", "clarify-1", "area-research-1"];
+  const judged = ["area-lists-1", "area-research-1"];
   assert.deepEqual(Object.keys(scores).filter((id) => scores[id].relevance || scores[id].unrelated), judged);
-  assert.deepEqual(judged.map((id) => [scores[id].relevance.score, scores[id].unrelated.score]), [[1, 0.1], [0.5, 0.2], [0, 0.9]]);
-  assert.deepEqual([scores["off-topic-2"].pass.score, scores["relevance-2"].fallback.score], [1, 1]); // (answered, scored, not judged)
+  assert.deepEqual(judged.map((id) => [scores[id].relevance.score, scores[id].unrelated.score]), [[1, 0.1], [0, 0.9]]);
+  assert.deepEqual([scores["clarify-1"].pass.score, scores["off-topic-2"].pass.score, scores["relevance-2"].fallback.score], [1, 1, 1]); // (answered, scored, not judged)
+  assert.equal(rows.find((r) => r.example.metadata.case_id === "clarify-1").run.outputs.result.answer.kind, "clarify");
   // one request per judged case: the question, the sentences and the labels the reader saw, with the key as a bearer token
   assert.deepEqual(judge.requests.map((r) => [r.url, r.headers.Authorization, r.body.model, r.body.state.question]), judged.map((id) => ["https://api.typesafe.ai/v1/systemone", "Bearer ts-test", "jev-latest", byId(id).question]));
   const c = byId("area-lists-1");
   const shown = checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question });
   assert.deepEqual(judge.requests[0].body.state, { question: c.question, answer: shown.sentences.map((x) => x.text), sources: labelsOf(shown) });
   assert.ok(judge.requests[0].body.state.answer.length >= 2 && judge.requests[0].body.state.sources.length >= 2);
-  assert.deepEqual(judge.requests[1].body.state.sources, ["Sovcomflot"]); // a clarify's options
-  // the run's totals: the experiment names the judge, and the result and the summary carry the means and the judge's tokens
+  // the run's totals: the experiment names the judge asked for; the result and the summary carry the means, the judge's tokens and
+  // the version that answered, and the clarifies apart
   assert.equal(calls.find(([name]) => name === "evaluate")[1].metadata.judge_model, "jev-latest");
-  assert.deepEqual(result.relevance, { judged: 3, mean_relevance: 0.5, mean_unrelated: 0.4, judge_tokens: 900 });
-  assert.match(summary(result), /^- Relevance \(Jev\): 3 judged, mean relevance 0\.5, mean unrelated 0\.4, 900 judge input tokens\.$/m);
+  assert.deepEqual(result.relevance, { judged: 2, mean_relevance: 0.5, mean_unrelated: 0.5, judge_tokens: 600, judge_models: ["jev-1.13.0"], unavailable: 0, clarified: 1 });
+  assert.match(summary(result), /^- Relevance \(Jev\): 2 judged, mean relevance 0\.5, mean unrelated 0\.5, 600 judge input tokens \(jev-1\.13\.0\); asked to clarify: 1\.$/m);
 });
 
 test("the judge never changes pass or any other score: the same answers judged as badly as can be, and not judged at all", async (t) => {
@@ -329,8 +331,8 @@ test("the judge never changes pass or any other score: the same answers judged a
   };
   const judged = await run(ENV, worst);
   const plain = await run({ ...ENV, TYPESAFE_API_KEY: undefined });
-  assert.equal(judged.relevance.judged, 4);
-  assert.equal(plain.relevance.judged, 0);
+  assert.deepEqual([judged.relevance.judged, judged.relevance.clarified], [3, 1]);
+  assert.deepEqual([plain.relevance.judged, plain.relevance.clarified], [0, 1]);
   assert.deepEqual(judged.rest, plain.rest);
   assert.deepEqual(judged.result, plain.result);
   assert.deepEqual(Object.values(judged.scores).map((s) => s.pass.score), [1, 0, 1, 1, 1]);
@@ -347,12 +349,12 @@ test("without TYPESAFE_API_KEY the judge is skipped with one line: nothing is fe
     assert.equal(judge.requests.length, 0);
     assert.deepEqual(Object.values(scoresOf(rows)).map((s) => [s.pass.score, s.relevance, s.unrelated]), [[1, undefined, undefined], [1, undefined, undefined]]);
     assert.equal(calls.find(([name]) => name === "evaluate")[1].metadata.judge_model, null);
-    assert.deepEqual(result.relevance, { judged: 0, mean_relevance: null, mean_unrelated: null, judge_tokens: 0 });
-    assert.match(summary(result), /^- Relevance \(Jev\): no case judged\.$/m);
+    assert.deepEqual(result.relevance, { ...NONE, clarified: 1 });
+    assert.match(summary(result), /^- Relevance \(Jev\): no case judged; asked to clarify: 1\.$/m);
   }
 });
 
-test("a case the judge could not judge gets no relevance scores and does not count as judged", async (t) => {
+test("a case the judge could not judge gets no relevance scores and is counted as unavailable, not judged", async (t) => {
   const errors = t.mock.method(console, "error", () => {});
   const script = { "area-lists-1": {}, "area-research-1": {} };
   const judge = fakeJudge({ [byId("area-research-1").question]: { status: 503 } });
@@ -361,7 +363,20 @@ test("a case the judge could not judge gets no relevance scores and does not cou
   assert.deepEqual(errors.mock.calls.map((c) => c.arguments), [["ask-relevance: judge unavailable"]]);
   const scores = scoresOf(rows);
   assert.deepEqual([scores["area-lists-1"].relevance.score, scores["area-research-1"].relevance, scores["area-research-1"].pass.score], [1, undefined, 1]);
-  assert.deepEqual(result.relevance, { judged: 1, mean_relevance: 1, mean_unrelated: 0.1, judge_tokens: 300 });
+  assert.deepEqual(result.relevance, { judged: 1, mean_relevance: 1, mean_unrelated: 0.1, judge_tokens: 300, judge_models: ["jev-1.13.0"], unavailable: 1, clarified: 0 });
+  assert.match(summary(result), /^- Relevance \(Jev\): 1 judged, mean relevance 1, mean unrelated 0\.1, 300 judge input tokens \(jev-1\.13\.0\); judge unavailable for 1 case; asked to clarify: 0\.$/m);
+});
+
+test("a key that is set but a judge that fails every time: the summary says the judge was unavailable, not that no case was judged", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const script = { "area-lists-1": {}, "area-research-1": {}, "clarify-1": {} };
+  const judge = fakeJudge(Object.fromEntries(Object.keys(script).map((id) => [byId(id).question, { status: 500 }])));
+  const { deps } = setup(Object.keys(script).map(byId), fakeAsk(script), ENV, judge);
+  const result = await runEvals(WEEKLY, deps);
+  assert.equal(judge.requests.length, 2); // (the clarify is not sent)
+  assert.deepEqual(result.relevance, { ...NONE, unavailable: 2, clarified: 1 });
+  const line = summary(result).split("\n").find((l) => l.startsWith("- Relevance"));
+  assert.equal(line, "- Relevance (Jev): judge unavailable for 2 cases; asked to clarify: 1.");
 });
 
 /** fakeAsk, also recording the model each case's runAsk was given. */
@@ -600,7 +615,8 @@ test("judge-check without TYPESAFE_API_KEY exits 2 before anything is fetched", 
 test("judge-check judges every label, prints a row each and the agreements, and exits 0 even where the judge disagrees", () => {
   const r = judgeCheckRun({ TYPESAFE_API_KEY: "ts-test" });
   assert.equal(r.status, 0, r.stderr);
-  assert.deepEqual(r.requests.map((q) => [q.url, q.auth, q.state]), LABELS.map((l) => ["https://api.typesafe.ai/v1/systemone", "Bearer ts-test", { question: l.question, answer: l.sentences, sources: [] }]));
+  assert.deepEqual(r.requests.map((q) => [q.url, q.auth, q.state]), LABELS.map((l) => ["https://api.typesafe.ai/v1/systemone", "Bearer ts-test", { question: l.question, answer: l.sentences, sources: l.sources ?? [] }]));
+  assert.ok(r.requests.some((q) => q.state.sources.length));
   const lines = r.stdout.trim().split("\n");
   assert.match(lines[0], /^id +label +relevance +unrelated +verdict$/);
   const rows = Object.fromEntries(lines.slice(1, 1 + LABELS.length).map((l) => l.split(/ +/)).map(([id, ...rest]) => [id, rest]));

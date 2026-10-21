@@ -91,11 +91,11 @@ A chat panel on every page that answers questions about what is on the site: the
   - **Typical question** (one lookup, then the answer): 2 model calls, about 4,000 to 6,800 input tokens and 100 output tokens, so about $0.0007. $5 covers several thousand of these.
   - **Worst case:** a question that pulls the largest results (a one-word name such as "AL" returns about 14 KB) is capped at 10 tool calls in all and 5 model calls. The same lookup repeated ten times and spread to resend as much as possible (6, 2, 1, 1 calls, then the forced answer) resends about 500 KB in all: about 125,000 to 167,000 input tokens and at most 4,000 output tokens, so $0.015 to $0.019. $5 covers about 260 to 330 of these, and one visitor's 20 in an hour would cost about $0.30 to $0.38.
 - **Firewall:** the rule that denies non-read methods on `/api/` must allow `POST` on `/api/ask` only, and `POST /api/search` must still be refused.
-- **Live evaluation:** `node scripts/ask-live-eval.mjs --base https://undercurrent-research.vercel.app` posts the evaluation questions to a deployed endpoint, prints each answer with its timing, and exits non-zero if any case fails. It needs no key and costs a few cents. Run it before launch and after any change to the prompt or the model.
+- **Live evaluation:** `node scripts/ask-live-eval.mjs --base https://undercurrent-research.vercel.app` posts the evaluation questions to a deployed endpoint, prints each answer with its timing, and exits non-zero if any case fails. Its 24 questions are more than the endpoint's 20 an hour, so run them in the two `--only` batches it prints, an hour apart. It needs no key and costs a few cents. Run it before launch and after any change to the prompt or the model.
 
 ## Evals
 
-The 20 real-model questions in `tests/ask-eval.json` (the cases without `"live": false`) go through Ask's own loop and are scored in LangSmith, so how Ask does is on public record: the cases, the scores, the failures and the cost.
+The 24 real-model questions in `tests/ask-eval.json` (the cases without `"live": false`) go through Ask's own loop and are scored in LangSmith, so how Ask does is on public record: the cases, the scores, the failures and the cost.
 
 Dashboard: (link added after the first run)
 
@@ -109,7 +109,7 @@ Dashboard: (link added after the first run)
 - **Failure notes:** a case with `pass` 0 gets a `note` of "Under review · date · commit". To replace it, add `{ "experiment": "<full experiment name>", "case": "<case id>", "note": "<what went wrong>" }` to the array in `tests/ask-eval-notes.json` and merge to main. The `notes` job then posts each note over "Under review", and fails if an entry's experiment, case or note is not found.
 - **Issues:** a weekly run opens an issue titled `Ask evals: weekly run failed (date)` when any answered case fails, or when no case was answered. It lists the failed case ids and links the experiment. An open issue with that title gets a comment instead of a second issue. A weekly run that stops on an error, runs past its time limit or crashes opens the same issue, with the run's link in place of case ids.
 - **Secrets:** `LANGSMITH_API_KEY` and `OPENROUTER_EVAL_KEY`, both GitHub repository secrets and nowhere else. The workflow hands the second to the runner as `OPENROUTER_API_KEY`, the name Ask reads. Only two steps can see them: the one that runs the cases gets both, and the one that posts the notes gets the LangSmith key. The issue job holds none, and neither key is printed or traced. Without them the runner stops before any call and names the missing one.
-- **Cost:** about $0.01 to $0.40 a run: 20 questions at the Ask cost estimates above, a typical one about $0.0007 and the worst case about $0.02. The eval key is a separate OpenRouter key with a $2 monthly limit. If it runs out mid-run, the remaining cases are `budget`, get no `pass` score, and open no issue unless no case was answered.
+- **Cost:** about $0.02 to $0.50 a run: 24 questions at the Ask cost estimates above, a typical one about $0.0007 and the worst case about $0.02. A run comparing another model costs what OpenRouter charges for that model. The eval key is a separate OpenRouter key with a $2 monthly limit. If it runs out mid-run, the remaining cases are `budget`, get no `pass` score, and open no issue unless no case was answered.
 - **Visitors:** no visitor reaches LangSmith. `langsmith` is a dev dependency, nothing under `api/` imports it, and production calls `runAsk` without the tracing hook.
 
 ## Security

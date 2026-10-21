@@ -2039,15 +2039,23 @@ test("a question is sent with Enter, a new line with Shift+Enter, never empty, n
 
 test("resting shows the reset date and the page still works", async ({ page }) => {
   const errors = watchErrors(page);
-  await stubAsk(page, { post: () => ({ json: { ok: false, reason: "resting", resets: "2026-11-01" } }) });
-  await page.goto("/");
-  await askOpen(page);
-  await askSend(page, "Is TASSOS sanctioned?");
-  await expect(askLog(page)).toContainText("Ask has used its budget for this month and is resting until 1 Nov 2026. Everything else on the site works as usual.");
-  await page.keyboard.press("Escape");
-  await expect(askPanel(page)).toBeHidden();
-  await search(page, "TASSOS"); // the rest of the page keeps working
-  await expect(page.locator(".dossier-entry").first().locator("h2")).toHaveText("TASSOS");
+  const cases = [ // the key's monthly limit, the guardrail's daily budget, and no credit left (no date)
+    [{ resets: "2026-11-01" }, "Ask has used its budget for this month and is resting until 1 Nov 2026. Everything else on the site works as usual."],
+    [{ resets: "2026-10-22", daily: true }, "Ask has used its budget for today and is resting until 22 Oct 2026. Everything else on the site works as usual."],
+    [{}, "Ask is resting right now. Try again later; the search on the home page still works."],
+  ];
+  for (const [more, copy] of cases) {
+    await page.unrouteAll();
+    await stubAsk(page, { post: () => ({ json: { ok: false, reason: "resting", ...more } }) });
+    await page.goto("/");
+    await askOpen(page);
+    await askSend(page, "Is TASSOS sanctioned?");
+    await expect(askLog(page).locator(".ask-status"), JSON.stringify(more)).toHaveText(copy);
+    await page.keyboard.press("Escape");
+    await expect(askPanel(page)).toBeHidden();
+    await search(page, "TASSOS"); // the rest of the page keeps working
+    await expect(page.locator(".dossier-entry").first().locator("h2")).toHaveText("TASSOS");
+  }
   expect(errors).toEqual([]);
 });
 

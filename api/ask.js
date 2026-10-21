@@ -98,12 +98,14 @@ function parseMessages(text) {
 // ---- the model ----------------------------------------------------------------------------------------------------
 
 const nextMonth = (now) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
-/** The day the budget resets: OpenRouter's own date, else the first of next month (UTC). */
-function resetsOn(at, now) {
+/** OpenRouter's reset time as its day (UTC), or "" when it is not a date. */
+function dayOf(at) {
   const t = typeof at === "string" ? Date.parse(at) : NaN;
   const day = Number.isNaN(t) ? "" : new Date(t).toISOString().slice(0, 10);
-  return /^\d{4}-\d\d-\d\d$/.test(day) ? day : nextMonth(now);
+  return /^\d{4}-\d\d-\d\d$/.test(day) ? day : "";
 }
+/** The day the key's limit resets: OpenRouter's own date, else the first of next month (UTC). */
+const resetsOn = (at, now) => dayOf(at) || nextMonth(now);
 
 /** One call to `model`: {message, usage} on success (usage is OpenRouter's, or null), else {stop: the reply to give the reader}. */
 async function callModel(messages, toolChoice, deadline, now, model) {
@@ -136,6 +138,13 @@ async function callModel(messages, toolChoice, deadline, now, model) {
     if ((status === 402 || status === 403) && (source === "openrouter_key_limit" || source === "openrouter_credits")) {
       return { stop: { ok: false, reason: "resting", resets: resetsOn(error.metadata.resets_at, now) } };
     }
+    // the guardrail's daily budget is spent: Ask rests until its reset day (a lifetime budget has none, so then it only rests)
+    if (status === 403 && source === "openrouter_guardrail_budget") {
+      const day = dayOf(error.metadata.resets_at);
+      return { stop: { ok: false, reason: "resting", ...(day && { resets: day, daily: true }) } };
+    }
+    // the account has no credit left (a 402 with no limit source): Ask rests until it is topped up, which has no date
+    if (status === 402 && !source) return { stop: { ok: false, reason: "resting" } };
     console.error("ask: the model call returned status", status); // (the status only: a body can echo the question)
     return { stop: UNAVAILABLE };
   }

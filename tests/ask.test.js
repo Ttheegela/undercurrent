@@ -583,6 +583,21 @@ test("key limit 403 gives resting with resets date", async () => {
   assert.deepEqual((await run(ask("Is TASSOS sanctioned?"))).json, { ok: false, reason: "resting", resets: "2026-11-01" });
 });
 
+test("the guardrail's daily budget 403 gives resting until its reset day, and an empty balance 402 gives resting with no date", async () => {
+  const guardrail = (resets_at) => limit(403, { message: "Budget limit exceeded for this key", metadata: { limit_source: "openrouter_guardrail_budget", scope: "key", limit_usd: 1, spend_usd: 1.02, resets_at, remedy_hint: "Raise the guardrail's budget" } });
+  openrouter(guardrail("2026-10-22T00:00:00.000Z"));
+  const { res, json: out } = await run(ask("Is TASSOS sanctioned?"));
+  assert.deepEqual([res.status, out], [200, { ok: false, reason: "resting", resets: "2026-10-22", daily: true }]); // (nothing else from the error reaches the visitor)
+  // a lifetime budget (resets_at null) never resets, and a reset that is not a date is no date: Ask only says it is resting
+  for (const at of [null, undefined, "soon", 12, "+275760-09-13T00:00:00.000Z"]) {
+    openrouter(guardrail(at));
+    assert.deepEqual((await run(ask("hi"))).json, { ok: false, reason: "resting" }, String(at));
+  }
+  // the account is out of credits: a 402 with no limit source, and no date it comes back
+  openrouter(limit(402, { message: "Insufficient credits" }));
+  assert.deepEqual((await run(ask("hi"))).json, { ok: false, reason: "resting" });
+});
+
 test("5xx and timeout give unavailable", async () => {
   const unavailable = { ok: false, reason: "unavailable" };
   const cases = {

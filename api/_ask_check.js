@@ -216,7 +216,7 @@ function clarify(items, ctx) {
 const notice = (ctx) => (adviceIntent(ctx?.question) ? [{ text: NOT_ADVICE, items: [] }] : []);
 
 /**
- * raw: the model's `answer` arguments {kind, refusal_reason?, sentences: [{claim, sources, quote?}], next: [{source}]};
+ * raw: the model's `answer` arguments {kind, sentences: [{claim, sources, quote?}], next: [{source}]} (anything else in it is ignored);
  * ev: the evidence of this question; ctx.question: the reader's latest message (NOT_FOUND names a query only when it is there).
  * Returns {kind: "answer"|"refusal"|"clarify"|"fallback", sentences: [{text, sources: [{n, label, url}]}], next: [{label, href}]}.
  */

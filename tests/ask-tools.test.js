@@ -1267,7 +1267,7 @@ test("TOOLS are OpenAI function definitions for the six tools", () => {
   assert.match(TOOLS[0].function.description, /bare name|bare IMO/);
   assert.deepEqual(by.changes.properties.graph.enum, ["fleet", "lobby"]);
   assert.deepEqual(by.answer.properties.kind.enum, ["answer", "refusal", "clarify"]);
-  assert.deepEqual(by.answer.properties.refusal_reason.enum, ["off_topic", "legal_advice", "opinion", "injection"]);
+  assert.deepEqual(Object.keys(by.answer.properties), ["kind", "sentences", "next"]); // no refusal_reason: nothing reads it (final wave)
   const s = by.answer.properties.sentences.items;
   assert.deepEqual(s.properties.claim.enum, ["listed", "not_found", "change", "quote"]);
   assert.equal(s.properties.sources.type, "array");

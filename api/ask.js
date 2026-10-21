@@ -85,10 +85,12 @@ function parseMessages(text) {
   }
   if (!Array.isArray(list) || !list.length || list.length > MAX_MESSAGES) return null;
   // A user turn is at most 500 characters. An assistant turn is the server's own earlier answer, which can run longer: it is context
-  // only, so it is cut to 500 (not through a character that straddles the cut) instead of refusing the follow-up.
-  const fine = (m) => (m?.role === "user" || m?.role === "assistant") && typeof m.text === "string" && m.text.trim() && (m.role === "assistant" || m.text.length <= MAX_CHARS);
+  // only, so it is trimmed and cut to 500 (not through a character that straddles the cut) instead of refusing the follow-up, and
+  // one that is only whitespace is dropped.
+  const fine = (m) => typeof m?.text === "string" && (m.role === "assistant" || (m.role === "user" && m.text.trim() && m.text.length <= MAX_CHARS));
   if (!list.every(fine) || list.at(-1).role !== "user") return null;
-  const turns = list.map((m) => ({ role: m.role, content: m.role === "assistant" ? m.text.slice(0, MAX_CHARS).replace(/[\ud800-\udbff]$/, "") : m.text }));
+  const turns = list.map((m) => ({ role: m.role, content: m.role === "assistant" ? m.text.trim().slice(0, MAX_CHARS).replace(/[\ud800-\udbff]$/, "") : m.text }))
+    .filter((t) => t.content);
   while (turns[0].role === "assistant") turns.shift();
   return turns;
 }

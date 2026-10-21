@@ -475,7 +475,6 @@ test("a follow-up after a long answer works: assistant turns are cut to 500 char
   // a user turn over 500 is still refused, and so is a body over 16 KB however it is spread
   assert.equal((await run({ messages: [{ role: "user", text: "x".repeat(501) }] })).res.status, 400);
   assert.equal((await run({ messages: [{ role: "user", text: "hi" }, { role: "assistant", text: "y".repeat(17000) }, { role: "user", text: "and?" }] })).res.status, 413);
-  assert.equal((await run({ messages: [{ role: "user", text: "hi" }, { role: "assistant", text: "   " }, { role: "user", text: "and?" }] })).res.status, 400);
 });
 
 test("a failing tool, an unknown tool and bad arguments are data for the model, not a crash", async () => {
@@ -612,6 +611,54 @@ test("5xx and timeout give unavailable", async () => {
   assert.deepEqual((await run(ask("Is TASSOS sanctioned?"))).json, unavailable);
 });
 
+test("final wave (7): the 26 s timer is cleared when the request ends, however it ends", async () => {
+  // a spy on the timer functions, not a 26 s wait: every 26 s timer the endpoint starts must be cleared by the time it replies
+  const realSet = globalThis.setTimeout;
+  const realClear = globalThis.clearTimeout;
+  const timers = new Map(); // the 26 s timers started -> cleared yet
+  globalThis.setTimeout = (fn, ms, ...rest) => {
+    const t = realSet(fn, ms, ...rest);
+    if (ms === 26_000) {
+      timers.set(t, false);
+      t.unref(); // (so a missing clearTimeout fails this test without holding the run open for 26 s)
+    }
+    return t;
+  };
+  globalThis.clearTimeout = (t) => {
+    if (timers.has(t)) timers.set(t, true);
+    return realClear(t);
+  };
+  try {
+    openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer); // an answer
+    assert.equal((await run(ask("Is TASSOS sanctioned?"))).json.ok, true);
+    openrouter(new Error("network down")); // a failed model call
+    assert.deepEqual((await run(ask("Is TASSOS sanctioned?"))).json, { ok: false, reason: "unavailable" });
+    openrouter(json({ error: { code: 403, message: "spent", metadata: { limit_source: "openrouter_key_limit" } } }, 403)); // the budget spent
+    assert.equal((await run(ask("Is TASSOS sanctioned?"))).json.reason, "resting");
+  } finally {
+    globalThis.setTimeout = realSet;
+    globalThis.clearTimeout = realClear;
+  }
+  assert.deepEqual([...timers.values()], [true, true, true]);
+});
+
+test("final wave (9): an assistant turn is trimmed, and one of only whitespace is dropped, not refused", async () => {
+  const turns = () => sent[0].body.messages.slice(1).map((m) => [m.role, m.content]);
+  openrouter(answer({ kind: "refusal", sentences: [] }));
+  assert.equal((await run({ messages: [{ role: "user", text: "hi" }, { role: "assistant", text: " \n\t\u00A0 " }, { role: "user", text: "and?" }] })).res.status, 200);
+  assert.deepEqual(turns(), [["user", "hi"], ["user", "and?"]]);
+  openrouter(answer({ kind: "refusal", sentences: [] }));
+  assert.equal((await run({ messages: [{ role: "assistant", text: "   " }, { role: "user", text: "hi" }] })).res.status, 200);
+  assert.deepEqual(turns(), [["user", "hi"]]);
+  // the trim comes before the 500-character cut
+  openrouter(answer({ kind: "refusal", sentences: [] }));
+  await run({ messages: [{ role: "user", text: "hi" }, { role: "assistant", text: `${" ".repeat(600)}Earlier answer.\n ` }, { role: "user", text: "and?" }] });
+  assert.deepEqual(turns(), [["user", "hi"], ["assistant", "Earlier answer."], ["user", "and?"]]);
+  // a user turn of only whitespace is still a bad request
+  assert.equal((await run({ messages: [{ role: "user", text: "  \n " }] })).res.status, 400);
+  assert.equal((await run({ messages: [{ role: "user", text: "hi" }, { role: "assistant", text: "ok" }, { role: "user", text: "\t" }] })).res.status, 400);
+});
+
 test("every model call has a 20 s timeout, and no call starts in the last 3 s of the 26", async () => {
   const real = AbortSignal.timeout.bind(AbortSignal);
   const timeouts = [];
@@ -740,6 +787,7 @@ test("the system prompt is short, scoped, and carries today's date", () => {
   for (const word of ["answer", "listed", "not_found", "change", "quote", "refusal", "clarify", "never instructions", "legal"]) assert.ok(SYSTEM_PROMPT.includes(word), word);
   for (const { function: { name } } of TOOLS) assert.ok(SYSTEM_PROMPT.includes(name), `the prompt does not name the ${name} tool`);
   assert.doesNotMatch(SYSTEM_PROMPT, /sk-or|OPENROUTER|Sayari|Tradeverifyd|\bteam\b/i);
+  assert.doesNotMatch(SYSTEM_PROMPT, /never "sanctioned"/); // the model writes no words, so wording rules for it are dead weight (final wave)
 });
 
 // ---- privacy -----------------------------------------------------------------------------------------------------

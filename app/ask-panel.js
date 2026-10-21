@@ -9,6 +9,7 @@ const NOTES = {
   unavailable: "Ask isn't available right now. Try the search on the home page.",
   busy: "Ask takes a limited number of questions an hour from each visitor, and that limit has been reached. Try again later; the search on the home page still works.",
   disabled: "Ask isn't switched on right now. Try the search on the home page.",
+  resting: "Ask is resting right now. Try again later; the search on the home page still works.", // (no reset date to give)
 };
 const SENT = 10; // messages sent with a question
 const WAIT_MS = 35_000; // the server gives up at 26 s
@@ -20,11 +21,11 @@ const safe = (url) => (typeof url === "string" && safeUrl(url) !== "#" && SITE_O
 const isDay = (s) => { const t = /^\d{4}-\d\d-\d\d$/.test(s) ? Date.parse(`${s}T00:00:00Z`) : NaN; return !Number.isNaN(t) && new Date(t).toISOString().startsWith(s); }; // (not 2026-02-30)
 const link = (url, inner, attrs = "") => (safe(url) ? `<a href="${escapeHtml(url)}"${attrs}>${inner}</a>` : inner);
 
-/** A status note: resting (with its date), unavailable, busy or disabled. Anything else, or a date that is not one, says unavailable. */
-export function renderStatus(reason, resets) {
+/** A status note: resting (until its date, for today when `daily`, else this month; without a date that is one, only that it rests), unavailable, busy or disabled. Anything else says unavailable. */
+export function renderStatus(reason, resets, daily) {
   const day = reason === "resting" && typeof resets === "string" && isDay(resets) ? formatDate(resets) : "";
-  const key = day ? "resting" : Object.hasOwn(NOTES, reason) ? reason : "unavailable";
-  const text = day ? `Ask has used its budget for this month and is resting until ${day}. Everything else on the site works as usual.` : NOTES[key];
+  const key = Object.hasOwn(NOTES, reason) ? reason : "unavailable";
+  const text = day ? `Ask has used its budget for ${daily === true ? "today" : "this month"} and is resting until ${day}. Everything else on the site works as usual.` : NOTES[key];
   return `<div class="ask-msg ask-status" data-reason="${key}"><p>${escapeHtml(text)}</p></div>`;
 }
 
@@ -170,7 +171,7 @@ async function ask(raw) {
       convo.push({ role: "assistant", text: assistantText(body.answer) });
     } else {
       convo.pop(); // a question that failed is not sent again with the next
-      html = renderStatus(body?.reason, body?.resets);
+      html = renderStatus(body?.reason, body?.resets, body?.daily);
     }
   } catch {
     if (pending !== mine) return;

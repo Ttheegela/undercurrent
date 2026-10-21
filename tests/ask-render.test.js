@@ -145,16 +145,23 @@ test("the evaluation set's injections show as plain text with no new element", (
 test("renderStatus: resting shows the reset date as d MMM yyyy, the others their fixed copy", () => {
   assert.equal(text(renderStatus("resting", "2026-11-01")), "Ask has used its budget for this month and is resting until 1 Nov 2026. Everything else on the site works as usual.");
   assert.equal(text(renderStatus("resting", "2026-12-25")), "Ask has used its budget for this month and is resting until 25 Dec 2026. Everything else on the site works as usual.");
+  // the guardrail's daily budget says today, not this month
+  assert.equal(text(renderStatus("resting", "2026-10-22", true)), "Ask has used its budget for today and is resting until 22 Oct 2026. Everything else on the site works as usual.");
   const unavailable = "Ask isn't available right now. Try the search on the home page.";
   assert.equal(text(renderStatus("unavailable")), unavailable);
-  // a reset date that is not a date, and a reason nobody knows, say unavailable rather than a broken sentence
-  for (const resets of [undefined, "", "soon", "2026-13-40", "2026-02-30", "2026-04-31", 20261101, "<img src=x>"]) assert.equal(text(renderStatus("resting", resets)), unavailable);
+  // resting with no reset date (no credit left, a lifetime budget), or one that is not a date, says only that Ask is resting
+  const resting = "Ask is resting right now. Try again later; the search on the home page still works.";
+  for (const resets of [undefined, "", "soon", "2026-13-40", "2026-02-30", "2026-04-31", 20261101, "<img src=x>"]) {
+    assert.equal(text(renderStatus("resting", resets)), resting);
+    assert.equal(text(renderStatus("resting", resets, true)), resting);
+  }
+  // a reason nobody knows says unavailable rather than a broken sentence
   assert.equal(text(renderStatus("something-new")), unavailable);
   // busy is a per-visitor limit over a rolling hour, so it says that, not that Ask is tired
   assert.equal(text(renderStatus("busy")), "Ask takes a limited number of questions an hour from each visitor, and that limit has been reached. Try again later; the search on the home page still works.");
   assert.equal(text(renderStatus("disabled")), "Ask isn't switched on right now. Try the search on the home page.");
-  for (const reason of ["busy", "disabled"]) assert.ok(!/team/i.test(text(renderStatus(reason))), "no team wording");
-  for (const [reason, resets] of [["resting", "2026-11-01"], ["busy"], ["disabled"], ["unavailable"], ["<x>", "<y>"]]) assertPlain(renderStatus(reason, resets), reason);
+  for (const [reason, resets, daily] of [["busy"], ["disabled"], ["resting"], ["resting", "2026-10-22", true]]) assert.ok(!/team/i.test(text(renderStatus(reason, resets, daily))), "no team wording");
+  for (const [reason, resets, daily] of [["resting", "2026-11-01"], ["resting", "2026-10-22", true], ["resting"], ["busy"], ["disabled"], ["unavailable"], ["<x>", "<y>", "<z>"]]) assertPlain(renderStatus(reason, resets, daily), reason);
 });
 
 test("the panel sends the last 10 messages, an assistant turn as its sentences joined by spaces", () => {

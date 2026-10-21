@@ -78,9 +78,15 @@ const WORD = /[\p{L}\p{N}]+/gu;
 const PLAIN = /^[A-Za-z0-9 .,&'-]+$/;
 const IMO = /^(?:IMO\s*)?\d{7}$/i;
 // A verdict in the reader's words is never printed, even when the reader typed it as the name ("Zorbex Marine is not sanctioned",
-// "OFAC cleared Zorbex", "Zorbex safe to trade"): listing and authority words (the quotes' own), clean-bill words, and the predicate
-// or negation that makes a span a statement rather than a name. A name holding one of these words gets the fallback instead.
-const CLEAN_BILL = /\b(?:is|are|was|were|not|no|never|none|clean(?:ed)?|clear(?:ed|s|ance)?|safe(?:ly|r|st)?|risk(?:s|y|less)?|(?:il)?legal(?:ly)?|legit(?:imate)?|lawful|compliant|approved|allowed|permitted|authori[sz]ed|licen[cs]ed|exempt(?:ed)?|exonerated|innocent|vetted|verified|unrestricted|ok(?:ay)?)\b|n['’]t\b/i;
+// "OFAC cleared Zorbex", "Zorbex safe to trade"): listing and authority words (the quotes' own), and clean-bill words, which go by shape
+// so that a verdict no list names still counts. A name holding one of these words gets the fallback instead (the shapes take 0.07%
+// of the listed names more than a word list did, most for "Charitable", "Variable" or "Cable").
+const CLEAN_BILL = new RegExp([
+  String.raw`\b(?:is|are|was|were|not|no|never|none|nothing|nil|zero)\b|n['’]t\b`, // a predicate or negation makes a span a statement: "isn't", "nothing found"
+  String.raw`\b(?:un|non|dis|pre|re)?-?(?:approv|allow|permitt|authori[sz]|licen[cs]|vett|verifi|screen|pass|ok(?:ay)?['’]?|clear|clean|trust|certifi|accredit|validat|endors|pardon|exempt|exonerat|absolv|acquitt)e?d\b|\bscreening\b`, // vetted: "OK'd", "unverified", "pre-approved"
+  String.raw`\b\w+(?:able|ible|worthy)\b`, // fit for business: "reliable", "reputable", "permissible", "trustworthy"
+  String.raw`\b(?:un|non|in|il|dis)?-?(?:clean|clear(?:s|ance)?|safe(?:ly|r|st)?|risk(?:s|y)?|(?:harm|blame|fault|guilt|risk)less|(?:il)?legal(?:ly)?|legit(?:imate)?|lawful|compliant|innocent|exempt|ok(?:ay)?)\b`,
+].join("|"), "i");
 const verdict = (span) => LISTING.test(span) || AUTHORITY.test(span) || CLEAN_BILL.test(span);
 // Country and nationality words name no ship, firm or person on their own ("Is Iranian oil listed?" searched as "Iranian"): the countries
 // in the site's data (the research's flags and countries, the lists' programmes, the chip-trade reporters) word by word, and their

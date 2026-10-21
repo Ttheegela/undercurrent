@@ -1217,7 +1217,7 @@ test("final wave (12): headings and glued one- or two-word header lines are neve
     assert.ok(e.text.startsWith(head), `${e.label}: ${e.text.slice(0, 90)}`);
     assert.ok(!e.quotes.includes(head), `${e.label}: the head line is quotable`);
   }
-  assert.ok(heads[2][0].quotes.some((q) => q.startsWith("Lobbying firms hired: Capitol Counsel LLC")), heads[2][0].quotes.join(" | "));
+  assert.ok(heads[2][0].quotes.some((q) => q.startsWith("Lobbying firms hired by Nord Stream 2 AG: Capitol Counsel LLC")), heads[2][0].quotes.join(" | "));
 });
 
 test("final wave (5): 'such as' and an existential 'there is/are' point nowhere; 'such <noun>' and 'there' as a place still do", async () => {
@@ -1489,8 +1489,8 @@ test("round 4 (c): a quote is a whole sentence of five or more words that opens 
 test("round 4 (c): connection and lobbying quotes are the sentences the tool built, never a re-split of its text", async () => {
   await run("connections", { query: "IMO 6482241" });
   const head = ev.find((e) => e.kind === "connection" && e.entity?.name === "Anglo Premier Shipping Pte. Ltd.");
-  assert.equal(head.text, "OpenSanctions connections data for Anglo Premier Shipping Pte. Ltd. (Organization, IMO 6482241). 1 direct link.");
-  assert.deepEqual(head.quotes, []); // the head line is a heading, and "1 direct link." is three words
+  assert.equal(head.text, "OpenSanctions connections data for Anglo Premier Shipping Pte. Ltd. (Organization, IMO 6482241). Direct links recorded for Anglo Premier Shipping Pte. Ltd.: 1.");
+  assert.deepEqual(head.quotes, ["Direct links recorded for Anglo Premier Shipping Pte. Ltd.: 1."]); // (the head line is a heading: text only)
   const link = ev.find((e) => e.kind === "connection" && /Owned by/.test(e.text));
   assert.equal(link.text, 'OpenSanctions records the relationship: "Anglo Premier Shipping Pte. Ltd." — Owned by — "SOVCOMFLOT". Type of SOVCOMFLOT: Company.');
   assert.deepEqual(link.quotes, ['OpenSanctions records the relationship: "Anglo Premier Shipping Pte. Ltd." — Owned by — "SOVCOMFLOT".']); // "Type of SOVCOMFLOT: Company." is four words
@@ -1500,13 +1500,34 @@ test("round 4 (c): connection and lobbying quotes are the sentences the tool bui
   // one sentence, whole, with the posts in brackets ("past", since "former" points elsewhere)
   assert.deepEqual(lobbyists.quotes, [
     "Lobbyists named in the filings for Nord Stream 2 AG: Jane Example at Capitol Counsel LLC (past posts: Legislative Assistant, Sen. Smith) (formerly served in US Senate).",
-    "Government bodies the lobbyists formerly served in: US Senate (1).",
+    "Government bodies Nord Stream 2 AG's lobbyists formerly served in: US Senate (1).",
   ]);
   assert.doesNotMatch(lobbyists.text, /former posts/);
   ev = [];
   await run("connections", { query: "Acme Widgets" });
   const none = ev.find((e) => e.kind === "connection");
   assert.deepEqual(none.quotes, ["No exact match by name or IMO number exists in the OpenSanctions connections data."]); // "Matching there is exact …" points
+});
+
+test("minors (2): every connection and lobbying quote names its subject, verbatim from its own item", async () => {
+  await everyTool();
+  await run("connections", { query: "Zulu Ships Management" });
+  await run("connections", { query: "IMO 6467751" });
+  const items = ev.filter((e) => (e.kind === "connection" || e.kind === "lobbying") && e.entity);
+  const quotes = items.flatMap((e) => e.quotes);
+  assert.ok(quotes.length > 6, quotes.join(" | "));
+  for (const e of items) for (const q of e.quotes) {
+    assert.ok(e.text.includes(q), `${e.label}: ${q}`);
+    if (!q.startsWith("Documented link: ")) assert.ok(q.includes(e.entity.name), `${e.label}: ${q}`); // a documented link names its own two parties
+  }
+  // the re-review's subjectless lines
+  for (const q of ["Direct links recorded for TASSOS: 1.", "Direct links recorded for Hapuka Marine LTD.: none.", "Government bodies Nord Stream 2 AG's lobbyists formerly served in: US Senate (1).",
+    "Bills Nord Stream 2 AG's lobbying firms lobbied on, by filings: S.722 Countering Iran's Destabilizing Activities Act (2017) (5)."]) {
+    assert.ok(quotes.includes(q), `${q} in ${quotes.join(" | ")}`);
+  }
+  assert.ok(quotes.some((q) => /^Direct links recorded for Zulu Ships Management: \d+, the first \d+ shown\.$/.test(q)), quotes.join(" | "));
+  assert.ok(quotes.some((q) => q.startsWith("Lobbying firms hired by Nord Stream 2 AG: Capitol Counsel LLC")), quotes.join(" | "));
+  assert.ok(!quotes.some((q) => /^(?:Lobbying firms hired:|Bills lobbied on|Government bodies the lobbyists|No direct links|\d+ direct links?\b)/.test(q)), quotes.join(" | "));
 });
 
 test("round 4 (a): a listing-language quote only from a doc or chips item, generic throughout; an authority word counts as listing language", async () => {
@@ -1591,7 +1612,7 @@ test("connection evidence states relationships only and never names a government
   for (const e of conn) {
     for (const t of [e.text, ...e.quotes]) assert.doesNotMatch(t, /recorded under|\b(?:US|UK|EU|UN|France|United States|United Kingdom|European Union|United Nations)\b/, t);
   }
-  assert.match(conn.find((e) => e.entity?.name === "TASSOS").text, /^OpenSanctions connections data for TASSOS \(Vessel, IMO 9408695\)\. 1 direct link\.$/);
+  assert.match(conn.find((e) => e.entity?.name === "TASSOS").text, /^OpenSanctions connections data for TASSOS \(Vessel, IMO 9408695\)\. Direct links recorded for TASSOS: 1\.$/);
 });
 
 test("sentences don't break after common abbreviations, and a fragment is not a quote", async () => {
@@ -1605,7 +1626,7 @@ test("sentences don't break after common abbreviations, and a fragment is not a 
   await run("connections", { query: "IMO 6467751" });
   const head = ev.find((e) => e.kind === "connection");
   assert.ok(head.text.startsWith("OpenSanctions connections data for Hapuka Marine LTD. (Organization, IMO 6467751). "), head.text);
-  assert.deepEqual(head.quotes, ["No direct links are recorded."]); // (the head line is a heading: text only)
+  assert.deepEqual(head.quotes, ["Direct links recorded for Hapuka Marine LTD.: none."]); // (the head line is a heading: text only)
   assert.ok(ev.every((e) => e.quotes.every((q) => !/^[\p{Ll}(]/u.test(q))));
 });
 

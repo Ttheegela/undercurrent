@@ -33,25 +33,32 @@ const listable = (e) => typeof e.entity?.name === "string" &&
   (e.kind === "opensanctions" || ((e.kind === "list" || e.kind === "research") && !e.delisted && Object.hasOwn(LIST_LABELS, e.gov ?? "")));
 
 // The query is the model's own tool argument, so NOT_FOUND names it only when the reader typed it: its words, whole and in order,
-// in the reader's question (case, spacing and punctuation aside; "SSOS" is not in "Is TASSOS sanctioned?"). What is printed is the
-// reader's own span of the question, with control and format characters (a right-to-left override, a zero-width space) stripped.
+// in the reader's question (case, spacing and punctuation aside; "SSOS" is not in "Is TASSOS sanctioned?"). Control and format
+// characters (a right-to-left override, a zero-width space, a soft hyphen) are stripped from the question first, so "TAS­SOS" is
+// TASSOS and never the halves "TAS SOS"; what is printed is the reader's own span of the stripped question.
 const WORD = /[\p{L}\p{N}]+/gu;
-const NAME_LIKE = /(?<![\p{L}\p{N}])\p{Lu}|\p{N}/u; // a capitalised word or a digit
-// Words that never name anything on their own, so a span made only of them ("the ship", "sanctioned") is not a name.
-const COMMON = new Set(("a an the is are was were be been it its this that these those any all some of on in at to for by with and or "
-  + "who what which whose where when why how does do did has have had not no yes still now ever "
-  + "ship ships vessel vessels tanker tankers boat company companies firm firms person people man woman group bank banks "
-  + "owner owners manager managers operator operators entity entities list lists listed listing sanction sanctions sanctioned "
-  + "blocked designated frozen us uk eu un imo").split(" "));
-const nameLike = (span) => NAME_LIKE.test(span) || (span.match(WORD) ?? []).some((w) => w.length >= 3 && !COMMON.has(w.toLowerCase()));
+// Words that never name anything on their own, whatever their case: pointing words and generic nouns. A span is a name only if it
+// holds a word of three or more letters outside this set ("gatik", "TASSOS") or a run of three or more digits (an IMO number);
+// "THE MANAGER", "This tanker", "its parent company", "all 3" and "the 2nd one" name nothing.
+const COMMON = new Set(("it its they them their this these those he she his her both above below here there such former latter other all the "
+  + "a an is are was were be been that any some of on in at to for by with and or who what which whose where when why how does do did "
+  + "has have had not no yes still now ever my our your we you me so if as up one ones first second third next last same each every new old name names number "
+  + "ship ships vessel vessels tanker tankers boat boats hull hulls company companies firm firms corporation person persons people man woman group groups "
+  + "bank banks owner owners manager managers management operator operators shipowner shipowners parent parents subsidiary subsidiaries affiliate affiliates "
+  + "sister buyer buyers seller sellers supplier suppliers client clients charterer charterers insurer insurers entity entities "
+  + "list lists listed listing sanction sanctions sanctioned blocked designated frozen restricted crude oil gas cargo fleet fleets shipping trading "
+  + "holding holdings international limited services marine maritime energy logistics industries flag flagged registry "
+  + "us uk eu un imo ofac sdn treasury ofsi bis commerce opensanctions").split(" "));
+const nameLike = (span) => /\p{N}{3}/u.test(span) || (span.match(WORD) ?? []).some((w) => w.length >= 3 && /^\p{L}+$/u.test(w) && !COMMON.has(w.toLowerCase()));
 function typedSpan(query, question) {
   if (typeof query !== "string" || typeof question !== "string") return null;
+  const clean = question.replace(/\s+/g, " ").replace(/[\p{Cc}\p{Cf}]/gu, "");
   const want = (query.match(WORD) ?? []).map((w) => w.toLowerCase());
-  const words = [...question.matchAll(WORD)];
+  const words = [...clean.matchAll(WORD)];
   for (let i = 0; want.length && i + want.length <= words.length; i++) {
     if (!want.every((w, j) => words[i + j][0].toLowerCase() === w)) continue;
     const last = words[i + want.length - 1];
-    const span = question.slice(words[i].index, last.index + last[0].length).replace(/\s+/g, " ").replace(/[\p{Cc}\p{Cf}]/gu, "").replace(/ +/g, " ").trim();
+    const span = clean.slice(words[i].index, last.index + last[0].length).trim();
     return nameLike(span) ? span : null; // "sanctioned is not on the lists" is never said; "gatik" typed in lower case still is a name
   }
   return null;

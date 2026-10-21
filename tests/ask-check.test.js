@@ -70,6 +70,9 @@ before(async () => {
   E.week = await ask([["changes", { since: "2026-10-13" }]]);
   E.early = await ask([["changes", { since: "2026-01-01", until: "2026-01-31" }]]);
   E.chips = await ask([["chips", { topic: "summary" }], ["site_docs", { query: "How long the US took to list new chip suppliers" }]]);
+  // round 4: the halves of "TAS­SOS" (a soft hyphen), as a model might search them; and the final check's sections
+  E.halves = await ask([["check_lists", { query: "TAS SOS" }]]);
+  E.final = await ask(["The 50% rule: blocked without being named", "How sanctions work", "How the lists stay current", "Semiconductors into Russia: what the official records show", "What the map cannot tell you", "7. Why this is a climate story", "Parent groups, lobbying and cargo (added 25 Sep 2026, afternoon)", "Fleet Tanqo (India)", "Strongest cases", "One line for the demo", "2. How long the US took to list new chip suppliers", "How countries and companies evade"].map((query) => ["site_docs", { query }]));
 
   const real = JSON.parse(readFileSync("data/changes/changes.json", "utf8"));
   const FRESH = { us: "fresh", uk: "fresh", eu: "fresh", un: "fresh", lobbying: "fresh" };
@@ -182,10 +185,10 @@ test("ITAR program renders as appears on the United States list", () => {
 test("fact with a name not in its sources is dropped", () => {
   // the model's words can't name anyone: a quote is the item's own sentence, whatever text came with it
   const r = tassosResearch();
-  const manager = r.quotes.findIndex((q) => q.startsWith("Manager: "));
+  const manager = r.quotes.findIndex((q) => q.startsWith("Manager of TASSOS: "));
   assert.ok(manager >= 0);
   const out = checkAnswer(answer(fact("TASSOS is managed by Gatik Ship Management.", r.id), quote(r.id, manager, "TASSOS is managed by Gatik Ship Management.")), E.tassos);
-  assert.deepEqual(texts(out), ["Manager: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C."]);
+  assert.deepEqual(texts(out), ["Manager of TASSOS: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C."]);
 });
 
 test("fact with a number not in its sources is dropped", () => {
@@ -198,7 +201,9 @@ test("fact with a number not in its sources is dropped", () => {
 test("a quote renders one sentence of one item, verbatim, or nothing", () => {
   const doc = freezeDoc();
   const r = tassosResearch();
-  assert.deepEqual(texts(checkAnswer(answer(quote(doc.id, 1)), E.tassos)), ["Nobody may pay, hold or move the target's money or property."]);
+  const owned = doc.quotes.indexOf("Companies owned by a listed party can be blocked without being named (section 2).");
+  assert.ok(owned >= 0, doc.quotes.join(" | "));
+  assert.deepEqual(texts(checkAnswer(answer(quote(doc.id, owned)), E.tassos)), ["Companies owned by a listed party can be blocked without being named (section 2)."]);
   // a bad index, two sources, an item with no quotes, or a quote number that isn't an integer: dropped
   for (const bad of [quote(doc.id, doc.quotes.length), quote(doc.id, -1), quote(doc.id, 1.5), quote(doc.id, "1"), { claim: "quote", sources: [doc.id] }, quote(tassosList("uk").id, 0), quote(E.tassos[0].id, 0), { claim: "quote", sources: [doc.id, r.id], quote: 0 }, quote("S99", 0)]) {
     assert.deepEqual(checkAnswer(answer(bad), E.tassos), FALLBACK_ANSWER, JSON.stringify(bad));
@@ -338,9 +343,121 @@ test("NOT_FOUND prints the matching span of the reader's question, never the mod
     assert.deepEqual(texts(out), [NOT_FOUND("Gatik Ship Management")], JSON.stringify(question));
     assert.doesNotMatch(JSON.stringify(out), /[\u202A-\u202E\u2066-\u2069\u200B-\u200F]/u);
   }
-  // control and format characters inside the reader's span are stripped too
-  assert.deepEqual(texts(checkAnswer(answer(claim("not_found", E.gatik[0].id)), E.gatik, { question: "Is Ga\u200Btik Ship\u0007 Management listed?" })), FALLBACK_ANSWER.sentences.map((x) => x.text));
+  // control and format characters are stripped from the question before the match, so a zero-width space inside a word is no split
+  assert.deepEqual(texts(checkAnswer(answer(claim("not_found", E.gatik[0].id)), E.gatik, { question: "Is Ga\u200Btik Ship\u0007 Management listed?" })), [NOT_FOUND("Gatik Ship Management")]);
   assert.deepEqual(texts(checkAnswer(answer(claim("not_found", E.gatik[0].id)), E.gatik, { question: "Is Gatik\u200B Ship\u0007 Management listed?" })), [NOT_FOUND("Gatik Ship Management")]);
+});
+
+// ---- fix round 4: the final check's findings ------------------------------------------------------------------------
+
+const search = (query) => [{ id: "S1", kind: "search", query, found: false, near: [], text: "Searched the lists.", label: "Search of the lists, research and OpenSanctions", url: "/", quotes: [] }];
+const notFound = (ev, question) => checkAnswer(answer(claim("not_found", ev[0].id)), ev, { question });
+
+test("round 4 (d), C1: a format character inside a listed name never makes the halves 'not on the lists'", () => {
+  // the reader typed TASSOS with a soft hyphen; the model searched the halves, which match nothing
+  const halves = E.halves[0];
+  assert.deepEqual([halves.query, halves.found, halves.near], ["TAS SOS", false, []]);
+  for (const cf of ["\u00AD", "\u200B", "\u2060"]) {
+    assert.deepEqual(notFound(E.halves, `Is TAS${cf}SOS sanctioned?`), FALLBACK_ANSWER, JSON.stringify(cf));
+  }
+  // typed as two words, the halves are what the reader asked about
+  assert.deepEqual(texts(notFound(E.halves, "Is TAS SOS sanctioned?")), [NOT_FOUND("TAS SOS")]);
+});
+
+test("round 4 (d), C2: NOT_FOUND needs a word that names something, whatever its case; three digits in a row count, capitals do not", () => {
+  for (const [query, question] of [
+    ["THE MANAGER", "IS THE MANAGER OF TASSOS SANCTIONED?"],
+    ["This tanker", "This tanker TASSOS: is it sanctioned?"],
+    ["THIS TANKER", "IS THIS TANKER SANCTIONED?"],
+    ["The Owner", "Is The Owner Of TASSOS Sanctioned?"],
+    ["its parent company", "who owns tassos? is its parent company sanctioned?"],
+    ["the shipowner", "is the shipowner sanctioned?"],
+    ["its sister ship", "is its sister ship sanctioned?"],
+    ["all 3", "are all 3 sanctioned?"],
+    ["the 2nd one", "is the 2nd one listed?"],
+    ["Sanctioned", "Sanctioned or not: TASSOS?"],
+    ["OFAC", "Is TASSOS on OFAC?"],
+    ["Is", "Is TASSOS sanctioned?"],
+    ["IT", "WHO MANAGES TASSOS AND IS IT SANCTIONED?"],
+    ["the other ship", "TASSOS is listed; is the other ship listed?"],
+    ["crude fleet", "is the crude fleet sanctioned?"],
+  ]) {
+    assert.deepEqual(notFound(search(query), question), FALLBACK_ANSWER, query);
+  }
+  for (const [ev, question, shown] of [
+    [search("TASSOS"), "Is TASSOS sanctioned?", "TASSOS"],
+    [E.gatik, "is gatik ship management listed?", "gatik ship management"],
+    [E.unknownImo, "Is IMO 1234567 on a list?", "1234567"],
+    [search("Gatik"), "IS GATIK SANCTIONED?", "GATIK"],
+  ]) {
+    assert.deepEqual(texts(notFound(ev, question)), [NOT_FOUND(shown)], shown);
+  }
+});
+
+test("round 4 (a)(b), C3 and I1: explainer sentences that point elsewhere are not offered; the self-contained ones are", () => {
+  const tools = freezeDoc();
+  for (const s of ["Asset freeze (also called blocking).", "Nobody may pay, hold or move the target's money or property.", "Secondary sanctions (pressure on outsiders).", "Whole kinds of trade are cut, such as buying Russian oil above a price cap."]) {
+    assert.ok(tools.text.includes(s), `in the text: ${s}`);
+    assert.ok(!tools.quotes.includes(s), `quotable: ${s}`);
+  }
+  assert.ok(tools.quotes.includes("Companies owned by a listed party can be blocked without being named (section 2)."), tools.quotes.join(" | "));
+  const fifty = find(E.final, (e) => e.label === "The 50% rule: blocked without being named");
+  assert.ok(fifty.quotes.includes("In the US, any company owned 50% or more in total by listed parties is blocked automatically, even through a chain of other companies."), fifty.quotes.join(" | "));
+  // ("Stakes from different listed owners are added together." is not offered: "Stakes" is not one of the generic starters)
+  assert.ok(find(E.final, (e) => e.label === "How sanctions work").quotes.some((q) => q.includes("A sanction is a government rule that says: do not do business with a named person, company or country.")));
+  // I1: currency and gap sentences with a pointer
+  for (const [title, s] of [
+    ["How the lists stay current", "The other lists still update."],
+    ["Semiconductors into Russia: what the official records show", "Every figure here comes from free official sources"],
+    ["What the map cannot tell you", "The ships, companies, lobbying reports and counts above are rebuilt every night"],
+  ]) {
+    const doc = find(E.final, (e) => e.label === title);
+    assert.ok(doc.text.includes(s), `in the text: ${s}`);
+    assert.ok(!doc.quotes.some((q) => q.includes(s)), `quotable: ${s}`);
+  }
+});
+
+test("round 4 (b), I2: conduct sentences with a pointing subject are not offered", () => {
+  for (const [title, s] of [
+    ["7. Why this is a climate story", "It was carrying about 800,000 barrels of Russian crude"],
+    ["Parent groups, lobbying and cargo (added 25 Sep 2026, afternoon)", "These tankers move oil through ship-to-ship transfers"],
+    ["Fleet Tanqo (India)", "Treasury says these ships carried"],
+    ["Strongest cases", "Its parent En+ paid Mercury Public Affairs"],
+    ["Strongest cases", "Its US arm, Hikvision USA, paid"],
+    ["One line for the demo", "Its parent did, for $108,500 a month."],
+  ]) {
+    const doc = find(E.final, (e) => e.label === title);
+    assert.ok(doc.text.includes(s), `in the text: ${s}`);
+    assert.ok(!doc.quotes.some((q) => q.includes(s)), `quotable: ${s}`);
+  }
+});
+
+test("round 4 (a), I4: a sentence naming firms beside OFAC or Treasury is not offered, with or without a listing word", () => {
+  for (const [title, s] of [
+    ["2. How long the US took to list new chip suppliers", "4 have no founding date in their OFAC entry (Abhar Technologies"],
+    ["How countries and companies evade", "Official example: the US Treasury's own entry for RM Design and Development (Kyrgyzstan)"],
+  ]) {
+    const doc = find(E.final, (e) => e.label === title);
+    assert.ok(doc.text.includes(s), `in the text: ${s}`);
+    assert.ok(!doc.quotes.some((q) => q.includes(s)), `quotable: ${s}`);
+  }
+  // the chips headline (US Treasury OFAC, no firm, nothing pointing) stays: the starter question has its answer
+  const sum = find(E.chips, (e) => e.kind === "chips");
+  assert.match(sum.quotes[0], /^The median time to list a new chip supplier \(US Treasury OFAC\) is [\d.]+ months from founding to OFAC listing, across \d+ firms founded after 24 February 2022/);
+});
+
+test("round 4 (c), I3: on the committed data every quote is a whole sentence of five or more words with no pointing word", () => {
+  const POINTING = /\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both|above|below|here|there|such|former|latter)\b|\bthe other\b|\bthe\s+(?:target|manager|shipowner|parent|company|firm|ship|vessel|tanker|person|entity|bank|group|owner|operator)s?\b/i;
+  let n = 0;
+  for (const ev of Object.values(E)) for (const e of ev) for (const q of e.quotes) {
+    n++;
+    assert.match(q, /^[\p{Lu}\p{N}].*[.!?]["\u201D\u2019')\]]*$/su, `${e.label}: ${q}`);
+    assert.ok(q.split(/\s+/).length >= 5, `${e.label}: ${q}`);
+    assert.doesNotMatch(q, /^(?:Ltd|LTD|Limited|LIMITED|Co|Corp|Inc|LLC|S\.A|SAL|Pte|PTE)\.?(?:[\s,;:)]|$)/, `${e.label}: ${q}`);
+    assert.doesNotMatch(q, /^[\p{Lu}\p{N}][\p{Lu}\p{N}./-]{2,},/u, `${e.label}: ${q}`);
+    assert.doesNotMatch(q, POINTING, `${e.label}: ${q}`);
+  }
+  assert.ok(n > 100, String(n));
 });
 
 test("every sentence of a maintainer-note section is unquotable, in the committed index", () => {
@@ -386,7 +503,7 @@ test("the re-review's listing sentences are not offered as quotes; a neutral exp
   for (let i = -1; i <= keyFindings.quotes.length; i++) {
     for (const x of checkAnswer(answer(quote(keyFindings.id, i)), E.reviewDocs).sentences) assert.doesNotMatch(x.text, /All three are fully blocked/);
   }
-  assert.ok(freezeDoc().quotes.includes("Nobody may pay, hold or move the target's money or property."));
+  assert.ok(!freezeDoc().quotes.includes("Nobody may pay, hold or move the target's money or property.")); // round 4: "the target" is named elsewhere
 });
 
 test("a misspelt side search never says 'not on the lists' while the reader's name is listed (review I3)", () => {

@@ -714,7 +714,9 @@ function sanctionItems(s) {
   const link = researchLink(f.imo, f.name);
   const head = {
     ...built("connection", [
-      total ? `${total} direct ${total === 1 ? "link" : "links"}${shown.length < total ? `, the first ${shown.length} shown` : ""}.` : "No direct links are recorded.",
+      // (named, as the research facts are, so the quote never borrows its subject; the name goes after the label, since a sentence
+      // opening on "PJSC" or "LIMITED" is not quotable)
+      `Direct links recorded for ${f.name}: ${total || "none"}${shown.length < total ? `, the first ${shown.length} shown` : ""}.`,
       s.others && `${s.others} other ${s.others === 1 ? "entity shares" : "entities share"} this exact name in the data; this is the one with the most links.`,
     ], `OpenSanctions connections data for ${f.name} (${f.schema}${f.imo ? `, IMO ${f.imo}` : ""}).`),
     entity: { id: s.id, name: f.name, ...(f.imo && { imo: f.imo }) },
@@ -757,12 +759,12 @@ function lobbyItems(res, lob, who) {
     f.years.length && `from ${span(f.years)}`, f.fees_usd != null && `, fees $${num(f.fees_usd)}`, f.sub_fees_usd != null && `, subcontracted fees $${num(f.sub_fees_usd)}`,
   ).replace(/ ,/g, ",");
   const items = [item([
-    res.firms.length ? `Lobbying firms hired: ${res.firms.slice(0, 5).map(firmText).join("; ")}${res.firms.length > 5 ? `; and ${res.firms.length - 5} more` : ""}.` : "No lobbying firm is recorded for it in the filings checked.",
+    res.firms.length ? `Lobbying firms hired by ${client}: ${res.firms.slice(0, 5).map(firmText).join("; ")}${res.firms.length > 5 ? `; and ${res.firms.length - 5} more` : ""}.` : "No lobbying firm is recorded for it in the filings checked.",
   ], "firms", res.firms[0]?.url, `${client} in US lobbying filings (LDA${res.as_of ? `; data as of ${dt(res.as_of)}` : ""}).`)];
   if (res.bodies.length || res.bills.length) {
     items.push(item([
       res.bodies.length && `Where ${client}'s lobbying firms lobbied, by filings: ${res.bodies.slice(0, 5).map((b) => `${b.name} (${b.filings})`).join(", ")}.`,
-      res.bills.length && `Bills lobbied on, by filings: ${res.bills.slice(0, 5).map((b) => `${b.title || b.label} (${b.filings})`).join("; ")}.`,
+      res.bills.length && `Bills ${client}'s lobbying firms lobbied on, by filings: ${res.bills.slice(0, 5).map((b) => `${b.title || b.label} (${b.filings})`).join("; ")}.`,
     ], "bodies and bills", "https://lda.gov/"));
   }
   if (res.lobbyists.length) {
@@ -772,7 +774,7 @@ function lobbyItems(res, lob, who) {
     const more = res.lobbyists.length - named.length + res.lobbyists_more;
     items.push(item([
       `Lobbyists named in the filings for ${client}: ${named.join("; ")}${more ? `; and ${more} more` : ""}.`,
-      res.revolving_door.length && `Government bodies the lobbyists formerly served in: ${res.revolving_door.slice(0, 5).map((d) => `${d.body} (${d.count})`).join(", ")}.`,
+      res.revolving_door.length && `Government bodies ${client}'s lobbyists formerly served in: ${res.revolving_door.slice(0, 5).map((d) => `${d.body} (${d.count})`).join(", ")}.`,
     ], "lobbyists", "https://lda.gov/"));
   }
   for (const p of res.parents.slice(0, 3)) {

@@ -425,6 +425,27 @@ test("evidence comes only from tools called in this request, never from earlier 
   assert.deepEqual(sent[0].body.messages.slice(1).map((m) => m.role), ["user"]);
 });
 
+test("a follow-up after a long answer works: assistant turns are cut to 500 characters, user turns are not", async () => {
+  // the server's own rendered answers can run past 500 characters; they are context only
+  const long = Array.from({ length: 40 }, (_, i) => `Sentence number ${i + 1} of the earlier answer.`).join(" ").slice(0, 1200);
+  assert.equal(long.length, 1200);
+  openrouter(answer({ kind: "refusal", sentences: [] }));
+  const { res } = await run({ messages: [{ role: "user", text: "What changed this week?" }, { role: "assistant", text: long }, { role: "user", text: "And before that?" }] });
+  assert.equal(res.status, 200);
+  const turns = sent[0].body.messages.slice(1);
+  assert.deepEqual(turns.map((m) => m.role), ["user", "assistant", "user"]);
+  assert.equal(turns[1].content, long.slice(0, 500));
+  assert.deepEqual([turns[0].content, turns[2].content], ["What changed this week?", "And before that?"]);
+  // a character that straddles the cut is dropped whole, not split
+  openrouter(answer({ kind: "refusal", sentences: [] }));
+  await run({ messages: [{ role: "user", text: "hi" }, { role: "assistant", text: `${"x".repeat(499)}\u{1F6A2} and more` }, { role: "user", text: "and?" }] });
+  assert.equal(sent[0].body.messages[2].content, "x".repeat(499));
+  // a user turn over 500 is still refused, and so is a body over 16 KB however it is spread
+  assert.equal((await run({ messages: [{ role: "user", text: "x".repeat(501) }] })).res.status, 400);
+  assert.equal((await run({ messages: [{ role: "user", text: "hi" }, { role: "assistant", text: "y".repeat(17000) }, { role: "user", text: "and?" }] })).res.status, 413);
+  assert.equal((await run({ messages: [{ role: "user", text: "hi" }, { role: "assistant", text: "   " }, { role: "user", text: "and?" }] })).res.status, 400);
+});
+
 test("a failing tool, an unknown tool and bad arguments are data for the model, not a crash", async () => {
   openrouter(
     reply(call("delete_everything", {}, "c1"), call("check_lists", "{broken", "c2"), call("check_lists", { query: "x" }, "c3")),

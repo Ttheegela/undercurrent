@@ -219,11 +219,28 @@ function clarify(items, ctx) {
   return options.length ? finish("clarify", [{ text: CLARIFY, items: [] }, ...notice(ctx)], options) : fallback();
 }
 
+/**
+ * The model's list, or [] when it is none. A model sometimes sends the list as a JSON string ("[{\"claim\":…}]", the second eval
+ * run): that string is decoded once, and used only when it holds an array. Only the container's format changes: the sentences in it
+ * go through the same checks as ever, so nothing the model wrote is rendered. The caller's object is left as the model sent it.
+ */
+function listOf(x) {
+  if (typeof x === "string") {
+    try {
+      x = JSON.parse(x);
+    } catch {
+      return [];
+    }
+  }
+  return Array.isArray(x) ? x : [];
+}
+
 /** NOT_ADVICE, as a piece to close an answer or a clarify, when the reader's question asks for advice. */
 const notice = (ctx) => (adviceIntent(ctx?.question) ? [{ text: NOT_ADVICE, items: [] }] : []);
 
 /**
- * raw: the model's `answer` arguments {kind, sentences: [{claim, sources, quote?}], next: [{source}]} (anything else in it is ignored);
+ * raw: the model's `answer` arguments {kind, sentences: [{claim, sources, quote?}], next: [{source}]} (anything else in it is ignored;
+ * sentences and next may each arrive as a JSON string of that array, see listOf);
  * ev: the evidence of this question; ctx.question: the reader's latest message (NOT_FOUND names a query only when it is there).
  * Returns {kind: "answer"|"refusal"|"clarify"|"fallback", sentences: [{text, sources: [{n, label, url}]}], next: [{label, href}]}.
  */
@@ -231,8 +248,8 @@ export function checkAnswer(raw, ev, ctx) {
   if (raw?.kind === "refusal") return only("refusal", REFUSAL);
   if (raw?.kind !== "answer" && raw?.kind !== "clarify") return fallback();
   const byId = new Map((Array.isArray(ev) ? ev : []).map((e) => [e.id, e]));
-  const said = (Array.isArray(raw.sentences) ? raw.sentences : []).filter((s) => s !== null && typeof s === "object");
-  const linked = (Array.isArray(raw.next) ? raw.next : []).map((x) => byId.get(x?.source)).filter(Boolean);
+  const said = listOf(raw.sentences).filter((s) => s !== null && typeof s === "object");
+  const linked = listOf(raw.next).map((x) => byId.get(x?.source)).filter(Boolean);
   const cited = said.flatMap((s) => {
     const items = cite(s.sources, byId);
     return items ? [{ s, items }] : [];

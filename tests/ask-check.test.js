@@ -961,6 +961,64 @@ test("attack groups G, K, L, M, N, P: wrong sources, ids, empty and malformed an
   assert.deepEqual(checkAnswer(cases[3][1], E.tassos), FALLBACK_ANSWER);
 });
 
+// ---- the second eval run (area-changes-1): the model sent its list of sentences as a JSON string -----------------------------
+
+test("second eval run (area-changes-1): sentences or next sent as a JSON string render exactly as the array does", () => {
+  const ctx = { question: "What changed this week?" };
+  const changes = E.week.filter((e) => e.kind === "change");
+  const sentences = changes.map((c) => claim("change", c.id));
+  const next = [{ source: changes.at(-1).id }];
+  const want = checkAnswer({ kind: "answer", sentences, next }, E.week, ctx);
+  assert.equal(want.kind, "answer");
+  assert.deepEqual(texts(want), changes.map((c) => `${c.summary} · ${formatDate(c.date)}`));
+  assert.equal(want.next.length, 1);
+  // the run's answer: sentences as a JSON string, next as an array; and next as a string, and both
+  for (const raw of [
+    { kind: "answer", sentences: JSON.stringify(sentences), next },
+    { kind: "answer", sentences, next: JSON.stringify(next) },
+    { kind: "answer", sentences: JSON.stringify(sentences), next: JSON.stringify(next) },
+  ]) {
+    const sent = structuredClone(raw);
+    assert.deepEqual(checkAnswer(raw, E.week, ctx), want);
+    assert.deepEqual(raw, sent); // the caller's object, the traced input, stays as the model sent it
+  }
+  // a string that is not one JSON array is no list, as before: malformed, an object, a string, a list encoded twice, free text
+  const notALists = ['[{"claim":"change","sources":["S1"]}', "{}", '"x"', "null", "5", "", JSON.stringify(JSON.stringify(sentences)), "NVIDIA lobbied on five new bills."];
+  // and a list whose one element has no claim: a JSON "__proto__" key is an own property, never the element's prototype
+  const protoKey = '[{"__proto__":{"claim":"change","sources":["S1"]}}]';
+  for (const bad of [...notALists, protoKey]) {
+    assert.deepEqual(checkAnswer({ kind: "answer", sentences: bad, next }, E.week, ctx), FALLBACK_ANSWER, bad);
+    assert.deepEqual(checkAnswer({ kind: "answer", sentences, next: bad }, E.week, ctx), { ...want, next: [] }, bad); // no next step, the answer stands
+  }
+  // a clarify's choices come through a string list too
+  const clarify = { kind: "clarify", sentences: [claim("listed", tassosResearch().id)], next: [{ source: star().id }] };
+  const clarified = checkAnswer(clarify, E.tassos);
+  assert.equal(clarified.kind, "clarify");
+  assert.deepEqual(checkAnswer({ ...clarify, sentences: JSON.stringify(clarify.sentences), next: JSON.stringify(clarify.next) }, E.tassos), clarified);
+});
+
+test("second eval run (area-changes-1): a JSON string list carrying the model's own words still renders only server copy", () => {
+  // every attack, in the attack test's shapes and a change claim with text, its lists sent as JSON strings: the arrays' output, server copy only
+  for (const [, words, get] of ATTACKS) {
+    const [ev, src] = get();
+    for (const raw of [
+      answer(fact(words, src)),
+      answer(quote(src, 0, words)),
+      answer({ claim: "change", sources: [src], text: words }),
+      { ...answer(quote(src, 0)), next: [{ label: words, source: src }] },
+      { kind: "clarify", sentences: [fact(words, src)], next: [{ label: words, source: src }] },
+    ]) {
+      const encoded = { ...raw, sentences: JSON.stringify(raw.sentences), next: JSON.stringify(raw.next) };
+      const out = checkAnswer(encoded, ev, { question: words });
+      assert.deepEqual(out, checkAnswer(raw, ev, { question: words }), words);
+      serverOnly(out, ev, { question: words });
+      assert.ok(![...texts(out), ...out.next.map((n) => n.label)].some((t) => t.includes(words)), words);
+    }
+  }
+  // a free-text sentence alone, the old fact shape, is the fallback
+  assert.deepEqual(checkAnswer({ kind: "answer", sentences: JSON.stringify([fact("There were no new filings this week.", "S1")]), next: "[]" }, E.week), FALLBACK_ANSWER);
+});
+
 test("huge model input is ignored without throwing (review M1)", () => {
   const big = "Tassos ".repeat(200000);
   const ev = E.gatik.map((e) => ({ ...e, query: `Gatik ${"Ship ".repeat(20000)}Management` }));

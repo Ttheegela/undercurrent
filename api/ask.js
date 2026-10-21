@@ -93,6 +93,23 @@ function parseMessages(text) {
   return turns;
 }
 
+// ---- the advice guard ---------------------------------------------------------------------------------------------
+// A question that asks for advice on doing business with a party is refused here, before any model call: no cost, and no chance that
+// a site sentence about the oil trade reads as an answer to "Should I buy oil from this ship?". The model's own refusal stays the
+// main defence for everything this does not catch. Narrow on purpose: an advice phrase and a business verb right after it, so
+// "Can I see who manages TASSOS?" and "Should I worry about the 50% rule?" still reach the model.
+const DOING = String.raw`(?:trad(?:e|ing)|buy(?:ing)?|purchas(?:e|ing)|sell(?:ing)?|insur(?:e|ing)|charter(?:ing)?|pay(?:ing)?|ship(?:ping)?|work(?:ing)?\s+with|do(?:ing)?\s+business\s+with|deal(?:ing)?\s+with|invest(?:ing)?\s+in)`;
+const LY = String.raw`(?:\w+ly\s+)?`; // "legally", "safely"
+const ADVICE = new RegExp([
+  String.raw`\b(?:should|can)\s+(?:i|we)\s+${LY}${DOING}\b`,
+  String.raw`\bis\s+it\s+(?:safe|legal|ok|okay|fine)\s+(?:for\s+(?:me|us)\s+)?to\s+${LY}${DOING}\b`,
+  String.raw`\b(?:advis(?:e|ing)|recommend(?:ing)?)\s+(?:(?:me|us|you)\s+)?(?:(?:that\s+)?(?:i|we)\s+)?(?:should\s+)?(?:to\s+|against\s+|on\s+)?${LY}${DOING}\b`,
+  String.raw`\b(?:legal|compliance)\s+advice\b`,
+].join("|"), "i");
+
+/** True when the reader's message asks for advice on trading, buying, selling, insuring, chartering, paying, shipping or working with. */
+export const asksForAdvice = (text) => typeof text === "string" && ADVICE.test(text.normalize("NFKC"));
+
 // ---- the model ----------------------------------------------------------------------------------------------------
 
 const nextMonth = (now) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString().slice(0, 10);
@@ -199,6 +216,8 @@ export async function POST(request) {
     if (!history) return refuse(400, "bad_request");
     const now = new Date(Date.now());
     if (!allowed(request, now.getTime())) return refuse(429, "busy");
+    const question = history.at(-1).content;
+    if (asksForAdvice(question)) return reply(200, { ok: true, answer: checkAnswer({ kind: "refusal" }, [], { question }) });
     // the whole request is abandoned at 26 s, even if a tool is stuck (it is checked between steps too, so nothing new starts after that)
     let timer;
     const late = new Promise((resolve) => { timer = setTimeout(resolve, TOTAL_MS, UNAVAILABLE); });

@@ -18,6 +18,7 @@ const FALLBACK = "I couldn't check an answer to that against the site's data, so
 const FALLBACK_ANSWER = { kind: "fallback", sentences: [{ text: FALLBACK, sources: [] }], next: [{ label: "Search", href: "/" }] };
 const NOT_FOUND = (name) => `${name} is not on the lists we check (US, UK, EU, UN, OpenSanctions). Not being found isn't proof.`;
 const CLARIFY = "Which of these did you mean?";
+const PARTIAL = "I could only answer part of the question. Ask about each name on its own to check the rest.";
 
 const OS = {
   updated_at: "2026-10-20T04:00:00Z",
@@ -51,6 +52,10 @@ before(async () => {
   // a side search for a misspelling or a fragment while the reader asked about TASSOS (review I3, M4)
   E.typo = await ask([["check_lists", { query: "TASSOS" }], ["check_lists", { query: "TASOSS" }]]);
   E.fragment = await ask([["check_lists", { query: "TASSOS" }], ["check_lists", { query: "SSOS" }]]);
+  // fix round 0: a second name that is not on the lists, asked beside a listed one; and a side search that no close name explains
+  E.weekDoc = await ask([["changes", { since: "2026-10-13" }], ["site_docs", { query: "How sanctions work" }]]);
+  E.two = await ask([["check_lists", { query: "TASSOS" }], ["check_lists", { query: "Zephyr Marine Services" }]]);
+  E.side = await ask([["check_lists", { query: "TASSOS" }], ["check_lists", { query: "technical manager" }], ["check_lists", { query: "Zephyr Marine Services" }]]);
   E.rusalDoc = await ask([["site_docs", { query: "Rusal removal from the US list" }]]);
   // the re-review's listing sentences, in the committed explainer index
   E.reviewDocs = await ask(["Key findings", "Fleet Tanqo (India)", "6. The EU's July 2026 act", "Zulu Ships Management (UAE)", "8. Numbers that remain and where they come from"].map((query) => ["site_docs", { query }]));
@@ -163,9 +168,69 @@ test("listed claim renders from evidence, not model text", () => {
 
 test("listed claim citing a doc item falls back", () => {
   assert.deepEqual(checkAnswer(answer(claim("listed", freezeDoc().id)), E.tassos), FALLBACK_ANSWER);
-  // one wrong source is enough, even beside a list record; and the search item is not a listing either
-  assert.deepEqual(checkAnswer(answer(claim("listed", tassosList("uk").id, freezeDoc().id)), E.tassos), FALLBACK_ANSWER);
+  // the search item is not a listing either
   assert.deepEqual(checkAnswer(answer(claim("listed", E.tassos[0].id)), E.tassos), FALLBACK_ANSWER);
+  assert.deepEqual(checkAnswer(answer(claim("listed", E.tassos[0].id, freezeDoc().id)), E.tassos), FALLBACK_ANSWER); // none of them is valid
+});
+
+test("fix round 0 (2): a listed claim drops the items it cannot write and keeps the valid ones", () => {
+  const uk = tassosList("uk");
+  const us = tassosList("us");
+  // a list record, a doc, the search item, a list record: the doc and the search item are dropped
+  const mixed = checkAnswer(answer(claim("listed", uk.id, freezeDoc().id, E.tassos[0].id, us.id)), E.tassos);
+  assert.equal(mixed.kind, "answer");
+  assert.deepEqual(texts(mixed), ["TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "TASSOS appears on the United States list under Iran."]);
+  assert.deepEqual(mixed.sentences.map((s) => s.sources.map((x) => x.label)), [[uk.label], [us.label]]); // only the written items are sources
+  // a delisted research item and a two-governments item among good ones: the good ones stand, the others are never a listing
+  const delisted = { ...find(E.rusal, (e) => e.kind === "research" && e.delisted === true), id: "D1" };
+  const twoLists = find(E.lukoil, (e) => e.kind === "research" && e.program === "EU and UK sanctions lists");
+  const lukoilUs = find(E.lukoil, (e) => e.kind === "research" && e.gov === "us");
+  assert.deepEqual(texts(checkAnswer(answer(claim("listed", delisted.id, twoLists.id, lukoilUs.id)), [...E.lukoil, delisted])), ["PAO LUKOIL appears on the United States list under US Treasury sanctions list since 2025."]);
+  // none valid: the claim is dropped; the rest of the answer stands, and with nothing else the answer is the fallback
+  const q = tassosResearch();
+  assert.deepEqual(texts(checkAnswer(answer(claim("listed", freezeDoc().id, E.tassos[0].id), quote(q.id, 1)), E.tassos)), [q.quotes[1]]);
+  assert.deepEqual(checkAnswer(answer(claim("listed", freezeDoc().id, E.tassos[0].id)), E.tassos), FALLBACK_ANSWER);
+  // an id that is not evidence at all is a different thing: it drops the whole sentence, the valid items beside it too
+  assert.deepEqual(checkAnswer(answer(claim("listed", uk.id, "S99")), E.tassos), FALLBACK_ANSWER);
+});
+
+test("fix round 0 (2): a change claim drops the items it cannot write and keeps the changes and gaps", () => {
+  const changes = E.weekDoc.filter((e) => e.kind === "change");
+  const doc = E.weekDoc.find((e) => e.kind === "doc");
+  const lines = (list) => list.map((c) => `${c.summary} · ${formatDate(c.date)}`);
+  assert.ok(changes.length >= 2 && doc);
+  assert.deepEqual(texts(checkAnswer(answer(claim("change", changes[0].id, doc.id, changes[1].id)), E.weekDoc)), lines(changes.slice(0, 2)));
+  // none valid: the claim is dropped (the doc has no change to give); the rest stands, or the fallback comes
+  assert.deepEqual(texts(checkAnswer(answer(claim("change", doc.id), claim("change", changes[2].id)), E.weekDoc)), lines([changes[2]]));
+  assert.deepEqual(checkAnswer(answer(claim("change", doc.id, E.weekDoc[0].kind === "change" ? doc.id : doc.id)), E.weekDoc), FALLBACK_ANSWER);
+  assert.deepEqual(checkAnswer(answer(claim("change", changes[0].id, "S99")), E.weekDoc), FALLBACK_ANSWER); // an unknown id drops the whole sentence
+  // a gap beside a research item is still a gap
+  const gap = find(E.ukDown, (e) => e.kind === "gap");
+  const research = { ...tassosResearch(), id: "R1" };
+  assert.deepEqual(texts(checkAnswer(answer(claim("change", gap.id, "R1")), [...E.ukDown, research])), ["The UK list was unavailable from 21 Oct 2026 to 22 Oct 2026, so changes from it on those days aren't recorded."]);
+});
+
+test("fix round 0 (3): a not_found dropped for a found search in the answer says it answered part of the question", () => {
+  const found = searchFor(E.two, "TASSOS");
+  const zephyr = searchFor(E.two, "Zephyr Marine Services");
+  assert.deepEqual([found.found, zephyr.found, zephyr.near], [true, false, []]);
+  const question = "Are TASSOS and Zephyr Marine Services sanctioned?";
+  const uk = find(E.two, (e) => e.kind === "list" && e.gov === "uk");
+  const out = checkAnswer(answer(claim("listed", uk.id), claim("not_found", zephyr.id)), E.two, { question });
+  assert.deepEqual(texts(out), ["TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", PARTIAL]);
+  assert.deepEqual(out.sentences.at(-1).sources, []); // fixed copy, no source
+  // said once, however many names were dropped, and after the other sentences
+  const twice = checkAnswer(answer(claim("not_found", zephyr.id), claim("listed", uk.id), claim("not_found", zephyr.id)), E.two, { question });
+  assert.deepEqual(texts(twice), ["TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", PARTIAL]);
+  // nothing else to say: a fallback, not a lone "part of the question"
+  assert.deepEqual(checkAnswer(answer(claim("not_found", zephyr.id)), E.two, { question }), FALLBACK_ANSWER);
+  // a name the reader never typed, or words that name nothing, are dropped without the line: there is no second name to check
+  assert.deepEqual(texts(checkAnswer(answer(claim("listed", uk.id), claim("not_found", zephyr.id)), E.two, { question: "Is TASSOS sanctioned?" })), ["TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026."]);
+  const role = searchFor(E.side, "technical manager");
+  const r = find(E.side, (e) => e.kind === "research" && e.gov === "uk");
+  assert.deepEqual(texts(checkAnswer(answer(quote(r.id, 1), claim("not_found", role.id)), E.side, { question: "Who is the technical manager of TASSOS?" })), [r.quotes[1]]);
+  // and when the answer holds no found search the not-found is written, with no such line
+  assert.deepEqual(texts(checkAnswer(answer(claim("not_found", zephyr.id)), E.two.filter((e) => e !== found), { question })), [NOT_FOUND("Zephyr Marine Services")]);
 });
 
 test("fact with listing language is dropped", () => {
@@ -235,7 +300,7 @@ test("change with unknown id falls back; empty range gives NO_CHANGES plus SOURC
   const out = checkAnswer(answer(claim("change", none.id)), E.ukDownDay);
   const gap = find(E.ukDownDay, (e) => e.kind === "gap");
   assert.deepEqual(out.sentences, [
-    { text: "No changes were recorded between 21 Oct 2026 and 21 Oct 2026.", sources: [{ n: 1, label: none.label, url: none.url }] },
+    { text: "No changes were recorded on 21 Oct 2026.", sources: [{ n: 1, label: none.label, url: none.url }] },
     { text: "The UK list was unavailable on 21 Oct 2026, so changes from it that day aren't recorded.", sources: [{ n: 2, label: gap.label, url: gap.url }] },
   ]);
 });
@@ -534,10 +599,11 @@ test("round 5 (3): with a found search in the answer's evidence, a side search's
   const i = r.quotes.findIndex((q) => q.startsWith("Manager of TASSOS: "));
   const question = "Who is the technical manager of TASSOS, and is the technical manager sanctioned?";
   assert.deepEqual(texts(checkAnswer(answer(quote(r.id, i), claim("not_found", nf.id)), E.role, { question })), [r.quotes[i]]);
-  // the rule on its own: a misspelling beside the found name is dropped, and renders only with the found search gone from the evidence
-  const typo = searchFor(E.typo, "TASOSS");
-  assert.deepEqual(checkAnswer(answer(claim("not_found", typo.id)), E.typo, { question: "Is TASOSS sanctioned?" }), FALLBACK_ANSWER);
-  assert.deepEqual(texts(checkAnswer(answer(claim("not_found", typo.id)), E.typo.filter((e) => !(e.kind === "search" && e.found)), { question: "Is TASOSS sanctioned?" })), [NOT_FOUND("TASOSS")]);
+  // the rule on its own: a side search no close name explains, beside the found name, is dropped, and renders only with the found search gone
+  const side = searchFor(E.side, "Zephyr Marine Services");
+  const q = "Is TASSOS sanctioned? Is Zephyr Marine Services sanctioned?";
+  assert.deepEqual(checkAnswer(answer(claim("not_found", side.id)), E.side, { question: q }), FALLBACK_ANSWER);
+  assert.deepEqual(texts(checkAnswer(answer(claim("not_found", side.id)), E.side.filter((e) => !(e.kind === "search" && e.found)), { question: q })), [NOT_FOUND("Zephyr Marine Services")]);
 });
 
 test("every sentence of a maintainer-note section is unquotable, in the committed index", () => {
@@ -587,11 +653,17 @@ test("the re-review's listing sentences are not offered as quotes; a neutral exp
 });
 
 test("a misspelt side search never says 'not on the lists' while the reader's name is listed (review I3)", () => {
+  // fix round 0 (4): a one-letter typo of a listed name now has that name as a near name, so the answer is the question, not a not-found
   const typo = searchFor(E.typo, "TASOSS");
-  assert.deepEqual([typo.found, typo.near], [false, []]);
+  assert.deepEqual([typo.found, typo.near], [false, ["TASSOS"]]);
   const uk = find(E.typo, (e) => e.kind === "list" && e.gov === "uk");
   const out = checkAnswer(answer(claim("not_found", typo.id), claim("not_found", typo.id, uk.id), claim("listed", uk.id)), E.typo, TASSOS_Q);
-  assert.deepEqual(texts(out), ["TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026."]);
+  assert.deepEqual([out.kind, texts(out), out.next], ["clarify", [CLARIFY], [{ label: "TASSOS", href: "/?q=TASSOS" }]]);
+  // a typo no close name explains is dropped beside the found name, and says so
+  const side = searchFor(E.side, "Zephyr Marine Services");
+  const ukSide = find(E.side, (e) => e.kind === "list" && e.gov === "uk");
+  const dropped = checkAnswer(answer(claim("not_found", side.id), claim("not_found", side.id, ukSide.id), claim("listed", ukSide.id)), E.side, { question: "Is TASSOS sanctioned? And Zephyr Marine Services?" });
+  assert.deepEqual(texts(dropped), ["TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", PARTIAL]);
 });
 
 test("a gap run renders the range copy, a single day the day copy", () => {
@@ -602,6 +674,15 @@ test("a gap run renders the range copy, a single day the day copy", () => {
   assert.equal(E.stalled.some((e) => e.kind === "change"), false);
   const stalled = find(E.stalled, (e) => e.kind === "gap");
   assert.deepEqual(texts(checkAnswer(answer(claim("change", stalled.id)), E.stalled)), ["The nightly update was unavailable from 23 Oct 2026 to 25 Oct 2026, so changes from it on those days aren't recorded."]);
+});
+
+test("fix round 0 (4): NO_CHANGES for one day reads 'on', for a range 'between … and …'", () => {
+  const day = find(E.ukDownDay, (e) => e.kind === "change" && e.found === false);
+  assert.deepEqual([day.from, day.to], ["2026-10-21", "2026-10-21"]);
+  assert.deepEqual(texts(checkAnswer(answer(claim("change", day.id)), E.ukDownDay)).slice(0, 1), ["No changes were recorded on 21 Oct 2026."]);
+  const range = find(E.ukDown, (e) => e.kind === "change" && e.found === false);
+  assert.deepEqual([range.from, range.to], ["2026-10-21", "2026-10-22"]);
+  assert.deepEqual(texts(checkAnswer(answer(claim("change", range.id)), E.ukDown)).slice(0, 1), ["No changes were recorded between 21 Oct 2026 and 22 Oct 2026."]);
 });
 
 test("NO_CHANGES comes only from the change item that says so", () => {

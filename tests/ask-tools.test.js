@@ -96,6 +96,7 @@ const RESEARCH = [
   }),
   entry({ id: "co:orion", name: "Orion Ship Management Partners", kind: "Company", keys: ["ORION SHIP MANAGEMENT PARTNERS", "HIDDEN FORMER MGMT SHIP"] }),
   entry({ id: "co:unlisted-777", name: "unlisted ship manager", kind: "Company", keys: ["UNLISTED SHIP MANAGER"] }),
+  entry({ id: "co:unlisted-solo", name: "unlisted", kind: "Company", keys: ["UNLISTED"] }), // a placeholder of one word
   ...Array.from({ length: 7 }, (_, i) => entry({ id: `co:pearl${i}`, name: `Pearl Ship Management ${i}`, kind: "Company" })),
   entry({ id: "co:unlisted", name: "Nobody Holdings", kind: "Company", facts: [{ text: "Linked to 2 ships in our research.", refs: [1] }], sources: [{ n: 1, label: "Findings", url: "https://example.org/f" }] }),
   ...Array.from({ length: 5 }, (_, i) => entry({ id: `IMO70000${i}`, name: `AMBER ${i}`, listings: [], sources: [] })),
@@ -189,6 +190,13 @@ const osIndex = {
     ["NK-nsdc", "Person", "", "Ukraine", ["CHANTURIA IRAKLI", "Chanturiia Irakli"]], // real shape: Ukraine's own sanctions carry the label "Ukraine"
     ["NK-meti", "Organization", "", "Japan METI End User List", ["Kuroda Precision Works"]], // real shape: an entry with no programme id carries its dataset's title
     ["NK-multi", "Company", "", "Australia, Canada, EU, UK, New Zealand, Switzerland, Ukraine, US", ["Baltic Carrier Works"]],
+    // the compact index keeps CSV quoting on names that hold a quote or a comma
+    ["NK-csv1", "Company", "", "US", ['"Limited Liability Company ""Quenzel"""']],
+    ["NK-csv2", "Company", "", "EU", ['"Joint-Stock Company ""Zorvex"""', '"Zorvex, JSC"']],
+    ["NK-csv3", "Organization", "", "US", ['"Odd "name" Works"']], // wrapped in quotes but not CSV: left as it is
+    ["NK-csv4", "Organization", "", "US", ['Brigades al-Qodsx"']],
+    ["NK-ks", "Company", "", "US", ["Kestrelon"]], // single-word names, for the one-edit near names
+    ["NK-gur", "Company", "", "Ukraine GUR war-sanctions database", ["Kestrelgur"]],
   ],
 };
 const T = "NK-k837moN9ssPZedvkRUrexG";
@@ -349,6 +357,75 @@ test("check_lists: near never offers a generic-company placeholder, and holds at
   await run("check_lists", { query: "Pearl Ship Mgmt" });
   assert.equal(ev[0].near.length, 5);
   assert.ok(ev[0].near.every((n) => /^Pearl Ship Management \d$/.test(n)));
+});
+
+test("fix round 0 (4): CSV quoting is removed from OpenSanctions names, in items, labels, other names and near names", async () => {
+  const out = await run("check_lists", { query: "Quenzel" });
+  const os = ofKind("opensanctions")[0];
+  assert.equal(os.entity.name, 'Limited Liability Company "Quenzel"');
+  assert.equal(os.label, 'OpenSanctions · Limited Liability Company "Quenzel"');
+  assert.match(os.text, /OpenSanctions entry: Limited Liability Company "Quenzel" \(Company/);
+  assert.equal(out.items.find((i) => i.kind === "opensanctions").text.includes('""'), false);
+  // another name of the same entry (it holds a comma), and the near-name path
+  ev = [];
+  await run("check_lists", { query: "Zorvex JSC" });
+  assert.equal(ofKind("opensanctions")[0].entity.name, 'Joint-Stock Company "Zorvex"');
+  assert.match(ofKind("opensanctions")[0].text, /Also recorded as: Zorvex, JSC\./);
+  ev = [];
+  await run("check_lists", { query: "Joint Stock Zorvx" });
+  assert.deepEqual(ev[0].near, ['Joint-Stock Company "Zorvex"']);
+  assert.equal(JSON.stringify(ev).includes('\\"\\"'), false); // (a doubled quote inside a JSON string)
+  // a name wrapped in quotes that is not CSV, and one with a lone quote at its end, are left alone
+  ev = [];
+  await run("check_lists", { query: "Odd Works" });
+  assert.equal(ofKind("opensanctions")[0].entity.name, '"Odd "name" Works"');
+  ev = [];
+  await run("check_lists", { query: "Brigades al-Qodsx" });
+  assert.equal(ofKind("opensanctions")[0].entity.name, 'Brigades al-Qodsx"');
+});
+
+test("fix round 0 (4): a one-word query of five letters or more, one edit from a one-word listed name, has that name as a near name", async () => {
+  const near = async (query) => {
+    ev = [];
+    await run("check_lists", { query });
+    return [ev[0].found, ev[0].near, ev.length];
+  };
+  // a swap, an insertion, a deletion and a substitution, in the lists, the research and OpenSanctions
+  assert.deepEqual(await near("TASOSS"), [false, ["TASSOS"], 1]); // two letters swapped
+  assert.deepEqual(await near("TASSOSS"), [false, ["TASSOS"], 1]);
+  assert.deepEqual(await near("TASOS"), [false, ["TASSOS"], 1]);
+  assert.deepEqual(await near("tassas"), [false, ["TASSOS"], 1]);
+  assert.deepEqual(await near("Tassan"), [false, ["Tasson"], 1]); // an official list record
+  assert.deepEqual(await near("Magnolya"), [false, ["MAGNOLIA"], 1]); // a research entry
+  assert.deepEqual(await near("Kestrelan"), [false, ["Kestrelon"], 1]); // an OpenSanctions entry
+  assert.deepEqual(await near("TASOSS Ltd"), [false, ["TASSOS"], 1]); // legal suffixes are not words
+  // two edits, a name under five letters, an exact match, GUR's database alone, and a query of two words offer nothing new
+  assert.deepEqual((await near("TAXXOS"))[1], []);
+  assert.deepEqual((await near("TASO"))[1], []); // four letters
+  assert.deepEqual((await near("SMIK"))[1], []); // four letters, one edit from the research entry SMIC
+  assert.deepEqual((await near("SMICS")).slice(0, 2), [false, ["SMIC"]]); // five letters may be one edit from a shorter name
+  assert.deepEqual((await near("Unlistd"))[1], []); // a placeholder that stands for a withheld name is never offered
+  assert.deepEqual((await near("Kestrelgar"))[1], []); // the only name one edit away is GUR's war-sanctions database
+  assert.deepEqual((await near("Zephyr")).slice(0, 2), [false, []]);
+  assert.deepEqual((await near("TASSOS")).slice(0, 2), [true, []]);
+  // the near name is never evidence, and nothing of it is in the text
+  ev = [];
+  await run("check_lists", { query: "TASOSS" });
+  assert.doesNotMatch(ev[0].text, /TASSOS/);
+  assert.match(ev[0].text, /Names similar to the query exist/);
+});
+
+test("fix round 0 (4): the one-edit check looks at names of nearly the same length only, and stays quick", async () => {
+  // a few thousand one-word names, found by length: the check must not read every name for every query
+  const names = Array.from({ length: 4000 }, (_, i) => `Zq${i.toString(36).padStart(5, "q")}x`);
+  write(root, "data/research-index.json", { entries: [...RESEARCH, ...names.map((name) => ({ ...RESEARCH[4], id: `big:${name}`, name, keys: [name.toUpperCase()], listings: [] }))] });
+  resetAskCache();
+  ev = [];
+  const t0 = performance.now();
+  for (let i = 0; i < 20; i++) await run("check_lists", { query: `Qqqqqq${i}` });
+  assert.ok(performance.now() - t0 < 2000, `${Math.round(performance.now() - t0)} ms for 20 searches`);
+  write(root, "data/research-index.json", { entries: RESEARCH });
+  resetAskCache();
 });
 
 test("near is empty for a nonsense name, and for a strong match", async () => {
@@ -544,6 +621,17 @@ test("changes: an empty range is one change item that says so, with the range, p
   ev = [];
   await run("changes", { since: "2026-10-12", until: "2026-10-13", graph: "lobby", query: "nobody" }); // the whole range is empty
   assert.deepEqual(ev.map((e) => [e.kind, e.found]), [["change", false]]);
+});
+
+test("fix round 0 (4): an empty single day reads 'on' in its text and its source label, a range 'between … and …'", async () => {
+  await run("changes", { since: "2026-10-12", until: "2026-10-12" });
+  assert.equal(ev.length, 1);
+  assert.deepEqual([ev[0].found, ev[0].from, ev[0].to], [false, "2026-10-12", "2026-10-12"]);
+  assert.match(ev[0].text, /^No changes were recorded on 12 Oct 2026 \(2026-10-12\)\./);
+  assert.equal(ev[0].label, "No changes on 12 Oct 2026");
+  ev = [];
+  await run("changes", { since: "2026-10-12", until: "2026-10-13" });
+  assert.equal(ev[0].label, "No changes 12 Oct 2026 to 13 Oct 2026");
 });
 
 test("changes: a range wholly before the first run is one before_start item, never 'no changes'", async () => {

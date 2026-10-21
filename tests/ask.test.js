@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { GET, POST, visitors } from "../api/ask.js";
+import { GET, POST, visitors, asksForAdvice } from "../api/ask.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
 import { TOOLS, resetAskCache } from "../api/_ask_tools.js";
 import { INDEX_URL, resetIndexCache } from "../api/search.js";
@@ -400,11 +400,78 @@ test("a reply with no answer call is the fallback, and the model's words are nev
 });
 
 test("a refusal is the fixed refusal and runs no tool", async () => {
-  openrouter(answer({ kind: "refusal", refusal_reason: "legal_advice", sentences: [{ claim: "quote", sources: ["S1"], quote: 0 }] }));
-  const { json: out } = await run(ask("Should I buy oil from this ship?"));
+  openrouter(answer({ kind: "refusal", refusal_reason: "off_topic", sentences: [{ claim: "quote", sources: ["S1"], quote: 0 }] }));
+  const { json: out } = await run(ask("What's the weather?"));
   assert.deepEqual(out.answer.sentences.map((s) => s.text), [REFUSAL]);
   assert.equal(out.answer.kind, "refusal");
   assert.equal(sent.length, 1);
+});
+
+// ---- the advice guard: a request for advice on doing business is refused before any model call ---------------------------------
+
+const ADVICE = [
+  "Should I buy oil from this ship?", "should we sell to Sovcomflot", "Can I charter TASSOS?", "Can we legally trade with Rosneft?",
+  "Is it legal to ship Russian oil above the price cap?", "Is it safe to insure a tanker that is on the list?", "Is it okay to pay a listed company?",
+  "is it fine to work with Gazprom", "Is it legal for me to charter a sanctioned tanker?", "Which defence stocks should I buy to profit from sanctions?",
+  "Which defence stocks should I invest in?", "Would you advise me to work with Gazprom?", "Do you recommend buying oil from TASSOS?",
+  "I need legal advice about my cargo", "Give me compliance advice.", "SHOULD I BUY OIL FROM THIS SHIP", "Who manages TASSOS?\nShould I do business with them?",
+  "Should\u00a0I\u00a0buy oil from this ship?", "Should I  buy oil from this ship?",
+];
+const NOT_ADVICE = [
+  "Can I see who manages TASSOS?", "Who manages TASSOS?", "Is TASSOS sanctioned?", "What changed this week?", "Can I search by IMO number?", "Can we see which ships Zulu manages?",
+  "Should I worry about the 50% rule?", "What does it mean to charter a vessel?", "What does the site recommend for a first visit?", "How are ships insured?",
+  "Is it legal? What does the page say?", "Who lobbied for Nord Stream 2?", "How does Ask handle trading firms?", "Can I trust the lists?", "Is it safe to say the list is complete?",
+];
+
+test("asksForAdvice: advice on trading, buying, selling, insuring, chartering, paying, shipping or working with is caught; questions that only mention them are not", () => {
+  for (const q of ADVICE) assert.equal(asksForAdvice(q), true, q);
+  for (const q of NOT_ADVICE) assert.equal(asksForAdvice(q), false, q);
+  for (const v of [undefined, null, 7, "", "  "]) assert.equal(asksForAdvice(v), false);
+});
+
+test("a request for advice is refused before any model call, any download or any tool", async () => {
+  openrouter(); // no steps: a model call would fail the test, and would show in `sent`
+  for (const q of ADVICE.slice(0, 15)) {
+    const { res, json: out } = await run(ask(q));
+    assert.equal(res.status, 200, q);
+    assert.deepEqual(out, { ok: true, answer: { kind: "refusal", sentences: [{ text: REFUSAL, sources: [] }], next: [] } }, q);
+  }
+  assert.equal(sent.length, 0);
+  assert.equal(indexCalls, 0);
+  assert.deepEqual(other, []);
+  assert.ok(!logged.join("\n").includes("Should I buy"));
+});
+
+test("the guard reads the reader's latest message only; earlier turns are context", async () => {
+  openrouter(answer({ kind: "refusal", sentences: [] }));
+  const earlier = { messages: [{ role: "user", text: "Should I buy oil from this ship?" }, { role: "assistant", text: REFUSAL }, { role: "user", text: "Who manages TASSOS?" }] };
+  const { json: out } = await run(earlier);
+  assert.equal(out.answer.kind, "refusal");
+  assert.equal(sent.length, 1); // the model was asked: only the last message counts
+  const later = { messages: [{ role: "user", text: "Who manages TASSOS?" }, { role: "assistant", text: "Manager of TASSOS: …" }, { role: "user", text: "Should I buy oil from them?" }] };
+  const { json: refused } = await run(later);
+  assert.deepEqual(refused.answer.sentences, [{ text: REFUSAL, sources: [] }]);
+  assert.equal(sent.length, 1); // and no second call
+});
+
+test("a question that only mentions those words still goes to the model (the guard is narrow)", async () => {
+  openrouter(...NOT_ADVICE.slice(0, 8).map(() => answer({ kind: "refusal", sentences: [] })));
+  for (const q of NOT_ADVICE.slice(0, 8)) await run(ask(q));
+  assert.equal(sent.length, 8);
+  // the example the owner named
+  openrouter(answer({ kind: "refusal", sentences: [] }));
+  await run(ask("Can I see who manages TASSOS?"));
+  assert.equal(sent.length, 1);
+});
+
+test("the gate comes first: a refused origin, a missing key and a spent limit are not answered with the refusal", async () => {
+  const advice = ask("Should I buy oil from this ship?");
+  assert.deepEqual((await run(advice, { origin: "https://evil.example" })).json, { ok: false, reason: "forbidden" });
+  delete process.env.OPENROUTER_API_KEY;
+  assert.deepEqual((await run(advice)).json, { ok: false, reason: "disabled" });
+  process.env.OPENROUTER_API_KEY = KEY;
+  for (let i = 0; i < 20; i++) assert.equal((await run(advice)).json.answer.kind, "refusal"); // a refusal still counts toward the hour's 20
+  assert.deepEqual((await run(advice)).json, { ok: false, reason: "busy" });
 });
 
 test("evidence comes only from tools called in this request, never from earlier turns", async () => {

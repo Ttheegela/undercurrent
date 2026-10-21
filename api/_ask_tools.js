@@ -62,6 +62,21 @@ async function loaded(ctx, name, load) {
   }
 }
 
+// ---- OpenSanctions names ----------------------------------------------------------------------------------------
+// The compact index keeps CSV quoting on a name that holds a quote or a comma: "Limited Liability Company ""Rusal""" is Limited
+// Liability Company "Rusal". The quoting is removed once, where the index is read; a name wrapped in quotes that is not CSV (a
+// lone quote inside) is left as it is. The matching keys were made from the names with their quotes dropped, so they are unchanged.
+const csvName = (n) => {
+  if (n.length < 2 || n[0] !== '"' || n.at(-1) !== '"') return n;
+  const inner = n.slice(1, -1);
+  return inner.replace(/""/g, "").includes('"') ? n : inner.replace(/""/g, '"');
+};
+const unquotedIndex = new WeakMap();
+function cleanNames(entities) {
+  if (!unquotedIndex.has(entities)) unquotedIndex.set(entities, entities.map((e) => (e.names.some((n) => csvName(n) !== n) ? { ...e, names: e.names.map(csvName) } : e)));
+  return unquotedIndex.get(entities);
+}
+
 // ---- small helpers --------------------------------------------------------------------------------------------
 
 const fail = (error) => ({ error });
@@ -270,8 +285,42 @@ function containedIn(q, entries, docs, entities) {
   return out.sort((a, b) => b.words - a.words || a.name.length - b.name.length || a.name.localeCompare(b.name));
 }
 
-/** contained: [{name}]; partial: [{name, keys, q}] (the published name, the normalised names it can be found by, the query that matched it). */
-function nearNames(contained, partial, taken) {
+// A one-word query of five letters or more that matches nothing may be a slip of one letter ("TASOSS" for TASSOS: a letter added,
+// left out, changed, or two neighbours swapped). The one-word names of the lists, the research and OpenSanctions are kept by
+// length, built once per data load, so a query reads three lengths of names and not every name.
+const wordsByLength = new WeakMap(); // the source array -> Map(length -> [{key, name}])
+function oneWordNames(source, pairs) {
+  if (!wordsByLength.has(source)) {
+    const byLength = new Map();
+    for (const item of source) {
+      for (const [key, name] of pairs(item)) {
+        if (!/^[A-Z]{4,}$/.test(key)) continue;
+        if (!byLength.has(key.length)) byLength.set(key.length, []);
+        byLength.get(key.length).push({ key, name });
+      }
+    }
+    wordsByLength.set(source, byLength);
+  }
+  return wordsByLength.get(source);
+}
+function oneEdit(a, b) {
+  if (a === b || Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  if (a.length === b.length) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+  const [long, short] = a.length > b.length ? [a, b] : [b, a];
+  return long.slice(i + 1) === short.slice(i);
+}
+/** The names of one source that are one edit from the query's one word; [] for any other query. */
+function oneEditNames(q, source, pairs) {
+  const word = q.tokens.length === 1 && !q.imo ? q.tokens[0] : "";
+  if (!/^[A-Z]{5,}$/.test(word)) return [];
+  const byLength = oneWordNames(source, pairs);
+  return [word.length - 1, word.length, word.length + 1].flatMap((n) => byLength.get(n) ?? []).filter(({ key }) => oneEdit(word, key));
+}
+
+/** contained: [{name}]; partial: [{name, keys, q}] (the published name, the normalised names it can be found by, the query that matched it); typos: [{name}]. */
+function nearNames(contained, partial, taken, typos = []) {
   const seen = new Set(taken.map(normalizeName));
   const out = [];
   const offer = (name) => {
@@ -281,6 +330,8 @@ function nearNames(contained, partial, taken) {
     seen.add(key);
     out.push(shown);
   };
+  // (a name one letter away from a one-word query is the likeliest meaning there is, so it comes first)
+  for (const t of [...typos].sort((a, b) => a.name.length - b.name.length || a.name.localeCompare(b.name))) if (out.length < NEAR_MAX) offer(t.name);
   for (const c of contained.filter((x) => x.words > 1)) if (out.length < NEAR_MAX) offer(c.name);
   const byLength = [...partial].sort((a, b) => a.name.length - b.name.length || a.name.localeCompare(b.name));
   for (const c of byLength) {
@@ -402,7 +453,7 @@ async function checkLists(args, ev, ctx = {}) {
   const doc = (id) => data(`data/lists/${id}.json`);
   let entities = [];
   try {
-    entities = await loaded(ctx, "opensanctions", loadIndex);
+    entities = cleanNames(await loaded(ctx, "opensanctions", loadIndex));
   } catch {
     down.add("OpenSanctions");
   }
@@ -443,12 +494,17 @@ async function checkLists(args, ev, ctx = {}) {
   const os = ranked(strong.os).slice(0, CAP.opensanctions);
   const taken = [...allResearch.map((x) => x.hit.name), ...strong.lists.flatMap((m) => [...m.values()].map((x) => x.hit.name)), ...[...strong.os.values()].map((x) => x.hit.r.name)];
   const contained = attempt("Undercurrent research", () => containedIn(variants[0].q, entries(), LIST_IDS.map(doc), entities));
-  const near = nearNames(contained, partial, taken);
-
   const hits = research.length + lists.flat().length + os.length;
   // Found means a current government listing: a research entry that no government lists (a lobbying client), or one whose listing was
   // removed, is context. It is judged over every strong research hit, not only the three shown.
   const found = strong.lists.some((m) => m.size) || strong.os.size > 0 || allResearch.some((x) => x.hit.listings.some((l) => !delisted(l)));
+  // a name one letter off the query's one word, only when nothing was found: that is when "not on the lists" could be said
+  const typos = found ? [] : [
+    ...attempt("Undercurrent research", () => oneEditNames(variants[0].q, entries(), (e) => (placeholder(e) ? [] : e.keys.map((k) => [k, publishedName(e, k)])))),
+    ...LIST_IDS.flatMap((id) => attempt(`the ${LIST_LABELS[id]} list`, () => oneEditNames(variants[0].q, doc(id).records, (r) => [[r[1], r[0]]]))),
+    ...oneEditNames(variants[0].q, entities, (e) => (governmental(e) ? e.keys.map((k, i) => [k, e.names[i]]) : [])),
+  ];
+  const near = nearNames(contained, partial, taken, typos);
   // With a source unchecked, "nothing found" would be a claim we cannot back: say so instead of adding a search item.
   if (!found && down.size) return fail(`${joinAnd([...down])} could not be checked just now, so there is nothing to report`);
 
@@ -557,10 +613,10 @@ function changesTool(args, ev, ctx) {
     items.push({
       kind: "change", found: false, from: shownFrom, to,
       text: sentence(
-        `No changes were recorded between ${formatDate(shownFrom)} and ${formatDate(to)} (${shownFrom} to ${to}).`,
+        shownFrom === to ? `No changes were recorded on ${formatDate(to)} (${to}).` : `No changes were recorded between ${formatDate(shownFrom)} and ${formatDate(to)} (${shownFrom} to ${to}).`,
         !inRecord && `The change record starts on ${dt(started)}, so nothing earlier is recorded.`,
       ),
-      label: `No changes ${formatDate(shownFrom)} to ${formatDate(to)}`, url: updates(shownFrom, to, "all"), link: updates(shownFrom, to, "all"),
+      label: shownFrom === to ? `No changes on ${formatDate(to)}` : `No changes ${formatDate(shownFrom)} to ${formatDate(to)}`, url: updates(shownFrom, to, "all"), link: updates(shownFrom, to, "all"),
     });
   }
   for (const c of shown) {

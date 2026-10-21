@@ -11,6 +11,7 @@ import { createServer } from "node:http";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { checkAnswer } from "../api/_ask_check.js";
+import { asksForAdvice } from "../api/ask.js";
 import { LIST_LABELS, formatDate } from "../app/render.js";
 
 const CASES = JSON.parse(readFileSync(new URL("./ask-eval.json", import.meta.url), "utf8"));
@@ -19,6 +20,7 @@ const SCRIPT = fileURLToPath(new URL("../scripts/ask-live-eval.mjs", import.meta
 const REFUSAL = "I can only answer questions about what's on Undercurrent: sanctions lists, ship and company connections, lobbying, the semiconductor data, the research and the daily updates. I can't give legal or compliance advice.";
 const FALLBACK = "I couldn't check an answer to that against the site's data, so I won't guess. Try the search on the home page.";
 const CLARIFY = "Which of these did you mean?";
+const PARTIAL = "I could only answer part of the question. Ask about each name on its own to check the rest.";
 const NOT_FOUND = /^(.+) is not on the lists we check \(US, UK, EU, UN, OpenSanctions\)\. Not being found isn't proof\.$/;
 
 // the least a case must cover: the owner's four fears, one case per data area, and the probes
@@ -77,14 +79,14 @@ const clean = (s) => s.normalize("NFKC").replace(/[\p{Cf}\p{M}﻿]/gu, "").repla
 
 /** Every sentence the checker may write for this evidence: its fixed copy, a claim for one item, or one of the item's quotes. */
 function allowedSentences(ev) {
-  const ok = new Set([REFUSAL, FALLBACK, CLARIFY]);
+  const ok = new Set([REFUSAL, FALLBACK, CLARIFY, PARTIAL]);
   for (const e of ev) {
     for (const q of e.quotes) ok.add(q);
     const since = e.date ? ` since ${day(e.date)}` : "";
     if (e.kind === "opensanctions") ok.add(`${e.entity.name} appears in OpenSanctions${e.program ? ` as listed by ${e.program}` : ""}${since}.`);
     if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted) ok.add(`${e.entity.name} appears on the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}${since}.`);
     if (e.kind === "change" && e.before_start) ok.add(`Daily updates started on ${day(e.first_run)}, so there is no record before then.`);
-    else if (e.kind === "change" && e.found === false) ok.add(`No changes were recorded between ${day(e.from)} and ${day(e.to)}.`);
+    else if (e.kind === "change" && e.found === false) ok.add(e.from === e.to ? `No changes were recorded on ${day(e.from)}.` : `No changes were recorded between ${day(e.from)} and ${day(e.to)}.`);
     else if (e.kind === "change") ok.add(`${e.summary} · ${day(e.date)}`);
     if (e.kind === "gap") {
       ok.add(e.date || e.from === e.to
@@ -127,9 +129,19 @@ function assertNoLeak(c, out) {
   }
 }
 
+/** What the endpoint answers: the advice guard refuses before any model call, otherwise the checker renders the model's answer. */
+const endpoint = (c) => (asksForAdvice(c.question)
+  ? checkAnswer({ kind: "refusal" }, [], { question: c.question })
+  : checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question }));
+
+test("the advice guard never takes a question the set expects to be answered", () => {
+  for (const c of CASES) if (asksForAdvice(c.question)) assert.equal(c.expect.kind, "refusal", `${c.id}: "${c.question}" is refused by the guard`);
+  assert.equal(asksForAdvice("Can I see who manages TASSOS?"), false);
+});
+
 for (const c of CASES) {
   test(`${c.id}: ${c.question}`, () => {
-    const out = checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question });
+    const out = endpoint(c);
     assert.equal(out.kind, c.expect.kind, `${c.id}: kind`);
     assertNoLeak(c, out);
     const text = out.sentences.map((s) => s.text).join("\n").toLowerCase();

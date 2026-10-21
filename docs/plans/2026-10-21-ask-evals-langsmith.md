@@ -54,7 +54,7 @@
 - **Scores:**
   - `pass` (1 or 0) is recorded **only** for `quality` outcomes, so the pass rate leaves infrastructure out.
   - `pass` = `kind_ok && excludes_ok && grounded`.
-  - Signals: `fallback`, `includes_ok` (only where the case has `includes`), `tool_calls`, `latency_s`, `tokens_in`, `tokens_out`, `cost_usd` (null when OpenRouter doesn't report a cost) and `outcome` (the string).
+  - Signals: `fallback`, `includes_ok` (only where the case has `includes`), `tool_calls`, `latency_s`, `tokens_in`, `tokens_out`, `cost_usd` (from `usage.cost`, which OpenRouter returns by default, verified 21 Oct with the eval key; null if absent) and `outcome` (the string).
 - **No retries.** `numRepetitions: 1`, `maxConcurrency: 2`.
 - **Failure notes:**
   - Every case with `pass` = 0 gets feedback key `note` with comment `Under review · YYYY-MM-DD · <short sha>`.

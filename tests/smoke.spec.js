@@ -1888,12 +1888,13 @@ test("Ask asks the endpoint once per page, and loads the panel's code only on th
 });
 
 test("Ask is on every reader-facing page", async ({ page }) => {
+  test.slow(); // ~25 pages, and the network page's graph can hold the main thread for seconds on a CI runner
   const pages = execFileSync("git", ["ls-files", "*.html"], { encoding: "utf8" }).split("\n").filter((f) => f && !f.startsWith("docs/"));
   expect(pages.length).toBeGreaterThanOrEqual(20);
   await stubAsk(page);
   for (const file of pages) {
     await page.goto(`/${file}`, { waitUntil: "domcontentloaded" });
-    await expect(askButton(page), file).toBeVisible();
+    await expect(askButton(page), file).toBeVisible({ timeout: 15_000 });
   }
 });
 

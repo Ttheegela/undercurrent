@@ -21,6 +21,7 @@
   .upd-filter input, .upd-filter select { min-width: 0; padding: 0.55rem 0.7rem; background: var(--color-paper-2); color: var(--color-ink); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-sm); font: 500 var(--text-sm)/1.2 var(--font-display); color-scheme: dark; }
   .upd-filter input:hover, .upd-filter select:hover { border-color: var(--color-muted); }
 
+  #upd-status:not(:empty) { padding-top: var(--space-md); } /* the live status holds the count, or that the range has no day: the one copy */
   #upd-results { padding-block: var(--space-md) var(--space-3xl); }
   #upd-results:focus { outline: none; }
   .upd-wait, .upd-fail, .upd-empty, .upd-note, .upd-total { margin: 0 0 var(--space-sm); color: var(--color-muted); font-size: var(--text-sm); }
@@ -41,6 +42,8 @@
   .upd-more > summary::-webkit-details-marker { display: none; }
   .upd-more > summary:hover { color: var(--color-ink); }
 </style>
+<link rel="stylesheet" href="/app/ask.css">
+<script type="module" src="/app/ask.js"></script>
 </head>
 <body>
 
@@ -76,7 +79,7 @@
   </label>
 </form>
 
-<p class="visually-hidden" id="upd-status" role="status"></p>
+<div id="upd-status" role="status"></div>
 <div id="upd-results" tabindex="-1"><p class="upd-wait">Loading updates…</p></div>
 <noscript><p class="upd-fail">The updates need JavaScript to load.</p></noscript>
 </main>

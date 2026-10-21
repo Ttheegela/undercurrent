@@ -140,6 +140,8 @@ a.btn { text-decoration: none; display: inline-block; }
   #story .txt { font-size: var(--text-sm); }
 }
 </style>
+<link rel="stylesheet" href="/app/ask.css">
+<script type="module" src="/app/ask.js"></script>
 </head>
 <body>
 <div id="loading">Loading and laying out companies, ships, people and lobbyists…</div>
@@ -785,6 +787,9 @@ let step = 0;
 const dots = $("dots");
 STEPS.forEach((_, i) => { const b = document.createElement("button"); b.title = "Step " + (i + 1) + ": " + STEPS[i].t; b.onclick = () => go(i); dots.appendChild(b); });
 function showStory(on){ $("story").style.display = on ? "" : "none"; $("storyPill").style.display = on ? "none" : "block"; }
+// Ask's button (app/ask.css) rides just above the story card wherever the card reaches its corner (a card as wide as the screen, below 992px)
+const rideStory = () => { const h = $("story").offsetHeight; document.documentElement.style.setProperty("--ask-lift", innerWidth < 992 && h ? h + 8 + "px" : "0px"); };
+new ResizeObserver(rideStory).observe($("story")); addEventListener("resize", rideStory);
 function go(i, keepSide){
   step = Math.max(0, Math.min(STEPS.length - 1, i)); storyActive = true; showStory(true);
   if (!keepSide){ selected = null; closeSide(); }

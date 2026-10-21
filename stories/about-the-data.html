@@ -18,6 +18,8 @@
   .doc li::marker { color: var(--color-accent); }
   .doc a { text-decoration-color: var(--color-accent); }
 </style>
+<link rel="stylesheet" href="/app/ask.css">
+<script type="module" src="/app/ask.js"></script>
 </head>
 <body>
 <header class="wrap top">
@@ -68,6 +70,9 @@
 
   <h2>How the graphs update</h2>
   <p>The shadow-fleet map and the influence network are rebuilt every night from the official lists, the OFAC and EU Official Journal exports from OpenSanctions, and US lobbying filings. The <a href="updates/index.html">Updates</a> page lists what changed each day. If one of those sources fails or shrinks by more than a fifth, that night's graphs keep its previous copy. The Updates page marks the source unavailable and reports no changes from it, so a failed download is never shown as a delisting. The research snapshot of 25 September 2026 stays fixed for search and the dossiers.</p>
+
+  <h2 id="ask">Ask and your questions</h2>
+  <p>Ask, the chat panel, sends your question and data from this site to an AI model (Claude Haiku 5.5, through OpenRouter). There are no accounts and nothing is stored: the conversation lives only in your browser tab and is gone when you close the panel, and our server logs no message text.</p>
 
   <h2>Corrections and removal requests</h2>
   <p>We name companies and people only as official sanctions lists, government documents or, for lobbyists, their own US lobbying filings name them. A company known to us only from other sources is shown by a description, such as "unlisted ship manager", not by its name.</p>

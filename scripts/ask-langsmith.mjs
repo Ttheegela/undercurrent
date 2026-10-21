@@ -2,6 +2,8 @@
 // Runs Ask's real-model evaluation cases in LangSmith. Each case's question goes through Ask's own loop (runAsk in api/ask.js) in this
 // process, against the real model on the eval key, and LangSmith records the model calls, the tool calls and the checker as the steps
 // of the case's run. One evaluator scores every case. A case that fails gets an "Under review" note until its real note is written.
+// The relevance judge (scripts/ask-relevance.mjs, TypeSafe's Jev) adds `relevance` and `unrelated` to each answered case whose answer
+// is an answer or a clarify; it never changes `pass`.
 //
 //   node scripts/ask-langsmith.mjs run --trigger weekly|manual|pr [--pr N] [--sync] [--commit SHA] [--model ID] [--out FILE]
 //   node scripts/ask-langsmith.mjs notes
@@ -11,8 +13,9 @@
 // run passes its head, as HEAD there is the merge commit). --model is the OpenRouter model to compare (vendor/model; default: the
 // site's MODEL); a model other than MODEL adds its name to the experiment's prefix, as in ask-manual-deepseek-v4.1-flash. Exit 0 when
 // the run completed, whatever the scores; 1 on a runner error, a missing dataset included; 2 on bad arguments or a missing key. The
-// result JSON goes to --out, and a summary to $GITHUB_STEP_SUMMARY when that is set. The runner reads LANGSMITH_API_KEY and
-// OPENROUTER_API_KEY and prints neither. It must run from the repository root, where Ask's tools read the site's data.
+// result JSON goes to --out, and a summary to $GITHUB_STEP_SUMMARY when that is set. The runner reads LANGSMITH_API_KEY,
+// OPENROUTER_API_KEY and TYPESAFE_API_KEY and prints none of them; without TYPESAFE_API_KEY it skips the relevance judge and says so.
+// It must run from the repository root, where Ask's tools read the site's data.
 //
 // `notes` posts each note in tests/ask-eval-notes.json, an array of {experiment, case, note}, as the comment of the `note` feedback on
 // that case's run in that experiment, replacing "Under review". Exit 1 when an entry's experiment, case or note feedback isn't found.
@@ -50,6 +53,7 @@ import { TOOLS } from "../api/_ask_tools.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
 import { judge } from "./ask-judge.mjs";
 import { groundingProblems } from "./ask-oracle.mjs";
+import { JUDGE_MODEL, judgeRelevance } from "./ask-relevance.mjs";
 
 const DATASET = "undercurrent-ask";
 const TRIGGERS = ["weekly", "manual", "pr"];
@@ -64,6 +68,11 @@ const PROMPT_HASH = createHash("sha256").update(SYSTEM_PROMPT + JSON.stringify(T
 const UNAVAILABLE = { ok: false, reason: "unavailable" };
 const MODEL_ID = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._:-]*$/; // vendor/model, as OpenRouter names them (the workflow checks the same)
 const usageError = (message) => Object.assign(new Error(message), { exit: 2 });
+const JUDGED = ["answer", "clarify"]; // (a fallback and a refusal are fixed copy: there is nothing to judge)
+const round3 = (x) => Math.round(x * 1000) / 1000;
+
+/** The labels a reader sees with an answer: its sentences' sources, then its links (a clarify's options are its links). */
+const labelsOf = (a) => [...new Set([...a.sentences.flatMap((s) => (s.sources ?? []).map((x) => x.label)), ...(a.next ?? []).map((n) => n.label)])];
 
 /** OpenRouter's usage as LangSmith reads it on an llm run. */
 const usageMetadata = (u) => ({
@@ -123,8 +132,11 @@ const target = ({ runAsk, traceable, now }, model) => async ({ question }) => {
   return { result, ev, outcome, threw, tool_calls, tokens_in, tokens_out, cost_usd, latency_s };
 };
 
-/** The one evaluator: the outcome and what the case spent, for every case; pass and the answer's signals only where Ask answered. */
-function score({ inputs, outputs, referenceOutputs }) {
+/**
+ * The one evaluator: the outcome and what the case spent, for every case; pass and the answer's signals only where Ask answered; and,
+ * when `relevanceOf` is given (the judge runs), relevance and unrelated where that answer is an answer or a clarify.
+ */
+const scorer = (relevanceOf) => async ({ inputs, outputs, referenceOutputs }) => {
   const { result, ev, outcome } = outputs;
   const results = [
     { key: "outcome", value: outcome },
@@ -141,8 +153,12 @@ function score({ inputs, outputs, referenceOutputs }) {
   results.push({ key: "pass", score: Number(v.kindOk && v.excludesOk && !ungrounded.length), ...(problems.length && { comment: problems.join("; ") }) });
   results.push({ key: "fallback", score: Number(v.fallback) });
   if (v.includesOk !== null) results.push({ key: "includes_ok", score: Number(v.includesOk) });
+  if (relevanceOf && JUDGED.includes(result.answer.kind)) {
+    const r = await relevanceOf(inputs.question, result.answer); // (null when the judge is unavailable: the case is left unjudged)
+    if (r) results.push({ key: "relevance", score: r.relevance }, { key: "unrelated", score: r.unrelated });
+  }
   return { results };
-}
+};
 
 /** A case as its dataset example: what the runner reads (inputs.question, outputs.expect, metadata.case_id) and its category. */
 const exampleOf = (c) => ({ inputs: { question: c.question }, outputs: { expect: c.expect }, metadata: { case_id: c.id, category: c.category } });
@@ -179,23 +195,32 @@ export async function syncDataset(cases, { client }) {
 
 /**
  * One run of the dataset's cases as a LangSmith experiment. `opts` = {trigger, pr, sync, commit, model (default MODEL)}; `deps` =
- * {client, evaluate, traceable, runAsk, now, env}. Resolves to the result JSON. Throws an error with `exit: 2` for a PR run with sync
- * or a missing key, before anything is called, and one without `exit` when the dataset is missing and the run doesn't sync.
+ * {client, evaluate, traceable, runAsk, now, env, fetch (the relevance judge's)}. Resolves to the result JSON. Throws an error with
+ * `exit: 2` for a PR run with sync or a missing key, before anything is called, and one without `exit` when the dataset is missing
+ * and the run doesn't sync.
  */
 export async function runEvals(opts, deps) {
   if (opts.sync && opts.trigger === "pr") throw usageError("a PR run never syncs the dataset");
   for (const name of ["LANGSMITH_API_KEY", "OPENROUTER_API_KEY"]) if (!deps.env[name]) throw usageError(`${name} is not set`);
   const { client } = deps;
+  const apiKey = deps.env.TYPESAFE_API_KEY;
+  if (!apiKey) console.log("ask-langsmith: TYPESAFE_API_KEY is not set, so the relevance judge was skipped");
+  let judgeTokens = 0;
+  const relevanceOf = apiKey && (async (question, answer) => {
+    const r = await judgeRelevance({ question, sentences: answer.sentences.map((s) => String(s.text)), sources: labelsOf(answer) }, { fetch: deps.fetch, apiKey });
+    judgeTokens += r?.input_tokens ?? 0;
+    return r;
+  });
   const sync = opts.sync ? await syncDataset(JSON.parse(readFileSync(CASES, "utf8")), deps) : null;
   if (!sync && !(await client.hasDataset({ datasetName: DATASET }))) throw new Error(`dataset ${DATASET} not found: run the workflow manually on main first`);
   const model = opts.model ?? MODEL;
   const prefix = opts.trigger === "pr" ? `ask-pr-${opts.pr}` : `ask-${opts.trigger}`;
   const results = await deps.evaluate(target(deps, model), {
     data: DATASET,
-    evaluators: [score],
+    evaluators: [scorer(relevanceOf)],
     // a comparison names its model: ask-manual-deepseek-v4.1-flash (the part after the slash, cut down to what a name may hold)
     experimentPrefix: model === MODEL ? prefix : `${prefix}-${model.split("/")[1].toLowerCase().replace(/[^a-z0-9.-]/g, "-")}`,
-    metadata: { commit: opts.commit, trigger: opts.trigger, pr: opts.pr ?? null, model, prompt_hash: PROMPT_HASH },
+    metadata: { commit: opts.commit, trigger: opts.trigger, pr: opts.pr ?? null, model, prompt_hash: PROMPT_HASH, judge_model: apiKey ? JUDGE_MODEL : null },
     maxConcurrency: 2,
     numRepetitions: 1, // no retries: what the run shows is what a visitor would have met
     client,
@@ -205,12 +230,18 @@ export async function runEvals(opts, deps) {
   const url = `${await client.getDatasetUrl({ datasetName: DATASET })}/compare?selectedSessions=${id}`;
   const counts = { quality: 0, pass: 0, fail: 0, unavailable: 0, budget: 0, download_failed: 0 };
   const failures = [];
+  const judged = { n: 0, relevance: 0, unrelated: 0 };
   const note = `Under review · ${deps.now().toISOString().slice(0, 10)} · ${opts.commit.slice(0, 7)}`;
   for (const { run, example, evaluationResults } of results.results) {
     if (run.outputs?.threw) console.error(`ask-langsmith: runAsk threw on case ${example.metadata?.case_id}`); // (not the error: it can quote the request)
     const got = Object.fromEntries(evaluationResults.results.map((r) => [r.key, r]));
     if (!got.outcome) throw new Error(`case ${example.metadata?.case_id} has no scores: its evaluator or its feedback upload failed (see the error above)`);
     counts[got.outcome.value]++;
+    if (got.relevance) {
+      judged.n++;
+      judged.relevance += got.relevance.score;
+      judged.unrelated += got.unrelated.score;
+    }
     if (!got.pass) continue;
     if (got.pass.score) {
       counts.pass++;
@@ -220,7 +251,9 @@ export async function runEvals(opts, deps) {
     failures.push(example.metadata.case_id);
     await client.createFeedback({ runId: run.id, sessionId: id, key: "note", comment: note });
   }
-  return { experiment, url, trigger: opts.trigger, model, commit: opts.commit, counts, failures, allInfra: counts.quality === 0, ...(sync && { sync }) };
+  const mean = (sum) => (judged.n ? round3(sum / judged.n) : null);
+  const relevance = { judged: judged.n, mean_relevance: mean(judged.relevance), mean_unrelated: mean(judged.unrelated), judge_tokens: judgeTokens };
+  return { experiment, url, trigger: opts.trigger, model, commit: opts.commit, counts, failures, allInfra: counts.quality === 0, ...(sync && { sync }), relevance };
 }
 
 /**
@@ -256,7 +289,7 @@ async function noteIds(client, { experiment, case: caseId }) {
 }
 
 /** The run in a few lines of Markdown, for the job summary. */
-export function summary({ experiment, url, trigger, model, commit, counts: c, failures, sync }) {
+export function summary({ experiment, url, trigger, model, commit, counts: c, failures, sync, relevance: r }) {
   return [
     `### Ask evals: ${experiment}`,
     "",
@@ -265,6 +298,7 @@ export function summary({ experiment, url, trigger, model, commit, counts: c, fa
     `- Answered: ${c.quality} (${c.pass} passed, ${c.fail} failed)`,
     `- Unavailable: ${c.unavailable}. Budget reached: ${c.budget}. Download failed: ${c.download_failed}.`,
     ...(failures.length ? [`- Failed: ${failures.join(", ")}`] : []),
+    `- Relevance (Jev): ${r.judged ? `${r.judged} judged, mean relevance ${r.mean_relevance}, mean unrelated ${r.mean_unrelated}, ${r.judge_tokens} judge input tokens.` : "no case judged."}`,
     ...(sync ? [`- Dataset synced from main: ${sync.created} added, ${sync.updated} updated, ${sync.removed} removed.`] : []),
     "",
   ].join("\n");
@@ -294,7 +328,7 @@ async function main(argv) {
   const { Client } = await import("langsmith"); // (loaded here, so the tests never load the SDK)
   const { evaluate } = await import("langsmith/evaluation");
   const { traceable } = await import("langsmith/traceable");
-  const result = await runEvals(opts, { client: new Client(), evaluate, traceable, runAsk, now: () => new Date(), env: process.env });
+  const result = await runEvals(opts, { client: new Client(), evaluate, traceable, runAsk, now: () => new Date(), env: process.env, fetch });
   if (opts.out) writeFileSync(opts.out, `${JSON.stringify(result, null, 2)}\n`);
   const md = summary(result);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);

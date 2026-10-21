@@ -22,6 +22,7 @@ on:
       - scripts/ask-langsmith.mjs
       - scripts/ask-judge.mjs
       - scripts/ask-oracle.mjs
+      - scripts/ask-relevance.mjs
   push:
     branches: [main]
     paths: [tests/ask-eval-notes.json]
@@ -54,6 +55,7 @@ jobs:
         env:
           LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_EVAL_KEY }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
           SHA: ${{ github.sha }}

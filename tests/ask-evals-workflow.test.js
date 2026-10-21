@@ -74,6 +74,7 @@ test("it runs weekly on Monday, by hand (with an optional model to compare), onc
     "- scripts/ask-langsmith.mjs",
     "- scripts/ask-judge.mjs",
     "- scripts/ask-oracle.mjs",
+    "- scripts/ask-relevance.mjs",
     "push:",
     "branches: [main]",
     "paths: [tests/ask-eval-notes.json]",
@@ -81,10 +82,10 @@ test("it runs weekly on Monday, by hand (with an optional model to compare), onc
   assert.deepEqual(Object.keys(JOBS), ["evals", "issue", "notes"]);
 });
 
-test("secrets reach only the one step in evals that runs the cases and the one in notes that posts the notes", () => {
+test("secrets reach only the one step in evals that runs the cases (with the relevance judge's key) and the one in notes that posts the notes", () => {
   assert.equal(secretLines(TOP.split("\n")).length, 0);
   assert.equal(secretLines(JOBS.issue).length, 0);
-  assert.deepEqual(secretLines(JOBS.evals), ["LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}", "OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_EVAL_KEY }}"]);
+  assert.deepEqual(secretLines(JOBS.evals), ["LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}", "OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_EVAL_KEY }}", "TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}"]);
   assert.deepEqual(secretLines(step("evals", "Run the evals")), secretLines(JOBS.evals));
   assert.deepEqual(secretLines(JOBS.notes), ["LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}"]);
   assert.deepEqual(secretLines(step("notes", "Post the notes")), secretLines(JOBS.notes));

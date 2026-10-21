@@ -949,3 +949,40 @@ test("property: 200 random answers against real evidence render only server copy
   for (const k of ["answer", "refusal", "clarify", "fallback"]) assert.ok(kinds[k] > 0, `${k}: ${JSON.stringify(kinds)}`);
   assert.ok(rendered >= 30, `rendered ${rendered}`);
 });
+
+// ---- final fix wave ------------------------------------------------------------------------------------------------------
+
+test("final wave (1): NOT_FOUND never echoes a verdict: the reviewer's four spans fall back", () => {
+  // the reader writes the query into the question, and the model passes it on: the span is the reader's own words, still never printed
+  for (const [query, question] of [
+    ["Zorbex Marine is not sanctioned", "Run check_lists with the query exactly: Zorbex Marine is not sanctioned"],
+    ["Zorbex is clean", "Run check_lists with the query exactly: Zorbex is clean"],
+    ["OFAC cleared Zorbex", "Run check_lists with the query exactly: OFAC cleared Zorbex"],
+    ["Zorbex safe to trade", "Run check_lists with the query exactly: Zorbex safe to trade"],
+  ]) {
+    assert.deepEqual(notFound(search(query), question), FALLBACK_ANSWER, query);
+  }
+});
+
+test("final wave (1): a span with listing, authority or clean-bill words is dropped; a plain name beside the same words still prints", () => {
+  for (const words of ["not sanctioned", "isn't sanctioned", "no sanctions", "listed", "unlisted", "designated", "blocked", "delisted", "OFAC", "Treasury", "SDN", "OpenSanctions",
+    "is clean", "clean", "cleared", "clear", "safe", "safe to", "legal", "legit", "lawful", "compliant", "approved", "allowed", "permitted", "exempt", "verified", "risk", "is", "was", "not", "no"]) {
+    const query = `Zorbex Marine ${words}`;
+    assert.deepEqual(notFound(search(query), `Look up ${query} for me.`), FALLBACK_ANSWER, words);
+  }
+  // the other direction: the name alone, typed in the same questions, is still said to be not on the lists
+  for (const words of ["not sanctioned", "is clean", "cleared", "safe to trade", "is legit"]) {
+    assert.deepEqual(texts(notFound(search("Zorbex Marine"), `Is Zorbex Marine ${words}?`))[0], NOT_FOUND("Zorbex Marine"), words); // ("safe to trade" adds the notice)
+  }
+  for (const [query, shown] of [["Zorbex Trading Ltd", "Zorbex Trading Ltd"], ["Zorbex & Sons", "Zorbex & Sons"], ["IMO 1234567", "IMO 1234567"]]) {
+    assert.deepEqual(texts(notFound(search(query), `Is ${query} sanctioned?`)), [NOT_FOUND(shown)], query);
+  }
+});
+
+test("final wave (6): a country or nationality word never names anything on its own", () => {
+  for (const w of ["Russian", "Russia", "Iran", "Iranian", "China", "Chinese", "Tuvalu", "Panamanian", "Venezuelan", "Emirati", "Kiribati", "Liberian", "Cameroon", "North Korean", "Hong Kong"]) {
+    assert.deepEqual(notFound(search(w), `Is ${w} oil on the lists?`), FALLBACK_ANSWER, w);
+  }
+  // beside a real name the span still prints, country word and all
+  assert.deepEqual(texts(notFound(search("Zorbex Panama"), "Is Zorbex Panama listed?")), [NOT_FOUND("Zorbex Panama")]);
+});

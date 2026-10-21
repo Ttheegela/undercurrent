@@ -4,7 +4,7 @@
 // dropped, and an answer with nothing left is the fallback. Any `text` or label from the model is ignored. No I/O beyond the site's
 // own prose vocabulary, read once. The output is plain text plus {label, url} / {label, href} taken from the evidence: the panel escapes it.
 import { LIST_LABELS, formatDate } from "../app/render.js";
-import { siteVocabulary } from "./_ask_tools.js";
+import { siteVocabulary, LISTING, AUTHORITY } from "./_ask_tools.js";
 
 // ---- fixed copy (global-constraints.md, verbatim; the range, one-day, OpenSanctions, clarify, before-start, part-answer and not-advice forms by ruling) -------
 
@@ -69,13 +69,48 @@ const listable = (e) => typeof e.entity?.name === "string" &&
 //  (1) it is plain ASCII: letters, digits, spaces and . , & ' - (a Cyrillic or Greek lookalike such as "ТАSSOS" is never printed as
 //      if it were the Latin name the search could not find);
 //  (2) it is a seven-digit IMO number, or holds a word of four or more letters outside COMMON and the site's own prose, so "the
-//      registered owner", "technical manager" and "all 300 ships" name nothing, while "gatik" does;
-//  (3) no search of this answer found anything (checked by the renderer: a side search beside a found name never says "not on the lists").
+//      registered owner", "technical manager", "all 300 ships" and "Iranian" name nothing, while "gatik" does;
+//  (3) it says nothing of its own: no listing, authority or clean-bill word, no "is" or "not" (see CLEAN_BILL);
+//  (4) no search of this answer found anything (checked by the renderer: a side search beside a found name never says "not on the lists").
 const WORD = /[\p{L}\p{N}]+/gu;
 const PLAIN = /^[A-Za-z0-9 .,&'-]+$/;
 const IMO = /^(?:IMO\s*)?\d{7}$/i;
+// A verdict in the reader's words is never printed, even when the reader typed it as the name ("Zorbex Marine is not sanctioned",
+// "OFAC cleared Zorbex", "Zorbex safe to trade"): listing and authority words (the quotes' own), clean-bill words, and the predicate
+// or negation that makes a span a statement rather than a name. A name holding one of these words gets the fallback instead.
+const CLEAN_BILL = /\b(?:is|are|was|were|not|no|never|none|clean(?:ed)?|clear(?:ed|s|ance)?|safe(?:ly|r|st)?|risk(?:s|y|less)?|(?:il)?legal(?:ly)?|legit(?:imate)?|lawful|compliant|approved|allowed|permitted|authori[sz]ed|licen[cs]ed|exempt(?:ed)?|exonerated|innocent|vetted|verified|unrestricted|ok(?:ay)?)\b|n['’]t\b/i;
+const verdict = (span) => LISTING.test(span) || AUTHORITY.test(span) || CLEAN_BILL.test(span);
+// Country and nationality words name no ship, firm or person on their own ("Is Iranian oil listed?" searched as "Iranian"): the countries
+// in the site's data (the research's flags and countries, the lists' programmes, the chip-trade reporters) word by word, and their
+// nationality words
+const PLACES = ("afghanistan africa african albania algeria almaty america andorra angola antigua arab arabia argentina armenia aruba australia "
+  + "austria azerbaijan bahamas bahrain balkans barbados barbuda belarus belgium belize benin bermuda bhutan bishkek bissau bolivia bosnia "
+  + "botswana brazil britain british brunei bulgaria burkina burma burundi cabo cambodia cameroon canada cayman central chile china colombia "
+  + "comoros congo cook costa crimea croatia cuba curacao cyprus czechia darussalam denmark djibouti dominica dominican donetsk dubai ecuador "
+  + "egypt emirates england estonia eswatini ethiopia european faroe faso fiji finland france french gabon gambia georgia germany ghana great "
+  + "greece grenada grenadines guatemala guinea guyana haiti herzegovina holland honduras hong hungary iceland india indonesia iran iraq "
+  + "ireland islands israel italy ivoire jamaica japan jordan kaliningrad kazakhstan kenya kingdom kiribati kitts kong korea kosovo kuwait "
+  + "kyrgyzstan lanka latvia lebanon leone lesotho leste liberia libya lithuania lucia luhansk luxembourg maarten macao macedonia madagascar "
+  + "malawi malaysia maldives mali malta marino marshall mauritania mauritius mexico moldova mongolia montenegro montserrat morocco moscow "
+  + "mozambique myanmar namibia nepal netherlands nevis nicaragua niger nigeria north norway oman pakistan palau palestine panama papua "
+  + "paraguay peru petersburg philippines poland polynesia portugal principe qatar rica romania russia rwanda saint salvador samoa saudi "
+  + "senegal serbia seychelles sierra singapore sint slovakia slovenia somalia south spain states sudan suriname sweden switzerland syria "
+  + "taiwan tajikistan tanzania thailand timor tobago togo tome tonga trinidad tunisia turkey turkiye turkmenistan tuvalu uganda ukraine union "
+  + "united uruguay uzbekistan vanuatu venezuela verde viet vietnam vincent virgin western yemen zambia zealand zimbabwe "
+  + "afghan albanian algerian american andorran angolan argentine argentinian armenian aruban australian austrian azerbaijani azeri bahamian "
+  + "bahraini bangladeshi barbadian belarusian belarussian belgian belizean beninese bhutanese bolivian bosnian brazilian bruneian bulgarian "
+  + "burmese burundian cambodian cameroonian canadian caymanian chadian chechen chilean chinese colombian comorian congolese crimean croatian "
+  + "cuban cypriot czech danish djiboutian dutch ecuadorian egyptian emirati english eritrean estonian ethiopian fijian filipino finnish "
+  + "gabonese gambian georgian german ghanaian greek grenadian guatemalan guinean guyanese haitian honduran hungarian icelandic indian "
+  + "indonesian iranian iraqi irish israeli italian ivorian jamaican japanese jordanian kazakh kazakhstani kenyan korean kosovar kuwaiti kyrgyz "
+  + "laotian latvian lebanese liberian libyan lithuanian luxembourgish malagasy malawian malaysian maldivian malian maltese marshallese "
+  + "mauritanian mauritian mexican moldovan mongolian montenegrin moroccan mozambican namibian nepalese nepali nicaraguan nigerian nigerien "
+  + "norwegian omani pakistani palauan palestinian panamanian paraguayan persian peruvian polish portuguese qatari romanian russian rwandan "
+  + "salvadoran samoan senegalese serbian seychellois singaporean slovak slovakian slovenian somali soviet spanish sudanese surinamese swedish "
+  + "swiss syrian taiwanese tajik tanzanian thai togolese tongan trinidadian tunisian turkish turkmen tuvaluan ugandan ukrainian uruguayan "
+  + "uzbek vanuatuan venezuelan vietnamese yemeni zambian zimbabwean");
 // Words that never name anything on their own, whatever their case: pointing words and generic nouns ("beneficial", "mentioned",
-// "mother" and "daughter" are role words the site's prose happens not to use).
+// "mother" and "daughter" are role words the site's prose happens not to use), and the places above.
 const COMMON = new Set(("it its they them their this these those he she his her both above below here there such former latter other all the "
   + "a an is are was were be been that any some of on in at to for by with and or who what which whose where when why how does do did "
   + "has have had not no yes still now ever my our your we you me so if as up one ones first second third next last same each every new old name names number "
@@ -84,7 +119,7 @@ const COMMON = new Set(("it its they them their this these those he she his her 
   + "sister buyer buyers seller sellers supplier suppliers client clients charterer charterers insurer insurers entity entities beneficial mentioned mother daughter "
   + "list lists listed listing sanction sanctions sanctioned blocked designated frozen restricted crude oil gas cargo fleet fleets shipping trading "
   + "holding holdings international limited services marine maritime energy logistics industries flag flagged registry "
-  + "us uk eu un imo ofac sdn treasury ofsi bis commerce opensanctions").split(" "));
+  + "us uk eu un imo ofac sdn treasury ofsi bis commerce opensanctions " + PLACES).split(" "));
 function nameLike(span) {
   if (IMO.test(span)) return true;
   const prose = siteVocabulary();
@@ -100,7 +135,7 @@ function typedSpan(query, question) {
     const last = words[i + want.length - 1];
     const span = clean.slice(words[i].index, last.index + last[0].length).trim();
     try {
-      return PLAIN.test(span) && nameLike(span) ? span : null; // "sanctioned is not on the lists" is never said; "gatik" typed in lower case still is a name
+      return PLAIN.test(span) && !verdict(span) && nameLike(span) ? span : null; // "sanctioned is not on the lists" is never said; "gatik" typed in lower case still is a name
     } catch {
       return null; // no prose vocabulary to hand: never "not on the lists"
     }

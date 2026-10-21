@@ -5,8 +5,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
-import { backfillNotes, runEvals, runOptions, syncDataset } from "../scripts/ask-langsmith.mjs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { backfillNotes, runEvals, runOptions, summary, syncDataset } from "../scripts/ask-langsmith.mjs";
 import { MODEL, runAsk } from "../api/ask.js";
 import { checkAnswer } from "../api/_ask_check.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
@@ -251,6 +251,7 @@ test("metadata carries commit, trigger, pr, model and a 12-hex prompt_hash", asy
     experiment: "ask-pr-31-1a2b3c4d",
     url: "https://smith.test/o/t/datasets/ds-1/compare?selectedSessions=exp-1",
     trigger: "pr",
+    model: MODEL,
     commit: SHA,
     counts: { quality: 1, pass: 1, fail: 0, unavailable: 0, budget: 0, download_failed: 0 },
     failures: [],
@@ -260,6 +261,60 @@ test("metadata carries commit, trigger, pr, model and a 12-hex prompt_hash", asy
   await runEvals(WEEKLY, weekly.deps);
   const [[, w]] = weekly.calls.filter(([name]) => name === "evaluate");
   assert.deepEqual([w.experimentPrefix, w.metadata.trigger, w.metadata.pr], ["ask-weekly", "weekly", null]);
+});
+
+/** fakeAsk, also recording the model each case's runAsk was given. */
+const recordingAsk = (script, models) => (history, now, options) => (models.push(options.model), fakeAsk(script)(history, now, options));
+
+test("run --model: runAsk, the model calls' traces, the metadata, the result and the summary all name it, and the prefix gets its slug", async () => {
+  const opts = runOptions(["--trigger", "manual", "--model", "deepseek/deepseek-v4.1-flash", "--commit", SHA]);
+  assert.deepEqual(opts, { trigger: "manual", pr: null, sync: false, commit: SHA, model: "deepseek/deepseek-v4.1-flash", out: undefined });
+  const models = [];
+  const script = { "area-lists-1": {}, "off-topic-1": {} };
+  const { calls, steps, deps } = setup(Object.keys(script).map(byId), recordingAsk(script, models));
+  const result = await runEvals(opts, deps);
+  assert.deepEqual(models, ["deepseek/deepseek-v4.1-flash", "deepseek/deepseek-v4.1-flash"]);
+  assert.deepEqual([...new Set(steps.filter((s) => s.name === "callModel").map((s) => s.metadata.ls_model_name))], ["deepseek/deepseek-v4.1-flash"]);
+  const [[, options]] = calls.filter(([name]) => name === "evaluate");
+  assert.equal(options.metadata.model, "deepseek/deepseek-v4.1-flash");
+  assert.equal(options.experimentPrefix, "ask-manual-deepseek-v4.1-flash");
+  assert.deepEqual([result.experiment, result.model], ["ask-manual-deepseek-v4.1-flash-1a2b3c4d", "deepseek/deepseek-v4.1-flash"]);
+  assert.match(summary(result), /^Trigger: manual, model `deepseek\/deepseek-v4\.1-flash`, commit 0123abc\. /m);
+  // the slug is the part after the slash, lowercased, with anything outside [a-z0-9.-] made a dash; a PR run keeps its number
+  const prefix = async (args) => {
+    const s = setup([byId("off-topic-1")], fakeAsk({ "off-topic-1": {} }));
+    await runEvals(runOptions([...args, "--commit", SHA]), s.deps);
+    return s.calls.find(([name]) => name === "evaluate")[1].experimentPrefix;
+  };
+  assert.equal(await prefix(["--trigger", "manual", "--model", "anthropic/claude-sonnet-5.5"]), "ask-manual-claude-sonnet-5.5");
+  assert.equal(await prefix(["--trigger", "manual", "--model", "qwen/qwen3.8-27b"]), "ask-manual-qwen3.8-27b");
+  assert.equal(await prefix(["--trigger", "manual", "--model", "qwen/qwen3.8_27b:free"]), "ask-manual-qwen3.8-27b-free");
+  assert.equal(await prefix(["--trigger", "pr", "--pr", "31", "--model", "qwen/qwen3.8-27b"]), "ask-pr-31-qwen3.8-27b");
+  assert.equal(await prefix(["--trigger", "weekly", "--model", MODEL]), "ask-weekly"); // the site's own model is no comparison
+});
+
+test("run without --model keeps today's behaviour: MODEL everywhere and the prefix unchanged", async () => {
+  const opts = runOptions(["--trigger", "manual", "--commit", SHA]);
+  assert.equal(opts.model, MODEL);
+  for (const o of [opts, WEEKLY]) { // (from the command line, and from a caller that leaves model out)
+    const models = [];
+    const { calls, steps, deps } = setup([byId("off-topic-1")], recordingAsk({ "off-topic-1": {} }, models));
+    const result = await runEvals(o, deps);
+    const [[, options]] = calls.filter(([name]) => name === "evaluate");
+    assert.deepEqual([models, options.metadata.model, result.model, options.experimentPrefix], [[MODEL], MODEL, MODEL, `ask-${o.trigger}`]);
+    assert.ok(steps.filter((s) => s.name === "callModel").every((s) => s.metadata.ls_model_name === MODEL));
+  }
+});
+
+test("a --model that is not vendor/model exits 2 before any call", async () => {
+  for (const bad of ["x; rm -rf /", "$(id)", "`id`", "deepseek", "Anthropic/Claude-Haiku-5.5", "/x", "a/", "a/b/c", "-a/b", "a/-b", "a/b\nc", "a/b ", "", "a/b;c"]) {
+    assert.throws(() => runOptions(["--trigger", "manual", `--model=${bad}`, "--commit", SHA]), (err) => err.exit === 2 && err.message.startsWith("--model must look like vendor/model\n"), JSON.stringify(bad));
+  }
+  // the script itself: refused before it reads a key (none is set here) or loads the SDK
+  const script = new URL("../scripts/ask-langsmith.mjs", import.meta.url).pathname;
+  const r = spawnSync(process.execPath, [script, "run", "--trigger", "manual", "--model", "$(id)"], { encoding: "utf8", env: { PATH: process.env.PATH } });
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /^--model must look like vendor\/model\n/);
 });
 
 test("no traced payload contains the OpenRouter key", async (t) => {
@@ -321,7 +376,7 @@ test("a runAsk that throws makes its case unavailable and logs one fixed line, w
 test("run --commit SHA sets the commit metadata and the note's short sha; without it the commit is HEAD", async () => {
   const HEAD_SHA = "fedcba9876543210fedcba9876543210fedcba98"; // a PR's head, where HEAD is the merge commit
   const opts = runOptions(["--trigger", "pr", "--pr", "31", "--commit", HEAD_SHA]);
-  assert.deepEqual(opts, { trigger: "pr", pr: 31, sync: false, commit: HEAD_SHA, out: undefined });
+  assert.deepEqual(opts, { trigger: "pr", pr: 31, sync: false, commit: HEAD_SHA, model: MODEL, out: undefined });
   const script = { "area-research-1": { answer: UNGROUNDED } };
   const { calls, deps } = setup(Object.keys(script).map(byId), fakeAsk(script));
   await runEvals(opts, deps);

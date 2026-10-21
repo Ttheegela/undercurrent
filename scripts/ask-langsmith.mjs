@@ -3,15 +3,16 @@
 // process, against the real model on the eval key, and LangSmith records the model calls, the tool calls and the checker as the steps
 // of the case's run. One evaluator scores every case. A case that fails gets an "Under review" note until its real note is written.
 //
-//   node scripts/ask-langsmith.mjs run --trigger weekly|manual|pr [--pr N] [--sync] [--commit SHA] [--out FILE]
+//   node scripts/ask-langsmith.mjs run --trigger weekly|manual|pr [--pr N] [--sync] [--commit SHA] [--model ID] [--out FILE]
 //   node scripts/ask-langsmith.mjs notes
 //
 // `run` evaluates the dataset's cases. --sync first makes the dataset match the live cases in tests/ask-eval.json; only runs on main
 // sync, so a PR run evaluates main's cases and refuses --sync. --commit is the commit the run is recorded against (default: HEAD; a PR
-// run passes its head, as HEAD there is the merge commit). Exit 0 when the run completed, whatever the scores; 1 on a runner error,
-// a missing dataset included; 2 on bad arguments or a missing key. The result JSON goes to --out, and a summary to $GITHUB_STEP_SUMMARY
-// when that is set. The runner reads LANGSMITH_API_KEY and OPENROUTER_API_KEY and prints neither. It must run from the repository root,
-// where Ask's tools read the site's data.
+// run passes its head, as HEAD there is the merge commit). --model is the OpenRouter model to compare (vendor/model; default: the
+// site's MODEL); a model other than MODEL adds its name to the experiment's prefix, as in ask-manual-deepseek-v4.1-flash. Exit 0 when
+// the run completed, whatever the scores; 1 on a runner error, a missing dataset included; 2 on bad arguments or a missing key. The
+// result JSON goes to --out, and a summary to $GITHUB_STEP_SUMMARY when that is set. The runner reads LANGSMITH_API_KEY and
+// OPENROUTER_API_KEY and prints neither. It must run from the repository root, where Ask's tools read the site's data.
 //
 // `notes` posts each note in tests/ask-eval-notes.json, an array of {experiment, case, note}, as the comment of the `note` feedback on
 // that case's run in that experiment, replacing "Under review". Exit 1 when an entry's experiment, case or note feedback isn't found.
@@ -56,11 +57,12 @@ const DESCRIPTION = "The questions Undercurrent's Ask is evaluated on with the r
 const CASES = new URL("../tests/ask-eval.json", import.meta.url);
 const NOTES = new URL("../tests/ask-eval-notes.json", import.meta.url);
 const USAGE = [
-  "Usage: node scripts/ask-langsmith.mjs run --trigger weekly|manual|pr [--pr N] [--sync] [--commit SHA] [--out FILE]",
+  "Usage: node scripts/ask-langsmith.mjs run --trigger weekly|manual|pr [--pr N] [--sync] [--commit SHA] [--model ID] [--out FILE]",
   "       node scripts/ask-langsmith.mjs notes",
 ].join("\n");
 const PROMPT_HASH = createHash("sha256").update(SYSTEM_PROMPT + JSON.stringify(TOOLS)).digest("hex").slice(0, 12);
 const UNAVAILABLE = { ok: false, reason: "unavailable" };
+const MODEL_ID = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._:-]*$/; // vendor/model, as OpenRouter names them (the workflow checks the same)
 const usageError = (message) => Object.assign(new Error(message), { exit: 2 });
 
 /** OpenRouter's usage as LangSmith reads it on an llm run. */
@@ -75,7 +77,7 @@ const usageMetadata = (u) => ({
  * The target: one case's question through Ask's own loop, with each step traced. It returns the reply, the evidence the tools handed
  * back, the outcome, and what the case spent. cost_usd is null once a model reply comes without a cost.
  */
-const target = ({ runAsk, traceable, now }) => async ({ question }) => {
+const target = ({ runAsk, traceable, now }, model) => async ({ question }) => {
   let ev = [];
   let failed = new Map();
   let tool_calls = 0;
@@ -95,7 +97,7 @@ const target = ({ runAsk, traceable, now }) => async ({ question }) => {
     }, {
       name: "callModel",
       run_type: "llm",
-      metadata: { ls_provider: "openrouter", ls_model_name: MODEL },
+      metadata: { ls_provider: "openrouter", ls_model_name: model },
       processInputs: ({ args: [messages, toolChoice] }) => ({ messages: structuredClone(messages), toolChoice }), // (Ask goes on adding turns to it)
       processOutputs: ({ message, usage, stop }) => (stop ? { stop } : { message, ...(usage && { usage_metadata: usageMetadata(usage) }) }),
     }),
@@ -112,7 +114,7 @@ const target = ({ runAsk, traceable, now }) => async ({ question }) => {
   };
   let threw = false;
   const t0 = performance.now();
-  const result = await runAsk([{ role: "user", content: question }], now(), { wrap: (name, fn) => steps[name](fn) }).catch(() => {
+  const result = await runAsk([{ role: "user", content: question }], now(), { wrap: (name, fn) => steps[name](fn), model }).catch(() => {
     threw = true;
     return UNAVAILABLE; // (what the endpoint replies when the loop throws)
   });
@@ -176,9 +178,9 @@ export async function syncDataset(cases, { client }) {
 }
 
 /**
- * One run of the dataset's cases as a LangSmith experiment. `opts` = {trigger, pr, sync, commit}; `deps` = {client, evaluate, traceable,
- * runAsk, now, env}. Resolves to the result JSON. Throws an error with `exit: 2` for a PR run with sync or a missing key, before anything
- * is called, and one without `exit` when the dataset is missing and the run doesn't sync.
+ * One run of the dataset's cases as a LangSmith experiment. `opts` = {trigger, pr, sync, commit, model (default MODEL)}; `deps` =
+ * {client, evaluate, traceable, runAsk, now, env}. Resolves to the result JSON. Throws an error with `exit: 2` for a PR run with sync
+ * or a missing key, before anything is called, and one without `exit` when the dataset is missing and the run doesn't sync.
  */
 export async function runEvals(opts, deps) {
   if (opts.sync && opts.trigger === "pr") throw usageError("a PR run never syncs the dataset");
@@ -186,11 +188,14 @@ export async function runEvals(opts, deps) {
   const { client } = deps;
   const sync = opts.sync ? await syncDataset(JSON.parse(readFileSync(CASES, "utf8")), deps) : null;
   if (!sync && !(await client.hasDataset({ datasetName: DATASET }))) throw new Error(`dataset ${DATASET} not found: run the workflow manually on main first`);
-  const results = await deps.evaluate(target(deps), {
+  const model = opts.model ?? MODEL;
+  const prefix = opts.trigger === "pr" ? `ask-pr-${opts.pr}` : `ask-${opts.trigger}`;
+  const results = await deps.evaluate(target(deps, model), {
     data: DATASET,
     evaluators: [score],
-    experimentPrefix: opts.trigger === "pr" ? `ask-pr-${opts.pr}` : `ask-${opts.trigger}`,
-    metadata: { commit: opts.commit, trigger: opts.trigger, pr: opts.pr ?? null, model: MODEL, prompt_hash: PROMPT_HASH },
+    // a comparison names its model: ask-manual-deepseek-v4.1-flash (the part after the slash, cut down to what a name may hold)
+    experimentPrefix: model === MODEL ? prefix : `${prefix}-${model.split("/")[1].toLowerCase().replace(/[^a-z0-9.-]/g, "-")}`,
+    metadata: { commit: opts.commit, trigger: opts.trigger, pr: opts.pr ?? null, model, prompt_hash: PROMPT_HASH },
     maxConcurrency: 2,
     numRepetitions: 1, // no retries: what the run shows is what a visitor would have met
     client,
@@ -215,7 +220,7 @@ export async function runEvals(opts, deps) {
     failures.push(example.metadata.case_id);
     await client.createFeedback({ runId: run.id, sessionId: id, key: "note", comment: note });
   }
-  return { experiment, url, trigger: opts.trigger, commit: opts.commit, counts, failures, allInfra: counts.quality === 0, ...(sync && { sync }) };
+  return { experiment, url, trigger: opts.trigger, model, commit: opts.commit, counts, failures, allInfra: counts.quality === 0, ...(sync && { sync }) };
 }
 
 /**
@@ -251,11 +256,11 @@ async function noteIds(client, { experiment, case: caseId }) {
 }
 
 /** The run in a few lines of Markdown, for the job summary. */
-function summary({ experiment, url, trigger, commit, counts: c, failures, sync }) {
+export function summary({ experiment, url, trigger, model, commit, counts: c, failures, sync }) {
   return [
     `### Ask evals: ${experiment}`,
     "",
-    `Trigger: ${trigger}, commit ${commit.slice(0, 7)}. [Open the experiment in LangSmith](${url})`,
+    `Trigger: ${trigger}, model \`${model}\`, commit ${commit.slice(0, 7)}. [Open the experiment in LangSmith](${url})`,
     "",
     `- Answered: ${c.quality} (${c.pass} passed, ${c.fail} failed)`,
     `- Unavailable: ${c.unavailable}. Budget reached: ${c.budget}. Download failed: ${c.download_failed}.`,
@@ -269,15 +274,16 @@ function summary({ experiment, url, trigger, commit, counts: c, failures, sync }
 export function runOptions(args) {
   let values;
   try {
-    ({ values } = parseArgs({ args, options: { trigger: { type: "string" }, pr: { type: "string" }, sync: { type: "boolean", default: false }, commit: { type: "string" }, out: { type: "string" } } }));
+    ({ values } = parseArgs({ args, options: { trigger: { type: "string" }, pr: { type: "string" }, sync: { type: "boolean", default: false }, commit: { type: "string" }, model: { type: "string" }, out: { type: "string" } } }));
   } catch (err) {
     throw usageError(`${err.message}\n${USAGE}`);
   }
   if (!TRIGGERS.includes(values.trigger)) throw usageError(`--trigger must be weekly, manual or pr\n${USAGE}`);
   if (values.trigger === "pr" ? !/^[1-9]\d*$/.test(values.pr ?? "") : values.pr !== undefined) throw usageError(`--pr N (the pull request's number) goes with --trigger pr, and only with it\n${USAGE}`);
   if (values.commit !== undefined && !/^[0-9a-f]{40}$/.test(values.commit)) throw usageError(`--commit takes a full commit SHA (40 lowercase hex characters)\n${USAGE}`);
+  if (values.model !== undefined && !MODEL_ID.test(values.model)) throw usageError(`--model must look like vendor/model\n${USAGE}`);
   const commit = values.commit ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-  return { trigger: values.trigger, pr: values.pr ? Number(values.pr) : null, sync: values.sync, commit, out: values.out };
+  return { trigger: values.trigger, pr: values.pr ? Number(values.pr) : null, sync: values.sync, commit, model: values.model ?? MODEL, out: values.out };
 }
 
 async function main(argv) {

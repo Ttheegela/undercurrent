@@ -2400,7 +2400,7 @@ test("the map keeps its footer at the bottom of the screen with Ask on, and the 
   await page.setViewportSize({ width: 375, height: 812 });
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const gap = await page.evaluate(() => innerHeight - document.querySelector(".app > footer").getBoundingClientRect().bottom);
-  expect(gap).toBeGreaterThanOrEqual(76); // the button's height, its offset and a gap
+  expect(Math.round(gap)).toBeGreaterThanOrEqual(76); // the button's height, its offset and a gap (rounded: layout can land a subpixel short)
 });
 
 test("a page whose right-hand column is all buttons puts Ask bottom-left with data-ask-side", async ({ page }) => {

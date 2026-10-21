@@ -593,7 +593,7 @@ test("changes clamps to started and caps at 30 with total", async () => {
   const out = await run("changes", { since: "2026-01-01", until: "2030-01-01" });
   assert.ok(ev.every((e) => e.before_start === undefined));
   assert.equal(out.from, "2026-10-12");
-  assert.equal(out.to, "2026-10-20");
+  assert.equal(out.to, "2026-10-19"); // the latest night the record holds (today's run is not in it)
   assert.equal(out.total, 38);
   assert.equal(out.shown, 30);
   const changes = ofKind("change");
@@ -1068,24 +1068,110 @@ test("M7: nights absent from the record are gap runs by 'The nightly update', an
     ev = [];
     await run("changes", { since: "2026-10-15", until: "2026-10-15" });
     assert.deepEqual(ev.map((e) => [e.kind, e.found]), [["change", false]]);
-    // the nights after the latest one held are missing too, up to yesterday: a stalled job is not "no changes"
+    // the nights after the latest one held are missing too, up to yesterday: a stalled job is not "no changes" (and today's run,
+    // after them, has not happened yet)
     ev = [];
     const stalled = await run("changes", { since: "2026-10-17", until: "2026-10-20" });
-    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.from, e.to]), [["gap", undefined, "2026-10-17", "2026-10-19"]]);
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.not_yet, e.from, e.to]), [["change", false, true, "2026-10-17", "2026-10-20"], ["gap", undefined, undefined, "2026-10-17", "2026-10-19"]]);
     assert.deepEqual([stalled.total, stalled.missing_nights], [0, 3]);
     assert.doesNotMatch(JSON.stringify(ev), /No changes were recorded/);
     ev = [];
     const week = await run("changes", { since: "2026-10-13" }); // "what changed this week", with a change on the 16th
     assert.equal(week.total, 1);
     assert.deepEqual(ofKind("gap").map((g) => [g.from, g.to]), [["2026-10-17", "2026-10-19"], ["2026-10-13", "2026-10-14"]]);
-    // today itself is never flagged, and before its run it is simply not there yet
+    // today itself is never flagged as a gap: before its run it is "not yet" (final review, Important 2)
     ev = [];
     await run("changes", { since: "2026-10-20", until: "2026-10-20" });
-    assert.deepEqual(ev.map((e) => [e.kind, e.found]), [["change", false]]);
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.not_yet]), [["change", false, true]]);
     // with today as the 17th, the 17th is not flagged but the stretch up to it is
     ev = [];
     await run("changes", { since: "2026-10-12", until: "2026-10-20" }, { today: "2026-10-17" });
     assert.deepEqual(ofKind("gap").map((g) => [g.from, g.to]), [["2026-10-13", "2026-10-14"]]);
+  } finally {
+    write(root, "data/changes/changes.json", CHANGES);
+  }
+});
+
+test("final wave (2): before tonight's run, a range after the latest night held ending today is 'not yet', never 'no changes'", async () => {
+  const day = (date, changes = []) => ({ date, sources: FRESH, changes });
+  // the reviewer's 05:35 UTC case: the record's last night is 20 Oct, today is 21 Oct, and its run has not happened
+  write(root, "data/changes/changes.json", { ...CHANGES, days: [day("2026-10-20"), day("2026-10-19", [ship(1, "2026-10-19")]), day("2026-10-18"), day("2026-10-17")] });
+  const at = { today: "2026-10-21" };
+  try {
+    resetAskCache();
+    // "What changed today?"
+    const today = await run("changes", { since: "2026-10-21", until: "2026-10-21" }, at);
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.not_yet, e.from, e.to]), [["change", false, true, "2026-10-21", "2026-10-21"]]);
+    assert.match(ev[0].text, /^Today's nightly update hasn't run yet/);
+    assert.doesNotMatch(JSON.stringify(ev), /No changes were recorded/);
+    assert.deepEqual([today.total, today.gaps, today.missing_nights], [0, 0, 0]);
+    // an `until` past today is today
+    ev = [];
+    await run("changes", { since: "2026-10-21", until: "2027-01-01" }, at);
+    assert.deepEqual(ev.map((e) => [e.kind, e.not_yet]), [["change", true]]);
+    // a quiet night held, then today: "no changes" covers the night held only, never today
+    ev = [];
+    const quiet = await run("changes", { since: "2026-10-20" }, at);
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.not_yet, e.from, e.to]), [["change", false, undefined, "2026-10-20", "2026-10-20"]]);
+    assert.match(ev[0].text, /^No changes were recorded on 20 Oct 2026 \(2026-10-20\)\./);
+    assert.equal(ev[0].label, "No changes on 20 Oct 2026");
+    assert.deepEqual([quiet.from, quiet.to], ["2026-10-20", "2026-10-20"]);
+    // a week with a change: the range it reports ends on the latest night held
+    ev = [];
+    const week = await run("changes", { since: "2026-10-17" }, at);
+    assert.deepEqual([week.from, week.to, week.total], ["2026-10-17", "2026-10-20", 1]);
+    assert.match(ofKind("change")[0].text, /Between 17 Oct 2026 and 20 Oct 2026 \(2026-10-17 to 2026-10-20\): 1 change recorded/);
+    // once tonight's run is in, today is in the record like any other night
+    write(root, "data/changes/changes.json", { ...CHANGES, days: [day("2026-10-21"), day("2026-10-20")] });
+    resetAskCache();
+    ev = [];
+    await run("changes", { since: "2026-10-21", until: "2026-10-21" }, at);
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.not_yet, e.from, e.to]), [["change", false, undefined, "2026-10-21", "2026-10-21"]]);
+    // earlier missing nights stay gap runs, beside "not yet"
+    write(root, "data/changes/changes.json", { ...CHANGES, days: [day("2026-10-17")] });
+    resetAskCache();
+    ev = [];
+    const stalled = await run("changes", { since: "2026-10-18" }, at);
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.not_yet, e.source, e.from, e.to]), [["change", false, true, undefined, "2026-10-18", "2026-10-21"], ["gap", undefined, undefined, "The nightly update", "2026-10-18", "2026-10-20"]]);
+    assert.deepEqual([stalled.total, stalled.missing_nights], [0, 3]);
+    // a range after the latest night that ends before today is only its gap, as before
+    ev = [];
+    await run("changes", { since: "2026-10-18", until: "2026-10-19" }, at);
+    assert.deepEqual(ev.map((e) => [e.kind, e.source, e.from, e.to]), [["gap", "The nightly update", "2026-10-18", "2026-10-19"]]);
+    // no night held at all: today is "not yet" too
+    write(root, "data/changes/changes.json", { ...CHANGES, days: [] });
+    resetAskCache();
+    ev = [];
+    await run("changes", { since: "2026-10-21" }, at);
+    assert.deepEqual(ev.map((e) => [e.kind, e.not_yet]).slice(0, 1), [["change", true]]);
+  } finally {
+    write(root, "data/changes/changes.json", CHANGES);
+  }
+});
+
+test("final wave (4): a range after the first run but wholly before the oldest night kept says the days are no longer kept", async () => {
+  // nights older than 120 days are trimmed: the record keeps 12 Oct on, its first run was 1 Jun
+  write(root, "data/changes/changes.json", { ...CHANGES, first_run: "2026-06-01" });
+  try {
+    resetAskCache();
+    const out = await run("changes", { since: "2026-07-01", until: "2026-07-31" });
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.trimmed, e.from, e.to, e.started]), [["change", false, true, "2026-07-01", "2026-07-31", "2026-10-12"]]);
+    assert.match(ev[0].text, /^Days before 12 Oct 2026 \(2026-10-12\) are no longer kept/);
+    assert.doesNotMatch(JSON.stringify(ev), /No changes were recorded/);
+    assert.deepEqual(ev[0].quotes, []);
+    assert.deepEqual([out.total, out.from, out.to], [0, "2026-07-01", "2026-07-31"]);
+    // a range from before the first run to a trimmed day: none of it is kept
+    ev = [];
+    await run("changes", { since: "2026-05-01", until: "2026-10-11" });
+    assert.deepEqual(ev.map((e) => [e.kind, e.trimmed]), [["change", true]]);
+    // a range ending on the oldest night kept is in the record
+    ev = [];
+    await run("changes", { since: "2026-07-01", until: "2026-10-12" });
+    assert.deepEqual(ev.map((e) => [e.kind, e.found, e.trimmed, e.from, e.to]), [["change", false, undefined, "2026-10-12", "2026-10-12"]]);
+    // a range wholly before the first run is still "before the start"
+    ev = [];
+    await run("changes", { since: "2026-01-01", until: "2026-05-31" });
+    assert.deepEqual(ev.map((e) => [e.kind, e.before_start, e.trimmed]), [["change", true, undefined]]);
   } finally {
     write(root, "data/changes/changes.json", CHANGES);
   }

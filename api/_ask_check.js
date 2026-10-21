@@ -6,7 +6,7 @@
 import { LIST_LABELS, formatDate } from "../app/render.js";
 import { siteVocabulary, LISTING, AUTHORITY } from "./_ask_tools.js";
 
-// ---- fixed copy (global-constraints.md, verbatim; the range, one-day, OpenSanctions, clarify, before-start, part-answer and not-advice forms by ruling) -------
+// ---- fixed copy (global-constraints.md, verbatim; the range, one-day, OpenSanctions, clarify, before-start, trimmed, not-yet, part-answer and not-advice forms by ruling)
 
 const REFUSAL = "I can only answer questions about what's on Undercurrent: sanctions lists, ship and company connections, lobbying, the semiconductor data, the research and the daily updates. I can't give legal or compliance advice.";
 const FALLBACK = "I couldn't check an answer to that against the site's data, so I won't guess. Try the search on the home page.";
@@ -17,6 +17,8 @@ const NO_CHANGES = (from, to) => (from === to ? `No changes were recorded on ${d
 const PARTIAL = "I could only answer part of the question. Ask about each name on its own to check the rest.";
 const NOT_ADVICE = "Ask can't give legal or compliance advice. These are records from the site, each with its source.";
 const BEFORE_START = (first) => `Daily updates started on ${day(first)}, so there is no record before then.`;
+const TRIMMED = (started) => `Days before ${day(started)} are no longer kept.`;
+const NOT_YET = "Today's nightly update hasn't run yet.";
 const SOURCE_GAP = (g) => (g.date || g.from === g.to
   ? `${g.source} was unavailable on ${day(g.date ?? g.from)}, so changes from it that day aren't recorded.`
   : `${g.source} was unavailable from ${day(g.from)} to ${day(g.to)}, so changes from it on those days aren't recorded.`);
@@ -160,11 +162,17 @@ const RENDER = {
       return span ? [{ text: NOT_FOUND(span), items: [e] }] : [];
     });
   },
-  // "No changes" only from the change record's own item, followed by every gap of its range; never from an empty list
-  change: (items, s, all) => items.filter((e) => e.kind === "change" || e.kind === "gap").flatMap((e) => (e.kind === "gap" ? [{ text: SOURCE_GAP(e), items: [e] }]
-    : e.before_start ? [{ text: BEFORE_START(e.first_run), items: [e] }] // a range wholly before the record: never "no changes"
-    : e.found === false ? [{ text: NO_CHANGES(e.from, e.to), items: [e] }, ...all.filter((g) => g.kind === "gap" && g.from <= e.to && g.to >= e.from).map((g) => ({ text: SOURCE_GAP(g), items: [g] }))]
-      : [{ text: `${e.summary} · ${day(e.date)}`, items: [e] }])),
+  // "No changes" only from the change record's own item, followed by every gap of its range; never from an empty list. A range the
+  // record cannot speak for is never "no changes": before its first night, trimmed from it, or today before tonight's run.
+  change: (items, s, all) => {
+    const gaps = (e) => all.filter((g) => g.kind === "gap" && g.from <= e.to && g.to >= e.from).map((g) => ({ text: SOURCE_GAP(g), items: [g] }));
+    return items.filter((e) => e.kind === "change" || e.kind === "gap").flatMap((e) => (e.kind === "gap" ? [{ text: SOURCE_GAP(e), items: [e] }]
+      : e.before_start ? [{ text: BEFORE_START(e.first_run), items: [e] }]
+      : e.trimmed ? [{ text: TRIMMED(e.started), items: [e] }]
+      : e.not_yet ? [{ text: NOT_YET, items: [e] }, ...gaps(e)]
+      : e.found === false ? [{ text: NO_CHANGES(e.from, e.to), items: [e] }, ...gaps(e)]
+      : [{ text: `${e.summary} · ${day(e.date)}`, items: [e] }]));
+  },
   // one sentence of one item, verbatim
   quote: (items, s) => {
     const q = items.length === 1 && Number.isInteger(s.quote) && Array.isArray(items[0].quotes) ? items[0].quotes[s.quote] : undefined;

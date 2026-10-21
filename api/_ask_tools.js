@@ -570,54 +570,69 @@ function changesTool(args, ev, ctx) {
 
   const rec = data("data/changes/changes.json");
   const started = isDate(rec.started) ? rec.started : since;
-  const to = until === undefined || until > today ? today : until;
+  const asked = until === undefined || until > today ? today : until;
   const updates = (f, t, g) => `${UPDATES}?from=${f}&to=${t}&graph=${g}`;
+  const none = (item) => ({ from: since, to: asked, total: 0, range_total: 0, shown: 0, gaps: 0, gap_days: 0, missing_nights: 0, items: addAll(ev, [item]).map(view) });
   // A range wholly before the baseline night has no record at all: never "no changes were recorded". (A range that starts before
   // it and ends after it is clamped to the record below.)
   const firstRun = isDate(rec.first_run) ? rec.first_run : started;
-  if (to < firstRun) {
-    const item = {
-      kind: "change", found: false, before_start: true, from: since, to, first_run: firstRun,
-      text: `Daily updates started on ${dt(firstRun)}, so there is no record before then. The range asked about (${since} to ${to}) is wholly before it.`,
-      label: `No record before ${formatDate(firstRun)}`, url: updates(since, to, "all"), link: updates(since, to, "all"),
-    };
-    return { from: since, to, total: 0, range_total: 0, shown: 0, gaps: 0, gap_days: 0, missing_nights: 0, items: addAll(ev, [item]).map(view) };
+  if (asked < firstRun) {
+    return none({
+      kind: "change", found: false, before_start: true, from: since, to: asked, first_run: firstRun,
+      text: `Daily updates started on ${dt(firstRun)}, so there is no record before then. The range asked about (${since} to ${asked}) is wholly before it.`,
+      label: `No record before ${formatDate(firstRun)}`, url: updates(since, asked, "all"), link: updates(since, asked, "all"),
+    });
+  }
+  // Nor does a range wholly before the oldest night kept (nights past 120 days are trimmed): those days are gone, not quiet.
+  if (asked < started) {
+    return none({
+      kind: "change", found: false, trimmed: true, from: since, to: asked, started,
+      text: `Days before ${dt(started)} are no longer kept. The range asked about (${since} to ${asked}) is wholly before it.`,
+      label: `Days before ${formatDate(started)} no longer kept`, url: updates(since, asked, "all"), link: updates(since, asked, "all"),
+    });
   }
   const from = since > started ? since : started;
-  const inRecord = from <= to;
-  const shownFrom = inRecord ? from : since; // a range wholly before the record is reported as asked, not moved
+  const held = new Set((rec.days ?? []).map((d) => d.date).filter(isDate));
+  const last = [...held].sort().at(-1); // the latest night the record holds
+  // Tonight's run (04:00 UTC, often later) may not have happened yet. A range after the latest night held that ends today is "not
+  // yet"; otherwise what the record says of a range ends on the latest night it holds, so "no changes" never covers a night it lacks.
+  const notYet = asked === today && !(last >= from);
+  const to = last >= from && last < asked ? last : asked;
   const graphs = graph ? [graph] : ["fleet", "lobby"];
   const words = normalizeName(query).split(" ").filter(Boolean);
   const hay = (c) => normalizeName([c.name, c.summary, ...(c.endpoints || [])].join(" "));
-  const inRange = inRecord ? changesSince(rec, ["fleet", "lobby"], from, to) : [];
-  const all = inRecord ? changesSince(rec, graphs, from, to).filter((c) => words.every((w) => hay(c).includes(w))) : [];
+  const inRange = changesSince(rec, ["fleet", "lobby"], from, to);
+  const all = changesSince(rec, graphs, from, to).filter((c) => words.every((w) => hay(c).includes(w)));
   // every source's outages whatever the graph: the network's listing statuses come from the lists too
-  const sourceDays = inRecord ? sourceGaps(rec, ["fleet", "lobby"], from, to) : [];
+  const sourceDays = sourceGaps(rec, ["fleet", "lobby"], from, to);
   // A night from the first run to yesterday (UTC) that the record does not hold is a run that did not complete: not "no changes".
   // That includes the nights after the latest day held, so a stalled job shows, and nights before the first one held. Today is
-  // never flagged: its run (04:00 UTC) may not have happened yet.
-  const held = new Set((rec.days ?? []).map((d) => d.date).filter(isDate));
+  // never flagged: its run may not have happened yet.
   const yesterday = addDays(today, -1);
   const missing = [];
-  if (inRecord) for (let d = from > firstRun ? from : firstRun; d <= to && d <= yesterday; d = addDays(d, 1)) if (!held.has(d)) missing.push(d);
-  const runs = inRecord ? gapRuns([...sourceDays, ...missing.map((date) => ({ source: "nightly", date }))]) : [];
+  for (let d = from > firstRun ? from : firstRun; d <= asked && d <= yesterday; d = addDays(d, 1)) if (!held.has(d)) missing.push(d);
+  const runs = gapRuns([...sourceDays, ...missing.map((date) => ({ source: "nightly", date }))]);
   const gapDays = sourceDays.length;
   const shown = all.slice(0, CAP.changes);
 
   // (the words asked for are never repeated here: see check_lists)
   const scope = `${graph ? ` for the ${GRAPH_NAME[graph]}` : ""}${query ? " among those matching the words asked for" : ""}`;
-  const within = shownFrom === to ? `On ${dt(to)}` : `Between ${formatDate(shownFrom)} and ${formatDate(to)} (${shownFrom} to ${to})`;
+  const within = from === to ? `On ${dt(to)}` : `Between ${formatDate(from)} and ${formatDate(to)} (${from} to ${to})`;
   const items = [];
+  if (notYet) {
+    items.push({
+      kind: "change", found: false, not_yet: true, from, to: asked,
+      text: `Today's nightly update hasn't run yet, so ${dt(today)} is not in the record${last ? `; the latest night it holds is ${dt(last)}` : ""}.`,
+      label: `Nightly update of ${formatDate(today)}: not run yet`, url: updates(from, asked, "all"), link: updates(from, asked, "all"),
+    });
+  }
   // "No changes were recorded" is said only when the whole range is empty: with a filter that leaves nothing while the range holds
   // changes, it would be false, so only the gaps are reported then.
-  if (!all.length && !inRange.length && !missing.length) {
+  if (!notYet && !all.length && !inRange.length && !missing.length) {
     items.push({
-      kind: "change", found: false, from: shownFrom, to,
-      text: sentence(
-        shownFrom === to ? `No changes were recorded on ${formatDate(to)} (${to}).` : `No changes were recorded between ${formatDate(shownFrom)} and ${formatDate(to)} (${shownFrom} to ${to}).`,
-        !inRecord && `The change record starts on ${dt(started)}, so nothing earlier is recorded.`,
-      ),
-      label: shownFrom === to ? `No changes on ${formatDate(to)}` : `No changes ${formatDate(shownFrom)} to ${formatDate(to)}`, url: updates(shownFrom, to, "all"), link: updates(shownFrom, to, "all"),
+      kind: "change", found: false, from, to,
+      text: from === to ? `No changes were recorded on ${formatDate(to)} (${to}).` : `No changes were recorded between ${formatDate(from)} and ${formatDate(to)} (${from} to ${to}).`,
+      label: from === to ? `No changes on ${formatDate(to)}` : `No changes ${formatDate(from)} to ${formatDate(to)}`, url: updates(from, to, "all"), link: updates(from, to, "all"),
     });
   }
   for (const c of shown) {
@@ -644,7 +659,7 @@ function changesTool(args, ev, ctx) {
       label: f === t ? `${name} unavailable on ${formatDate(f)}` : `${name} unavailable ${formatDate(f)} to ${formatDate(t)}`, url: link, link,
     });
   }
-  return { from: shownFrom, to, total: all.length, range_total: inRange.length, shown: shown.length, gaps: runs.length, gap_days: gapDays, missing_nights: missing.length, items: addAll(ev, items).map(view) };
+  return { from, to, total: all.length, range_total: inRange.length, shown: shown.length, gaps: runs.length, gap_days: gapDays, missing_nights: missing.length, items: addAll(ev, items).map(view) };
 }
 
 // ---- connections ----------------------------------------------------------------------------------------------

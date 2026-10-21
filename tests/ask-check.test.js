@@ -75,6 +75,9 @@ before(async () => {
   E.ansan = await ask([["check_lists", { query: "AN SAN 1" }]]);
   E.week = await ask([["changes", { since: "2026-10-13" }]]);
   E.early = await ask([["changes", { since: "2026-01-01", until: "2026-01-31" }]]);
+  // the final review's case: 05:35 UTC on 21 Oct, before that night's run (the committed record's last night is 20 Oct)
+  E.notYet = await ask([["changes", { since: "2026-10-21", until: "2026-10-21" }]], "2026-10-21");
+  E.sinceHeld = await ask([["changes", { since: "2026-10-20" }]], "2026-10-21");
   E.chips = await ask([["chips", { topic: "summary" }], ["site_docs", { query: "How long the US took to list new chip suppliers" }]]);
   // round 4: the halves of "TAS\u00ADSOS" (a soft hyphen), as a model might search them; and the final check's sections
   E.halves = await ask([["check_lists", { query: "TAS SOS" }]]);
@@ -756,10 +759,14 @@ test("a gap run renders the range copy, a single day the day copy", () => {
   const run = find(E.ukDown, (e) => e.kind === "gap");
   assert.deepEqual([run.from, run.to, run.date], ["2026-10-21", "2026-10-22", undefined]);
   assert.deepEqual(texts(checkAnswer(answer(claim("change", run.id)), E.ukDown)), ["The UK list was unavailable from 21 Oct 2026 to 22 Oct 2026, so changes from it on those days aren't recorded."]);
-  // nights the record does not hold (the nightly job stalled after the 22nd) are a gap, and there is no "no changes" item to cite
-  assert.equal(E.stalled.some((e) => e.kind === "change"), false);
+  // nights the record does not hold (the nightly job stalled after the 22nd) are a gap, and there is no "no changes" item to cite:
+  // the only change item says today's run has not happened yet, and brings the gap of its range with it
+  assert.deepEqual(E.stalled.filter((e) => e.kind === "change").map((e) => [e.found, e.not_yet]), [[false, true]]);
   const stalled = find(E.stalled, (e) => e.kind === "gap");
-  assert.deepEqual(texts(checkAnswer(answer(claim("change", stalled.id)), E.stalled)), ["The nightly update was unavailable from 23 Oct 2026 to 25 Oct 2026, so changes from it on those days aren't recorded."]);
+  const STALLED = "The nightly update was unavailable from 23 Oct 2026 to 25 Oct 2026, so changes from it on those days aren't recorded.";
+  assert.deepEqual(texts(checkAnswer(answer(claim("change", stalled.id)), E.stalled)), [STALLED]);
+  const notYet = find(E.stalled, (e) => e.not_yet);
+  assert.deepEqual(texts(checkAnswer(answer(claim("change", notYet.id)), E.stalled)), ["Today's nightly update hasn't run yet.", STALLED]);
 });
 
 test("fix round 0 (4): NO_CHANGES for one day reads 'on', for a range 'between … and …'", () => {
@@ -786,6 +793,26 @@ test("a range wholly before the first run renders BEFORE_START, never NO_CHANGES
   assert.deepEqual([before.found, before.from, before.to, before.first_run], [false, "2026-01-01", "2026-01-31", "2026-10-20"]);
   const out = checkAnswer(answer(claim("change", before.id)), E.early);
   assert.deepEqual(out.sentences, [{ text: "Daily updates started on 20 Oct 2026, so there is no record before then.", sources: [{ n: 1, label: before.label, url: before.url }] }]);
+  assert.doesNotMatch(JSON.stringify(out), /No changes/);
+});
+
+test("final wave (2): before tonight's run, 'today' renders NOT_YET and a range from a night held says 'no changes' for held nights only", () => {
+  // "What changed today?" at 05:35 UTC on 21 Oct: the reviewer's render was "No changes were recorded on 21 Oct 2026."
+  const item = find(E.notYet, (e) => e.kind === "change");
+  assert.deepEqual([E.notYet.length, item.found, item.not_yet, item.from, item.to], [1, false, true, "2026-10-21", "2026-10-21"]);
+  const out = checkAnswer(answer(claim("change", item.id)), E.notYet, { question: "What changed today?" });
+  assert.deepEqual(out.sentences, [{ text: "Today's nightly update hasn't run yet.", sources: [{ n: 1, label: item.label, url: item.url }] }]);
+  assert.doesNotMatch(texts(out).join(" "), /No changes|21 Oct/);
+  // since the 20th: the 20th's changes, and nothing about the 21st
+  const rendered = texts(checkAnswer(answer(claim("change", ...E.sinceHeld.map((e) => e.id))), E.sinceHeld));
+  assert.ok(rendered.length > 0 && rendered.every((t) => / · 20 Oct 2026$/.test(t)), JSON.stringify(rendered));
+  assert.ok(E.sinceHeld.every((e) => !/21 Oct 2026|2026-10-21/.test(e.text)), "an item speaks for a night the record does not hold");
+});
+
+test("final wave (4): days trimmed from the record render TRIMMED, never NO_CHANGES", () => {
+  const ev = [{ id: "S1", kind: "change", found: false, trimmed: true, from: "2026-07-01", to: "2026-07-31", started: "2026-10-12", text: "Days before 12 Oct 2026 (2026-10-12) are no longer kept.", label: "Days before 12 Oct 2026 no longer kept", url: "/stories/updates/index.html?from=2026-07-01&to=2026-07-31&graph=all", quotes: [] }];
+  const out = checkAnswer(answer(claim("change", "S1")), ev);
+  assert.deepEqual(out.sentences, [{ text: "Days before 12 Oct 2026 are no longer kept.", sources: [{ n: 1, label: ev[0].label, url: ev[0].url }] }]);
   assert.doesNotMatch(JSON.stringify(out), /No changes/);
 });
 

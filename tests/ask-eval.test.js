@@ -91,6 +91,8 @@ function producers(ev) {
     if (e.kind === "opensanctions") add(`${e.entity.name} appears in OpenSanctions${e.program ? ` as listed by ${e.program}` : ""}${since}.`, e);
     if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted) add(`${e.entity.name} appears on the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}${since}.`, e);
     if (e.kind === "change" && e.before_start) add(`Daily updates started on ${day(e.first_run)}, so there is no record before then.`, e);
+    else if (e.kind === "change" && e.trimmed) add(`Days before ${day(e.started)} are no longer kept.`, e);
+    else if (e.kind === "change" && e.not_yet) add("Today's nightly update hasn't run yet.", e);
     else if (e.kind === "change" && e.found === false) add(e.from === e.to ? `No changes were recorded on ${day(e.from)}.` : `No changes were recorded between ${day(e.from)} and ${day(e.to)}.`, e);
     else if (e.kind === "change") add(`${e.summary} · ${day(e.date)}`, e);
     if (e.kind === "gap") {

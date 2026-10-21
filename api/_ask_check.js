@@ -179,8 +179,9 @@ const RENDER = {
       : e.found === false ? [{ text: NO_CHANGES(e.from, e.to), items: [e] }, ...gaps(e)]
       : [{ text: `${e.summary} · ${day(e.date)}`, items: [e] }]));
   },
-  // one sentence of one item, verbatim
-  quote: (items, s) => {
+  // one sentence of one item, verbatim. A change or gap item has no quotes: a quote of one alone is its change claim, the fixed copy above
+  quote: (items, s, all) => {
+    if (items.length === 1 && (items[0].kind === "change" || items[0].kind === "gap")) return RENDER.change(items, s, all);
     const q = items.length === 1 && Number.isInteger(s.quote) && Array.isArray(items[0].quotes) ? items[0].quotes[s.quote] : undefined;
     return typeof q === "string" ? [{ text: q, items }] : [];
   },

@@ -9,7 +9,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkAnswer, adviceIntent } from "../api/_ask_check.js";
-import { runTool, resetAskCache } from "../api/_ask_tools.js";
+import { runTool, resetAskCache, LISTING } from "../api/_ask_tools.js";
 import { INDEX_URL } from "../api/search.js";
 import { formatDate } from "../app/render.js";
 
@@ -1014,6 +1014,25 @@ test("final wave (1): a span with listing, authority or clean-bill words is drop
   }
   for (const [query, shown] of [["Zorbex Trading Ltd", "Zorbex Trading Ltd"], ["Zorbex & Sons", "Zorbex & Sons"], ["IMO 1234567", "IMO 1234567"]]) {
     assert.deepEqual(texts(notFound(search(query), `Is ${query} sanctioned?`)), [NOT_FOUND(shown)], query);
+  }
+});
+
+test("minors (1): a verdict the word list never named falls back: un- listing forms, vetting participles, standing adjectives", () => {
+  // the re-review's repro, and the rest of the class
+  for (const words of ["unblocked", "unblock", "un-blocked", "unbanned", "undesignated", "untargeted", "derestricted", "unpunished",
+    "trustworthy", "creditworthy", "legit", "legitimate", "reliable", "reputable", "dependable", "acceptable", "permissible", "approved", "pre-approved",
+    "compliant", "permitted", "allowed", "lawful", "legal", "authorised", "authorized", "vetted", "verified", "unverified", "whitelisted", "trusted",
+    "screened", "passed screening", "okayed", "OK'd", "pardoned", "certified", "harmless", "nothing found", "zero hits"]) {
+    const query = `Zorbex ${words}`;
+    assert.deepEqual(notFound(search(query), `Look up ${query}`), FALLBACK_ANSWER, words);
+  }
+  // the listing forms are listing language for the quotes too; a word that only ends like one is not
+  for (const w of ["unblocked", "unblock", "blocking", "un-blocked", "unbanned", "undesignated", "untargeted", "derestricted", "unpunished", "unfrozen", "unsanctioned", "de-listed"]) assert.match(w, LISTING, w);
+  for (const w of ["defined", "refined", "urban", "unbanked", "blockchain"]) assert.doesNotMatch(w, LISTING, w);
+  // plain names, those close to the patterns among them, still print
+  for (const name of ["Zorbex Marine", "Zorbex", "Zorbex Marine Services Ltd", "Gatik Ship Management", "Zorbex & Sons", "Isis Marine", "Notos Shipping",
+    "Clearwater Shipping", "Trustco Marine", "Okeanos Shipping", "Passat Tankers"]) {
+    assert.deepEqual(texts(notFound(search(name), `Is ${name} sanctioned?`)), [NOT_FOUND(name)], name);
   }
 });
 

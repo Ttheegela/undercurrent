@@ -105,7 +105,8 @@ const quoteMax = (kind) => (EXPLAINER.has(kind) ? 20 : 12);
 const SENTENCES = new Intl.Segmenter("en", { granularity: "sentence" });
 // a segment ending in an initialism ("U.S.", "e.g.", "J.") or a common abbreviation ("St.", "Pte.", "LTD.") is not a sentence's end
 const ABBREVIATION = /(?:^|[\s(])(?:(?:[A-Za-z]\.){2,}|[A-Z]\.|(?:St|Co|Ltd|LTD|Pte|PTE|Inc|Rep|Sen|Jr|Sec|Reg|No|Mr|Ms|Dr|vs|etc|approx|incl)\.)$/;
-export const LISTING = /\b(?:\w*sanction\w*|\w*list\w*|designat\w*|target(?:s|ed|ing)?|(?:un)?fr(?:o|ee)z\w*|blocked|penalis\w*|penaliz\w*|penalt\w*|embargo\w*|prohibit\w*|(?:de)?barred|restrict\w*|ban(?:s|ned)?|fine[sd]?|punish\w*|remov(?:e[sd]?|als?)|lift(?:s|ed)?|revok\w*)\b|\bappear(?:s|ed|ing)?\s+on\b/i;
+// (with un-, de- or non- in front: "unblocked", "unbanned", "derestricted"; never on "fine", which would take "defined" and "refined")
+export const LISTING = /\b(?:\w*sanction\w*|\w*list\w*|fine[sd]?|(?:un|de|non)?-?(?:designat\w*|target(?:s|ed|ing)?|fr(?:o|ee)z\w*|block(?:s|ed|ing)?|penalis\w*|penaliz\w*|penalt\w*|embargo\w*|prohibit\w*|barred|restrict\w*|ban(?:s|ned)?|punish\w*|remov(?:e[sd]?|als?)|lift(?:s|ed)?|revok\w*))\b|\bappear(?:s|ed|ing)?\s+on\b/i;
 export const AUTHORITY = /\b(?:OFAC|SDN|Treasury|OFSI|BIS|Commerce|Entity List)\b/i; // the authority behind a listing counts as listing language
 
 // A sentence with listing language is offered only from a doc or chips item, and only when every capitalised word in it, the first

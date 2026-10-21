@@ -950,8 +950,8 @@
     "category": "relevance",
     "question": "please check if there are any companies related to iran in the recent updates!",
     "calls": [["changes",{"since":"2026-10-14"}]],
-    "note": "Asked on the live site. Every update recorded so far is a lobbying filing and none involves Iran. Ask has no reply yet for 'none of them match', so declining is right; citing the lobbying updates is wrong.",
-    "expect": {"kind":"fallback","excludes":["lobbied","New bill","lobbyist"]},
+    "note": "Asked on the live site. Every update recorded so far is a lobbying filing and none involves Iran. Ask has no reply yet for 'none of them match', so declining is right; citing the lobbying updates is wrong. An answer is allowed too, so a night that records a real Iran-related change doesn't fail a correct model.",
+    "expect": {"kind":"fallback","also":["answer"],"excludes":["lobbied","New bill","lobbyist"]},
     "model": {"kind":"answer","sentences":[],"next":[]},
     "evidence": [
       {"id":"S1","kind":"change","entity":{"id":"bill:hr6058","name":"H.R.6058"},"date":"2026-10-21","summary":"New bill: H.R.6058","text":"New bill: H.R.6058. Item: H.R.6058. Kind: added. Seen in the nightly update of 21 Oct 2026 (2026-10-21) on the lobbying network. Source: US Senate lobbying disclosure (LDA). Between 20 Oct 2026 and 21 Oct 2026 (2026-10-20 to 2026-10-21): 10 changes recorded.","label":"21 Oct 2026: New bill: H.R.6058","url":"https://lda.gov/filings/public/filing/4e52e206-5863-4f3a-b472-0c3140fd5051/print/","link":"/stories/who-lobbies/influence-network/index.html#focus=bill:hr6058&since=2026-10-21","quotes":[]},
@@ -985,8 +985,8 @@
     "category": "relevance",
     "question": "any sanctions on ships which are related to iran?",
     "calls": [["check_lists",{"query":"Iran"}]],
-    "note": "Asked on the live site. check_lists takes a name, and a lookup of Iran finds the research ships listed under Iran: those are the answer. 'Not on the lists' would mislead.",
-    "expect": {"kind":"answer","includes":["under Iran"],"excludes":["is not on the lists"]},
+    "note": "Asked on the live site. check_lists takes a name, and a lookup of Iran finds the research ships listed under Iran: those are the answer. 'Not on the lists' would mislead, and an answer that cites the non-ship entities the lookup also returns (an airline, insurers, a tyre maker, a shipping line, the atomic energy body and others) fails. The excludes follow today's data and may need refreshing.",
+    "expect": {"kind":"answer","includes":["under Iran"],"excludes":["is not on the lists","Iran Air","Iran Puya","Iran Pooya","Iran Tire","Bimeh Iran","Raad Iran","IDRO of Iran","Iran Safron","South Shipping Line","Atomic Energy","Raka appears"]},
     "model": {"kind":"answer","sentences":[{"claim":"listed","sources":["S2","S3","S4"]}],"next":[{"source":"S2"}]},
     "evidence": [
       {"id":"S1","kind":"search","query":"Iran","found":true,"near":["IRANAIR","Irancompo","Iranska banka","Irans moralpolis","IRANO HIND SHIPPING COMPANY"],"text":"Searched the US, UK, EU and UN official lists, Undercurrent research and OpenSanctions for the name or IMO number asked about. Found: at least 3 research entries, at least 5 United States list records, at least 5 United Kingdom list records, at least 5 European Union list records, 2 United Nations list records, at least 3 OpenSanctions entries. Official lists last downloaded: United States 21 Oct 2026 (2026-10-21); United Kingdom 21 Oct 2026 (2026-10-21); European Union 21 Oct 2026 (2026-10-21); United Nations 21 Oct 2026 (2026-10-21). Names similar to the query exist (listed in near); they are not matches and say nothing about whether anything is listed.","label":"Search of the lists, research and OpenSanctions","url":"/","quotes":[]},

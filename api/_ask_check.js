@@ -239,7 +239,8 @@ function listOf(x) {
 const notice = (ctx) => (adviceIntent(ctx?.question) ? [{ text: NOT_ADVICE, items: [] }] : []);
 
 /**
- * raw: the model's `answer` arguments {kind, sentences: [{claim, sources, quote?}], next: [{source}]} (anything else in it is ignored);
+ * raw: the model's `answer` arguments {kind, sentences: [{claim, sources, quote?}], next: [{source}]} (anything else in it is ignored;
+ * sentences and next may each arrive as a JSON string of that array, see listOf);
  * ev: the evidence of this question; ctx.question: the reader's latest message (NOT_FOUND names a query only when it is there).
  * Returns {kind: "answer"|"refusal"|"clarify"|"fallback", sentences: [{text, sources: [{n, label, url}]}], next: [{label, href}]}.
  */

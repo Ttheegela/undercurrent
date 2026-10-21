@@ -983,8 +983,10 @@ test("second eval run (area-changes-1): sentences or next sent as a JSON string 
     assert.deepEqual(raw, sent); // the caller's object, the traced input, stays as the model sent it
   }
   // a string that is not one JSON array is no list, as before: malformed, an object, a string, a list encoded twice, free text
-  const notALists = ['[{"claim":"change","sources":["S1"]}', "{}", '"x"', "null", "5", "", JSON.stringify(JSON.stringify(sentences)), "NVIDIA lobbied on five new bills.", '[{"__proto__":{"claim":"change","sources":["S1"]}}]'];
-  for (const bad of notALists) {
+  const notALists = ['[{"claim":"change","sources":["S1"]}', "{}", '"x"', "null", "5", "", JSON.stringify(JSON.stringify(sentences)), "NVIDIA lobbied on five new bills."];
+  // and a list whose one element has no claim: a JSON "__proto__" key is an own property, never the element's prototype
+  const protoKey = '[{"__proto__":{"claim":"change","sources":["S1"]}}]';
+  for (const bad of [...notALists, protoKey]) {
     assert.deepEqual(checkAnswer({ kind: "answer", sentences: bad, next }, E.week, ctx), FALLBACK_ANSWER, bad);
     assert.deepEqual(checkAnswer({ kind: "answer", sentences, next: bad }, E.week, ctx), { ...want, next: [] }, bad); // no next step, the answer stands
   }

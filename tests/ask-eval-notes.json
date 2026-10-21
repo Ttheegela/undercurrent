@@ -13,5 +13,15 @@
     "experiment": "ask-manual-95bde11f",
     "case": "date-range-1",
     "note": "Ask error, fixed. The model asked to quote the nightly-update record for January, which has nothing to quote, so the answer check refused and Ask fell back. A quote of an update or gap record now shows that record's own fixed sentence: 'Daily updates started on 20 Oct 2026, so there is no record before then.' (PR #32)."
+  },
+  {
+    "experiment": "ask-manual-2114173c",
+    "case": "area-changes-1",
+    "note": "Ask error, fixed. The model chose the right ten update records but sent its list of sentences as one JSON text string instead of a list, so the answer check could not read it and Ask fell back. The check now decodes a list sent as text; nothing the model writes is ever printed (PR #33)."
+  },
+  {
+    "experiment": "ask-manual-2114173c",
+    "case": "area-lobbying-1",
+    "note": "Ask error, fixed. The model cited the lobbying records with the 'appears on a sanctions list' claim, and the answer check refused, as it must: a lobbying firm is never shown as sanctioned. Ask's instructions now keep that claim to list records and answer lobbying and connections with quotes (PR #33)."
   }
 ]

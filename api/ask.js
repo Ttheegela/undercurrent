@@ -156,7 +156,8 @@ const parse = (args) => {
 /**
  * Up to four rounds of tool calls (ten calls in all), then one call forced to `answer`. The answer call's arguments go to the checker
  * with the evidence the tools returned in this request, which is the only evidence there is: earlier turns are plain context.
- * callModel, runTool and checkAnswer are used as `wrap` returns them, for this request only.
+ * callModel, runTool and checkAnswer are used as `wrap` returns them, for this request only, and each is awaited: a tracing wrapper
+ * returns a promise even for the checker.
  */
 async function converse(history, now, wrap) {
   const model = wrap("callModel", callModel);
@@ -177,7 +178,7 @@ async function converse(history, now, wrap) {
     const final = calls.find((c) => c.function.name === "answer");
     // An answer call is final, but only alone: beside lookups it was written before their results, so it cannot cite them and would
     // read as complete without them. A forced call that is not an answer, and a reply with no call, are the fallback.
-    if (final || forced || !calls.length) return { ok: true, answer: check(final && calls.length === 1 ? parse(final.function.arguments) : undefined, ev, { question }) };
+    if (final || forced || !calls.length) return { ok: true, answer: await check(final && calls.length === 1 ? parse(final.function.arguments) : undefined, ev, { question }) };
     const asked = calls.slice(0, Math.min(CALLS_PER_ROUND, MAX_TOOL_CALLS - used)).map((c, i) => ({
       id: typeof c.id === "string" && c.id ? c.id : `call_${round}_${i}`,
       type: "function",

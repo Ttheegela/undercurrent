@@ -895,4 +895,5 @@ test("nothing under api/ imports langsmith, and package.json has it only in devD
   for (const [key, deps] of Object.entries(pkg)) {
     if (/dependencies$/i.test(key) && key !== "devDependencies") assert.ok(!JSON.stringify(deps).includes("langsmith"), `langsmith is in ${key}`);
   }
+  assert.match(pkg.devDependencies.langsmith ?? "", /^\d+\.\d+\.\d+$/, "langsmith is a devDependency, pinned to an exact version");
 });

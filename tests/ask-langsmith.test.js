@@ -341,7 +341,7 @@ test("the relevance judge scores answered cases whose answer is an answer, on wh
   // the version that answered, and the clarifies apart
   assert.equal(calls.find(([name]) => name === "evaluate")[1].metadata.judge_model, "jev-latest");
   assert.deepEqual(result.relevance, { judged: 2, mean_relevance: 0.5, mean_unrelated: 0.5, judge_tokens: 600, judge_models: ["jev-1.13.0"], unavailable: 0, clarified: 1, gate_tokens: 0 });
-  assert.match(summary(result), /^- Relevance \(Jev\): 2 judged, mean relevance 0\.5, mean unrelated 0\.5, 600 judge input tokens \(jev-1\.13\.0\); asked to clarify: 1\.$/m);
+  assert.match(summary(result), /^- Relevance \(Jev\): 2 judged, pooled mean relevance 0\.5, pooled mean unrelated 0\.5, 600 judge input tokens \(jev-1\.13\.0\); asked to clarify: 1\.$/m);
 });
 
 test("the judge never changes pass or any other score: the same answers judged as badly as can be, and not judged at all", async (t) => {
@@ -390,7 +390,7 @@ test("a case the judge could not judge gets no relevance scores and is counted a
   const scores = scoresOf(rows);
   assert.deepEqual([scores["area-lists-1"].relevance.score, scores["area-research-1"].relevance, scores["area-research-1"].pass.score], [1, undefined, 1]);
   assert.deepEqual(result.relevance, { judged: 1, mean_relevance: 1, mean_unrelated: 0.1, judge_tokens: 300, judge_models: ["jev-1.13.0"], unavailable: 1, clarified: 0, gate_tokens: 0 });
-  assert.match(summary(result), /^- Relevance \(Jev\): 1 judged, mean relevance 1, mean unrelated 0\.1, 300 judge input tokens \(jev-1\.13\.0\); judge unavailable for 1 case; asked to clarify: 0\.$/m);
+  assert.match(summary(result), /^- Relevance \(Jev\): 1 judged, pooled mean relevance 1, pooled mean unrelated 0\.1, 300 judge input tokens \(jev-1\.13\.0\); judge unavailable for 1 case; asked to clarify: 0\.$/m);
 });
 
 test("a key that is set but a judge that fails every time: the summary says the judge was unavailable, not that no case was judged", async (t) => {
@@ -493,7 +493,9 @@ test("answer_rate is answered / should_answer: a decline (the fallback, or only 
   const scores = scoresOf(rows);
   assert.deepEqual(["relevance-2", "count-1", "none-4", "area-lists-1"].map((id) => [scores[id].fallback.score, scores[id].pass.score]), [[1, 0], [1, 0], [1, 1], [0, 1]]);
   assert.equal(scores["none-4"].pass.comment, undefined);
-  assert.match(summary(result), /^- Answer rate: 0\.5 \(2 of the 4 questions Ask should answer\)\.$/m);
+  assert.match(summary(result), /^- Answer rate, pooled: 0\.5 \(2 of the 4 questions Ask should answer got an answer or a clarifying question, not a decline or a refusal\)\.$/m);
+  // the replies scored, apart from the answer rate's "answered": every reply that is no infrastructure outcome, refusals and declines too
+  assert.match(summary(result), /^- Replied \(outcome quality\): 6 \(4 passed, 2 failed\)$/m);
   assert.equal(result.repetitions, undefined); // (one run: the shape of before, plus answer_rate)
   assert.deepEqual(result.failures, ["relevance-2", "count-1"]);
 });
@@ -526,7 +528,16 @@ test("with repetitions: each metric's mean and worst run, and every case that fa
   assert.equal(calls.filter(([name]) => name === "createFeedback").length, 4); // (a note on each failed run)
   const md = summary(result);
   assert.match(md, /^- Failed: area-research-1 \(2 of 3 runs\), area-lists-1 \(1 of 3 runs\), count-3 \(1 of 3 runs\)$/m);
-  assert.match(md, /^- Repetitions: 3\. Mean \(worst run\): pass rate 0\.667 \(0\.25\), relevance 0\.889 \(0\.667\), unrelated 0\.189 \(0\.367\), answer rate 0\.889 \(0\.667\)\.$/m);
+  assert.match(md, /^- Repetitions: 3\. Mean of runs \(worst run\): pass rate 0\.667 \(0\.25\), relevance 0\.889 \(0\.667\), unrelated 0\.189 \(0\.367\), answer rate 0\.889 \(0\.667\)\.$/m);
+});
+
+test("final review minor 8: a case held by two examples (a copy the next sync removes) is counted by example, never past the last run", async () => {
+  const c = byId("area-lists-1");
+  const { rows, deps } = setup([c, c], fakeAsk({ [c.id]: {} }));
+  const result = await runEvals({ trigger: "manual", pr: null, sync: false, commit: SHA, repetitions: 3 }, deps);
+  assert.equal(rows.length, 6);
+  assert.deepEqual([result.counts.quality, result.counts.pass], [6, 6]);
+  assert.deepEqual(result.repetitions.pass_rate, { mean: 1, worst: 1, runs: [1, 1, 1] }); // each run holds both copies
 });
 
 test("no traced payload contains the OpenRouter key", async (t) => {

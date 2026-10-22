@@ -274,17 +274,19 @@ export async function runEvals(opts, deps) {
   const failed = new Map(); // case id -> how many of its runs failed, in the order the cases first failed
   let clarified = 0;
   let gateTokens = 0;
-  // each run of the set: a case's k-th result is its run k (the SDK orders the results by repetition)
+  // each run of the set: an example's k-th result is its run k (the SDK orders the results by repetition). By example, not case: a case
+  // held by two examples (a copy the next sync removes) has twice n results
   const runs = Array.from({ length: n }, () => ({ quality: 0, pass: 0, answered: 0, should_answer: 0, judged: 0, relevance: 0, unrelated: 0 }));
-  const seen = new Map(); // case id -> its results so far
+  const seen = new Map(); // example id -> its results so far
   const note = `Under review · ${deps.now().toISOString().slice(0, 10)} · ${opts.commit.slice(0, 7)}`;
   for (const { run, example, evaluationResults } of results.results) {
     const caseId = example.metadata?.case_id;
     if (run.outputs?.threw) console.error(`ask-langsmith: runAsk threw on case ${caseId}`); // (not the error: it can quote the request)
     const got = Object.fromEntries(evaluationResults.results.map((r) => [r.key, r]));
     if (!got.outcome) throw new Error(`case ${caseId} has no scores: its evaluator or its feedback upload failed (see the error above)`);
-    const r = runs[seen.get(caseId) ?? 0];
-    seen.set(caseId, (seen.get(caseId) ?? 0) + 1);
+    const k = seen.get(example.id) ?? 0;
+    seen.set(example.id, k + 1);
+    const r = runs[Math.min(k, n - 1)]; // (never past the last run, whatever the SDK hands back)
     counts[got.outcome.value]++;
     gateTokens += run.outputs?.gate_tokens ?? 0;
     const answer = run.outputs?.result?.answer;
@@ -373,7 +375,8 @@ async function noteIds(client, { experiment, case: caseId }) {
 /** What the judge made of the run: the judged cases' means, the cases it could not judge, and the clarifies, which it does not judge. */
 function relevanceLine(r) {
   const parts = [
-    ...(r.judged ? [`${r.judged} judged, mean relevance ${r.mean_relevance}, mean unrelated ${r.mean_unrelated}, ${r.judge_tokens} judge input tokens (${r.judge_models.join(", ")})`] : []),
+    // (pooled: over every judged answer of every run, apart from the repetitions line's mean of the runs' own means)
+    ...(r.judged ? [`${r.judged} judged, pooled mean relevance ${r.mean_relevance}, pooled mean unrelated ${r.mean_unrelated}, ${r.judge_tokens} judge input tokens (${r.judge_models.join(", ")})`] : []),
     ...(r.unavailable ? [`judge unavailable for ${r.unavailable} ${r.unavailable === 1 ? "case" : "cases"}`] : []),
   ];
   return [...(parts.length ? parts : ["no case judged"]), `asked to clarify: ${r.clarified}`].join("; ");
@@ -390,13 +393,14 @@ export function summary({ experiment, url, trigger, model, commit, counts: c, fa
     "",
     `Trigger: ${trigger}, model \`${model}\`, commit ${commit.slice(0, 7)}. [Open the experiment in LangSmith](${url})`,
     "",
-    `- Answered: ${c.quality} (${c.pass} passed, ${c.fail} failed)`,
+    // (every reply with the outcome quality, a refusal or a decline too: the answer rate's "answered" is narrower)
+    `- Replied (outcome quality): ${c.quality} (${c.pass} passed, ${c.fail} failed)`,
     `- Unavailable: ${c.unavailable}. Budget reached: ${c.budget}. Download failed: ${c.download_failed}.`,
     ...(failures.length ? [`- Failed: ${failures.map(failure).join(", ")}`] : []),
-    `- Answer rate: ${answer_rate ?? "n/a"} (${c.answered} of the ${c.should_answer} questions Ask should answer).`,
+    `- Answer rate, pooled: ${answer_rate ?? "n/a"} (${c.answered} of the ${c.should_answer} questions Ask should answer got an answer or a clarifying question, not a decline or a refusal).`,
     `- Relevance (Jev): ${relevanceLine(r)}.`,
     `- Relevance gate (Jev): ${r.gate_tokens} input tokens.`,
-    ...(reps ? [`- Repetitions: ${reps.n}. Mean (worst run): pass rate ${meanWorst(reps.pass_rate)}, relevance ${meanWorst(reps.mean_relevance)}, unrelated ${meanWorst(reps.mean_unrelated)}, answer rate ${meanWorst(reps.answer_rate)}.`] : []),
+    ...(reps ? [`- Repetitions: ${reps.n}. Mean of runs (worst run): pass rate ${meanWorst(reps.pass_rate)}, relevance ${meanWorst(reps.mean_relevance)}, unrelated ${meanWorst(reps.mean_unrelated)}, answer rate ${meanWorst(reps.answer_rate)}.`] : []),
     ...(sync ? [`- Dataset synced from main: ${sync.created} added, ${sync.updated} updated, ${sync.removed} removed.`] : []),
     "",
   ].join("\n");

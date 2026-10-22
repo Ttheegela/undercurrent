@@ -191,13 +191,13 @@ All of this keeps the guarantee that the model writes no text.
   - **Results:** matches return as change items, as today.
   - **When nothing matches:** a `{kind:"change", found:false, topic:{label}, checked_fleet, checked_lobby, unchecked, from, to}` item renders:
     - "None of the {checked} updates recorded between {from} and {to} involve {topic}."
-    - plus, when `unchecked > 0`: "{unchecked} updates in that period carry no programme or country to check."
+    - plus, when `unchecked > 0`: "{unchecked} updates in that period can't be checked against {topic}." (singular: "1 update in that period can't be checked against {topic}.")
   - **Unchanged:** the existing before-start, trimmed, not-yet and gap logic still apply first.
 
 - [ ] **Step 1: Write the failing tests.** Fixture records cover a fleet change for an Iran-programme ship, a lobby change in the russia group, and an unjoinable bill.
   - `topic filter matches fleet changes by programme`.
   - `topic filter matches lobby changes by kg group`.
-  - `nothing matching says none of the checked updates and counts the unchecked`. On the committed record of 20–21 Oct, topic Iran gives "None of the 0 updates …" plus "10 updates in that period carry no programme or country to check." Assert the exact text.
+  - `nothing matching says none of the checked updates and counts the unchecked`. On the committed record of 20–21 Oct, topic Iran gives "None of the 0 updates …" plus "10 updates in that period can't be checked against Iran." Assert the exact text.
   - `free-text query still works and is unaffected by topic`.
 - [ ] **Step 2:** Run the tests. Expected: FAIL.
 - [ ] **Step 3: Implement.**

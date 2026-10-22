@@ -55,9 +55,10 @@ test("the stylesheet and the panel add no inline style and no storage", () => {
 });
 
 test("the panel and the about page name TypeSafe", () => {
-  // About the data says what Ask does with a question: the model (OpenRouter), the relevance check (TypeSafe), no training, nothing stored
+  // About the data says what Ask does with a question: the model (OpenRouter, held only to what each request enforces: providers that
+  // don't collect user data), the relevance check (TypeSafe, which doesn't train on it), nothing stored
   const html = readFileSync(new URL("stories/about-the-data.html", ROOT), "utf8");
-  const privacy = "Ask, the chat panel, sends your question and data from this site to an AI model (Claude Haiku 5.5, through OpenRouter). The sentences of its answer then go, with your question, to a relevance check (TypeSafe), which removes any that don't bear on the question. Under their terms, neither OpenRouter nor TypeSafe uses what it is sent for training. Undercurrent stores no conversation: there are no accounts, the conversation lives only in your browser tab and is gone when you close the panel, and the server logs no message text.";
+  const privacy = "Ask, the chat panel, sends your question and data from this site to an AI model (Claude Haiku 5.5, through OpenRouter). Each request tells OpenRouter to use only model providers that don't collect user data. The sentences of its answer then go, with your question, to a relevance check (TypeSafe), which removes any that don't bear on the question. Under its terms, TypeSafe does not use what it is sent for training. Undercurrent stores no conversation: there are no accounts, the conversation lives only in your browser tab and is gone when you close the panel, and the server logs no message text.";
   assert.ok(html.includes(`<p>${privacy}</p>`));
   assert.ok(html.includes('id="ask"'), "the panel links to it");
   // the panel's own line (the smoke test sees it rendered)

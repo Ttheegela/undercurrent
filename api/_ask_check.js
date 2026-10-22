@@ -3,7 +3,7 @@
 // not-found and change sentences from fixed copy and the cited items, quotes copied verbatim from the cited item. Anything it can't build is
 // dropped, and an answer with nothing left is the fallback. Any `text` or label from the model is ignored. No I/O beyond the site's
 // own prose vocabulary, read once. The output is plain text plus {label, url} / {label, href} taken from the evidence: the panel escapes it.
-import { LIST_LABELS, formatDate } from "../app/render.js";
+import { LIST_LABELS, formatDate, joinAnd } from "../app/render.js";
 import { siteVocabulary, LISTING, AUTHORITY } from "./_ask_tools.js";
 
 // ---- fixed copy (global-constraints.md, verbatim; the range, one-day, OpenSanctions, clarify, before-start, trimmed, not-yet, part-answer and not-advice forms by ruling)
@@ -58,18 +58,37 @@ const SHOWING = (n, total) => `Showing ${num(n)} of ${num(total)}.`;
 // programme of that name, on the list or on any of the four
 const LABELS = Object.values(LIST_LABELS);
 const ALL_LISTS = `the ${LABELS.slice(0, -1).join(", ")} or ${LABELS.at(-1)} lists`;
+// Ships in the research map, by what its count's filters say they are, from fixed fragments and the vocabulary's labels: "are tankers and
+// are under a Russia programme and an Iran programme". A flag is always "by at least one source": the sources can disagree.
+const MAP_SHIPS = "ships in Undercurrent's research map";
+const SHIP_TYPE = { tanker: ["a tanker", "tankers"], cargo: ["a cargo ship", "cargo ships"], container: ["a container ship", "container ships"], "bulk carrier": ["a bulk carrier", "bulk carriers"], tug: ["a tug", "tugs"] };
+function shipsThat(f, one) {
+  const be = one ? "is" : "are";
+  return joinAnd([
+    f.ship_type && `${be} ${SHIP_TYPE[f.ship_type][one ? 0 : 1]}`,
+    f.programme && `${be} under ${joinAnd(f.programme.map((g) => `${/^[AEIOU]/.test(g.label) ? "an" : "a"} ${g.label} programme`))}`,
+    f.listed_by && `${be} listed by the ${LIST_LABELS[f.listed_by]}`,
+    f.flag && `${be} recorded as ${f.flag.label}-flagged by at least one source`,
+    f.names_changed && `${one ? "has" : "have"} had more than one name`,
+  ].filter(Boolean));
+}
 function COUNT(e) {
   switch (e.unit) {
     case "records": {
       const under = e.topic.region ? `${e.topic.label} programmes` : `the ${e.topic.label} programme`;
       return `${e.n === 1 ? "1 record" : `${num(e.n)} records`} on the ${LIST_LABELS[e.list]} list ${e.n === 1 ? "is" : "are"} under ${under}.`;
     }
+    // names changed alone is counted out of every ship in the map
+    case "ships": return Object.keys(e.filters).join() === "names_changed"
+      ? `${num(e.n)} of the ${num(e.total_ships)} ${MAP_SHIPS} ${shipsThat(e.filters, e.n === 1)}.`
+      : `${e.n === 1 ? "1 ship" : `${num(e.n)} ships`} in Undercurrent's research map ${shipsThat(e.filters, e.n === 1)}.`;
     default: return null;
   }
 }
 function NONE_MATCHED(e) {
   switch (e.unit) {
     case "records": return `No programme on ${e.list ? `the ${LIST_LABELS[e.list]} list` : ALL_LISTS} is named ${e.topic.label}.`;
+    case "ships": return `None of the ${MAP_SHIPS} ${shipsThat(e.filters, false)}.`;
     default: return null;
   }
 }

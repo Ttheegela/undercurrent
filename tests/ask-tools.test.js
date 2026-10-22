@@ -111,6 +111,22 @@ const RESEARCH = [
   ...Array.from({ length: 5 }, (_, i) => entry({ id: `IMO70000${i}`, name: `AMBER ${i}`, listings: [], sources: [] })),
 ];
 
+// The research map: four ships with an IMO id (three of them in the research above) and one without, and their flags from each source
+// a ship's flags are read from: a flagged_in link, the US list's flag, the UK's flag now. A former flag is no flag. No country here is a
+// programme of the lists, and none is Panama (an unknown programme word above)
+const hull = (imo, o) => ({ id: `IMO${imo}`, type: "ship", imo, listed: true, programs: [], listed_by: [], name_count: 1, ...o });
+const FLEET = {
+  nodes: [
+    { id: "cc:lr", type: "country", name: "Liberia" }, { id: "cc:km", type: "country", name: "Comoros" }, { id: "cc:sl", type: "country", name: "Sierra Leone" },
+    hull("9408695", { name: "TASSOS", program_group: "both", programs: ["russia", "iran"], listed_by: ["us", "eu", "uk"], ship_type: "Crude Oil Tanker", name_count: 3, flag_now: "km" }),
+    hull("1111111", { name: "TASSOS STAR", program_group: "iran", programs: ["iran"], listed_by: ["us"], ship_type: "Oil Tanker", flag_us: "lr" }),
+    hull("7654321", { name: "SI HE", program_group: "iran", programs: ["iran"], listed_by: ["us"], ship_type: "General Cargo", name_count: 2, flag_now: "lr" }),
+    hull("700000", { name: "AMBER 0", program_group: "russia", programs: ["russia"], listed_by: ["uk"] }), // in the research, with no listing to show
+    { id: "ship:nameless", type: "ship", name: "NAMELESS", program_group: "russia", programs: ["russia"], listed_by: ["uk"], name_count: 2 },
+  ],
+  edges: [{ s: "IMO9408695", t: "cc:lr", y: "flagged_in" }, { s: "IMO7654321", t: "cc:sl", y: "formerly_flagged_in" }],
+};
+
 const ship = (n, date, o = {}) => ({ date, graph: "fleet", kind: "added", item: "node", id: `IMO${1000000 + n}`, name: `SHIP ${n}`, node_type: "ship", summary: `New on the map: SHIP ${n}`, source_url: "https://example.org/list", source_label: "UK Sanctions List", ...o });
 const lobbyEdge = (n, date) => ({ date, graph: "lobby", kind: "added", item: "edge", id: `e:${n}`, name: "NVIDIA → H.R.8800", node_type: "lobbied_on", endpoints: ["NVIDIA", "H.R.8800"], endpoint_ids: ["co:nvidia", "bill:hr8800"], summary: "NVIDIA lobbied on H.R.8800", source_url: "https://lda.gov/filings/public/filing/x/print/", source_label: "US Senate lobbying disclosure (LDA)" });
 const FRESH = { us: "fresh", uk: "fresh", eu: "fresh", un: "fresh", lobbying: "fresh" };
@@ -187,8 +203,8 @@ function buildSite(root) {
   write(root, "data/site-stats.json", STATS);
   write(root, "data/ask-docs.json", DOCS);
   for (const [file, doc] of Object.entries(CHIPS)) write(root, `stories/chips-into-russia/data/${file}`, doc);
-  // the topic vocabulary also reads the map and the lobbying graph: here the lists' programmes are its only topics
-  write(root, "stories/shadow-fleet/network/fleet-data.json", { nodes: [] });
+  // the topic vocabulary also reads the map and the lobbying graph: here the lists' programmes, the map's three countries and its groups
+  write(root, "stories/shadow-fleet/network/fleet-data.json", FLEET);
   write(root, "stories/who-lobbies/influence-network/kg.json", { nodes: [] });
 }
 
@@ -733,6 +749,53 @@ test("an unknown programme word returns a search item found:false, never a count
     assert.ok(!ev[0].text.includes(programme) && !ev[0].label.includes(programme), programme);
     assert.deepEqual(out.items.map((i) => [i.kind, i.found]), [["search", false]]);
   }
+});
+
+// ---- research: the research map's ships --------------------------------------------------------------------------
+
+const research = async (args) => {
+  ev = [];
+  const out = await run("research", args);
+  assert.equal(out.error, undefined, JSON.stringify(args));
+  return { out, count: ev[0], examples: ev.slice(1) };
+};
+
+test("research counts the map's ships under a flag from every source: a flagged_in link, the US list's flag, the UK's flag now; never a former flag", async () => {
+  const counts = {};
+  for (const flag of ["Liberia", "Liberian", "Comoros", "Sierra Leone"]) counts[flag] = (await research({ flag })).count.n;
+  assert.deepEqual(counts, { Liberia: 3, Liberian: 3, Comoros: 1, "Sierra Leone": 0 });
+  // TASSOS has two current flags (a link to Liberia, Comoros as the UK's flag now): it counts once under each
+  const names = async (flag) => (await research({ flag })).examples.map((e) => e.entity.name);
+  assert.deepEqual(await names("Liberia"), ["TASSOS", "TASSOS STAR", "SI HE"]);
+  assert.deepEqual(await names("Comoros"), ["TASSOS"]);
+  const { count } = await research({ flag: "liberian" });
+  assert.deepEqual(count.filters, { flag: { region: "LR", label: "Liberia" } });
+  assert.match(count.text, /: 3 of its 4 ships match all of: recorded as Liberia-flagged by at least one source\. Each ship is counted once\. A ship's flags are every flag/);
+});
+
+test("research: programme is the map's programme groups (an array is an AND), narrowed by ship_type, listed_by and names_changed", async () => {
+  const sizes = async (args) => {
+    const { out, count, examples } = await research(args);
+    return [count.n, out.total, out.shown, examples.length];
+  };
+  assert.deepEqual(await sizes({ programme: "Iran" }), [3, 3, 3, 3]);
+  assert.deepEqual(await sizes({ programme: ["Russia", "Iran"] }), [1, 1, 1, 1]);
+  assert.deepEqual(await sizes({ programme: ["Iranian", "IRAN"] }), [3, 3, 3, 3]); // one group, named twice
+  assert.deepEqual((await research({ programme: ["Iranian", "IRAN"] })).count.filters, { programme: [{ key: "iran", label: "Iran" }] });
+  assert.deepEqual(await sizes({ ship_type: "Tankers" }), [2, 2, 2, 2]); // a crude oil tanker and an oil tanker
+  assert.deepEqual(await sizes({ names_changed: true }), [2, 2, 2, 2]); // the ship with no IMO id is no ship of the map
+  assert.deepEqual(await sizes({ listed_by: "uk" }), [2, 2, 1, 1]); // AMBER 0 has no listing to show as an example
+  // the whole count item, once: the filters in the vocabulary's words, the totals, and one example, its EU listing, linked to it
+  const { out, count, examples } = await research({ programme: ["Russia", "Iranian"], ship_type: "tanker", listed_by: "eu" });
+  assert.deepEqual({ ...count, text: undefined, label: undefined }, {
+    id: "S1", kind: "count", unit: "ships", scope: "research",
+    filters: { ship_type: "tanker", programme: [{ key: "russia", label: "Russia" }, { key: "iran", label: "Iran" }], listed_by: "eu" },
+    n: 1, total_ships: 4, shown: 1, total: 1, text: undefined, label: undefined, url: "/stories/shadow-fleet/network/shadow_fleet_map.html", quotes: [],
+  });
+  assert.match(count.text, /^Undercurrent's research map: 1 of its 4 ships match all of: whose recorded type contains "tanker"; in the map's Russia programme group and its Iran programme group; listed by the European Union\. /);
+  assert.match(count.label, /^Undercurrent's research map · ships /);
+  assert.deepEqual(examples.map((e) => [e.kind, e.entity.id, e.gov, e.program, e.date, e.result]), [["research", "IMO9408695", "eu", "Russia", "2025-10-24", "S1"]]);
+  assert.deepEqual([out.shown, out.total, out.items.map((i) => i.id)], [1, 1, ["S1", "S2"]]);
 });
 
 // ---- changes ---------------------------------------------------------------------------------------------------
@@ -1390,6 +1453,11 @@ test("bad args (bad date, query over 200 chars, unknown topic) return {error} an
     ["changes", {}], ["changes", { since: "2026-13-45" }], ["changes", { since: "yesterday" }], ["changes", { since: "2026-10-12", until: "2026-02-30" }],
     ["changes", { since: "2026-10-19", until: "2026-10-12" }], ["changes", { since: "2026-10-12", graph: "both" }], ["changes", { since: "2030-01-01" }], ["changes", { since: "2026-10-12", query: "q".repeat(201) }],
     ["chips", { topic: "bogus" }], ["chips", {}], ["site_docs", { query: "z".repeat(201) }], ["site_docs", { query: " " }],
+    // no filter; the UN list, which the map does not hold; a type, programme or flag outside the closed sets (a programme of the lists
+    // that is no group of the map, Somalia, included: a none for it would not be true)
+    ["research", {}], ["research", { names_changed: false }], ["research", { programme: [] }], ["research", { listed_by: "un" }], ["research", { listed_by: "fr" }],
+    ["research", { ship_type: "submarine" }], ["research", { programme: "Gatik" }], ["research", { programme: "Somalia" }], ["research", { programme: ["Iran", 5] }],
+    ["research", { flag: "Terrorism" }], ["research", { flag: "Gatik" }], ["research", { flag: 5 }],
     ["nope", {}], ["answer", {}], ["constructor", {}],
   ];
   for (const [name, args] of bad) {
@@ -1400,8 +1468,8 @@ test("bad args (bad date, query over 200 chars, unknown topic) return {error} an
   assert.equal(ev.length, 0);
 });
 
-test("TOOLS are OpenAI function definitions for the six tools", () => {
-  assert.deepEqual(TOOLS.map((t) => t.function.name), ["check_lists", "connections", "changes", "chips", "site_docs", "answer"]);
+test("TOOLS are OpenAI function definitions for the seven tools", () => {
+  assert.deepEqual(TOOLS.map((t) => t.function.name), ["check_lists", "connections", "changes", "chips", "site_docs", "research", "answer"]);
   for (const t of TOOLS) {
     assert.equal(t.type, "function");
     assert.equal(t.function.parameters.type, "object");
@@ -1415,6 +1483,10 @@ test("TOOLS are OpenAI function definitions for the six tools", () => {
   assert.deepEqual(by.check_lists.properties.list.enum, ["us", "uk", "eu", "un"]);
   assert.deepEqual(by.check_lists.required, []); // a query, a programme, or both
   assert.deepEqual(by.changes.properties.graph.enum, ["fleet", "lobby"]);
+  assert.deepEqual(Object.keys(by.research.properties), ["programme", "listed_by", "flag", "ship_type", "names_changed"]);
+  assert.deepEqual([by.research.properties.programme.type, by.research.properties.names_changed.type, by.research.required], ["array", "boolean", []]);
+  assert.deepEqual(by.research.properties.listed_by.enum, ["us", "uk", "eu"]);
+  assert.deepEqual(by.research.properties.ship_type.enum, ["tanker", "cargo", "container", "bulk carrier", "tug"]);
   assert.deepEqual(by.answer.properties.kind.enum, ["answer", "refusal", "clarify"]);
   assert.deepEqual(Object.keys(by.answer.properties), ["kind", "sentences", "next"]); // no refusal_reason: nothing reads it (final wave)
   const s = by.answer.properties.sentences.items;

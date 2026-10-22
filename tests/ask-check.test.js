@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { checkAnswer, adviceIntent } from "../api/_ask_check.js";
 import { runTool, resetAskCache, LISTING } from "../api/_ask_tools.js";
 import { INDEX_URL } from "../api/search.js";
+import { VOCAB } from "../api/_ask_vocab.js";
 import { formatDate } from "../app/render.js";
 import { groundingProblems } from "../scripts/ask-oracle.mjs";
 
@@ -1576,4 +1577,129 @@ test("fix round 1 (2): a country counts the programmes naming it as a whole word
   assert.equal(sayCount(eu, countOf(eu, "eu")), `${num(parts[2])} records on the European Union list are under Ukraine programmes.`);
   const uk = await ask([["check_lists", { programme: "Ukraine", list: "uk" }]]);
   assert.equal(sayCount(uk, countOf(uk, "uk")), "No programme on the United Kingdom list is named Ukraine.");
+});
+
+// ---- the research query: ships in the research map ------------------------------------------------------------------------
+
+const MAP = "ships in Undercurrent's research map";
+// the map's ships (an IMO id), each with every flag a source records for it, read here from the committed file
+let mapRead = null;
+const mapShips = () => (mapRead ??= (() => {
+  const raw = JSON.parse(readFileSync("stories/shadow-fleet/network/fleet-data.json", "utf8"));
+  const linked = new Map();
+  for (const e of raw.edges.filter((x) => x.y === "flagged_in")) linked.set(e.s, [...(linked.get(e.s) ?? []), e.t.slice(3)]);
+  return raw.nodes.filter((n) => n.id.startsWith("IMO")).map((n) => ({ ...n, flags: new Set([...(linked.get(n.id) ?? []), n.flag_us, n.flag_now].filter(Boolean)) }));
+})());
+const tanker = (s) => /tanker/i.test(s.ship_type ?? "");
+const inGroups = (...groups) => mapShips().filter((s) => groups.every((g) => s.programs.includes(g)));
+const shipCount = async (args) => {
+  const ev = await ask([["research", args]]);
+  const c = find(ev, (e) => e.kind === "count" && e.unit === "ships");
+  return { ev, c, examples: examplesOf(ev, c) };
+};
+// the answer citing the count (and the examples given), checked by the oracle
+const shipLine = (ev, c, ...examples) => {
+  const out = checkAnswer(answer(claim("count", c.id, ...examples)), ev, {});
+  assert.deepEqual(groundingProblems("How many ships?", ev, out), [], texts(out).join(" | "));
+  return texts(out);
+};
+
+test("research: names_changed counts the map's ships with more than one name, out of all its ships", async () => {
+  const renamed = mapShips().filter((s) => s.name_count > 1).length;
+  const { ev, c } = await shipCount({ names_changed: true });
+  assert.deepEqual([c.unit, c.scope, c.n, c.total, c.total_ships], ["ships", "research", renamed, renamed, mapShips().length]);
+  assert.deepEqual(shipLine(ev, c), [`${num(renamed)} of the ${num(mapShips().length)} ${MAP} have had more than one name.`]);
+});
+
+test("research: listed_by counts the ships each list holds in the map, the EU's and the UK's included", async () => {
+  for (const [list, name] of [["eu", "European Union"], ["uk", "United Kingdom"], ["us", "United States"]]) {
+    const n = mapShips().filter((s) => s.listed_by.includes(list)).length;
+    const { ev, c } = await shipCount({ listed_by: list });
+    assert.equal(c.n, n, list);
+    assert.deepEqual(shipLine(ev, c), [`${num(n)} ${MAP} are listed by the ${name}.`]);
+  }
+});
+
+test("research: programme [Russia, Iran] with ship_type tanker is an AND (count-1); three filters read as one list (programme-2)", async () => {
+  const n = inGroups("russia", "iran").filter(tanker).length;
+  assert.ok(n > 0 && n < inGroups("russia").filter(tanker).length && n < inGroups("iran").filter(tanker).length);
+  // a ship under both is the map's "both" group
+  assert.equal(inGroups("russia", "iran").length, mapShips().filter((s) => s.program_group === "both").length);
+  for (const programme of [["Russia", "Iran"], ["russian", "IRANIAN"], ["Russia", "Iran", "Iranian"]]) {
+    const { ev, c } = await shipCount({ programme, ship_type: "tanker" });
+    assert.equal(c.n, n, programme.join());
+    assert.deepEqual(shipLine(ev, c), [`${num(n)} ${MAP} are tankers and are under a Russia programme and an Iran programme.`]);
+  }
+  const ve = inGroups("venezuela").filter((s) => tanker(s) && s.listed_by.includes("us")).length;
+  const { ev, c } = await shipCount({ programme: "Venezuelan", ship_type: "tankers", listed_by: "us" });
+  assert.equal(c.n, ve);
+  assert.deepEqual(shipLine(ev, c), [`${num(ve)} ${MAP} are tankers, are under a Venezuela programme and are listed by the United States.`]);
+});
+
+test("research: flag counts every flag a source records for a ship, and says 'by at least one source'", async () => {
+  const n = mapShips().filter((s) => s.flags.has("ve")).length;
+  const { ev, c } = await shipCount({ flag: "Venezuelan" });
+  assert.equal(c.n, n);
+  assert.deepEqual(shipLine(ev, c), [`${num(n)} ${MAP} are recorded as Venezuela-flagged by at least one source.`]);
+});
+
+test("research: a ship with two current flags counts once under each", async () => {
+  const ships = mapShips();
+  const label = new Map(VOCAB.topics.filter((t) => t.kind === "country").map((t) => [t.key, t.label]));
+  let sum = 0;
+  for (const code of new Set(ships.flatMap((s) => [...s.flags]))) {
+    const { c } = await shipCount({ flag: label.get(code) });
+    assert.equal(c.n, ships.filter((s) => s.flags.has(code)).length, code);
+    sum += c.n;
+  }
+  // the counts add up to each ship once per flag, which is more than the ships with a flag: some have two
+  assert.equal(sum, ships.reduce((k, s) => k + s.flags.size, 0));
+  assert.ok(sum > ships.filter((s) => s.flags.size).length);
+});
+
+test("research: a filter nothing matches renders none_matched copy, never '0 ships'", async () => {
+  assert.equal(inGroups("dprk").filter((s) => /tug/i.test(s.ship_type ?? "")).length, 0);
+  const { ev, c } = await shipCount({ programme: "North Korea", ship_type: "tug" });
+  assert.deepEqual([c.n, c.shown, c.total, ev.length], [0, 0, 0, 1]);
+  assert.deepEqual(shipLine(ev, c), [`None of the ${MAP} are tugs and are under a North Korea programme.`]);
+});
+
+test("research: examples are ships only, at most five, each a current listing linked to the count; Showing N of M follows them", async () => {
+  for (const args of [{ names_changed: true }, { listed_by: "eu" }, { programme: "Venezuela", ship_type: "tanker", listed_by: "us" }]) {
+    const { c, examples } = await shipCount(args);
+    assert.ok(examples.length && examples.length <= 5 && examples.length === c.shown, JSON.stringify(args));
+    for (const e of examples) {
+      assert.ok(e.entity.id.startsWith("IMO") && e.kind === "research" && e.gov && !e.delisted, e.entity.id);
+      if (args.listed_by) assert.equal(e.gov, args.listed_by);
+    }
+  }
+  const { ev, c, examples: [a, b] } = await shipCount({ listed_by: "eu" });
+  assert.deepEqual(shipLine(ev, c, a.id, b.id), [`${num(c.n)} ${MAP} are listed by the European Union.`, `Showing 2 of ${num(c.n)}.`]);
+  // an example listed on its own names the ship on the EU list, and counts towards the line too
+  const out = checkAnswer(answer(claim("count", c.id), claim("listed", a.id)), ev, {});
+  assert.match(texts(out)[1], new RegExp(`^${a.entity.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} appears on the European Union list`));
+  assert.deepEqual(texts(out).slice(2), [`Showing 1 of ${num(c.n)}.`]);
+  assert.deepEqual(groundingProblems("Which ships does the EU list?", ev, out), []);
+});
+
+test("research copy: one ship is singular; every filter at once reads as one list; the oracle catches a changed count, '0 ships' or a flag without its source", async () => {
+  const item = (id, filters, n) => ({ id, kind: "count", unit: "ships", scope: "research", filters, n, total_ships: 1745, shown: 0, total: n, quotes: [], label: `Map · ${id}`, url: "/map" });
+  const ev = [
+    item("S1", { ship_type: "tanker", listed_by: "uk" }, 1),
+    item("S2", { names_changed: true }, 1),
+    item("S3", { ship_type: "bulk carrier", programme: [{ key: "russia", label: "Russia" }, { key: "iran", label: "Iran" }], listed_by: "eu", flag: { region: "PA", label: "Panama" }, names_changed: true }, 2),
+    item("S4", { ship_type: "container", flag: { region: "PA", label: "Panama" } }, 0),
+  ];
+  const out = checkAnswer(answer(claim("count", "S1"), claim("count", "S2"), claim("count", "S3"), claim("count", "S4")), ev, {});
+  assert.deepEqual(texts(out), [
+    `1 ship in Undercurrent's research map is a tanker and is listed by the United Kingdom.`,
+    `1 of the 1,745 ${MAP} has had more than one name.`,
+    `2 ${MAP} are bulk carriers, are under a Russia programme and an Iran programme, are listed by the European Union, are recorded as Panama-flagged by at least one source and have had more than one name.`,
+    `None of the ${MAP} are container ships and are recorded as Panama-flagged by at least one source.`,
+  ]);
+  assert.deepEqual(groundingProblems("How many ships?", ev, out), []);
+  const tamper = (i, text) => groundingProblems("", ev, { ...out, sentences: out.sentences.map((x, j) => (j === i ? { ...x, text } : x)) }).length;
+  assert.equal(tamper(0, `2 ${MAP} are tankers and are listed by the United Kingdom.`), 1);
+  assert.equal(tamper(3, `0 ${MAP} are container ships and are recorded as Panama-flagged by at least one source.`), 1);
+  assert.equal(tamper(3, `None of the ${MAP} are container ships and are flagged in Panama.`), 1);
 });

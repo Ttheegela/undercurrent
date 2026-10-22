@@ -44,8 +44,28 @@ function listing(e) {
   return null;
 }
 
+// a ship count's filters as the sentence states them, singular for one ship: "are tankers and are under a Russia programme and an Iran programme"
+const SHIP_TYPE = { tanker: ["a tanker", "tankers"], cargo: ["a cargo ship", "cargo ships"], container: ["a container ship", "container ships"], "bulk carrier": ["a bulk carrier", "bulk carriers"], tug: ["a tug", "tugs"] };
+const and = (parts) => (parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts[0]);
+function shipFilters(f, one) {
+  const is = one ? "is" : "are";
+  const parts = [];
+  if (f.ship_type) parts.push(`${is} ${SHIP_TYPE[f.ship_type][one ? 0 : 1]}`);
+  if (f.programme) parts.push(`${is} under ${and(f.programme.map((g) => `${"AEIOU".includes(g.label[0]) ? "an" : "a"} ${g.label} programme`))}`);
+  if (f.listed_by) parts.push(`${is} listed by the ${LIST_LABELS[f.listed_by]}`);
+  if (f.flag) parts.push(`${is} recorded as ${f.flag.label}-flagged by at least one source`);
+  if (f.names_changed) parts.push(`${one ? "has" : "have"} had more than one name`);
+  return and(parts);
+}
+
 /** The count claim's sentence for a count item (none matched at 0), or null. A country's are "programmes", any other topic's "the … programme". */
 function counted(e) {
+  if (e.kind === "count" && e.unit === "ships") {
+    const map = "ships in Undercurrent's research map";
+    if (e.n === 0) return `None of the ${map} ${shipFilters(e.filters, false)}.`;
+    if (Object.keys(e.filters).length === 1 && e.filters.names_changed) return `${e.n.toLocaleString("en-GB")} of the ${e.total_ships.toLocaleString("en-GB")} ${map} ${shipFilters(e.filters, e.n === 1)}.`;
+    return `${e.n === 1 ? "1 ship" : `${e.n.toLocaleString("en-GB")} ships`} in Undercurrent's research map ${shipFilters(e.filters, e.n === 1)}.`;
+  }
   if (e.kind !== "count" || e.unit !== "records") return null;
   if (e.n === 0) return `No programme on ${e.list ? `the ${LIST_LABELS[e.list]} list` : "the United States, United Kingdom, European Union or United Nations lists"} is named ${e.topic.label}.`;
   const on = `on the ${LIST_LABELS[e.list]} list`;

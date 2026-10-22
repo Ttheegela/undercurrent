@@ -2,12 +2,13 @@
 // sources, and judges whether it bears on what the question asks; the sentences that don't are dropped. The checker then numbers the
 // sources again and rebuilds the "Showing N of M" lines (keepSentences in _ask_check.js), and an answer with nothing left says that
 // nothing recorded answers. Fixed copy has no source (the part-answer line, the notice, the Showing lines, "nothing answers"): it is never
-// sent or dropped. The gate fails open: with no key, a timeout, an HTTP error or a reply not as the docs give it, the answer is shown as it
-// is and one fixed line is logged. Nothing else is logged: never the question, a sentence or the key, which is read here and nowhere else
-// in api/.
+// sent or dropped. A caveat (what a none could not check, the source gaps of a range) is never sent either: it is kept exactly when the
+// line it qualifies is. The gate fails open: with no key, a timeout, an HTTP error, a reply not as the docs give it, or an answer the
+// checker did not write (it could not be rebuilt, so nothing is sent), the answer is shown as it is and one fixed line is logged. Nothing
+// else is logged: never the question, a sentence or the key, which is read here and nowhere else in api/.
 // The API, as https://docs.typesafe.ai/api/system-one.md and /primitives/noul.md give it: POST /v1/systemone with a bearer key and
 // {model, state, questions}; a noul question's answer is {noul: the probability of yes, 0 to 1}. Plain fetch, passed in, so no SDK.
-import { keepSentences } from "./_ask_check.js";
+import { judgedSentences, keepSentences } from "./_ask_check.js";
 
 const ENDPOINT = "https://api.typesafe.ai/v1/systemone";
 /** A sentence stays when Jev's probability that it bears on the question is at least this. Provisional, until the evals tune it. */
@@ -20,12 +21,12 @@ const unavailable = (answer) => {
   return answer;
 };
 
-/** The answer with only the sentences that bear on `question`, or the answer as it is when the gate is unavailable (see above). */
-export async function gate(question, answer, { fetch, apiKey = process.env.TYPESAFE_API_KEY, timeoutMs = GATE_MS }) {
-  const said = answer.sentences.filter((s) => s.sources.length);
-  if (!said.length) return answer; // fixed copy only: nothing to judge
-  if (!apiKey) return unavailable(answer);
+/** The answer with only the sentences that bear on `question`, or the answer as it is when the gate is unavailable (see above). Never throws. */
+export async function gate(question, answer, { fetch, apiKey = process.env.TYPESAFE_API_KEY, timeoutMs = GATE_MS } = {}) {
   try {
+    if (!answer.sentences.some((s) => s.sources.length)) return answer; // fixed copy only: nothing to judge
+    const said = judgedSentences(answer);
+    if (!said || !apiKey) return unavailable(answer);
     const res = await fetch(ENDPOINT, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },

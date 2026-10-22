@@ -78,6 +78,23 @@ function counted(e) {
   return e.n === 1 ? `1 record ${on} is under ${under}.` : `${e.n.toLocaleString("en-GB")} records ${on} are under ${under}.`;
 }
 
+// a range's lines: a topic's none and what it could not check, a plain "no changes", and a source gap
+const when = (e) => (e.from === e.to ? `on ${day(e.from)}` : `between ${day(e.from)} and ${day(e.to)}`);
+function noneLine(e) {
+  const n = e.checked_fleet + e.checked_lobby;
+  return n === 1 ? `The 1 update recorded ${when(e)} does not involve ${e.topic.label}.` : `None of the ${n.toLocaleString("en-GB")} updates recorded ${when(e)} involve ${e.topic.label}.`;
+}
+const uncheckedLine = (e) => `${e.unchecked === 1 ? "1 update" : `${e.unchecked.toLocaleString("en-GB")} updates`} in that period can't be checked against ${e.topic.label}.`;
+const noChangesLine = (e) => (e.from === e.to ? `No changes were recorded on ${day(e.from)}.` : `No changes were recorded between ${day(e.from)} and ${day(e.to)}.`);
+const gapLine = (g) => (g.date || g.from === g.to
+  ? `${g.source} was unavailable on ${day(g.date ?? g.from)}, so changes from it that day aren't recorded.`
+  : `${g.source} was unavailable from ${day(g.from)} to ${day(g.to)}, so changes from it on those days aren't recorded.`);
+// the line a change item heads, which its caveats follow: not yet, a topic's none, or no changes (null for any other item)
+const headLine = (e) => (e.kind !== "change" || e.before_start || e.trimmed ? null
+  : e.not_yet ? "Today's nightly update hasn't run yet."
+  : e.found === false && e.topic ? noneLine(e)
+  : e.found === false ? noChangesLine(e) : null);
+
 /**
  * Every sentence the checker may write for this evidence on `today`, from its fixed copy and the evidence alone, and which items can
  * have produced it: text -> Set of evidence items. A quote comes from the items that hold it, a claim from the items it is built from.
@@ -92,20 +109,14 @@ function producers(ev, today) {
     if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted && age(e, today)) add(age(e, today), e);
     if (e.kind === "change" && e.before_start) add(`Daily updates started on ${day(e.first_run)}, so there is no record before then.`, e);
     else if (e.kind === "change" && e.trimmed) add(`Days before ${day(e.started)} are no longer kept.`, e);
-    else if (e.kind === "change" && e.not_yet) add("Today's nightly update hasn't run yet.", e);
+    else if (e.kind === "change" && e.not_yet) add(headLine(e), e);
     else if (e.kind === "change" && e.found === false && e.topic) {
       // no update involves the topic: how many could be checked, and how many could not be checked against it
-      const n = e.checked_fleet + e.checked_lobby;
-      const when = e.from === e.to ? `on ${day(e.from)}` : `between ${day(e.from)} and ${day(e.to)}`;
-      add(n === 1 ? `The 1 update recorded ${when} does not involve ${e.topic.label}.` : `None of the ${n.toLocaleString("en-GB")} updates recorded ${when} involve ${e.topic.label}.`, e);
-      if (e.unchecked) add(`${e.unchecked === 1 ? "1 update" : `${e.unchecked.toLocaleString("en-GB")} updates`} in that period can't be checked against ${e.topic.label}.`, e);
-    } else if (e.kind === "change" && e.found === false) add(e.from === e.to ? `No changes were recorded on ${day(e.from)}.` : `No changes were recorded between ${day(e.from)} and ${day(e.to)}.`, e);
+      add(noneLine(e), e);
+      if (e.unchecked) add(uncheckedLine(e), e);
+    } else if (e.kind === "change" && e.found === false) add(noChangesLine(e), e);
     else if (e.kind === "change") add(`${e.summary} · ${day(e.date)}`, e);
-    if (e.kind === "gap") {
-      add(e.date || e.from === e.to
-        ? `${e.source} was unavailable on ${day(e.date ?? e.from)}, so changes from it that day aren't recorded.`
-        : `${e.source} was unavailable from ${day(e.from)} to ${day(e.to)}, so changes from it on those days aren't recorded.`, e);
-    }
+    if (e.kind === "gap") add(gapLine(e), e);
   }
   return made;
 }
@@ -158,6 +169,22 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
     // every other sentence names the evidence it was built from, and only that evidence: a quote its own item, a claim its items
     ok(s.sources.length >= 1, `no source: ${JSON.stringify(s.text).slice(0, 100)}`);
     for (const src of s.sources) ok(labelled(from, src), `"${src.label}" did not produce ${JSON.stringify(s.text).slice(0, 100)}`);
+  }
+  // a caveat stays with the line it qualifies: a none, a no-changes or a not-yet line said keeps all of one of its items' caveats (what
+  // could not be checked, the gaps of its range), and what could not be checked is never said without its none. A gap cited on its own
+  // is a claim of its own, so a gap line alone is no fault.
+  const said = new Set(answer.sentences.map((s) => s.text));
+  const changes = ev.filter((e) => e.kind === "change");
+  const caveats = (e) => [
+    ...(e.found === false && e.topic && e.unchecked && !e.not_yet ? [uncheckedLine(e)] : []),
+    ...ev.filter((g) => g.kind === "gap" && g.from <= e.to && g.to >= e.from).map(gapLine),
+  ];
+  for (const head of new Set(changes.map(headLine).filter((t) => t && said.has(t)))) {
+    ok(changes.some((e) => headLine(e) === head && caveats(e).every((c) => said.has(c))), `a caveat of ${JSON.stringify(head).slice(0, 80)} is missing`);
+  }
+  const unchecked = changes.filter((x) => x.found === false && x.topic && x.unchecked);
+  for (const e of unchecked.filter((x) => said.has(uncheckedLine(x)))) {
+    ok(unchecked.some((x) => uncheckedLine(x) === uncheckedLine(e) && said.has(headLine(x))), `${JSON.stringify(uncheckedLine(e)).slice(0, 80)} without its none`);
   }
   // the part-answer line and the notice come last (the notice after the line), once each, and only after something else
   const texts = answer.sentences.map((s) => s.text);

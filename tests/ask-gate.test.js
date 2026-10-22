@@ -216,3 +216,93 @@ test("TYPESAFE_API_KEY is read in api/_ask_gate.js and nowhere else under api/",
   const readers = readdirSync(api, { recursive: true }).filter((f) => /\.[cm]?js$/.test(f) && readFileSync(new URL(f, api), "utf8").includes("TYPESAFE_API_KEY"));
   assert.deepEqual(readers, ["_ask_gate.js"]);
 });
+
+// ---- fix round 2: a caveat goes with the sentence it qualifies ------------------------------------------------------------------
+
+// a topic's none for 20 to 21 Oct with 10 updates that can't be checked against it, a UK list gap on 21 Oct, and a quiet 21 Oct
+const iranNone = {
+  id: "C1", kind: "change", found: false, topic: { label: "Iran" }, checked_fleet: 0, checked_lobby: 0, unchecked: 10, from: "2026-10-20", to: "2026-10-21",
+  label: "Updates involving Iran, 20 Oct 2026 to 21 Oct 2026: none", url: "/stories/updates/index.html?from=2026-10-20&to=2026-10-21&graph=all", quotes: [],
+};
+const ukGap = { id: "C2", kind: "gap", source: "The UK list", from: "2026-10-21", to: "2026-10-21", label: "The UK list unavailable on 21 Oct 2026", url: "/stories/updates/index.html?from=2026-10-21&to=2026-10-21&graph=fleet", quotes: [] };
+const quiet = { id: "C3", kind: "change", found: false, from: "2026-10-21", to: "2026-10-21", label: "No changes on 21 Oct 2026", url: "/stories/updates/index.html?from=2026-10-21&to=2026-10-21&graph=all", quotes: [] };
+const CEV = [iranNone, ukGap, quiet, doc];
+const NONE = "None of the 0 updates recorded between 20 Oct 2026 and 21 Oct 2026 involve Iran.";
+const UNCHECKED = "10 updates in that period can't be checked against Iran.";
+const GAP = "The UK list was unavailable on 21 Oct 2026, so changes from it that day aren't recorded.";
+const QUIET = "No changes were recorded on 21 Oct 2026.";
+const UPDATES = "Any updates involving Iran in the last two days?";
+const fromChanges = (sentences) => checkAnswer({ kind: "answer", sentences, next: [] }, CEV, { question: UPDATES, today: TODAY });
+const drop = (...gone) => typesafe((t) => (gone.includes(t) ? 0 : 1));
+
+test("a gate that drops only the UNCHECKED line still keeps it with its head: a caveat is never sent, and follows its head", async () => {
+  const answer = fromChanges([{ claim: "none_matched", sources: ["C1"] }, quote]);
+  assert.deepEqual(texts(answer), [NONE, UNCHECKED, GAP, FREEZE]);
+  for (const gone of [[UNCHECKED], [UNCHECKED, GAP], [GAP]]) {
+    const ts = drop(...gone);
+    const out = await gate(UPDATES, answer, { fetch: ts.fetch, apiKey: KEY });
+    assert.deepEqual(sent(ts), [NONE, FREEZE], gone.join(" | ")); // the head and the quote only
+    assert.deepEqual(out, answer, gone.join(" | "));
+  }
+  // what reaches the reader is text and sources only: nothing says which sentence follows which
+  assert.ok(answer.sentences.every((s) => Object.keys(s).join() === "text,sources"));
+});
+
+test("a gate that drops the head drops its followers too", async () => {
+  const answer = fromChanges([{ claim: "none_matched", sources: ["C1"] }, quote]);
+  const out = await gate(UPDATES, answer, { fetch: drop(NONE).fetch, apiKey: KEY });
+  assert.deepEqual(out.sentences, [{ text: FREEZE, sources: [src(1, doc)] }]);
+  assert.deepEqual(groundingProblems(UPDATES, CEV, out, TODAY), []);
+  // alone, the none and its caveats go together: nothing answers
+  const alone = await gate(UPDATES, fromChanges([{ claim: "none_matched", sources: ["C1"] }]), { fetch: drop(NONE).fetch, apiKey: KEY });
+  assert.deepEqual(texts(alone), [NOTHING_ANSWERS]);
+});
+
+test("the same for a no-changes line and its gap, and a gap cited on its own stands on its own", async () => {
+  const answer = fromChanges([{ claim: "change", sources: ["C3"] }, quote]);
+  assert.deepEqual(texts(answer), [QUIET, GAP, FREEZE]);
+  const ts = drop(GAP);
+  assert.deepEqual(await gate(UPDATES, answer, { fetch: ts.fetch, apiKey: KEY }), answer); // the gap line follows its kept head
+  assert.deepEqual(sent(ts), [QUIET, FREEZE]);
+  const out = await gate(UPDATES, answer, { fetch: drop(QUIET).fetch, apiKey: KEY });
+  assert.deepEqual(texts(out), [FREEZE]);
+  assert.deepEqual(groundingProblems(UPDATES, CEV, out, TODAY), []);
+  // the model cites the gap item too: the gap line is then a claim of its own, judged, and kept when the no-changes line is dropped
+  const both = fromChanges([{ claim: "change", sources: ["C3", "C2"] }]);
+  assert.deepEqual(texts(both), [QUIET, GAP]);
+  const judged = drop(QUIET);
+  const kept = await gate(UPDATES, both, { fetch: judged.fetch, apiKey: KEY });
+  assert.deepEqual([sent(judged), texts(kept)], [[QUIET, GAP], [GAP]]);
+  assert.deepEqual(groundingProblems(UPDATES, CEV, kept, TODAY), []);
+  // and when only the gap is judged unrelated, it still follows the no-changes line it qualifies
+  assert.deepEqual(texts(await gate(UPDATES, both, { fetch: drop(GAP).fetch, apiKey: KEY })), [QUIET, GAP]);
+});
+
+test("the oracle flags a none without its caveats, a caveat without its none, and a no-changes line without its gap", () => {
+  const line = (text, ...items) => ({ text, sources: items.map((e, i) => src(i + 1, e)) });
+  const flagged = (...sentences) => groundingProblems(UPDATES, CEV, { kind: "answer", sentences, next: [] }, TODAY);
+  // the checker's own answers pass
+  for (const sentences of [[{ claim: "none_matched", sources: ["C1"] }], [{ claim: "change", sources: ["C3"] }], [{ claim: "change", sources: ["C2"] }]]) {
+    assert.deepEqual(groundingProblems(UPDATES, CEV, fromChanges(sentences), TODAY), [], JSON.stringify(sentences));
+  }
+  assert.deepEqual(flagged(line(GAP, ukGap)), []); // a gap cited on its own needs no other line
+  // a none without what it could not check, or without the gap of its range; what could not be checked without its none
+  assert.ok(flagged(line(NONE, iranNone)).length > 0);
+  assert.ok(flagged(line(NONE, iranNone), line(UNCHECKED, iranNone)).length > 0);
+  assert.ok(flagged(line(NONE, iranNone), line(GAP, ukGap)).length > 0);
+  assert.ok(flagged(line(UNCHECKED, iranNone)).length > 0);
+  // a no-changes line without the gap of its day
+  assert.ok(flagged(line(QUIET, quiet)).length > 0);
+});
+
+test("a malformed answer, or one the checker did not write, comes back unchanged with the fixed line and nothing sent", async () => {
+  const made = built();
+  const foreign = { kind: "answer", sentences: made.sentences.map((s) => ({ ...s })), next: [] }; // a copy: not the checker's own
+  for (const answer of [foreign, { kind: "answer", sentences: [{ text: SHALAK }] }, { kind: "answer" }, null]) {
+    capture();
+    const ts = typesafe();
+    assert.equal(await gate(QUESTION, answer, { fetch: ts.fetch, apiKey: KEY }), answer, JSON.stringify(answer)?.slice(0, 80));
+    assert.deepEqual([ts.requests.length, logged], [0, [LINE]], JSON.stringify(answer)?.slice(0, 80));
+    mock.restoreAll();
+  }
+});

@@ -152,7 +152,7 @@ beforeEach(() => {
   process.env.OPENROUTER_API_KEY = KEY;
   delete process.env.ASK_PUBLIC;
   delete process.env.TYPESAFE_API_KEY;
-  ip =`203.0.113.${++visitor % 250}`;
+  ip = `203.0.113.${++visitor % 250}`;
   visitors.clear();
   indexFetch = indexOk;
   indexCalls = 0;

@@ -936,11 +936,12 @@ test("the none copy: one day reads 'on', one update is singular, no second line 
   assert.deepEqual(say([item({ checked_fleet: 2 }), gap]), ["None of the 2 updates recorded on 19 Oct 2026 involve Iran.", "The UK list was unavailable on 19 Oct 2026, so changes from it that day aren't recorded."]);
   const ev = [item({ checked_fleet: 2, unchecked: 3 })];
   const out = checkAnswer(answer(claim("change", "S1")), ev);
+  // each is caught twice: the line no item writes, and the true none and its unchecked line, one of them now said without the other
   const tamper = (i, text) => groundingProblems("", ev, { ...out, sentences: out.sentences.map((x, j) => (j === i ? { ...x, text } : x)) }).length;
-  assert.equal(tamper(0, "None of the 3 updates recorded on 19 Oct 2026 involve Iran."), 1);
-  assert.equal(tamper(0, "None of the updates recorded on 19 Oct 2026 involve Iran."), 1);
-  assert.equal(tamper(1, "2 updates in that period can't be checked against Iran."), 1);
-  assert.equal(tamper(1, "3 updates in that period can't be checked against Russia."), 1); // (the topic is the item's)
+  assert.equal(tamper(0, "None of the 3 updates recorded on 19 Oct 2026 involve Iran."), 2);
+  assert.equal(tamper(0, "None of the updates recorded on 19 Oct 2026 involve Iran."), 2);
+  assert.equal(tamper(1, "2 updates in that period can't be checked against Iran."), 2);
+  assert.equal(tamper(1, "3 updates in that period can't be checked against Russia."), 2); // (the topic is the item's)
 });
 
 test("a capped list of updates: the change lines cited count toward 'Showing N of M' against the changes total; an uncapped list never has the line", () => {

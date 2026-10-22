@@ -255,14 +255,15 @@ const RENDER = {
     return text ? [{ text, items: [c, ...items.filter((e) => e.result === c.id)] }] : [];
   }),
   // "No changes" only from the change record's own item, followed by every gap of its range; never from an empty list. A range the
-  // record cannot speak for is never "no changes": before its first night, trimmed from it, or today before tonight's run.
+  // record cannot speak for is never "no changes": before its first night, trimmed from it, or today before tonight's run. The lines
+  // after a none, a no-changes or a not-yet line qualify it (`follows`): the relevance gate keeps them exactly when it keeps that line.
   change: (items, s, all) => {
-    const gaps = (e) => all.filter((g) => g.kind === "gap" && g.from <= e.to && g.to >= e.from).map((g) => ({ text: SOURCE_GAP(g), items: [g] }));
+    const gaps = (e) => all.filter((g) => g.kind === "gap" && g.from <= e.to && g.to >= e.from).map((g) => ({ text: SOURCE_GAP(g), items: [g], follows: true }));
     return items.filter((e) => e.kind === "change" || e.kind === "gap").flatMap((e) => (e.kind === "gap" ? [{ text: SOURCE_GAP(e), items: [e] }]
       : e.before_start ? [{ text: BEFORE_START(e.first_run), items: [e] }]
       : e.trimmed ? [{ text: TRIMMED(e.started), items: [e] }]
       : e.not_yet ? [{ text: NOT_YET, items: [e] }, ...gaps(e)]
-      : e.found === false && e.topic ? [{ text: NONE_INVOLVE(e), items: [e] }, ...(e.unchecked ? [{ text: UNCHECKED(e), items: [e] }] : []), ...gaps(e)]
+      : e.found === false && e.topic ? [{ text: NONE_INVOLVE(e), items: [e] }, ...(e.unchecked ? [{ text: UNCHECKED(e), items: [e], follows: true }] : []), ...gaps(e)]
       : e.found === false ? [{ text: NO_CHANGES(e.from, e.to), items: [e] }, ...gaps(e)]
       : [{ text: `${e.summary} · ${day(e.date)}`, items: [e] }]));
   },
@@ -408,15 +409,27 @@ export function checkAnswer(raw, ev, ctx) {
 const madeFrom = new WeakMap(); // answer -> {pieces, byId, toolFailed}
 
 /**
- * The answer checkAnswer wrote, keeping of the sentences written from evidence only those whose text `keep` accepts. Fixed copy stays;
- * finish numbers the sources again and rebuilds the "Showing N of M" lines from what is left. With none of them left it is
- * NOTHING_ANSWERS, or the fallback when a tool call of the question failed (as for an answer of no sentences). An answer not written
- * here comes back as it is.
+ * The sentences of an answer checkAnswer wrote that the relevance gate judges: those a claim states. A caveat that follows one (the
+ * lines after a none, a no-changes or a not-yet line) is never judged on its own. null for an answer not written here.
+ */
+export function judgedSentences(answer) {
+  const made = madeFrom.get(answer);
+  if (!made) return null;
+  const claims = new Set(made.pieces.filter((p) => p.items.length && !p.follows).map((p) => p.text));
+  return answer.sentences.filter((s) => claims.has(s.text));
+}
+
+/**
+ * The answer checkAnswer wrote, keeping of the sentences written from evidence only those whose text `keep` accepts, each with the
+ * caveats that follow it. Fixed copy stays; finish numbers the sources again and rebuilds the "Showing N of M" lines from what is left.
+ * With none of them left it is NOTHING_ANSWERS, or the fallback when a tool call of the question failed (as for an answer of no
+ * sentences). An answer not written here comes back as it is.
  */
 export function keepSentences(answer, keep) {
   const made = madeFrom.get(answer);
   if (!made) return answer;
-  const pieces = made.pieces.filter((p) => !p.items.length || keep(p.text));
+  let kept = false; // the last claim's verdict: the caveats after it (always right after it) go with it
+  const pieces = made.pieces.filter((p) => !p.items.length || (p.follows ? kept : (kept = keep(p.text))));
   if (pieces.some((p) => p.items.length)) return finish(answer.kind, pieces, answer.next, made.byId);
   return made.toolFailed ? fallback() : only("answer", NOTHING_ANSWERS);
 }

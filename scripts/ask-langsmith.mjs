@@ -131,13 +131,15 @@ const target = ({ runAsk, traceable, now }, model) => async ({ question }) => {
   };
   let threw = false;
   const t0 = performance.now();
-  const result = await runAsk([{ role: "user", content: question }], now(), { wrap: (name, fn) => steps[name](fn), model }).catch(() => {
+  const at = now();
+  const result = await runAsk([{ role: "user", content: question }], at, { wrap: (name, fn) => steps[name](fn), model }).catch(() => {
     threw = true;
     return UNAVAILABLE; // (what the endpoint replies when the loop throws)
   });
   const latency_s = Math.round(performance.now() - t0) / 1000;
   const outcome = !result.ok ? (result.reason === "resting" ? "budget" : "unavailable") : failed.size ? "download_failed" : "quality";
-  return { result, ev, outcome, threw, tool_calls, tokens_in, tokens_out, cost_usd, latency_s };
+  // today: the run's date (UTC), which the answer's ages count to; the grading uses it, so a run graded after midnight still matches
+  return { result, ev, outcome, threw, tool_calls, tokens_in, tokens_out, cost_usd, latency_s, today: at.toISOString().slice(0, 10) };
 };
 
 /**
@@ -156,7 +158,7 @@ const scorer = (relevanceOf) => async ({ inputs, outputs, referenceOutputs }) =>
   ];
   if (outcome !== "quality") return { results }; // so the pass rate leaves the infrastructure out
   const v = judge({ question: inputs.question, expect: referenceOutputs.expect }, result);
-  const ungrounded = groundingProblems(inputs.question, ev, result.answer);
+  const ungrounded = groundingProblems(inputs.question, ev, result.answer, outputs.today);
   const problems = [...v.problems, ...ungrounded];
   results.push({ key: "pass", score: Number(v.kindOk && v.excludesOk && !ungrounded.length), ...(problems.length && { comment: problems.join("; ") }) });
   results.push({ key: "fallback", score: Number(v.fallback) });

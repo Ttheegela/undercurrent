@@ -18,10 +18,13 @@ const SHOWING = (n, total) => `Showing ${n.toLocaleString("en-GB")} of ${total.t
 const NOTE = { first_seen_opensanctions: " (first seen on the list via OpenSanctions)", uk_transfer: " (the UK list's transfer date; the listing may be older)" };
 const plural = (n, word) => (n ? [`${n} ${word}${n === 1 ? "" : "s"}`] : []);
 
-/** The age of a dated list or research listing on `today`, or the undated copy; null for no age (a future date, or one without its day). */
+/**
+ * The age of a dated list or research listing on `today`, or the undated copy for a record with no date (`undated`); null for no age (a
+ * future date, one without its day, or one the tools could not read), where the checker writes the listed sentence.
+ */
 function age(e, today) {
   const on = `the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}`;
-  if (!e.date) return `The ${LIST_LABELS[e.gov]} list gives no listing date for ${e.entity.name.replace(/\.$/, "")}.`;
+  if (!e.date) return e.undated ? `The ${LIST_LABELS[e.gov]} list gives no listing date for ${e.entity.name.replace(/\.$/, "")}.` : null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(e.date) || e.date > today) return null;
   // the whole months: the date moved on k months (to the month's last day when it has no such day) is still on or before today
   const [y, m, d] = e.date.split("-").map(Number);
@@ -74,18 +77,15 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   const problems = [];
   const ok = (cond, message) => { if (!cond) problems.push(message); };
   const made = producers(ev, today);
-  // "Showing N of M." for a search of M matches when the answer's listing sentences cite N of them (distinct entities), fewer than all;
-  // a quote, an age or any other sentence never counts, and the same search run twice (one query) is one search
+  // "Showing N of M." for a search of M matches when N of the entities among them are named by the answer's listing sentences, fewer than
+  // all. A quote, an age or any other sentence never counts; entities are counted, so a record listed from either of two searches of one
+  // ship (its name and its IMO number) counts for both
   const listings = new Set(ev.map(listing).filter(Boolean));
   const cites = new Set(answer.sentences.filter((s) => listings.has(s.text)).flatMap((s) => s.sources.map((x) => `${x.label}\n${x.url}`)));
-  const searches = new Map();
-  for (const r of ev.filter((x) => Number.isInteger(x.total))) {
-    const key = `${r.kind}:${r.query ?? r.id}`;
-    searches.set(key, { total: r.total, ids: (searches.get(key)?.ids ?? new Set()).add(r.id) });
-  }
-  const showing = new Set([...searches.values()].flatMap(({ total, ids }) => {
-    const n = new Set(ev.filter((e) => ids.has(e.result) && cites.has(`${e.label}\n${e.url}`)).map((e) => e.entity?.id ?? e.id)).size;
-    return n && n < total ? [SHOWING(n, total)] : [];
+  const named = new Set(ev.filter((e) => e.entity && cites.has(`${e.label}\n${e.url}`)).map((e) => e.entity.id));
+  const showing = new Set(ev.filter((r) => Number.isInteger(r.total)).flatMap((r) => {
+    const n = new Set(ev.filter((e) => e.result === r.id && e.entity && named.has(e.entity.id)).map((e) => e.entity.id)).size;
+    return n && n < r.total ? [SHOWING(n, r.total)] : [];
   }));
   const labelled = (items, src) => [...items].some((e) => e.label === src.label && e.url === src.url);
   for (const s of answer.sentences) {

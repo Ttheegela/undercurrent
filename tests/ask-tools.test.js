@@ -28,6 +28,7 @@ const LISTS = {
     rec("AREN SHIP MANAGEMENT", "Iran", "", "53099", "6088476"),
     ...Array.from({ length: 8 }, (_, i) => rec(`QUARTZ ${i}`, "Russia", "2024-01-0" + (i + 1), `Q${i}`)),
     ...Array.from({ length: 12 }, (_, i) => rec(`ZINNIA ${i}`, "Russia", "", `Z${i}`)), // more than the site's search returns for one list (10)
+    rec("Oddly Dated Trading", "Iran", "8/11/2015", "OD1"), // a date in a form the tools don't read
   ],
   uk: [
     rec("TASSOS", "Russia", "2026-02-24", "RUS3483", "9408695"), rec("Orion Ship Management", "Russia", "2025-03-03", "RUS777"), ...Array.from({ length: 8 }, (_, i) => rec(`QUARTZ UK ${i}`, "Russia", "2024-02-0" + (i + 1), `QU${i}`)),
@@ -588,6 +589,19 @@ test("list and research items say what their date stands for: the list's own, Op
   ev = [];
   await run("check_lists", { query: "Hikvision" }); // an Entity List date from the Federal Register is the list's own
   assert.deepEqual(ofKind("research").map((e) => [e.date, e.date_basis]), [["2019-10-09", "list"]]);
+});
+
+test("review (3): a record with no date at all is undated; one whose date is in another form is neither dated nor undated", async () => {
+  await run("check_lists", { query: "IMO 9408695" });
+  const [us, uk] = ["us", "uk"].map((gov) => ofKind("list").find((e) => e.gov === gov));
+  assert.deepEqual([us.date, us.undated, uk.date, uk.undated], [undefined, true, "2026-02-24", undefined]);
+  ev = [];
+  await run("check_lists", { query: "Oddly Dated Trading" });
+  assert.deepEqual(ofKind("list").map((e) => [e.date, e.undated]), [[undefined, undefined]]);
+  assert.match(ofKind("list")[0].text, /8\/11\/2015/); // the model still sees it
+  ev = [];
+  await run("check_lists", { query: "MAGNOLIA" }); // a research listing with no date
+  assert.deepEqual(ofKind("research").map((e) => [e.date, e.undated]), [[undefined, true]]);
 });
 
 test("check_lists: OpenSanctions hits carry the entry, who lists it, and its page", async () => {

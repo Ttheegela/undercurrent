@@ -88,6 +88,8 @@ before(async () => {
   // ages: an Entity List record with its own date, and a UK record on the post-Brexit transfer date
   E.dji = await ask([["check_lists", { query: "DJI" }]]);
   E.navumau = await ask([["check_lists", { query: "Navumau" }]]);
+  // one ship searched twice: by name and by IMO number (the two searches share its records)
+  E.nameImo = await ask([["check_lists", { query: "TASSOS" }], ["check_lists", { query: "IMO 9408695" }]]);
   E.final = await ask(["The 50% rule: blocked without being named", "How sanctions work", "How the lists stay current", "Semiconductors into Russia: what the official records show", "What the map cannot tell you", "7. Why this is a climate story", "Parent groups, lobbying and cargo (added 25 Sep 2026, afternoon)", "Fleet Tanqo (India)", "Strongest cases", "One line for the demo", "2. How long the US took to list new chip suppliers", "How countries and companies evade"].map((query) => ["site_docs", { query }]));
 
   const real = JSON.parse(readFileSync("data/changes/changes.json", "utf8"));
@@ -1237,11 +1239,13 @@ test("age edge cases: listed today, a future or partial date, leap days, month e
   assert.equal(ageOf(leap("2020-12"), "S1", AT.today), "LEAP appears on the United Kingdom list under Russia since Dec 2020."); // a month alone gives no exact age
 });
 
-// a search that found 12 names and shows 5, as check_lists writes it
+// a search that found 12 names and shows 5, as check_lists writes it (the records carry no date)
 const zinnia = () => [
   { id: "S1", kind: "search", query: "ZINNIA", found: true, near: [], shown: 5, total: 12, quotes: [], label: "Search of the lists, research and OpenSanctions", url: "/" },
-  ...Array.from({ length: 5 }, (_, i) => ({ id: `S${i + 2}`, kind: "list", entity: { id: `us:Z${i}`, name: `ZINNIA ${i}` }, gov: "us", program: "Russia", result: "S1", quotes: [], label: `United States list · ZINNIA ${i}`, url: `https://example.org/z${i}` })),
+  ...Array.from({ length: 5 }, (_, i) => ({ id: `S${i + 2}`, kind: "list", entity: { id: `us:Z${i}`, name: `ZINNIA ${i}` }, gov: "us", program: "Russia", undated: true, result: "S1", quotes: [], label: `United States list · ZINNIA ${i}`, url: `https://example.org/z${i}` })),
 ];
+// the same search again, as a second check_lists call writes it: ids after the first's, and the query as given
+const zinniaAgain = (query = "ZINNIA") => zinnia().map((e) => ({ ...e, id: `S${Number(e.id.slice(1)) + 6}`, ...(e.result ? { result: "S7" } : { query }) }));
 
 // a second search, of 4 names, 2 shown
 const orchid = () => [
@@ -1283,14 +1287,50 @@ test("Showing N of M counts the search's matches the answer lists, after its sen
   const out = checkAnswer(answer(claim("listed", "S2"), claim("listed", "S8"), claim("listed", "S3")), both, {});
   assert.deepEqual(texts(out), ["ZINNIA 0 appears on the United States list under Russia.", "ORCHID 0 appears on the United Kingdom list under Russia.", "Showing 1 of 4.", "ZINNIA 1 appears on the United States list under Russia.", "Showing 2 of 12."]);
   assert.deepEqual(groundingProblems("", both, out), []);
-  // the same search run twice is one search: one line, counting its matches cited from either copy
-  const again = [...ev, ...zinnia().map((e) => ({ ...e, id: `S${Number(e.id.slice(1)) + 6}`, ...(e.result && { result: "S7" }) }))];
-  const twice = checkAnswer(answer(claim("listed", "S2"), claim("listed", "S9")), again, {}); // ZINNIA 0 from the first, ZINNIA 1 from the second
-  assert.deepEqual(texts(twice), ["ZINNIA 0 appears on the United States list under Russia.", "ZINNIA 1 appears on the United States list under Russia.", "Showing 2 of 12."]);
-  assert.deepEqual(groundingProblems("", again, twice), []);
+  // the same search run twice, or with the query in other case, is one line, counting its matches listed from either copy
+  for (const query of ["ZINNIA", "zinnia"]) {
+    const again = [...ev, ...zinniaAgain(query)];
+    const twice = checkAnswer(answer(claim("listed", "S2"), claim("listed", "S9")), again, {}); // ZINNIA 0 from the first, ZINNIA 1 from the second
+    assert.deepEqual(texts(twice), ["ZINNIA 0 appears on the United States list under Russia.", "ZINNIA 1 appears on the United States list under Russia.", "Showing 2 of 12."], query);
+    assert.deepEqual(groundingProblems("", again, twice), [], query);
+  }
   // the line follows the matches, not the search itself: "not on the lists" never carries one
   const none = [{ ...ev[0], found: false, shown: 3, total: 7 }];
   assert.deepEqual(texts(checkAnswer(answer(claim("not_found", "S1")), none, { question: "Is ZINNIA listed?" })), [NOT_FOUND("ZINNIA")]);
+});
+
+test("review (1): two searches of one ship, by name and by IMO number, each count the ship's records the answer lists", () => {
+  const byName = searchFor(E.nameImo, "TASSOS");
+  const byImo = searchFor(E.nameImo, "IMO 9408695");
+  const record = (gov, search) => find(E.nameImo, (e) => e.kind === "list" && e.gov === gov && e.entity.name === "TASSOS" && e.result === search.id);
+  // the US record from the name search's copy, the UK record from the IMO search's: both are matches of both searches
+  const out = checkAnswer(answer(claim("listed", record("us", byName).id), claim("listed", record("uk", byImo).id)), E.nameImo, TASSOS_Q);
+  assert.deepEqual(texts(out), [
+    "TASSOS appears on the United States list under Iran.",
+    "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.",
+    shows(2, E.nameImo, "TASSOS"),
+    shows(2, E.nameImo, "IMO 9408695"),
+  ]);
+  assert.notEqual(byName.total, byImo.total); // (two different lines)
+  assert.deepEqual(groundingProblems(TASSOS_Q.question, E.nameImo, out), []);
+});
+
+test("review (2): an age that falls back to the listed sentence counts as a listing", () => {
+  for (const date of ["2020-12", "2030-01-01"]) { // a month alone, and a date after today
+    const ev = zinnia().map((e) => (e.id === "S3" ? { ...e, date, undated: undefined } : e));
+    const out = checkAnswer(answer(claim("listed", "S2"), claim("age", "S3")), ev, AT);
+    assert.deepEqual(texts(out), ["ZINNIA 0 appears on the United States list under Russia.", `ZINNIA 1 appears on the United States list under Russia since ${formatDate(date)}.`, "Showing 2 of 12."], date);
+    assert.deepEqual(groundingProblems("", ev, out, AT.today), [], date);
+  }
+});
+
+test("review (3): \"gives no listing date\" only when the record has none; a date in another form is the listed sentence", () => {
+  const ev = zinnia();
+  assert.equal(ageOf(ev, "S2", AT.today), "The United States list gives no listing date for ZINNIA 0.");
+  // a record whose date check_lists could not read ("8/11/2015") carries neither `date` nor `undated`
+  const odd = ev.map((e) => (e.id === "S2" ? { ...e, undated: undefined } : e));
+  assert.equal(ageOf(odd, "S2", AT.today), "ZINNIA 0 appears on the United States list under Russia.");
+  assert.deepEqual(groundingProblems("", odd, checkAnswer(answer(claim("age", "S2")), odd, AT), AT.today), []);
 });
 
 test("groundingProblems accepts the age and Showing lines", () => {

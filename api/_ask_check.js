@@ -29,11 +29,12 @@ function LISTED(e) {
     ? `${e.entity.name} appears in OpenSanctions${e.program ? ` as listed by ${e.program}` : ""}${since}.`
     : `${e.entity.name} appears on ${onList(e)}${since}.`;
 }
-// How long a listing has stood, from its date and today (UTC), with what the date stands for (the item's date_basis). A date after
-// today (bad data) or without its day has no age: that is LISTED.
+// How long a listing has stood, from its date and today (UTC), with what the date stands for (the item's date_basis). "No listing date"
+// only for a record that has none (`undated`). A date after today (bad data), one without its day, or one in a form the tools could
+// not read (no `date`, not `undated`) has no age: that is LISTED.
 const BASIS = { first_seen_opensanctions: " (first seen on the list via OpenSanctions)", uk_transfer: " (the UK list's transfer date; the listing may be older)" };
 function AGE(e, today) {
-  if (!e.date) return `The ${LIST_LABELS[e.gov]} list gives no listing date for ${e.entity.name.replace(/\.$/, "")}.`; // ("Co., Ltd.", one stop)
+  if (!e.date) return e.undated ? `The ${LIST_LABELS[e.gov]} list gives no listing date for ${e.entity.name.replace(/\.$/, "")}.` : LISTED(e); // ("Co., Ltd.", one stop)
   const span = calendarSpan(e.date, today);
   if (span === null) return LISTED(e);
   const note = Object.hasOwn(BASIS, e.date_basis) ? BASIS[e.date_basis] : "";
@@ -178,8 +179,11 @@ function typedSpan(query, question) {
 // `listed` and `change` write the items they can and leave the others out; only a claim with none left is dropped.
 const RENDER = {
   listed: (items) => items.filter(listable).map((e) => ({ text: LISTED(e), items: [e] })),
-  age: (items, s, all, ctx) => items.filter((e) => listable(e) && e.kind !== "opensanctions")
-    .map((e) => ({ text: AGE(e, ctx.today ?? new Date().toISOString().slice(0, 10)), items: [e] })),
+  // (an age that cannot be told is the listed sentence, and counts as one)
+  age: (items, s, all, ctx) => items.filter((e) => listable(e) && e.kind !== "opensanctions").map((e) => {
+    const text = AGE(e, ctx.today ?? new Date().toISOString().slice(0, 10));
+    return { text, items: [e], ...(text === LISTED(e) && { claim: "listed" }) };
+  }),
   not_found: (items, s, all, ctx, state) => {
     const searches = items.filter((e) => e.kind === "search");
     if (!searches.length || !searches.every((e) => e.found === false)) return null;
@@ -226,36 +230,37 @@ function cite(ids, byId) {
 const SHOWS_MATCHES = new Set(["listed"]);
 
 /**
- * Numbers the sources in order of first citation; one sentence written twice becomes one sentence with both sources. A match of a
- * search (`result`, the search's id in byId) cited by a `listed` sentence counts towards that search: when the answer lists fewer of
- * its matches (distinct entities) than the search's total, SHOWING follows the last sentence listing them, once. A quote, an age or
- * any other sentence never counts. The same search run twice (one query) is one search. The model never chooses the line.
+ * Numbers the sources in order of first citation; one sentence written twice becomes one sentence with both sources. Then, for each
+ * search (an item with a `total`), the entities among its matches (the items whose `result` is its id) that `listed` sentences name:
+ * when they are fewer than its total, SHOWING follows the last sentence naming one. A quote, an age or any other sentence never
+ * counts. Entities, not items, are counted, so two searches of one ship (its name and its IMO number, or one query run twice) each
+ * count a record listed from either search's copy; the same line twice after one sentence is said once. The model never chooses it.
  */
 function finish(kind, pieces, next, byId = new Map()) {
   const n = new Map();
   const byText = new Map();
-  const cited = new Map(); // search ("kind:query") -> {total, entities: its matches the answer lists}
   for (const { text, items, claim } of pieces) {
-    if (!byText.has(text)) byText.set(text, { text, sources: [], searches: new Set() });
-    const { sources, searches } = byText.get(text);
+    if (!byText.has(text)) byText.set(text, { text, sources: [], listed: new Set() });
+    const { sources, listed } = byText.get(text);
     for (const e of items) {
       if (!n.has(e.id)) n.set(e.id, n.size + 1);
       if (!sources.some((x) => x.n === n.get(e.id))) sources.push({ n: n.get(e.id), label: e.label, url: e.url });
-      const r = SHOWS_MATCHES.has(claim) && byId.get(e.result);
-      if (!r) continue;
-      const key = `${r.kind}:${r.query ?? r.id}`;
-      if (!cited.has(key)) cited.set(key, { total: r.total, entities: new Set() });
-      cited.get(key).entities.add(e.entity?.id ?? e.id);
-      searches.add(key);
+      if (SHOWS_MATCHES.has(claim) && e.entity) listed.add(e.entity.id);
     }
   }
   const said = [...byText.values()];
-  const sentences = said.flatMap(({ text, sources, searches }, i) => [
-    { text, sources },
-    ...[...searches].filter((key) => !said.slice(i + 1).some((x) => x.searches.has(key))) // its last sentence
-      .map((key) => cited.get(key)).filter((c) => c.entities.size < c.total)
-      .map((c) => ({ text: SHOWING(c.entities.size, c.total), sources: [] })),
-  ]);
+  const named = new Set(said.flatMap((x) => [...x.listed]));
+  const matches = new Map(); // search -> the entities of its matches
+  for (const e of byId.values()) {
+    const r = byId.get(e.result);
+    if (e.entity && Number.isInteger(r?.total)) matches.set(r, (matches.get(r) ?? new Set()).add(e.entity.id));
+  }
+  const lines = said.map(() => new Set()); // after each sentence
+  for (const [r, entities] of matches) {
+    const shown = [...entities].filter((x) => named.has(x)).length;
+    if (shown && shown < r.total) lines[said.findLastIndex((x) => [...x.listed].some((y) => entities.has(y)))].add(SHOWING(shown, r.total));
+  }
+  const sentences = said.flatMap(({ text, sources }, i) => [{ text, sources }, ...[...lines[i]].map((t) => ({ text: t, sources: [] }))]);
   return sentences.length ? { kind, sentences, next } : fallback();
 }
 
@@ -313,7 +318,7 @@ export function checkAnswer(raw, ev, ctx) {
   for (const { s, items } of cited) {
     const shown = typeof s.claim === "string" && Object.hasOwn(RENDER, s.claim) ? RENDER[s.claim](items, s, all, ctx ?? {}, state) : [];
     if (!shown) return fallback();
-    pieces.push(...shown.map((p) => ({ ...p, claim: s.claim })));
+    pieces.push(...shown.map((p) => ({ ...p, claim: p.claim ?? s.claim })));
   }
   if (state.partial && pieces.length) pieces.push({ text: PARTIAL, items: [] }); // never a lone "part of the question": with nothing else to say it is the fallback
   if (pieces.length) pieces.push(...notice(ctx)); // last, after the part-answer line; an answer with nothing to say is the fallback and carries no notice

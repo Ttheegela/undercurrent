@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { VOCAB, topicOf } from "../api/_ask_vocab.js";
 
 const read = (rel) => JSON.parse(readFileSync(rel, "utf8"));
+const balanced = (s) => s.split("(").length === s.split(")").length;
 
 test("topicOf maps labels and aliases and rejects free text", () => {
   assert.deepEqual(topicOf("iran"), { kind: "programme", key: "Iran", label: "Iran" });
@@ -16,11 +17,12 @@ test("topicOf maps labels and aliases and rejects free text", () => {
 
 test("the vocabulary holds every list programme, the map's countries and the groups, each with a printable label", () => {
   const labels = (kind) => new Set(VOCAB.topics.filter((t) => t.kind === kind).map((t) => t.label));
-  // every part of every programme string on the four lists, the 184 compound US strings among them
-  const us = new Set(read("data/lists/us.json").records.map((r) => r[2]));
-  assert.equal(us.size, 184);
-  const programmes = labels("programme");
-  for (const id of ["us", "uk", "eu", "un"]) for (const r of read(`data/lists/${id}.json`).records) for (const p of r[2].split(", ").filter(Boolean)) assert.ok(programmes.has(p), p);
+  // every part of every programme string on the four lists (compound US strings split), in any case, but for a part cut short
+  for (const id of ["us", "uk", "eu", "un"]) {
+    for (const r of read(`data/lists/${id}.json`).records) {
+      for (const p of r[2].split(", ").filter((x) => x && balanced(x))) assert.equal(topicOf(p)?.kind, "programme", p);
+    }
+  }
   assert.deepEqual(topicOf("Entity List (EL)"), { kind: "programme", key: "Entity List (EL)", label: "Entity List (EL)" });
   // a country only the map knows, and one the map names by its code
   assert.deepEqual(topicOf("Panamanian"), { kind: "country", key: "pa", label: "Panama" });
@@ -30,4 +32,19 @@ test("the vocabulary holds every list programme, the map's countries and the gro
   assert.deepEqual(topicOf("semiconductors"), { kind: "group", key: "chips", label: "Chips" });
   assert.deepEqual([...labels("group")].sort(), ["China", "Chips", "Iran", "North Korea", "Russia", "Terrorism", "Venezuela"]);
   for (const t of VOCAB.topics) assert.match(t.label, /^\S(.*\S)?$/, JSON.stringify(t));
+});
+
+test("review (6): a programme written in two cases is one topic with one label, and a programme cut short is never printed", () => {
+  // the UK's "Chemical Weapons" and the EU's "Chemical weapons"
+  const chemical = VOCAB.topics.filter((t) => t.kind === "programme" && t.label.toLowerCase() === "chemical weapons");
+  assert.equal(chemical.length, 1);
+  assert.deepEqual(topicOf("chemical weapons"), topicOf("CHEMICAL WEAPONS"));
+  assert.equal(topicOf("Chemical weapons").label, chemical[0].label);
+  for (const kind of ["programme", "country", "group"]) {
+    const seen = VOCAB.topics.filter((t) => t.kind === kind).map((t) => t.label.toLowerCase());
+    assert.equal(new Set(seen).size, seen.length, kind);
+  }
+  // the UK list's "Counter-Terrorism (International", cut at its comma, is never a topic
+  assert.equal(topicOf("Counter-Terrorism (International"), null);
+  for (const t of VOCAB.topics) assert.ok(balanced(t.label), t.label);
 });

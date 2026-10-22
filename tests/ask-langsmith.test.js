@@ -238,6 +238,20 @@ test("each case is scored: pass only for quality outcomes; unavailable, resting 
   assert.deepEqual([result.failures, result.allInfra], [["area-research-1"], false]);
 });
 
+test("review (7): an age is graded on the run's own date, so an answer made before midnight UTC still matches after it", async () => {
+  const c = byId("area-lists-3");
+  const dji = c.evidence.find((e) => e.kind === "list" && e.date === "2020-12-18");
+  const ranOn = "2026-01-31";
+  const aged = checkAnswer({ kind: "answer", sentences: [{ claim: "age", sources: [dji.id] }], next: [] }, structuredClone(c.evidence), { question: c.question, today: ranOn });
+  assert.equal(aged.sentences[0].text, "DJI has been on the United States list under Entity List (EL) for 5 years 1 month (since 18 Dec 2020).");
+  const { rows, deps } = setup([c], fakeAsk({ [c.id]: { answer: aged } }));
+  deps.now = () => new Date(`${ranOn}T23:59:59Z`); // the run starts a second before midnight; it is graded after
+  await runEvals(WEEKLY, deps);
+  const { pass } = scoresOf(rows)[c.id];
+  assert.equal(pass.score, 1, pass.comment);
+  assert.equal(rows[0].run.outputs.today, ranOn);
+});
+
 test("a run where every case hits the key limit has allInfra true and no failures", async () => {
   const cases = LIVE.slice(0, 4);
   const { calls, deps } = setup(cases, fakeAsk(Object.fromEntries(cases.map((c) => [c.id, { stop: RESTING }]))));

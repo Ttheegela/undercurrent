@@ -415,7 +415,8 @@ function researchItems(e, s, q, how) {
       : gone ? `This item: was on ${the}${l.by}${named ? ` under ${named}`: ""}${when}; that listing has been removed, so it is not a current listing.`
       : `This item: listed by ${the}${l.by}${named ? ` under ${named}` : ""}${when}.`;
     return {
-      kind: "research", entity, ...(gov && { gov }), ...(program && { program }), ...(plain && l.date && { date: l.date, date_basis: dateBasis(gov, l.date, src?.url) }), ...(gone && { delisted: true }),
+      // (a listing with no date at all is `undated`; one whose date is not a plain date has neither, and gets no age)
+      kind: "research", entity, ...(gov && { gov }), ...(program && { program }), ...(plain && l.date && { date: l.date, date_basis: dateBasis(gov, l.date, src?.url) }), ...(l && !l.date && { undated: true }), ...(gone && { delisted: true }),
       text: sentence(profile[0], about, matchNote(s, q, how), ...profile.slice(1)), quotes,
       label: `Undercurrent research: ${e.name}${l ? ` · ${l.by}` : ""}`,
       url: href(absolute(src?.url), link ?? "/"), ...(link && { link }),
@@ -427,7 +428,8 @@ function listItem(h, s, q, how) {
   const label = own(LIST_LABELS, h.list);
   const plain = PLAIN_DATE.test(h.date || "");
   return {
-    kind: "list", entity: { id: `${h.list}:${h.ref}`, name: h.name, ...(h.imo && { imo: h.imo }) }, gov: h.list, program: h.program, ...(plain && h.date && { date: h.date, date_basis: dateBasis(h.list, h.date) }),
+    kind: "list", entity: { id: `${h.list}:${h.ref}`, name: h.name, ...(h.imo && { imo: h.imo }) }, gov: h.list, program: h.program,
+    ...(plain && h.date && { date: h.date, date_basis: dateBasis(h.list, h.date) }), ...(!h.date && { undated: true }), // ("8/11/2015" is neither)
     text: sentence(
       `${label} list record: "${h.name}". Programme: ${h.program || "not stated"}.`,
       h.date ? `Listing date on the record: ${dt(h.date)}.` : "The record has no listing date.",
@@ -521,8 +523,9 @@ async function checkLists(args, ev, ctx = {}) {
   const taken = [...allResearch.map((x) => x.hit.name), ...strong.lists.flatMap((m) => [...m.values()].map((x) => x.hit.name)), ...[...strong.os.values()].map((x) => x.hit.r.name)];
   const contained = attempt("Undercurrent research", () => containedIn(variants[0].q, entries(), LIST_IDS.map(doc), entities));
   const hits = research.length + lists.flat().length + os.length;
-  // How many strong matches there are in all: the M of "Showing N of M". The site's search returns at most LIMIT names a source,
-  // so a source that filled its cap is counted over all its rows: a list's records by ref, research and OpenSanctions entries by id.
+  // How many strong matches there are in all: the M of "Showing N of M". A source with fewer strong matches than its cap gives the
+  // count it found. One that reached its cap may hold more (its cap and the site search's LIMIT names a source stop the search short),
+  // so it is counted over all its rows: a list's records by ref, research and OpenSanctions entries by id.
   const counted = (map, cap, rows, keys, imo, id) => (map.size < cap ? map.size
     : new Set(rows().filter((x) => variants.some(({ q }) => strength(q, keys(x), imo(x)))).map(id)).size);
   const total = counted(strong.research, CAP.research, entries, (e) => e.keys, (e) => e.imo, (e) => e.id)

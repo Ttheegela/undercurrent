@@ -876,13 +876,13 @@ test("runAsk calls wrap once each for callModel, runTool and checkAnswer, and us
     return (...args) => (calls[name]++, fn(...args));
   };
   openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
-  assert.deepEqual(await runAsk(history("Is TASSOS sanctioned?"), new Date(Date.now()), { wrap }), { ok: true, answer: SENTINEL });
+  assert.deepEqual(await runAsk(history("Is TASSOS sanctioned?"), new Date("2026-10-21T23:59:59Z"), { wrap }), { ok: true, answer: SENTINEL });
   assert.deepEqual(wrapped.sort(), ["callModel", "checkAnswer", "runTool"]);
   assert.deepEqual(calls, { callModel: 2, runTool: 1 });
   assert.equal(sent.length, 2);
   assert.equal(checked[0].kind, "answer");
   assert.ok(checked[1].length > 0); // the evidence check_lists returned
-  assert.deepEqual(checked[2], { question: "Is TASSOS sanctioned?" });
+  assert.deepEqual(checked[2], { question: "Is TASSOS sanctioned?", today: "2026-10-21" }); // ages count to the request's date (UTC)
   // once a request, whether or not a tool runs
   wrapped.length = 0;
   openrouter(answer({ kind: "refusal", sentences: [] }));

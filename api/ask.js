@@ -187,7 +187,8 @@ async function converse(history, now, wrap, modelId) {
     const final = calls.find((c) => c.function.name === "answer");
     // An answer call is final, but only alone: beside lookups it was written before their results, so it cannot cite them and would
     // read as complete without them. A forced call that is not an answer, and a reply with no call, are the fallback.
-    if (final || forced || !calls.length) return { ok: true, answer: await check(final && calls.length === 1 ? parse(final.function.arguments) : undefined, ev, { question }) };
+    // (ages count to the request's own date, the one the tools and the prompt use)
+    if (final || forced || !calls.length) return { ok: true, answer: await check(final && calls.length === 1 ? parse(final.function.arguments) : undefined, ev, { question, today }) };
     const asked = calls.slice(0, Math.min(CALLS_PER_ROUND, MAX_TOOL_CALLS - used)).map((c, i) => ({
       id: typeof c.id === "string" && c.id ? c.id : `call_${round}_${i}`,
       type: "function",

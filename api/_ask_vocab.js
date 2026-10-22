@@ -27,16 +27,23 @@ const ALIASES = new Map(("Afghanistan:Afghan;Antigua and Barbuda:Antiguan;Aruba:
   .split(";").map((pair) => pair.split(":")).map(([label, aliases]) => [label, aliases.split(",")]));
 const word = (w) => w.trim().replace(/\s+/g, " ").toLowerCase();
 
+const balanced = (s) => s.split("(").length === s.split(")").length;
+
 let built = null;
 function build() {
-  const programmes = new Set(["us", "uk", "eu", "un"].flatMap((id) => read(`data/lists/${id}.json`).records.flatMap((r) => (r[2] || "").split(", ")).filter(Boolean)));
+  // one programme per spelling in any case, the first one met ("Chemical Weapons", UK, before the EU's "Chemical weapons"); a part cut
+  // short at a comma inside brackets ("Counter-Terrorism (International") is not printable, so it is no topic
+  const programmes = new Map();
+  for (const p of ["us", "uk", "eu", "un"].flatMap((id) => read(`data/lists/${id}.json`).records.flatMap((r) => (r[2] || "").split(", ")))) {
+    if (p && balanced(p) && !programmes.has(p.toLowerCase())) programmes.set(p.toLowerCase(), p);
+  }
   const fleet = read("stories/shadow-fleet/network/fleet-data.json").nodes;
   // (a country the map names only by its code, "DK", is given its English name)
   const countries = fleet.filter((n) => n.id.startsWith("cc:")).map((n) => [n.id.slice(3), n.name === n.id.slice(3).toUpperCase() ? REGIONS.of(n.name) : n.name]);
   const groups = new Set([...fleet.map((n) => n.program_group), ...read("stories/who-lobbies/influence-network/kg.json").nodes.map((n) => n.g)].filter((g) => typeof g === "string" && !BUCKETS.has(g)));
   const topic = (kind, key, label) => ({ kind, key, label, aliases: ALIASES.get(label) ?? [] });
   const topics = [
-    ...[...programmes].map((p) => topic("programme", p, p)),
+    ...[...programmes.values()].map((p) => topic("programme", p, p)),
     ...countries.map(([cc, name]) => topic("country", cc, name)),
     ...[...groups].map((g) => topic("group", g, GROUP_LABELS[g] ?? g[0].toUpperCase() + g.slice(1))),
   ];

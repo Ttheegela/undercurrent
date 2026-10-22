@@ -705,6 +705,7 @@ function mapShips() {
     // country node's own code
     const facts = new Map(fleet.nodes.map((n) => [n.id, {
       groups: groupsOf(n.programs, n.program_group), regions: new Set([...flags(n), ...[n.country, n.id.startsWith("cc:") && n.id.slice(3)].filter(Boolean).map(lower)]),
+      neutral: n.type === "government", // a sanctioning government: no party to an update (see "the updates by topic")
     }]));
     shipIndex.set(fleet, { ships, groups: new Set(ships.flatMap((s) => [...s.programs])), facts });
   }
@@ -820,13 +821,17 @@ function gapRuns(gaps) {
 // An update carries no programme or country of its own: they come from the nodes it involves (an edge's two ends, or the node itself),
 // joined to the map's nodes for a fleet update and to the lobbying graph's for a lobby update. A topic is told by the programme groups
 // whose word it is and by its country's code (Iran by both, Panama by its code, Chips by its group). An update involves the topic when a
-// node of it carries the topic; it was checked when each of its nodes carries a group or a country the topic is told by and none is the
-// topic; otherwise it is unchecked (a bill, a lobbyist, a node no join finds), and is never counted as not involving the topic.
+// node of it carries the topic; it was checked when each of its parties carries a group or a country the topic is told by and none is the
+// topic; otherwise it is unchecked (a bill, a lobbyist, a node no join finds), and is never counted as not involving the topic. A
+// government (type "government" in both graphs: the map's sanctioning governments, the network's agencies and governments) is the
+// authority or the body lobbied, not a party: a designation is decided by its ship, and an update of governments only is unchecked.
 const KG = "stories/who-lobbies/influence-network/kg.json";
 const kgIndex = new WeakMap();
 function lobbyFacts() {
   const kg = data(KG);
-  if (!kgIndex.has(kg)) kgIndex.set(kg, new Map(kg.nodes.map((n) => [n.id, { groups: groupsOf(n.info?.programs, n.g), regions: new Set([n.info?.country].filter(Boolean).map(lower)) }])));
+  if (!kgIndex.has(kg)) {
+    kgIndex.set(kg, new Map(kg.nodes.map((n) => [n.id, { groups: groupsOf(n.info?.programs, n.g), regions: new Set([n.info?.country].filter(Boolean).map(lower)), neutral: n.t === "government" }])));
+  }
   return kgIndex.get(kg);
 }
 
@@ -845,7 +850,8 @@ function bearing(c, want) {
   const facts = c.graph === "fleet" ? mapShips().facts : lobbyFacts();
   const nodes = (c.endpoint_ids?.length ? c.endpoint_ids : [c.id]).map((id) => facts.get(id));
   if (nodes.some((f) => f && ([...f.groups].some((g) => want.groups.has(g)) || f.regions.has(want.region)))) return "match";
-  return nodes.every((f) => f && ((want.groups.size && f.groups.size) || (want.region && f.regions.size))) ? "checked" : "unchecked";
+  const parties = nodes.filter((f) => !f?.neutral); // (a node no join finds is a party: it could be anything)
+  return parties.length && parties.every((f) => f && ((want.groups.size && f.groups.size) || (want.region && f.regions.size))) ? "checked" : "unchecked";
 }
 
 function changesTool(args, ev, ctx) {

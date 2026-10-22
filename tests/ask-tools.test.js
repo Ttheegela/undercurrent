@@ -8,6 +8,8 @@ import { TOOLS, runTool, resetAskCache } from "../api/_ask_tools.js";
 import { INDEX_URL, resetIndexCache } from "../api/search.js";
 import { CONNECTIONS_URL, LOBBYING_URL, resetConnectionsCache } from "../api/connections.js";
 import { normalizeName } from "../app/normalize.js";
+import { checkAnswer } from "../api/_ask_check.js";
+import { groundingProblems } from "../scripts/ask-oracle.mjs";
 
 // ---- a small site on disk: the tools read it from process.cwd() ---------------------------------------------------
 
@@ -123,6 +125,7 @@ const FLEET = {
     hull("7654321", { name: "SI HE", program_group: "iran", programs: ["iran"], listed_by: ["us"], ship_type: "General Cargo", name_count: 2, flag_now: "lr" }),
     hull("700000", { name: "AMBER 0", program_group: "russia", programs: ["russia"], listed_by: ["uk"] }), // in the research, with no listing to show
     { id: "ship:nameless", type: "ship", name: "NAMELESS", program_group: "russia", programs: ["russia"], listed_by: ["uk"], name_count: 2 },
+    { id: "gov:us", type: "government", name: "United States (sanctioning government)" },
   ],
   edges: [{ s: "IMO9408695", t: "cc:lr", y: "flagged_in" }, { s: "IMO7654321", t: "cc:sl", y: "formerly_flagged_in" }],
 };
@@ -936,9 +939,9 @@ const TOPIC_RECORD = {
     { date: "2026-10-18", sources: FRESH, changes: [ship(1, "2026-10-18", { id: "IMO1111111", name: "TASSOS STAR", summary: "New on the map: TASSOS STAR" })] },
   ],
 };
-const TOPIC_KG = { nodes: [{ id: "co:rus-client", L: "lobby", g: "russia", n: "Rus Client", t: "company" }] };
-async function withTopicRecord(fn) {
-  write(root, "data/changes/changes.json", TOPIC_RECORD);
+const TOPIC_KG = { nodes: [{ id: "co:rus-client", L: "lobby", g: "russia", n: "Rus Client", t: "company" }, { id: "gov:us-senate", L: "lobby", g: "", n: "US Senate", t: "government" }] };
+async function withTopicRecord(fn, record = TOPIC_RECORD) {
+  write(root, "data/changes/changes.json", record);
   write(root, "stories/who-lobbies/influence-network/kg.json", TOPIC_KG);
   resetAskCache();
   try {
@@ -1029,6 +1032,30 @@ test("topic: a word that is no topic, or a topic the updates can't be checked ag
     assert.equal(ev.length, 0);
   }
 }));
+
+// A government is no party to an update: the US designating AMBER 0 (Russia) is decided by AMBER 0, Rus Client lobbying the US Senate by
+// Rus Client, and the US Senate on its own (an update of governments only) can't be checked
+const GOV_RECORD = {
+  started: "2026-10-12", first_run: "2026-10-12",
+  days: [{
+    date: "2026-10-19", sources: FRESH, changes: [
+      ship(0, "2026-10-19", { item: "edge", id: "e:amber-us", name: "AMBER 0 → United States (sanctioning government)", node_type: "designated_by", endpoints: ["AMBER 0", "United States (sanctioning government)"], endpoint_ids: ["IMO700000", "gov:us"], summary: "The US designated AMBER 0" }),
+      lobbyChange({ item: "edge", id: "e:rus-senate", name: "Rus Client → US Senate", node_type: "lobbied", endpoints: ["Rus Client", "US Senate"], endpoint_ids: ["co:rus-client", "gov:us-senate"], summary: "Rus Client lobbied US Senate" }),
+      lobbyChange({ id: "gov:us-senate", name: "US Senate", node_type: "agency", summary: "New agency: US Senate" }),
+    ],
+  }],
+};
+
+test("fix (government ends): a designation is decided by its ship; an update of governments only is unchecked", () => withTopicRecord(async () => {
+  // Iran: the Russia-programme ship's designation is checked and not matching, and counted in "None of the N updates …"
+  await topicRun({ since: "2026-10-19", topic: "Iran" });
+  assert.deepEqual(ev.map((e) => [e.kind, e.found, e.checked_fleet, e.checked_lobby, e.unchecked]), [["change", false, 1, 1, 1]]);
+  const out = checkAnswer({ kind: "answer", sentences: [{ claim: "change", sources: [ev[0].id] }] }, ev, {});
+  assert.deepEqual(out.sentences.map((s) => s.text), ["None of the 2 updates recorded on 19 Oct 2026 involve Iran.", "1 update in that period carries no programme or country to check."]);
+  assert.deepEqual(groundingProblems("Any Iran-related updates?", ev, out), []);
+  // Russia: the same designation, and the lobbying of the Senate, involve it
+  assert.deepEqual((await topicRun({ since: "2026-10-19", topic: "Russia" })).names, ["AMBER 0 → United States (sanctioning government)", "Rus Client → US Senate"]);
+}, GOV_RECORD));
 
 // ---- connections -----------------------------------------------------------------------------------------------
 

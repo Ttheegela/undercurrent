@@ -290,6 +290,15 @@ test("the same for a no-changes line and its gap, and a gap cited on its own sta
   assert.deepEqual(texts(await gate(UPDATES, both, { fetch: drop(GAP).fetch, apiKey: KEY })), [QUIET, GAP]);
 });
 
+test("relaunch: an empty answer over a none is gated as the cited none is: the head is sent, and its caveats go with it", async () => {
+  const empty = checkAnswer({ kind: "answer", sentences: [], next: [] }, [iranNone, ukGap], { question: UPDATES, today: TODAY });
+  assert.deepEqual(texts(empty), [NONE, UNCHECKED, GAP]);
+  const ts = drop(UNCHECKED, GAP);
+  assert.deepEqual(await gate(UPDATES, empty, { fetch: ts.fetch, apiKey: KEY }), empty);
+  assert.deepEqual(sent(ts), [NONE]);
+  assert.deepEqual(texts(await gate(UPDATES, empty, { fetch: drop(NONE).fetch, apiKey: KEY })), [NOTHING_ANSWERS]);
+});
+
 test("the oracle flags a none without its caveats, a caveat without its none, and a no-changes line without its gap", () => {
   const line = (text, ...items) => ({ text, sources: items.map((e, i) => src(i + 1, e)) });
   const flagged = (...sentences) => groundingProblems(UPDATES, CEV, { kind: "answer", sentences, next: [] }, TODAY);

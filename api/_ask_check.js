@@ -2,7 +2,7 @@
 // and a `quote` names one item and the number of one of its quotes. This module writes every sentence itself: listing, age, count,
 // none, not-found and change sentences from fixed copy and the cited items, quotes copied verbatim from the cited item. Anything it can't
 // build is dropped, and an answer with nothing left is the fallback; an answer of no sentences at all says nothing recorded answers the
-// question. Any `text` or label from the model is ignored. No I/O beyond the site's
+// question, or what the updates record said of the range asked. Any `text` or label from the model is ignored. No I/O beyond the site's
 // own prose vocabulary, read once. The output is plain text plus {label, url} / {label, href} taken from the evidence: the panel escapes it.
 import { LIST_LABELS, formatDate, joinAnd } from "../app/render.js";
 import { siteVocabulary, LISTING, AUTHORITY, SHIP_TYPES } from "./_ask_tools.js";
@@ -373,9 +373,17 @@ export function checkAnswer(raw, ev, ctx) {
   if (raw?.kind !== "answer" && raw?.kind !== "clarify") return fallback();
   const byId = new Map((Array.isArray(ev) ? ev : []).map((e) => [e.id, e]));
   const sentences = listOf(raw.sentences);
+  const all = [...byId.values()];
+  const pieces = [];
   // an answer of no sentences after the tools returned evidence: the model found no record that answers. With no evidence at all
-  // nothing was checked (every lookup failed, or none was made), and with a lookup that failed not everything was: the fallback
-  if (raw.kind === "answer" && sentences?.length === 0 && byId.size) return ctx?.toolFailed ? fallback() : only("answer", NOTHING_ANSWERS);
+  // nothing was checked (every lookup failed, or none was made), and with a lookup that failed not everything was: the fallback. When the
+  // updates record answered the question itself (no record before its first night, days no longer kept, tonight's run not made yet, no
+  // changes, or no update involving the topic), that item is the answer: said as its change claim writes it, with its caveats
+  if (raw.kind === "answer" && sentences?.length === 0 && byId.size) {
+    if (ctx?.toolFailed) return fallback();
+    pieces.push(...RENDER.change(all.filter((e) => e.kind === "change" && e.found === false), {}, all).map((p) => ({ ...p, claim: "change" })));
+    if (!pieces.length) return only("answer", NOTHING_ANSWERS);
+  }
   const said = (sentences ?? []).filter((s) => s !== null && typeof s === "object");
   const linked = (listOf(raw.next) ?? []).map((x) => byId.get(x?.source)).filter(Boolean);
   const cited = said.flatMap((s) => {
@@ -388,8 +396,6 @@ export function checkAnswer(raw, ev, ctx) {
   const near = cited.filter(({ s }) => s.claim === "not_found").flatMap(({ items }) => items).filter((e) => e.kind === "search" && e.found === false && e.near?.length);
   if (near.length) return finish("clarify", [{ text: CLARIFY, items: [] }, ...notice(ctx)], unique(near.flatMap((e) => e.near.map(choice)), "label"));
 
-  const all = [...byId.values()];
-  const pieces = [];
   const state = { partial: false };
   for (const { s, items } of cited) {
     const shown = typeof s.claim === "string" && Object.hasOwn(RENDER, s.claim) ? RENDER[s.claim](items, s, all, ctx ?? {}, state) : [];

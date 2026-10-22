@@ -195,15 +195,15 @@ async function withSite(reply, fn) {
 const says = (kind, text = "Stub answer.") => [200, { ok: true, answer: { kind, sentences: [{ text, sources: [{ n: 1, label: "Stub", url: "/" }] }], next: [] } }];
 const byQuestion = (body) => LIVE.find((c) => c.question === body.messages?.[0]?.text);
 
-test("live runner: the 45 questions go in three batches an hour apart, each within one hour's limit of 20", async () => {
-  assert.equal(LIVE.length, 45);
+test("live runner: the 48 questions go in three batches an hour apart, each within one hour's limit of 20", async () => {
+  assert.equal(LIVE.length, 48);
   const questions = LIVE.map((c) => c.question);
   assert.equal(new Set(questions).size, questions.length, "a question is posted twice");
   for (const q of SPEC_QUESTIONS) assert.ok(questions.includes(q), `${q} is not live`);
   const { code, stdout } = await run(["--dry-run"]);
   assert.equal(code, 0);
   const batches = [...stdout.matchAll(/^ {2}--only (\S+)$/gm)].map((m) => m[1].split(","));
-  assert.deepEqual(batches.map((b) => b.length), [20, 20, 5]);
+  assert.deepEqual(batches.map((b) => b.length), [20, 20, 8]);
   assert.deepEqual(batches.flat(), LIVE.map((c) => c.id)); // every live case once
 });
 
@@ -218,7 +218,7 @@ test("live runner: --dry-run prints the plan and posts nothing", async () => {
   const { code, stdout } = await run(["--base", "https://undercurrent.invalid", "--dry-run"]);
   assert.equal(code, 0);
   for (const c of LIVE) assert.ok(stdout.includes(c.id) && stdout.includes(c.question), c.id);
-  assert.match(stdout, /45 questions/);
+  assert.match(stdout, /48 questions/);
   assert.ok(!CASES.filter((c) => c.live === false).some((c) => stdout.includes(`${c.id} `)), "an offline-only case is in the plan");
 });
 

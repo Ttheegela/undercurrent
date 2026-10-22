@@ -19,6 +19,13 @@ const NOT_ADVICE = "Ask can't give legal or compliance advice. These are records
 const BEFORE_START = (first) => `Daily updates started on ${day(first)}, so there is no record before then.`;
 const TRIMMED = (started) => `Days before ${day(started)} are no longer kept.`;
 const NOT_YET = "Today's nightly update hasn't run yet.";
+// A topic none says what it rests on: the updates whose programme or country could be checked, and how many could not be
+function NONE_INVOLVE(e) {
+  const n = e.checked_fleet + e.checked_lobby;
+  const when = e.from === e.to ? `on ${day(e.from)}` : `between ${day(e.from)} and ${day(e.to)}`;
+  return n === 1 ? `The 1 update recorded ${when} does not involve ${e.topic.label}.` : `None of the ${num(n)} updates recorded ${when} involve ${e.topic.label}.`;
+}
+const UNCHECKED = (n) => (n === 1 ? "1 update in that period carries no programme or country to check." : `${num(n)} updates in that period carry no programme or country to check.`);
 const SOURCE_GAP = (g) => (g.date || g.from === g.to
   ? `${g.source} was unavailable on ${day(g.date ?? g.from)}, so changes from it that day aren't recorded.`
   : `${g.source} was unavailable from ${day(g.from)} to ${day(g.to)}, so changes from it on those days aren't recorded.`);
@@ -249,12 +256,14 @@ const RENDER = {
       : e.before_start ? [{ text: BEFORE_START(e.first_run), items: [e] }]
       : e.trimmed ? [{ text: TRIMMED(e.started), items: [e] }]
       : e.not_yet ? [{ text: NOT_YET, items: [e] }, ...gaps(e)]
+      : e.found === false && e.topic ? [{ text: NONE_INVOLVE(e), items: [e] }, ...(e.unchecked ? [{ text: UNCHECKED(e.unchecked), items: [e] }] : []), ...gaps(e)]
       : e.found === false ? [{ text: NO_CHANGES(e.from, e.to), items: [e] }, ...gaps(e)]
       : [{ text: `${e.summary} · ${day(e.date)}`, items: [e] }]));
   },
   // one sentence of one item, verbatim. A change or gap item has no quotes: a quote of one alone is its change claim, the fixed copy above
+  // (and counts as one towards "Showing N of M")
   quote: (items, s, all) => {
-    if (items.length === 1 && (items[0].kind === "change" || items[0].kind === "gap")) return RENDER.change(items, s, all);
+    if (items.length === 1 && (items[0].kind === "change" || items[0].kind === "gap")) return RENDER.change(items, s, all).map((p) => ({ ...p, claim: "change" }));
     const q = items.length === 1 && Number.isInteger(s.quote) && Array.isArray(items[0].quotes) ? items[0].quotes[s.quote] : undefined;
     return typeof q === "string" ? [{ text: q, items }] : [];
   },
@@ -270,8 +279,11 @@ function cite(ids, byId) {
   return items.every(Boolean) ? items : null;
 }
 
-// The claims whose sentences show a search's matches, and so count towards "Showing N of M": listings, and the examples cited with a count
-const SHOWS_MATCHES = new Set(["listed", "count"]);
+// The claims whose sentences show a search's matches, and so count towards "Showing N of M": listings, the examples cited with a count, and
+// the changes of a capped list of updates (only a capped one is linked to a result)
+const SHOWS_MATCHES = new Set(["listed", "count", "change"]);
+// what a match is counted as: its entity, or a change itself (the changes total counts changes, and two can be of one ship)
+const matchKey = (e) => (e.kind === "change" ? e.id : e.entity.id);
 
 /**
  * Numbers the sources in order of first citation; one sentence written twice becomes one sentence with both sources. Then, for each
@@ -289,7 +301,7 @@ function finish(kind, pieces, next, byId = new Map()) {
     for (const e of items) {
       if (!n.has(e.id)) n.set(e.id, n.size + 1);
       if (!sources.some((x) => x.n === n.get(e.id))) sources.push({ n: n.get(e.id), label: e.label, url: e.url });
-      if (SHOWS_MATCHES.has(claim) && e.entity) listed.add(e.entity.id);
+      if (SHOWS_MATCHES.has(claim) && e.entity) listed.add(matchKey(e));
     }
   }
   const said = [...byText.values()];
@@ -297,7 +309,7 @@ function finish(kind, pieces, next, byId = new Map()) {
   const matches = new Map(); // search -> the entities of its matches
   for (const e of byId.values()) {
     const r = byId.get(e.result);
-    if (e.entity && Number.isInteger(r?.total)) matches.set(r, (matches.get(r) ?? new Set()).add(e.entity.id));
+    if (e.entity && Number.isInteger(r?.total)) matches.set(r, (matches.get(r) ?? new Set()).add(matchKey(e)));
   }
   const lines = said.map(() => new Set()); // after each sentence
   for (const [r, entities] of matches) {

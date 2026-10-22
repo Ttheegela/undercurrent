@@ -906,6 +906,130 @@ test("changes: an unsafe source url is replaced, never passed on", async () => {
   }
 });
 
+test("a capped changes result is one result: its first change carries shown and total, and every change shown links to it", async () => {
+  await run("changes", { since: "2026-10-12" });
+  const changes = ofKind("change");
+  assert.deepEqual([changes.length, changes[0].shown, changes[0].total], [30, 30, 38]);
+  assert.ok(changes.every((c) => c.result === changes[0].id));
+  // not capped: no result to link to, so no "Showing N of M"
+  ev = [];
+  await run("changes", { since: "2026-10-12", graph: "lobby" });
+  assert.ok(ofKind("change").every((c) => c.result === undefined && c.total === undefined));
+});
+
+// ---- changes by topic --------------------------------------------------------------------------------------------
+// A record of updates whose programme and country come from a join: AMBER 0 (Russia, no flag) and TASSOS STAR (Iran, a Liberian flag
+// from the US list) are ships of the map; Rus Client is in the lobbying graph's russia group; the bill H.R.1 is in no graph, so nothing
+// says what it bears on, and an edge between it and Rus Client can't be checked whole.
+const lobbyChange = (o) => ({ date: "2026-10-19", graph: "lobby", kind: "added", item: "node", source_url: "https://lda.gov/filings/public/filing/y/print/", source_label: "US Senate lobbying disclosure (LDA)", ...o });
+const TOPIC_RECORD = {
+  started: "2026-10-12", first_run: "2026-10-12",
+  days: [
+    {
+      date: "2026-10-19", sources: FRESH, changes: [
+        ship(0, "2026-10-19", { id: "IMO700000", name: "AMBER 0", summary: "New on the map: AMBER 0" }),
+        lobbyChange({ id: "co:rus-client", name: "Rus Client", node_type: "company", summary: "New client: Rus Client" }),
+        lobbyChange({ id: "bill:hr1", name: "H.R.1", node_type: "bill", summary: "New bill: H.R.1" }),
+        lobbyChange({ item: "edge", id: "e:rus-hr1", name: "Rus Client → H.R.1", node_type: "lobbied_on", endpoints: ["Rus Client", "H.R.1"], endpoint_ids: ["co:rus-client", "bill:hr1"], summary: "Rus Client lobbied on H.R.1" }),
+      ],
+    },
+    { date: "2026-10-18", sources: FRESH, changes: [ship(1, "2026-10-18", { id: "IMO1111111", name: "TASSOS STAR", summary: "New on the map: TASSOS STAR" })] },
+  ],
+};
+const TOPIC_KG = { nodes: [{ id: "co:rus-client", L: "lobby", g: "russia", n: "Rus Client", t: "company" }] };
+async function withTopicRecord(fn) {
+  write(root, "data/changes/changes.json", TOPIC_RECORD);
+  write(root, "stories/who-lobbies/influence-network/kg.json", TOPIC_KG);
+  resetAskCache();
+  try {
+    await fn();
+  } finally {
+    write(root, "data/changes/changes.json", CHANGES);
+    write(root, "stories/who-lobbies/influence-network/kg.json", { nodes: [] });
+    resetAskCache();
+  }
+}
+const topicRun = async (args) => {
+  ev = [];
+  const out = await run("changes", { since: "2026-10-18", until: "2026-10-19", ...args });
+  assert.equal(out.error, undefined, JSON.stringify(args));
+  return { out, names: ofKind("change").filter((c) => c.entity).map((c) => c.entity.name) };
+};
+
+test("topic filter matches fleet changes by programme", () => withTopicRecord(async () => {
+  for (const topic of ["Iran", "Iranian", "IRAN"]) {
+    const { out, names } = await topicRun({ topic });
+    assert.deepEqual([out.total, out.range_total, names], [1, 5, ["TASSOS STAR"]], topic);
+  }
+  assert.deepEqual((await topicRun({ topic: "Iran", graph: "fleet" })).names, ["TASSOS STAR"]);
+  // the change says what it was filtered by, in the vocabulary's word, and never the word asked
+  const { out } = await topicRun({ topic: "iranian" });
+  assert.match(ofKind("change")[0].text, /\(2026-10-18 to 2026-10-19\) involving Iran: 1 change recorded\./);
+  assert.ok(!JSON.stringify(ev).includes("iranian") && !JSON.stringify(out).includes("iranian"));
+  // and by flags: TASSOS STAR is Liberian on the US list
+  assert.deepEqual((await topicRun({ topic: "Liberia" })).names, ["TASSOS STAR"]);
+}));
+
+test("topic filter matches lobby changes by kg group", () => withTopicRecord(async () => {
+  // Rus Client, and the edge from it: a change involves a topic when any node it involves carries it
+  assert.deepEqual((await topicRun({ topic: "Russia", graph: "lobby" })).names, ["Rus Client", "Rus Client → H.R.1"]);
+  assert.deepEqual((await topicRun({ topic: "Russian" })).names, ["AMBER 0", "Rus Client", "Rus Client → H.R.1"]);
+}));
+
+test("nothing matching says none of the checked updates and counts the unchecked", () => withTopicRecord(async () => {
+  // the 19th: AMBER 0 (Russia) and Rus Client (russia group) are checked; H.R.1 and the edge to it are not
+  const { out, names } = await topicRun({ since: "2026-10-19", topic: "Iran" });
+  assert.deepEqual([out.total, names], [0, []]);
+  assert.deepEqual(ev.map((e) => [e.kind, e.found]), [["change", false]]);
+  const { topic, checked_fleet: fleet, checked_lobby: lobby, unchecked, from, to } = ev[0];
+  assert.deepEqual({ topic, fleet, lobby, unchecked, from, to }, { topic: { label: "Iran" }, fleet: 1, lobby: 1, unchecked: 2, from: "2026-10-19", to: "2026-10-19" });
+  assert.match(ev[0].text, /^On 19 Oct 2026 \(2026-10-19\): none of the 2 updates whose programme or country could be checked involve Iran \(1 on the shadow-fleet map, 1 in the lobbying network\)\. 2 updates in that period carry no programme or country to check\.$/);
+  assert.equal(ev[0].label, "Updates involving Iran on 19 Oct 2026: none");
+  // a country is told only by a country: a flag, or a company's country. AMBER 0 has no flag and the lobbying graph gives none here
+  await topicRun({ topic: "Comoros" });
+  assert.deepEqual([ev[0].checked_fleet, ev[0].checked_lobby, ev[0].unchecked], [1, 0, 4]);
+  // a topic that matches in the range is no none, even when the graph or the words asked leave nothing
+  for (const args of [{ topic: "Iran", graph: "lobby" }, { topic: "Russia", query: "star" }]) {
+    const { out: o } = await topicRun(args);
+    assert.deepEqual([o.total, ev.length], [0, 0], JSON.stringify(args));
+  }
+  // what the record says first still comes first: a range before the first run, or today before tonight's run
+  ev = [];
+  await run("changes", { since: "2025-01-01", until: "2025-02-01", topic: "Iran" });
+  assert.deepEqual(ev.map((e) => [e.found, e.before_start, e.topic]), [[false, true, undefined]]);
+  ev = [];
+  await run("changes", { since: "2026-10-20", topic: "Iran" });
+  assert.deepEqual(ev.map((e) => [e.found, e.not_yet, e.topic]), [[false, true, undefined]]);
+  // a whole range with no change at all is "no changes", which says more
+  write(root, "data/changes/changes.json", { ...TOPIC_RECORD, days: [{ date: "2026-10-19", sources: FRESH, changes: [] }, { date: "2026-10-18", sources: FRESH, changes: [] }] });
+  resetAskCache();
+  await topicRun({ topic: "Iran" });
+  assert.deepEqual(ev.map((e) => [e.found, e.topic]), [[false, undefined]]);
+  assert.match(ev[0].text, /^No changes were recorded between/);
+}));
+
+test("free-text query still works and is unaffected by topic", () => withTopicRecord(async () => {
+  const words = async (args) => (await topicRun(args)).names;
+  assert.deepEqual(await words({ query: "star" }), ["TASSOS STAR"]);
+  assert.deepEqual(await words({ query: "client" }), ["Rus Client", "Rus Client → H.R.1"]);
+  assert.deepEqual(await words({ query: "star", topic: "Iran" }), ["TASSOS STAR"]);
+  assert.deepEqual(await words({ query: "client", topic: "Russia" }), ["Rus Client", "Rus Client → H.R.1"]);
+  assert.deepEqual(await words({ query: "client", topic: "Iran" }), []);
+  // no topic: the same items as before topics existed, nothing said of a topic
+  await topicRun({ query: "client" });
+  assert.ok(ev.every((e) => e.topic === undefined && !/involving/.test(e.text)));
+}));
+
+test("topic: a word that is no topic, or a topic the updates can't be checked against, is an error, never a none", () => withTopicRecord(async () => {
+  // Terrorism is a programme of the lists, but here no graph groups by it and it is no country
+  for (const topic of ["Gatik", "Iran Air", "Terrorism", "", 7, ["Iran"]]) {
+    ev = [];
+    const out = await run("changes", { since: "2026-10-18", topic });
+    assert.match(out.error ?? "", /^topic must be/, String(topic));
+    assert.equal(ev.length, 0);
+  }
+}));
+
 // ---- connections -----------------------------------------------------------------------------------------------
 
 test("connections honours exclude_lobbyists", async () => {

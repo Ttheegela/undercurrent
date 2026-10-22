@@ -88,7 +88,13 @@ function producers(ev, today) {
     if (e.kind === "change" && e.before_start) add(`Daily updates started on ${day(e.first_run)}, so there is no record before then.`, e);
     else if (e.kind === "change" && e.trimmed) add(`Days before ${day(e.started)} are no longer kept.`, e);
     else if (e.kind === "change" && e.not_yet) add("Today's nightly update hasn't run yet.", e);
-    else if (e.kind === "change" && e.found === false) add(e.from === e.to ? `No changes were recorded on ${day(e.from)}.` : `No changes were recorded between ${day(e.from)} and ${day(e.to)}.`, e);
+    else if (e.kind === "change" && e.found === false && e.topic) {
+      // no update involves the topic: how many could be checked, and how many carry nothing to check
+      const n = e.checked_fleet + e.checked_lobby;
+      const when = e.from === e.to ? `on ${day(e.from)}` : `between ${day(e.from)} and ${day(e.to)}`;
+      add(n === 1 ? `The 1 update recorded ${when} does not involve ${e.topic.label}.` : `None of the ${n.toLocaleString("en-GB")} updates recorded ${when} involve ${e.topic.label}.`, e);
+      if (e.unchecked) add(e.unchecked === 1 ? "1 update in that period carries no programme or country to check." : `${e.unchecked.toLocaleString("en-GB")} updates in that period carry no programme or country to check.`, e);
+    } else if (e.kind === "change" && e.found === false) add(e.from === e.to ? `No changes were recorded on ${day(e.from)}.` : `No changes were recorded between ${day(e.from)} and ${day(e.to)}.`, e);
     else if (e.kind === "change") add(`${e.summary} · ${day(e.date)}`, e);
     if (e.kind === "gap") {
       add(e.date || e.from === e.to
@@ -112,15 +118,18 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   // searches of one ship (its name and its IMO number) counts for both. A source is only a label and a url, which records can share (UN
   // records of one name, EU records under one act, US records whose url is the list's home page): it names one of the items with them
   // that write its sentence. So N may be any count from the entities the sources surely name to all those they may name.
+  // A capped list of updates is a search too: its first change holds the total, and its changes are matches, each counted as itself (two
+  // can be of one ship), when an answer gives its line.
   const labelled = (items, src) => [...items].some((e) => e.label === src.label && e.url === src.url);
-  const shows = new Set(ev.flatMap((e) => [listing(e), counted(e)]).filter(Boolean));
+  const key = (e) => (e.kind === "change" ? e.id : e.entity.id);
+  const shows = new Set(ev.flatMap((e) => [listing(e), counted(e), e.kind === "change" && e.entity && `${e.summary} · ${day(e.date)}`]).filter(Boolean));
   const named = answer.sentences.filter((s) => shows.has(s.text)).flatMap((s) => s.sources.map((src) =>
-    new Set([...made.get(s.text)].filter((e) => e.entity && labelled([e], src)).map((e) => e.entity.id))));
+    new Set([...made.get(s.text)].filter((e) => e.entity && labelled([e], src)).map(key))));
   const maybe = new Set(named.flatMap((x) => [...x]));
   const surely = new Set(named.filter((x) => x.size === 1).flatMap((x) => [...x]));
   const showing = new Set();
   for (const r of ev.filter((x) => Number.isInteger(x.total))) {
-    const matches = [...new Set(ev.filter((e) => e.result === r.id && e.entity).map((e) => e.entity.id))];
+    const matches = [...new Set(ev.filter((e) => e.result === r.id && e.entity).map(key))];
     const among = (set) => matches.filter((x) => set.has(x)).length;
     for (let n = Math.max(1, among(surely)); n <= Math.min(among(maybe), r.total - 1); n++) showing.add(SHOWING(n, r.total));
   }

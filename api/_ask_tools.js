@@ -689,16 +689,24 @@ const MAP_LISTS = ["us", "uk", "eu"];
 // ship of it and several: one table, so a type the tool takes always has its words
 export const SHIP_TYPES = { tanker: ["a tanker", "tankers"], cargo: ["a cargo ship", "cargo ships"], container: ["a container ship", "container ships"], "bulk carrier": ["a bulk carrier", "bulk carriers"], tug: ["a tug", "tugs"] };
 const shipIndex = new WeakMap();
+const lower = (s) => s.toLowerCase();
+/** A node's programme groups, for the updates' topic filter: its programmes and its group ("both" is Russia and Iran; "other" is none). */
+const groupsOf = (programs = [], group = "") => new Set([...programs, group].flatMap((g) => (g === "both" ? ["russia", "iran"] : g && g !== "other" ? [g] : [])));
 function mapShips() {
   const fleet = data(FLEET);
   if (!shipIndex.has(fleet)) {
     const linked = new Map();
     for (const e of fleet.edges) if (e.y === "flagged_in") linked.set(e.s, [...(linked.get(e.s) ?? []), e.t.slice(3)]); // (to "cc:pa")
+    const flags = (n) => [...(linked.get(n.id) ?? []), n.flag_us, n.flag_now].filter(Boolean).map(lower);
     const ships = fleet.nodes.filter((n) => n.id.startsWith("IMO")).map((n) => ({
-      id: n.id, programs: new Set(n.programs), listed_by: new Set(n.listed_by), ship_type: (n.ship_type ?? "").toLowerCase(), name_count: n.name_count,
-      flags: new Set([...(linked.get(n.id) ?? []), n.flag_us, n.flag_now].filter(Boolean).map((c) => c.toLowerCase())),
+      id: n.id, programs: new Set(n.programs), listed_by: new Set(n.listed_by), ship_type: (n.ship_type ?? "").toLowerCase(), name_count: n.name_count, flags: new Set(flags(n)),
     }));
-    shipIndex.set(fleet, { ships, groups: new Set(ships.flatMap((s) => [...s.programs])) });
+    // every node's programme groups and countries, for the updates' topic filter: a ship's flags, a company's or person's country, and a
+    // country node's own code
+    const facts = new Map(fleet.nodes.map((n) => [n.id, {
+      groups: groupsOf(n.programs, n.program_group), regions: new Set([...flags(n), ...[n.country, n.id.startsWith("cc:") && n.id.slice(3)].filter(Boolean).map(lower)]),
+    }]));
+    shipIndex.set(fleet, { ships, groups: new Set(ships.flatMap((s) => [...s.programs])), facts });
   }
   return shipIndex.get(fleet);
 }
@@ -808,6 +816,38 @@ function gapRuns(gaps) {
   return runs.sort((a, b) => b.from.localeCompare(a.from) || order.indexOf(a.source) - order.indexOf(b.source));
 }
 
+// ---- the updates by topic ------------------------------------------------------------------------------------------
+// An update carries no programme or country of its own: they come from the nodes it involves (an edge's two ends, or the node itself),
+// joined to the map's nodes for a fleet update and to the lobbying graph's for a lobby update. A topic is told by the programme groups
+// whose word it is and by its country's code (Iran by both, Panama by its code, Chips by its group). An update involves the topic when a
+// node of it carries the topic; it was checked when each of its nodes carries a group or a country the topic is told by and none is the
+// topic; otherwise it is unchecked (a bill, a lobbyist, a node no join finds), and is never counted as not involving the topic.
+const KG = "stories/who-lobbies/influence-network/kg.json";
+const kgIndex = new WeakMap();
+function lobbyFacts() {
+  const kg = data(KG);
+  if (!kgIndex.has(kg)) kgIndex.set(kg, new Map(kg.nodes.map((n) => [n.id, { groups: groupsOf(n.info?.programs, n.g), regions: new Set([n.info?.country].filter(Boolean).map(lower)) }])));
+  return kgIndex.get(kg);
+}
+
+/** What a topic word is told by: {label, groups, region}; null for a word that is no topic. */
+function topicWant(word) {
+  const t = topicOf(textArg(word));
+  return t && {
+    label: t.label,
+    groups: new Set(VOCAB.topics.filter((x) => x.kind === "group" && sameTopic(topicOf(x.label), t)).map((x) => x.key)),
+    region: VOCAB.topics.find((x) => sameTopic(x, t)).region?.toLowerCase(),
+  };
+}
+
+/** "match", "checked" or "unchecked": how one update bears on a topic (see above). */
+function bearing(c, want) {
+  const facts = c.graph === "fleet" ? mapShips().facts : lobbyFacts();
+  const nodes = (c.endpoint_ids?.length ? c.endpoint_ids : [c.id]).map((id) => facts.get(id));
+  if (nodes.some((f) => f && ([...f.groups].some((g) => want.groups.has(g)) || f.regions.has(want.region)))) return "match";
+  return nodes.every((f) => f && ((want.groups.size && f.groups.size) || (want.region && f.regions.size))) ? "checked" : "unchecked";
+}
+
 function changesTool(args, ev, ctx) {
   const { since, until, graph } = args;
   if (!isDate(since)) return fail("since must be a date such as 2026-10-13");
@@ -815,6 +855,11 @@ function changesTool(args, ev, ctx) {
   if (graph !== undefined && !(typeof graph === "string" && Object.hasOwn(GRAPH_NAME, graph))) return fail('graph must be "fleet" or "lobby"');
   const query = args.query === undefined ? "" : textArg(args.query, 1);
   if (query === null) return fail("query must be 1 to 200 characters");
+  // a topic no join can tell (a programme the graphs do not group by, and no country) would only ever give a none that is not true
+  const want = args.topic === undefined ? null : topicWant(args.topic);
+  if (args.topic !== undefined && !want?.groups.size && !want?.region) {
+    return fail(`topic must be a country, or a programme group the updates can be checked against: ${VOCAB.topics.filter((x) => x.kind === "group").map((x) => x.label).join(", ")}`);
+  }
   const today = ctx.today ?? new Date().toISOString().slice(0, 10);
   if (since > today) return fail("since is after today");
   if (until !== undefined && until < since) return fail("until is before since");
@@ -853,7 +898,8 @@ function changesTool(args, ev, ctx) {
   const words = normalizeName(query).split(" ").filter(Boolean);
   const hay = (c) => normalizeName([c.name, c.summary, ...(c.endpoints || [])].join(" "));
   const inRange = changesSince(rec, ["fleet", "lobby"], from, to);
-  const all = changesSince(rec, graphs, from, to).filter((c) => words.every((w) => hay(c).includes(w)));
+  const bears = want && new Map(inRange.map((c) => [c, bearing(c, want)])); // every update of the range, whatever the graph or words asked
+  const all = changesSince(rec, graphs, from, to).filter((c) => words.every((w) => hay(c).includes(w)) && (!bears || bears.get(c) === "match"));
   // every source's outages whatever the graph: the network's listing statuses come from the lists too
   const sourceDays = sourceGaps(rec, ["fleet", "lobby"], from, to);
   // A night from the first run to yesterday (UTC) that the record does not hold is a run that did not complete: not "no changes".
@@ -867,7 +913,7 @@ function changesTool(args, ev, ctx) {
   const shown = all.slice(0, CAP.changes);
 
   // (the words asked for are never repeated here: see check_lists)
-  const scope = `${graph ? ` for the ${GRAPH_NAME[graph]}` : ""}${query ? " among those matching the words asked for" : ""}`;
+  const scope = `${graph ? ` for the ${GRAPH_NAME[graph]}` : ""}${want ? ` involving ${want.label}` : ""}${query ? " among those matching the words asked for" : ""}`;
   const within = from === to ? `On ${dt(to)}` : `Between ${formatDate(from)} and ${formatDate(to)} (${from} to ${to})`;
   const items = [];
   if (notYet) {
@@ -884,6 +930,20 @@ function changesTool(args, ev, ctx) {
       kind: "change", found: false, from, to,
       text: from === to ? `No changes were recorded on ${formatDate(to)} (${to}).` : `No changes were recorded between ${formatDate(from)} and ${formatDate(to)} (${from} to ${to}).`,
       label: from === to ? `No changes on ${formatDate(to)}` : `No changes ${formatDate(from)} to ${formatDate(to)}`, url: updates(from, to, "all"), link: updates(from, to, "all"),
+    });
+  } else if (want && !notYet && ![...bears.values()].includes("match")) {
+    // no update of the range involves the topic: how many could be checked, by graph, and how many could not. (One that does, left out by
+    // the graph or the words asked, is no none: only the gaps are reported then.)
+    const tally = (b, g) => inRange.filter((c) => bears.get(c) === b && (!g || c.graph === g)).length;
+    const [fleet, lobby, unchecked] = [tally("checked", "fleet"), tally("checked", "lobby"), tally("unchecked")];
+    const many = (k) => `${k} ${k === 1 ? "update" : "updates"}`;
+    items.push({
+      kind: "change", found: false, topic: { label: want.label }, checked_fleet: fleet, checked_lobby: lobby, unchecked, from, to,
+      text: sentence(
+        `${within}: none of the ${many(fleet + lobby)} whose programme or country could be checked ${fleet + lobby === 1 ? "involves" : "involve"} ${want.label} (${fleet} on the ${GRAPH_NAME.fleet}, ${lobby} in the ${GRAPH_NAME.lobby}).`,
+        unchecked && `${many(unchecked)} in that period ${unchecked === 1 ? "carries" : "carry"} no programme or country to check.`,
+      ),
+      label: `Updates involving ${want.label}${from === to ? ` on ${formatDate(to)}` : `, ${formatDate(from)} to ${formatDate(to)}`}: none`, url: updates(from, to, "all"), link: updates(from, to, "all"),
     });
   }
   for (const c of shown) {
@@ -910,7 +970,14 @@ function changesTool(args, ev, ctx) {
       label: f === t ? `${name} unavailable on ${formatDate(f)}` : `${name} unavailable ${formatDate(f)} to ${formatDate(t)}`, url: link, link,
     });
   }
-  return { from, to, total: all.length, range_total: inRange.length, shown: shown.length, gaps: runs.length, gap_days: gapDays, missing_nights: missing.length, items: addAll(ev, items).map(view) };
+  const added = addAll(ev, items);
+  // a capped list is one result, held by its first change: "Showing N of M" counts the changes an answer cites against the total
+  const listed = added.filter((e) => e.kind === "change" && e.entity);
+  if (all.length > shown.length) {
+    Object.assign(listed[0], { shown: shown.length, total: all.length });
+    for (const e of listed) e.result = listed[0].id;
+  }
+  return { from, to, total: all.length, range_total: inRange.length, shown: shown.length, gaps: runs.length, gap_days: gapDays, missing_nights: missing.length, items: added.map(view) };
 }
 
 // ---- connections ----------------------------------------------------------------------------------------------
@@ -1199,6 +1266,7 @@ export const TOOLS = [
       since: str("First day, YYYY-MM-DD."), until: str("Last day, YYYY-MM-DD. Defaults to today."),
       graph: str("Only one graph: fleet (ships, companies, listings) or lobby (lobbying).", { enum: ["fleet", "lobby"] }),
       query: str("Only changes whose name or summary contain these words."),
+      topic: str("Only changes involving this programme group or country, such as Iran, Russia or Panama."),
     }, ["since"]),
   fn("chips", "Facts from the semiconductors-into-Russia research: how long the US took to list new chip suppliers (summary, listing_lag), declared chip exports to Russia by country (routes), who reported to UN Comtrade (coverage), and the firms US Treasury press releases name (firms). Returns numbered evidence items.",
     { topic: str("Which part of the research.", { enum: CHIP_TOPICS }) }, ["topic"]),

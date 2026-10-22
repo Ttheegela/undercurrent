@@ -98,6 +98,9 @@ before(async () => {
   E.afghanistan = await ask([["check_lists", { programme: "Afghanistan" }]]); // on the UK and EU lists, not the US list
   // one ship searched twice: by name and by IMO number (the two searches share its records)
   E.nameImo = await ask([["check_lists", { query: "TASSOS" }], ["check_lists", { query: "IMO 9408695" }]]);
+  // the committed updates of 20–21 Oct by topic: Iran (none involve it, and none can be checked whole) and chips (the lobbying graph's group)
+  E.iranUpdates = await ask([["changes", { since: "2026-10-20", until: "2026-10-21", topic: "Iran" }]], "2026-10-22");
+  E.chipsUpdates = await ask([["changes", { since: "2026-10-20", until: "2026-10-21", topic: "semiconductors" }]], "2026-10-22");
   E.final = await ask(["The 50% rule: blocked without being named", "How sanctions work", "How the lists stay current", "Semiconductors into Russia: what the official records show", "What the map cannot tell you", "7. Why this is a climate story", "Parent groups, lobbying and cargo (added 25 Sep 2026, afternoon)", "Fleet Tanqo (India)", "Strongest cases", "One line for the demo", "2. How long the US took to list new chip suppliers", "How countries and companies evade"].map((query) => ["site_docs", { query }]));
 
   const real = JSON.parse(readFileSync("data/changes/changes.json", "utf8"));
@@ -117,6 +120,11 @@ before(async () => {
   };
   const FRESH = { us: "fresh", uk: "fresh", eu: "fresh", un: "fresh", lobbying: "fresh" };
   const night = (date) => ({ date, sources: { ...FRESH, uk: "unavailable" }, changes: [] });
+  // more updates in one night than a changes result shows (30)
+  const added = (i) => ({ date: "2026-10-20", graph: "fleet", kind: "added", item: "node", id: `IMO${1000000 + i}`, name: `SHIP ${i}`, node_type: "ship", summary: `New on the map: SHIP ${i}`, source_url: "https://example.org/list", source_label: "UK Sanctions List" });
+  await withRecord({ started: "2026-10-20", first_run: "2026-10-20", days: [{ date: "2026-10-20", sources: FRESH, changes: Array.from({ length: 35 }, (_, i) => added(i)) }] }, async () => {
+    E.capped = await ask([["changes", { since: "2026-10-20" }]]);
+  });
   await withRecord({ ...real, days: [night("2026-10-22"), night("2026-10-21"), real.days.find((d) => d.date === real.started)] }, async () => {
     E.ukDownDay = await ask([["changes", { since: "2026-10-21", until: "2026-10-21" }]], "2026-10-23");
     E.ukDown = await ask([["changes", { since: "2026-10-21", until: "2026-10-22" }]], "2026-10-23");
@@ -885,6 +893,74 @@ test("final wave (4): days trimmed from the record render TRIMMED, never NO_CHAN
   const out = checkAnswer(answer(claim("change", "S1")), ev);
   assert.deepEqual(out.sentences, [{ text: "Days before 12 Oct 2026 are no longer kept.", sources: [{ n: 1, label: ev[0].label, url: ev[0].url }] }]);
   assert.doesNotMatch(JSON.stringify(out), /No changes/);
+});
+
+// ---- the updates by topic, and a capped list of updates ---------------------------------------------------------------
+
+test("nothing matching says none of the checked updates and counts the unchecked: Iran on the committed record of 20–21 Oct", () => {
+  // the ten updates are lobbying bills, a lobbyist and edges to them: none carries a programme or country the whole way through
+  assert.deepEqual(E.iranUpdates.map((e) => [e.kind, e.found]), [["change", false]]);
+  const none = E.iranUpdates[0];
+  const { topic, checked_fleet: fleet, checked_lobby: lobby, unchecked, from, to } = none;
+  assert.deepEqual({ topic, fleet, lobby, unchecked, from, to }, { topic: { label: "Iran" }, fleet: 0, lobby: 0, unchecked: 10, from: "2026-10-20", to: "2026-10-21" });
+  const out = checkAnswer(answer(claim("change", none.id)), E.iranUpdates, { question: "Any Iran-related companies in recent updates?" });
+  const source = [{ n: 1, label: none.label, url: none.url }];
+  assert.deepEqual(out.sentences, [
+    { text: "None of the 0 updates recorded between 20 Oct 2026 and 21 Oct 2026 involve Iran.", sources: source },
+    { text: "10 updates in that period carry no programme or country to check.", sources: source },
+  ]);
+  assert.deepEqual(groundingProblems("Any Iran-related companies in recent updates?", E.iranUpdates, out), []);
+  // a quote of it is its change claim, as for every change item
+  assert.deepEqual(checkAnswer(answer(quote(none.id, 0)), E.iranUpdates), checkAnswer(answer(claim("change", none.id)), E.iranUpdates));
+  // the same days by the lobbying graph's chips group: the six edges from the SIA and NVIDIA, each rendered as its update
+  const chips = E.chipsUpdates.filter((e) => e.kind === "change");
+  assert.equal(chips.length, 6);
+  assert.ok(chips.every((c) => /^(Semiconductor Industry Association|NVIDIA|Brooks Brunson-Pitts) → /.test(c.entity.name) && / involving Chips: 6 changes recorded\.$/.test(c.text)), JSON.stringify(chips.map((c) => c.entity.name)));
+  assert.deepEqual(texts(checkAnswer(answer(claim("change", chips[0].id)), E.chipsUpdates)), [`${chips[0].summary} · ${formatDate(chips[0].date)}`]);
+});
+
+test("the none copy: one day reads 'on', one update is singular, no second line with nothing unchecked, gaps follow; the oracle catches a changed number", () => {
+  const item = (o) => ({ id: "S1", kind: "change", found: false, topic: { label: "Iran" }, checked_fleet: 0, checked_lobby: 0, unchecked: 0, from: "2026-10-19", to: "2026-10-19", text: "(the tool's text)", label: "Updates involving Iran on 19 Oct 2026: none", url: "/u", quotes: [], ...o });
+  const say = (ev) => {
+    const out = checkAnswer(answer(claim("change", "S1")), ev);
+    assert.deepEqual(groundingProblems("", ev, out), [], texts(out).join(" | "));
+    return texts(out);
+  };
+  assert.deepEqual(say([item({ checked_fleet: 2, checked_lobby: 1 })]), ["None of the 3 updates recorded on 19 Oct 2026 involve Iran."]);
+  assert.deepEqual(say([item({ checked_lobby: 1, unchecked: 1 })]), ["The 1 update recorded on 19 Oct 2026 does not involve Iran.", "1 update in that period carries no programme or country to check."]);
+  assert.deepEqual(say([item({ checked_fleet: 1200, checked_lobby: 34, unchecked: 2000, to: "2026-10-21" })]), [
+    "None of the 1,234 updates recorded between 19 Oct 2026 and 21 Oct 2026 involve Iran.", "2,000 updates in that period carry no programme or country to check.",
+  ]);
+  const gap = { id: "S2", kind: "gap", source: "The UK list", from: "2026-10-19", to: "2026-10-19", date: "2026-10-19", text: "(the tool's text)", label: "The UK list unavailable on 19 Oct 2026", url: "/g", quotes: [] };
+  assert.deepEqual(say([item({ checked_fleet: 2 }), gap]), ["None of the 2 updates recorded on 19 Oct 2026 involve Iran.", "The UK list was unavailable on 19 Oct 2026, so changes from it that day aren't recorded."]);
+  const ev = [item({ checked_fleet: 2, unchecked: 3 })];
+  const out = checkAnswer(answer(claim("change", "S1")), ev);
+  const tamper = (i, text) => groundingProblems("", ev, { ...out, sentences: out.sentences.map((x, j) => (j === i ? { ...x, text } : x)) }).length;
+  assert.equal(tamper(0, "None of the 3 updates recorded on 19 Oct 2026 involve Iran."), 1);
+  assert.equal(tamper(0, "None of the updates recorded on 19 Oct 2026 involve Iran."), 1);
+  assert.equal(tamper(1, "2 updates in that period carry no programme or country to check."), 1);
+});
+
+test("a capped list of updates: the change lines cited count toward 'Showing N of M' against the changes total; an uncapped list never has the line", () => {
+  const changes = E.capped.filter((e) => e.kind === "change");
+  assert.deepEqual([changes.length, changes[0].total], [30, 35]);
+  const line = (c) => `${c.summary} · ${formatDate(c.date)}`;
+  const say = (raw) => {
+    const out = checkAnswer(raw, E.capped, {});
+    assert.deepEqual(groundingProblems("What changed on 20 Oct?", E.capped, out), [], texts(out).join(" | "));
+    return texts(out);
+  };
+  assert.deepEqual(say(answer(claim("change", changes[0].id, changes[1].id))), [line(changes[0]), line(changes[1]), "Showing 2 of 35."]);
+  assert.deepEqual(say(answer(claim("change", ...changes.map((c) => c.id)))), [...changes.map(line), "Showing 30 of 35."]);
+  // a quote of a change is its change claim, the line included; one change cited twice is one sentence, counted once
+  assert.deepEqual(say(answer(quote(changes[4].id, 0))), [line(changes[4]), "Showing 1 of 35."]);
+  assert.deepEqual(say(answer(claim("change", changes[4].id), quote(changes[4].id, 0))), [line(changes[4]), "Showing 1 of 35."]);
+  // the oracle catches a wrong N
+  const out = checkAnswer(answer(claim("change", changes[0].id, changes[1].id)), E.capped, {});
+  assert.equal(groundingProblems("", E.capped, { ...out, sentences: out.sentences.map((x) => (x.text === "Showing 2 of 35." ? { ...x, text: "Showing 3 of 35." } : x)) }).length, 1);
+  // not capped (the committed record's 20 Oct): the change lines and nothing more
+  const week = E.week.filter((e) => e.kind === "change");
+  assert.deepEqual(texts(checkAnswer(answer(claim("change", ...week.map((c) => c.id))), E.week)), week.map(line));
 });
 
 test("a clarify is the fixed question and the cited entities or near names, nothing the model wrote", () => {

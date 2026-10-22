@@ -54,9 +54,13 @@ test("the stylesheet and the panel add no inline style and no storage", () => {
   assert.doesNotMatch(css, /#[0-9a-fA-F]{3,8}\b|rgb\(|oklch\(/, "the site's tokens only, no colour of its own");
 });
 
-test("About the data says what Ask does with a question", () => {
+test("the panel and the about page name TypeSafe", () => {
+  // About the data says what Ask does with a question: the model (OpenRouter), the relevance check (TypeSafe), no training, nothing stored
   const html = readFileSync(new URL("stories/about-the-data.html", ROOT), "utf8");
-  const privacy = "Ask, the chat panel, sends your question and data from this site to an AI model (Claude Haiku 5.5, through OpenRouter). There are no accounts and nothing is stored: the conversation lives only in your browser tab and is gone when you close the panel, and our server logs no message text.";
+  const privacy = "Ask, the chat panel, sends your question and data from this site to an AI model (Claude Haiku 5.5, through OpenRouter). The sentences of its answer then go, with your question, to a relevance check (TypeSafe), which removes any that don't bear on the question. Under their terms, neither OpenRouter nor TypeSafe uses what it is sent for training. Undercurrent stores no conversation: there are no accounts, the conversation lives only in your browser tab and is gone when you close the panel, and the server logs no message text.";
   assert.ok(html.includes(`<p>${privacy}</p>`));
   assert.ok(html.includes('id="ask"'), "the panel links to it");
+  // the panel's own line (the smoke test sees it rendered)
+  const panel = readFileSync(new URL("app/ask-panel.js", ROOT), "utf8");
+  assert.ok(panel.includes("Your question and data from this site go to an AI model and a relevance checker (TypeSafe). The conversation isn't stored."));
 });

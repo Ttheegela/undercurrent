@@ -1,10 +1,12 @@
 // POST /api/ask: a short tool loop against Claude Haiku 5.5 through OpenRouter, then the server's own checker (_ask_check.js) writes
-// every sentence of the answer from the evidence the tools returned. The model writes no text. GET /api/ask reports whether Ask is
-// switched on and never calls the model. No message text is logged or stored: the visitor limit holds a hash of the address and the
-// times of its last questions, nothing else, and no log line or error carries more than a fixed phrase and a status.
+// every sentence of the answer from the evidence the tools returned, and the relevance gate (_ask_gate.js, TypeSafe's Jev) drops those
+// that don't bear on the question. The model writes no text. GET /api/ask reports whether Ask is switched on and never calls the model.
+// No message text is logged or stored: the visitor limit holds a hash of the address and the times of its last questions, nothing
+// else, and no log line or error carries more than a fixed phrase and a status.
 import { createHash, randomBytes } from "node:crypto";
 import { TOOLS, runTool } from "./_ask_tools.js";
 import { checkAnswer } from "./_ask_check.js";
+import { gate, GATE_MS } from "./_ask_gate.js";
 import { SYSTEM_PROMPT } from "./_ask_prompt.js";
 
 const OPENROUTER = "https://openrouter.ai/api/v1/chat/completions";
@@ -164,14 +166,16 @@ const parse = (args) => {
 
 /**
  * Up to four rounds of tool calls (ten calls in all), then one call forced to `answer`. The answer call's arguments go to the checker
- * with the evidence the tools returned in this request, which is the only evidence there is: earlier turns are plain context.
- * callModel, runTool and checkAnswer are used as `wrap` returns them, for this request only, and each is awaited: a tracing wrapper
- * returns a promise even for the checker.
+ * with the evidence the tools returned in this request, which is the only evidence there is: earlier turns are plain context. An answer
+ * (not a refusal, a clarify or the fallback) then goes through the relevance gate (_ask_gate.js), inside the request's 26 s.
+ * callModel, runTool, checkAnswer and gate are used as `wrap` returns them, for this request only, and each is awaited: a tracing
+ * wrapper returns a promise even for the checker.
  */
 async function converse(history, now, wrap, modelId) {
   const model = wrap("callModel", callModel);
   const tool = wrap("runTool", runTool);
   const check = wrap("checkAnswer", checkAnswer);
+  const relevant = wrap("gate", gate);
   const today = now.toISOString().slice(0, 10);
   const question = history.at(-1).content;
   const deadline = Date.now() + TOTAL_MS;
@@ -189,7 +193,13 @@ async function converse(history, now, wrap, modelId) {
     // An answer call is final, but only alone: beside lookups it was written before their results, so it cannot cite them and would
     // read as complete without them. A forced call that is not an answer, and a reply with no call, are the fallback.
     // (ages count to the request's own date, the one the tools and the prompt use)
-    if (final || forced || !calls.length) return { ok: true, answer: await check(final && calls.length === 1 ? parse(final.function.arguments) : undefined, ev, { question, today, toolFailed }) };
+    if (final || forced || !calls.length) {
+      const answer = await check(final && calls.length === 1 ? parse(final.function.arguments) : undefined, ev, { question, today, toolFailed });
+      if (answer.kind !== "answer") return { ok: true, answer };
+      // the gate gives up 50 ms before the request's time is out, so a slow answer is still shown, unchecked
+      const timeoutMs = Math.max(0, Math.min(GATE_MS, deadline - Date.now() - 50));
+      return { ok: true, answer: await relevant(question, answer, { fetch, timeoutMs }) };
+    }
     const asked = calls.slice(0, Math.min(CALLS_PER_ROUND, MAX_TOOL_CALLS - used)).map((c, i) => ({
       id: typeof c.id === "string" && c.id ? c.id : `call_${round}_${i}`,
       type: "function",
@@ -208,7 +218,7 @@ async function converse(history, now, wrap, modelId) {
 
 /**
  * One question, end to end: {ok: true, answer} or {ok: false, reason, resets?}, which is what POST replies with. `wrap(name, fn)` is
- * the eval runner's hook to trace callModel, runTool and checkAnswer; it defaults to leaving them as they are. `model` is the OpenRouter
+ * the eval runner's hook to trace callModel, runTool, checkAnswer and gate; it defaults to leaving them as they are. `model` is the OpenRouter
  * model id the eval runner compares; it defaults to MODEL. POST passes neither, so the site always uses MODEL.
  */
 export async function runAsk(history, now, { wrap = (name, fn) => fn, model = MODEL } = {}) {

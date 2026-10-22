@@ -399,5 +399,22 @@ export function checkAnswer(raw, ev, ctx) {
   if (pieces.length) pieces.push(...notice(ctx)); // last, after the part-answer line; an answer with nothing to say is the fallback and carries no notice
   // a next step is the cited item's own label and link (or url)
   const next = unique(linked.filter((e) => e.link || e.url).map((e) => ({ label: e.label, href: e.link || e.url })), "href");
-  return finish("answer", pieces, next, byId);
+  const out = finish("answer", pieces, next, byId);
+  madeFrom.set(out, { pieces, byId });
+  return out;
+}
+
+// What each answer was written from, so the relevance gate can drop sentences and finish can number and count the rest again
+const madeFrom = new WeakMap(); // answer -> {pieces, byId}
+
+/**
+ * The answer checkAnswer wrote, keeping of the sentences written from evidence only those whose text `keep` accepts. Fixed copy stays;
+ * finish numbers the sources again and rebuilds the "Showing N of M" lines from what is left. With none of them left it is
+ * NOTHING_ANSWERS. An answer not written here comes back as it is.
+ */
+export function keepSentences(answer, keep) {
+  const made = madeFrom.get(answer);
+  if (!made) return answer;
+  const pieces = made.pieces.filter((p) => !p.items.length || keep(p.text));
+  return pieces.some((p) => p.items.length) ? finish(answer.kind, pieces, answer.next, made.byId) : only("answer", NOTHING_ANSWERS);
 }

@@ -1953,7 +1953,7 @@ test("the panel says what Ask does, and what happens to a question, without clai
   await page.goto("/");
   await askOpen(page);
   await expect(page.locator(".ask-intro")).toHaveText("Ask doesn't write answers of its own: it shows records and sentences from this site, each with its source. It can't give legal or compliance advice.");
-  await expect(page.locator(".ask-note")).toHaveText("Your question and data from this site go to an AI model. The conversation isn't stored. How Ask handles questions");
+  await expect(page.locator(".ask-note")).toHaveText("Your question and data from this site go to an AI model and a relevance checker (TypeSafe). The conversation isn't stored. How Ask handles questions");
   await expect(page.getByRole("link", { name: "How Ask handles questions" })).toHaveAttribute("href", "/stories/about-the-data.html#ask");
   await page.getByRole("button", { name: "Is TASSOS sanctioned?" }).click();
   await expect(askLog(page).locator(".ask-a .label")).toHaveText(["Sources", "See also"]);

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Runs Ask's real-model evaluation cases in LangSmith. Each case's question goes through Ask's own loop (runAsk in api/ask.js) in this
-// process, against the real model on the eval key, and LangSmith records the model calls, the tool calls and the checker as the steps
-// of the case's run. One evaluator scores every case. A case that fails gets an "Under review" note until its real note is written.
+// process, against the real model on the eval key, and LangSmith records the model calls, the tool calls, the checker and Ask's
+// relevance gate as the steps of the case's run. One evaluator scores every case. A case that fails gets an "Under review" note until
+// its real note is written.
 // The relevance judge (scripts/ask-relevance.mjs, TypeSafe's Jev) adds `relevance` and `unrelated` to each answered case whose answer
 // is an answer (a clarify is counted apart); it never changes `pass`.
 //
@@ -16,6 +17,7 @@
 // the run completed, whatever the scores; 1 on a runner error, a missing dataset included; 2 on bad arguments or a missing key. The
 // result JSON goes to --out, and a summary to $GITHUB_STEP_SUMMARY when that is set. The runner reads LANGSMITH_API_KEY,
 // OPENROUTER_API_KEY and TYPESAFE_API_KEY and prints none of them; without TYPESAFE_API_KEY it skips the relevance judge and says so.
+// Ask's relevance gate reads TYPESAFE_API_KEY from the environment too, so the cases go through it as a visitor's question does.
 // It must run from the repository root, where Ask's tools read the site's data.
 //
 // `notes` posts each note in tests/ask-eval-notes.json, an array of {experiment, case, note}, as the comment of the `note` feedback on
@@ -128,6 +130,8 @@ const target = ({ runAsk, traceable, now }, model) => async ({ question }) => {
       ev = evidence;
       return fn(raw, evidence, ctx);
     }, { name: "checkAnswer", run_type: "chain", processInputs: ({ args }) => ({ answer: structuredClone(args?.[0]) }) }),
+    // Ask's relevance gate, traced with the answer it is handed only: it reads TYPESAFE_API_KEY from the environment itself
+    gate: (fn) => traceable(fn, { name: "gate", run_type: "chain", processInputs: ({ args }) => ({ answer: structuredClone(args?.[1]) }) }),
   };
   let threw = false;
   const t0 = performance.now();

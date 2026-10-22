@@ -1,6 +1,7 @@
 // POST /api/ask end to end, with `fetch` stubbed as a fake OpenRouter that returns scripted tool calls and answers built from the
 // evidence ids the real tools handed back. The site is a small one on disk (the tools read it from process.cwd()); OpenSanctions
-// is stubbed too. The key is a fake one set inside each test. Nothing here reaches the network.
+// is stubbed too. The key is a fake one set inside each test. TYPESAFE_API_KEY is unset, so the relevance gate logs its fixed line and
+// leaves answers as they are, except where a test sets it and stubs TypeSafe too. Nothing here reaches the network.
 import { test, before, after, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
@@ -130,7 +131,7 @@ async function inZone(zone, fn) {
 const home = process.cwd();
 let root;
 let logged; // everything the endpoint wrote to the console
-const saved = { OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY, ASK_PUBLIC: process.env.ASK_PUBLIC };
+const saved = { OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY, ASK_PUBLIC: process.env.ASK_PUBLIC, TYPESAFE_API_KEY: process.env.TYPESAFE_API_KEY };
 before(() => {
   root = mkdtempSync(join(tmpdir(), "ask-endpoint-"));
   for (const [id, records] of Object.entries(LISTS)) write(root, `data/lists/${id}.json`, { list: id, records });
@@ -150,7 +151,8 @@ after(() => {
 beforeEach(() => {
   process.env.OPENROUTER_API_KEY = KEY;
   delete process.env.ASK_PUBLIC;
-  ip = `203.0.113.${++visitor % 250}`;
+  delete process.env.TYPESAFE_API_KEY;
+  ip =`203.0.113.${++visitor % 250}`;
   visitors.clear();
   indexFetch = indexOk;
   indexCalls = 0;
@@ -699,7 +701,8 @@ test("every model call has a 20 s timeout, and no call starts in the last 3 s of
   openrouter(slow(23_500), listedAnswer); // 2.5 s left: too little for a call to finish
   assert.deepEqual((await run(ask("Is TASSOS sanctioned?"))).json, { ok: false, reason: "unavailable" });
   assert.equal(sent.length, 1);
-  assert.deepEqual(logged, []); // it stopped before calling, rather than calling and failing
+  // the two that stopped did so before calling, rather than calling and failing; the line is the first one's gate, which has no key here
+  assert.deepEqual(logged, ["ask: relevance gate unavailable"]);
 });
 
 test("a stalled tool cannot hold the request past 26 s", async () => {
@@ -881,7 +884,7 @@ test("runAsk without wrap gives the same reply as POST for the same stubbed mode
   }
 });
 
-test("runAsk calls wrap once each for callModel, runTool and checkAnswer, and uses what it returns", async () => {
+test("runAsk calls wrap once each for callModel, runTool, checkAnswer and gate, and uses what it returns", async () => {
   const SENTINEL = { kind: "sentinel" };
   const wrapped = [];
   const calls = { callModel: 0, runTool: 0 };
@@ -893,8 +896,8 @@ test("runAsk calls wrap once each for callModel, runTool and checkAnswer, and us
   };
   openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
   assert.deepEqual(await runAsk(history("Is TASSOS sanctioned?"), new Date("2026-10-21T23:59:59Z"), { wrap }), { ok: true, answer: SENTINEL });
-  assert.deepEqual(wrapped.sort(), ["callModel", "checkAnswer", "runTool"]);
-  assert.deepEqual(calls, { callModel: 2, runTool: 1 });
+  assert.deepEqual(wrapped.sort(), ["callModel", "checkAnswer", "gate", "runTool"]);
+  assert.deepEqual(calls, { callModel: 2, runTool: 1 }); // (the gate is wrapped, and called only for an answer)
   assert.equal(sent.length, 2);
   assert.equal(checked[0].kind, "answer");
   assert.ok(checked[1].length > 0); // the evidence check_lists returned
@@ -903,8 +906,80 @@ test("runAsk calls wrap once each for callModel, runTool and checkAnswer, and us
   wrapped.length = 0;
   openrouter(answer({ kind: "refusal", sentences: [] }));
   assert.deepEqual(await runAsk(history("hi"), new Date(Date.now()), { wrap }), { ok: true, answer: SENTINEL });
-  assert.deepEqual(wrapped.sort(), ["callModel", "checkAnswer", "runTool"]);
+  assert.deepEqual(wrapped.sort(), ["callModel", "checkAnswer", "gate", "runTool"]);
   assert.deepEqual(calls, { callModel: 3, runTool: 1 });
+});
+
+const TYPESAFE = "https://api.typesafe.ai/v1/systemone";
+/** TypeSafe beside the fake OpenRouter: each request is recorded, and a sentence is judged unrelated when `drop(text)`. */
+function withTypesafe(drop) {
+  const judged = [];
+  const model = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    if (url !== TYPESAFE) return model(url, init);
+    const body = JSON.parse(init.body);
+    judged.push({ authorization: new Headers(init.headers).get("authorization"), body });
+    const answers = Object.fromEntries(body.state.sentences.map((s) => [`s${s.i}`, { type: "noul", noul: drop(s.text) ? 0.05 : 0.95 }]));
+    return json({ model: "jev-1.13.0", answers, usage: { input_tokens: 120, output_tokens: 6 } });
+  };
+  return judged;
+}
+
+test("runAsk wraps the gate as \"gate\" and POST still passes no model", async () => {
+  process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
+  const US = "TASSOS appears on the United States list under Iran.";
+  const flow = () => [reply(call("check_lists", { query: "TASSOS" })), listedAnswer]; // a listed sentence for each of its two records
+  const gated = [];
+  const wrap = (name, fn) => (name === "gate" ? (...args) => (gated.push(args), fn(...args)) : fn);
+  openrouter(...flow());
+  let judged = withTypesafe((text) => text !== US); // the UK record is judged unrelated to a question about the US list
+  const out = await runAsk(history("Is TASSOS on the US list?"), new Date(Date.now()), { wrap });
+  assert.deepEqual(out.answer.sentences, [
+    { text: US, sources: [{ n: 1, label: "United States list · TASSOS", url: "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=54815" }] },
+    { text: "Showing 1 of 4.", sources: [] }, // (it was 2 of 4 with the UK record)
+  ]);
+  // the gate was handed the question and the checker's answer, and no key: it reads TYPESAFE_API_KEY itself
+  assert.equal(gated.length, 1);
+  const [question, checked, options] = gated[0];
+  assert.deepEqual([question, checked.kind, checked.sentences.filter((s) => s.sources.length).length], ["Is TASSOS on the US list?", "answer", 2]);
+  assert.equal("apiKey" in options, false);
+  assert.deepEqual(judged.map((j) => [j.authorization, j.body.state.question]), [["Bearer ts-fake-key-for-tests-only", "Is TASSOS on the US list?"]]);
+  // only an answer is gated: a refusal never reaches it
+  openrouter(answer({ kind: "refusal", sentences: [] }));
+  judged = withTypesafe(() => true);
+  assert.equal((await runAsk(history("hi"), new Date(Date.now()), { wrap })).answer.kind, "refusal");
+  assert.deepEqual([gated.length, judged.length], [1, 0]);
+  // POST passes runAsk no wrap and no model: it is gated the same, and the site's MODEL is sent
+  openrouter(...flow());
+  judged = withTypesafe((text) => text !== US);
+  const { json: body } = await run(ask("Is TASSOS on the US list?"));
+  assert.deepEqual(body, out);
+  assert.deepEqual(sent.map((s) => s.body.model), [MODEL, MODEL]);
+  assert.equal(judged.length, 1);
+  assert.deepEqual([logged.filter((line) => line.startsWith("ask")), other], [[], []]); // (Node's own warnings aside)
+});
+
+test("the gate gives up before the request's 26 s are out, so a slow answer is still shown", async () => {
+  process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
+  const real = AbortSignal.timeout.bind(AbortSignal);
+  const budgets = [];
+  mock.method(AbortSignal, "timeout", (ms) => (budgets.push(ms), real(ms)));
+  let now = Date.parse("2026-10-20T10:00:00Z");
+  mock.method(Date, "now", () => now);
+  // the answer comes back with 1 s of the 26 left; TypeSafe never replies, and gives up only when the gate does
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), (body) => {
+    now += 25_000;
+    return listedAnswer(body);
+  });
+  const model = globalThis.fetch;
+  globalThis.fetch = (url, init = {}) => (url === TYPESAFE ? new Promise((_, reject) => init.signal.addEventListener("abort", () => reject(init.signal.reason))) : model(url, init));
+  const out = await runAsk(history("Is TASSOS sanctioned?"), new Date(now));
+  assert.equal(out.ok, true);
+  assert.deepEqual(out.answer.sentences.map((s) => s.text), [ // as the checker wrote it
+    "TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4.",
+  ]);
+  assert.equal(budgets.at(-1), 950); // the gate's: what was left of the 26 s, less 50 ms, not its usual 3 s
+  assert.deepEqual(logged.filter((line) => line.startsWith("ask")), ["ask: relevance gate unavailable"]); // (Node's own warnings aside)
 });
 
 test("the wrapped callModel resolves to {message, usage} with OpenRouter's usage", async () => {

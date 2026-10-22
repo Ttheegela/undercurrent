@@ -483,6 +483,46 @@ test("no traced payload contains the OpenRouter key", async (t) => {
   assert.equal(scoresOf(rows)["off-topic-1"].pass.score, 1);
 });
 
+test("Ask's relevance gate runs in the evals as the step \"gate\", traced with the answer it was handed and never the TypeSafe key", async (t) => {
+  // Ask's real loop: a site_docs lookup, then an answer quoting its first quotable section, which the gate (TypeSafe faked) drops
+  const SECRET = "ts-SENTINEL-0000-must-never-be-traced";
+  const saved = { or: process.env.OPENROUTER_API_KEY, ts: process.env.TYPESAFE_API_KEY, fetch: globalThis.fetch };
+  t.after(() => {
+    globalThis.fetch = saved.fetch;
+    for (const [name, v] of [["OPENROUTER_API_KEY", saved.or], ["TYPESAFE_API_KEY", saved.ts]]) {
+      if (v === undefined) delete process.env[name];
+      else process.env[name] = v;
+    }
+  });
+  process.env.OPENROUTER_API_KEY = "sk-or-test";
+  process.env.TYPESAFE_API_KEY = SECRET; // the gate reads it from the environment, as the eval job sets it
+  const call = (name, args) => ({ choices: [{ message: { role: "assistant", content: null, tool_calls: [{ id: `call_${name}`, type: "function", function: { name, arguments: JSON.stringify(args) } }] } }], usage: USAGE });
+  const gateAuth = [];
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body);
+    if (url === "https://api.typesafe.ai/v1/systemone") {
+      gateAuth.push(init.headers.Authorization);
+      return Response.json({ model: "jev-1.13.0", answers: Object.fromEntries(body.state.sentences.map((s) => [`s${s.i}`, { type: "noul", noul: 0.1 }])), usage: { input_tokens: 90, output_tokens: 4 } });
+    }
+    const tool = body.messages.find((m) => m.role === "tool");
+    if (!tool) return Response.json(call("site_docs", { query: "how matching works" }));
+    const item = JSON.parse(tool.content).items.find((i) => i.quotes?.length);
+    return Response.json(call("answer", { kind: "answer", sentences: [{ claim: "quote", sources: [item.id], quote: 0 }] }));
+  };
+  const { steps, calls, rows, deps } = setup([byId("off-topic-1")], runAsk);
+  const result = await runEvals(WEEKLY, deps);
+  assert.deepEqual(gateAuth, [`Bearer ${SECRET}`]); // the gate ran, on the key
+  assert.deepEqual(steps.map((s) => s.name), ["target", "callModel", "runTool", "callModel", "checkAnswer", "gate"]);
+  const step = steps.find((s) => s.name === "gate");
+  assert.equal(step.run_type, "chain");
+  assert.deepEqual(Object.keys(step.inputs), ["answer"]);
+  assert.equal(step.inputs.answer.sentences[0].sources.length, 1); // the checker's quote, as the gate was handed it
+  assert.deepEqual(rows[0].run.outputs.result.answer.sentences.map((s) => s.text), ["Nothing recorded on this site answers that."]); // what it gave back is what was scored
+  const recorded = JSON.stringify({ steps, calls, rows, result });
+  assert.ok(!recorded.includes(SECRET), "the TypeSafe key is in a traced payload");
+  assert.ok(!recorded.includes("Bearer"), "a header is in a traced payload");
+});
+
 test("cost_usd is null when usage has no cost", async () => {
   const script = { "area-lists-1": { usage: { prompt_tokens: 7, completion_tokens: 3 } }, "area-research-1": { usage: null }, "area-chips-1": {} };
   const { rows, deps } = setup(Object.keys(script).map(byId), fakeAsk(script));

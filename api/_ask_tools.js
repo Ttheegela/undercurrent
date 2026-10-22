@@ -521,7 +521,7 @@ async function checkLists(args, ev, ctx = {}) {
   const taken = [...allResearch.map((x) => x.hit.name), ...strong.lists.flatMap((m) => [...m.values()].map((x) => x.hit.name)), ...[...strong.os.values()].map((x) => x.hit.r.name)];
   const contained = attempt("Undercurrent research", () => containedIn(variants[0].q, entries(), LIST_IDS.map(doc), entities));
   const hits = research.length + lists.flat().length + os.length;
-  // How many strong matches there are in all, for "Showing {hits} of {total}". The site's search returns at most LIMIT names a source,
+  // How many strong matches there are in all: the M of "Showing N of M". The site's search returns at most LIMIT names a source,
   // so a source that filled its cap is counted over all its rows: a list's records by ref, research and OpenSanctions entries by id.
   const counted = (map, cap, rows, keys, imo, id) => (map.size < cap ? map.size
     : new Set(rows().filter((x) => variants.some(({ q }) => strength(q, keys(x), imo(x)))).map(id)).size);
@@ -564,7 +564,7 @@ async function checkLists(args, ev, ctx = {}) {
     ...os.map(({ hit, s, v }) => osItem(hit.r, hit.e, s, v.q, v.how)),
   ];
   const added = addAll(ev, items);
-  for (const e of added.slice(1)) e.result = added[0].id; // each match is one of the search's results (see `shown`)
+  for (const e of added.slice(1)) e.result = added[0].id; // each match is one of the search's: "Showing N of M" counts them
   return { query, found, items: added.map(view) };
 }
 

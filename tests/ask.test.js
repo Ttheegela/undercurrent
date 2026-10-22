@@ -326,7 +326,9 @@ test("check_lists then answer gives a rendered listed sentence", async () => {
   assert.deepEqual(out.answer.sentences.map((s) => s.text), [
     "TASSOS appears on the United States list under Iran.",
     "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.",
+    "Showing 2 of 4.", // two of the fixture search's four matches
   ]);
+  assert.deepEqual(out.answer.sentences[2].sources, []);
   assert.match(out.answer.sentences[0].sources[0].url, /Details\.aspx\?id=54815/);
   assert.match(out.answer.sentences[1].sources[0].url, /RUS3483/);
   assert.equal(out.answer.next.length, 1);
@@ -377,7 +379,7 @@ test("forces answer after 4 tool rounds", async () => {
   assert.deepEqual(sent.slice(0, 4).map((s) => s.body.tool_choice), ["auto", "auto", "auto", "auto"]);
   assert.deepEqual(sent[4].body.tool_choice, FORCE_ANSWER);
   assert.equal(out.answer.kind, "answer");
-  assert.equal(out.answer.sentences.length, 2);
+  assert.equal(out.answer.sentences.length, 3); // two listings and "Showing 2 of 4."
   // a forced call that still is not an answer is the fallback, and there is never a sixth call
   openrouter(round, round, round, round, { choices: [{ message: { role: "assistant", content: "TASSOS is fine." } }] });
   const none = (await run(ask("Is TASSOS sanctioned?"))).json.answer;

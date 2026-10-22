@@ -50,7 +50,7 @@ function calendarSpan(from, to) {
   if (!months) return unit((Date.UTC(b[0], b[1] - 1, b[2]) - Date.UTC(a[0], a[1] - 1, a[2])) / 864e5, "day");
   return [unit(Math.floor(months / 12), "year"), unit(months % 12, "month")].filter(Boolean).join(" ");
 }
-const SHOWING = (r) => `Showing ${r.shown.toLocaleString("en-GB")} of ${r.total.toLocaleString("en-GB")}.`;
+const SHOWING = (n, total) => `Showing ${n.toLocaleString("en-GB")} of ${total.toLocaleString("en-GB")}.`;
 
 // ---- the notice on advice-shaped questions -----------------------------------------------------------------------------------
 // Ask cannot give advice: no model word is ever shown, only records and their sources. A question that asks for it ("Should I buy oil
@@ -224,26 +224,34 @@ function cite(ids, byId) {
 
 /**
  * Numbers the sources in order of first citation; one sentence written twice becomes one sentence with both sources. A cited item
- * that is one of a search's results (`result`, its id in byId), where the search held some back (total > shown), puts SHOWING after
- * the last sentence citing that search's results, once: the model never chooses it.
+ * that is one of a search's matches (`result`, the search's id in byId) counts towards that search: when the answer cites fewer of
+ * its matches (distinct entities) than the search's total, SHOWING follows the last sentence citing them, once. The same search run
+ * twice (one query) is one search. The model never chooses it.
  */
 function finish(kind, pieces, next, byId = new Map()) {
   const n = new Map();
   const byText = new Map();
+  const cited = new Map(); // search ("kind:query") -> {total, entities: its matches the answer cites}
   for (const { text, items } of pieces) {
-    if (!byText.has(text)) byText.set(text, { text, sources: [], capped: new Set() });
-    const { sources, capped } = byText.get(text);
+    if (!byText.has(text)) byText.set(text, { text, sources: [], searches: new Set() });
+    const { sources, searches } = byText.get(text);
     for (const e of items) {
       if (!n.has(e.id)) n.set(e.id, n.size + 1);
       if (!sources.some((x) => x.n === n.get(e.id))) sources.push({ n: n.get(e.id), label: e.label, url: e.url });
       const r = byId.get(e.result);
-      if (r?.total > r?.shown) capped.add(r);
+      if (!r) continue;
+      const key = `${r.kind}:${r.query ?? r.id}`;
+      if (!cited.has(key)) cited.set(key, { total: r.total, entities: new Set() });
+      cited.get(key).entities.add(e.entity?.id ?? e.id);
+      searches.add(key);
     }
   }
   const said = [...byText.values()];
-  const sentences = said.flatMap(({ text, sources, capped }, i) => [
+  const sentences = said.flatMap(({ text, sources, searches }, i) => [
     { text, sources },
-    ...[...capped].filter((r) => !said.slice(i + 1).some((x) => x.capped.has(r))).map((r) => ({ text: SHOWING(r), sources: [] })),
+    ...[...searches].filter((key) => !said.slice(i + 1).some((x) => x.searches.has(key))) // its last sentence
+      .map((key) => cited.get(key)).filter((c) => c.entities.size < c.total)
+      .map((c) => ({ text: SHOWING(c.entities.size, c.total), sources: [] })),
   ]);
   return sentences.length ? { kind, sentences, next } : fallback();
 }

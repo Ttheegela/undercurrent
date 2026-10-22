@@ -14,7 +14,7 @@ const NOT_FOUND = /^(.+) is not on the lists we check \(US, UK, EU, UN, OpenSanc
 
 const day = (iso) => formatDate(iso) || iso;
 const clean = (s) => s.normalize("NFKC").replace(/[\p{Cf}\p{M}\uFEFF]/gu, "").replace(/\s+/g, " ").toLowerCase();
-const SHOWING = (e) => `Showing ${e.shown.toLocaleString("en-GB")} of ${e.total.toLocaleString("en-GB")}.`; // written by the server, no source
+const SHOWING = (n, total) => `Showing ${n.toLocaleString("en-GB")} of ${total.toLocaleString("en-GB")}.`; // written by the server, no source
 const NOTE = { first_seen_opensanctions: " (first seen on the list via OpenSanctions)", uk_transfer: " (the UK list's transfer date; the listing may be older)" };
 const plural = (n, word) => (n ? [`${n} ${word}${n === 1 ? "" : "s"}`] : []);
 
@@ -70,7 +70,18 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   const problems = [];
   const ok = (cond, message) => { if (!cond) problems.push(message); };
   const made = producers(ev, today);
-  const showing = new Set(ev.filter((e) => e.total > e.shown).map(SHOWING)); // a search that held some of its matches back
+  // "Showing N of M." for a search of M matches when the answer's sources are N of them (distinct entities), fewer than all; the same
+  // search run twice (one query) is one search
+  const cites = new Set(answer.sentences.flatMap((s) => s.sources.map((x) => `${x.label}\n${x.url}`)));
+  const searches = new Map();
+  for (const r of ev.filter((x) => Number.isInteger(x.total))) {
+    const key = `${r.kind}:${r.query ?? r.id}`;
+    searches.set(key, { total: r.total, ids: (searches.get(key)?.ids ?? new Set()).add(r.id) });
+  }
+  const showing = new Set([...searches.values()].flatMap(({ total, ids }) => {
+    const n = new Set(ev.filter((e) => ids.has(e.result) && cites.has(`${e.label}\n${e.url}`)).map((e) => e.entity?.id ?? e.id)).size;
+    return n && n < total ? [SHOWING(n, total)] : [];
+  }));
   const labelled = (items, src) => [...items].some((e) => e.label === src.label && e.url === src.url);
   for (const s of answer.sentences) {
     if (FIXED.has(s.text) || showing.has(s.text)) {

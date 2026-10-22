@@ -583,23 +583,19 @@ async function checkNames(args, ev, ctx = {}) {
 const escaped = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 let countryNames = null;
-/** The vocabulary's country names, lower-cased: its countries, and any other topic the region table names as a country ("South Sudan" is a programme only). */
+/** The vocabulary's country names, lower-cased: its countries, and every spelling of a programme that names one ("South Sudan" is a programme only). */
 function countries() {
-  if (!countryNames) {
-    const regions = new Set(Array.from({ length: 26 * 26 }, (_, i) => country(String.fromCharCode(65 + Math.floor(i / 26), 65 + (i % 26))).toLowerCase()));
-    countryNames = new Set(VOCAB.topics.filter((t) => t.kind === "country" || regions.has(t.label.toLowerCase())).map((t) => t.label.toLowerCase()));
-  }
-  return countryNames;
+  return (countryNames ??= new Set(VOCAB.topics.filter((t) => t.kind === "country" || t.region).flatMap((t) => [t.label, ...(t.spellings ?? [])]).map((s) => s.toLowerCase())));
 }
 
-/** The records of one list under a programme topic, one per ref (its first row), in the list's order. */
+/** The records of one list under a programme topic (any of its spellings), one per ref (its first row), in the list's order. */
 function programmeCount(list, topic) {
-  const key = topic.key.toLowerCase();
+  const own = VOCAB.topics.find((t) => t.kind === "programme" && t.key === topic.key).spellings.map((s) => s.toLowerCase());
   // (a whole word: for a country, a hyphen joins words. The whole string is read: no topic holds ", ", so a word of it is a word of one part)
-  const edge = countries().has(key) ? "\\p{L}\\p{N}-" : "\\p{L}\\p{N}";
+  const edge = countries().has(own[0]) ? "\\p{L}\\p{N}-" : "\\p{L}\\p{N}";
   const words = (alternatives, flags) => new RegExp(`(?<![${edge}])(?:${alternatives.map(escaped).join("|")})(?![${edge}])`, flags);
-  const whole = words([key], "iu");
-  const longer = [...countries()].filter((name) => name !== key && whole.test(name)); // "south sudan" for Sudan: dropped before the test
+  const whole = words(own, "iu");
+  const longer = [...countries()].filter((name) => !own.includes(name) && whole.test(name)); // "south sudan" for Sudan: dropped before the test
   const others = longer.length ? words(longer, "giu") : null;
   const first = new Map(); // ref -> the record's first row
   for (const r of data(`data/lists/${list}.json`).records) {

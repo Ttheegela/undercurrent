@@ -1402,6 +1402,13 @@ const num = (n) => n.toLocaleString("en-GB");
 const countOf = (ev, list) => find(ev, (e) => e.kind === "count" && e.list === list);
 const examplesOf = (ev, c) => ev.filter((e) => e.result === c.id);
 const iranLine = (c) => `${num(c.n)} records on the ${LIST_NAME[c.list]} list are under Iran programmes.`;
+// per list, the records with a programme part the test names (the parts written out by hand, from the committed lists)
+const refsOf = (...parts) => ["us", "uk", "eu", "un"].map((id) => new Set(committed(id).filter((r) => r[2].split(", ").some((p) => parts.includes(p.toLowerCase()))).map((r) => r[4])).size);
+// per list, check_lists' count for a programme with no list given (0 for a list with none: it has no count)
+const countsOf = async (programme) => {
+  const ev = await ask([["check_lists", { programme }]]);
+  return ["us", "uk", "eu", "un"].map((id) => ev.find((e) => e.kind === "count" && e.list === id)?.n ?? 0);
+};
 
 test("programme count counts distinct refs, not alias rows", () => {
   const rows = under(committed("us"), "Iran");
@@ -1418,23 +1425,36 @@ test("programme count counts distinct refs, not alias rows", () => {
 });
 
 test("programme matching keeps neighbouring countries apart: South Sudan is not Sudan, Guinea-Bissau is not Guinea; CAATSA - IRAN, Russia/Ukraine and Counter-Terrorism still count", async () => {
-  // per list, the records with a programme part the test names (the parts written out by hand, from the committed lists)
-  const refs = (...parts) => ["us", "uk", "eu", "un"].map((id) => new Set(committed(id).filter((r) => r[2].split(", ").some((p) => parts.includes(p.toLowerCase()))).map((r) => r[4])).size);
-  const counts = async (programme) => {
-    const ev = await ask([["check_lists", { programme }]]);
-    return ["us", "uk", "eu", "un"].map((id) => ev.find((e) => e.kind === "count" && e.list === id)?.n ?? 0); // (a list with none has no count)
-  };
   // the neighbours are on the lists, so a looser match would count them
-  assert.ok(refs("south sudan").some(Boolean) && refs("guinea-bissau", "republic of guinea-bissau").some(Boolean));
-  assert.deepEqual(await counts("Sudan"), refs("sudan"));
-  assert.deepEqual(await counts("South Sudan"), refs("south sudan"));
-  assert.deepEqual(await counts("Guinea"), refs("guinea"));
-  assert.deepEqual(await counts("Guinea-Bissau"), refs("guinea-bissau", "republic of guinea-bissau"));
+  assert.ok(refsOf("south sudan").some(Boolean) && refsOf("guinea-bissau", "republic of guinea-bissau").some(Boolean));
+  assert.deepEqual(await countsOf("Sudan"), refsOf("sudan"));
+  assert.deepEqual(await countsOf("South Sudan"), refsOf("south sudan"));
+  assert.deepEqual(await countsOf("Guinea"), refsOf("guinea"));
+  assert.deepEqual(await countsOf("Guinea-Bissau"), refsOf("guinea-bissau", "republic of guinea-bissau"));
   // other words around a name still count
-  assert.deepEqual(await counts("Iran"), refs("iran", "caatsa - iran"));
-  assert.deepEqual(await counts("Russia"), refs("russia", "russia/ukraine", "caatsa - russia"));
-  assert.deepEqual(await counts("Terrorism"), refs("terrorism", "counter-terrorism", "counter-terrorism (international"));
-  assert.deepEqual(await counts("Belarus"), refs("belarus", "republic of belarus"));
+  assert.deepEqual(await countsOf("Iran"), refsOf("iran", "caatsa - iran"));
+  assert.deepEqual(await countsOf("Russia"), refsOf("russia", "russia/ukraine", "caatsa - russia"));
+  assert.deepEqual(await countsOf("Terrorism"), refsOf("terrorism", "counter-terrorism", "counter-terrorism (international"));
+  assert.deepEqual(await countsOf("Belarus"), refsOf("belarus", "republic of belarus"));
+});
+
+test("one topic per country across programme spellings: North Korea's count on each list is the sum over its spellings", async () => {
+  for (const [programme, spellings, label] of [
+    ["DPRK", ["north korea", "democratic people's republic of korea"], "North Korea"],
+    ["Democratic Republic of the Congo", ["dr congo", "democratic republic of the congo"], "DR Congo"],
+  ]) {
+    const each = spellings.map((s) => refsOf(s));
+    assert.ok(each.every((perList) => perList.some(Boolean)), programme); // every spelling is on some list
+    const sum = [0, 1, 2, 3].map((i) => each.reduce((total, perList) => total + perList[i], 0));
+    assert.deepEqual(sum, refsOf(...spellings), programme); // (no record carries two spellings)
+    assert.deepEqual(await countsOf(programme), sum, programme);
+    const ev = await ask([["check_lists", { programme }]]);
+    assert.ok(ev.filter((e) => e.kind === "count").every((c) => c.topic.label === label), programme);
+  }
+  // the UK list spells it out; the sentence prints the one short name
+  const ev = await ask([["check_lists", { programme: "Democratic People's Republic of Korea", list: "uk" }]]);
+  const uk = countOf(ev, "uk");
+  assert.deepEqual(texts(checkAnswer(answer(claim("count", uk.id)), ev, {})), [`${num(refsOf("democratic people's republic of korea")[1])} records on the United Kingdom list are under North Korea programmes.`]);
 });
 
 test("with no list given, five examples in all: the first record of each list with some, then the next ones from the US list on", () => {

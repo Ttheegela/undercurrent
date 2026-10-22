@@ -48,3 +48,25 @@ test("review (6): a programme written in two cases is one topic with one label, 
   assert.equal(topicOf("Counter-Terrorism (International"), null);
   for (const t of VOCAB.topics) assert.ok(balanced(t.label), t.label);
 });
+
+test("one programme topic per country, whatever the lists call it: its spellings are grouped by region code, under the short name", () => {
+  for (const w of ["North Korea", "DPRK", "Democratic People's Republic of Korea", "north korean"]) assert.deepEqual(topicOf(w), { kind: "programme", key: "North Korea", label: "North Korea" }, w);
+  for (const w of ["Democratic Republic of the Congo", "Congo-Kinshasa"]) assert.deepEqual(topicOf(w), topicOf("DR Congo"), w);
+  assert.deepEqual(topicOf("Republic of Belarus"), topicOf("Belarus"));
+  assert.deepEqual(topicOf("Republic of Guinea-Bissau"), topicOf("Guinea-Bissau"));
+  // neighbours stay apart, and South Korea (in no list's programmes) is never North Korea
+  assert.notDeepEqual(topicOf("South Sudan"), topicOf("Sudan"));
+  assert.notDeepEqual(topicOf("Guinea"), topicOf("Guinea-Bissau"));
+  assert.notEqual(topicOf("South Korea")?.key, "North Korea");
+  // the groups the committed lists hold
+  const merged = VOCAB.topics.filter((t) => t.kind === "programme" && t.spellings.length > 1).map((t) => [t.region, t.label, [...t.spellings].sort()]);
+  assert.deepEqual(merged, [
+    ["CD", "DR Congo", ["DR Congo", "Democratic Republic of the Congo"]],
+    ["KP", "North Korea", ["Democratic People's Republic of Korea", "North Korea"]],
+    ["BY", "Belarus", ["Belarus", "Republic of Belarus"]],
+    ["GW", "Guinea-Bissau", ["Guinea-Bissau", "Republic of Guinea-Bissau"]],
+  ]);
+  // a retired code the region table still names is its successor ("YD" is named "Yemen"); a programme that is no country has none
+  assert.equal(topicOf("Yemen") && VOCAB.topics.find((t) => t.kind === "programme" && t.label === "Yemen").region, "YE");
+  assert.equal(VOCAB.topics.find((t) => t.kind === "programme" && t.label === "Terrorism").region, undefined);
+});

@@ -158,9 +158,9 @@ test("final review I1: relevance-1 takes the none line, or the list of updates t
   const none = ["None of the 0 updates recorded between 20 Oct 2026 and 21 Oct 2026 involve Iran.", "10 updates in that period can't be checked against Iran."];
   const listed = ["US listed ANEMOS (IMO 9205952) · 22 Oct 2026", "New link: PRIDE → ROXETTE MARITIME SHIPPING AND TRADING S.A. (linked to) · 22 Oct 2026"]; // (22 Oct's)
   for (const texts of [none, listed]) assert.deepEqual(pick(judge(c, said(...texts))), [true, true, true], texts[0]);
-  // the lobbying updates are still wrong, and a line that is neither is no answer to it
+  // the lobbying updates are still wrong, and a listing line is the wrong shape: excluded, and no answer to it
   assert.deepEqual(pick(judge(c, said("NVIDIA lobbied on H.R.8800 · 20 Oct 2026"))), [true, false, true]);
-  assert.deepEqual(pick(judge(c, said("TASSOS appears on the United States list under Iran."))), [true, true, false]);
+  assert.deepEqual(pick(judge(c, said("TASSOS appears on the United States list under Iran."))), [true, false, false]);
 });
 
 // ---- the live runner (against a stub server on this machine; nothing leaves it) --------------------------------------------

@@ -593,7 +593,7 @@
     "category": "area-changes",
     "question": "What changed this week?",
     "calls": [["changes",{"since":"2026-10-13"}]],
-    "expect": {"kind":"answer","includes":[[" · ","No changes were recorded"]]},
+    "expect": {"kind":"answer","includes":[[" · ","No changes were recorded"]],"excludes":["appears on","appears in OpenSanctions"]},
     "model": {"kind":"answer","sentences":[{"claim":"change","sources":["S1","S2","S3","S4"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"change","entity":{"id":"e:5a709a9d184b","name":"NVIDIA → H.R.8800"},"date":"2026-10-20","summary":"NVIDIA lobbied on H.R.8800","text":"NVIDIA lobbied on H.R.8800. Item: NVIDIA → H.R.8800. Involves NVIDIA and H.R.8800. Kind: added. Seen in the nightly update of 20 Oct 2026 (2026-10-20) on the lobbying network. Source: US Senate lobbying disclosure (LDA). On 20 Oct 2026 (2026-10-20): 4 changes recorded.","label":"20 Oct 2026: NVIDIA lobbied on H.R.8800","url":"https://lda.gov/filings/public/filing/017c32c9-d63b-43f1-bf16-8e1e70da4b7d/print/","link":"/stories/who-lobbies/influence-network/index.html#focus=e:5a709a9d184b&since=2026-10-20","quotes":[]},
@@ -951,7 +951,7 @@
     "question": "please check if there are any companies related to iran in the recent updates!",
     "calls": [["changes",{"since":"2026-10-15","topic":"Iran"}]],
     "note": "Asked on the live site. In the record of 20 and 21 Oct, which this evidence holds, every update is a lobbying filing (a bill, a lobbyist, NVIDIA's and the Semiconductor Industry Association's filings), and none carries a programme or country to check against Iran. A good answer there is the none line with what it could not check: none of the 0 checkable updates involve Iran, and the 10 updates in that period can't be checked against it. The night of 22 Oct recorded 20 updates that involve Iran (US listings of ships and their new links), and once the record holds such updates, a good answer lists them. So the include takes the none line's fixed end or a list of updates. Citing the lobbying updates is wrong.",
-    "expect": {"kind":"answer","includes":[["involve Iran."," · "]],"excludes":["lobbied","New bill","lobbyist"]},
+    "expect": {"kind":"answer","includes":[["involve Iran."," · "]],"excludes":["lobbied","New bill","lobbyist","appears on","appears in OpenSanctions"]},
     "model": {"kind":"answer","sentences":[{"claim":"none_matched","sources":["S1"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"change","found":false,"topic":{"label":"Iran"},"checked_fleet":0,"checked_lobby":0,"unchecked":10,"from":"2026-10-20","to":"2026-10-21","text":"Between 20 Oct 2026 and 21 Oct 2026 (2026-10-20 to 2026-10-21): none of the 0 updates whose programme or country could be checked involve Iran (0 on the shadow-fleet map, 0 in the lobbying network). 10 updates in that period can't be checked against Iran.","label":"Updates involving Iran, 20 Oct 2026 to 21 Oct 2026: none","url":"/stories/updates/index.html?from=2026-10-20&to=2026-10-21&graph=all","link":"/stories/updates/index.html?from=2026-10-20&to=2026-10-21&graph=all","quotes":[]}
@@ -1151,7 +1151,7 @@
     "question": "Any lobbying updates about Russian companies this week?",
     "calls": [["changes",{"since":"2026-10-16","graph":"lobby","topic":"Russia"}]],
     "note": "None of the lobbying updates recorded so far can be checked against Russia (they are bills, a lobbyist, and NVIDIA's and the Semiconductor Industry Association's filings). A good answer is the none line with what it could not check. Citing the chip lobbying is wrong; a later night that records such a change makes it the answer. The dates and counts move with the record, so the include takes the none line's fixed end or a list of updates.",
-    "expect": {"kind":"answer","includes":[["involve Russia."," · "]],"excludes":["NVIDIA","Semiconductor Industry Association","New bill"]},
+    "expect": {"kind":"answer","includes":[["involve Russia."," · "]],"excludes":["NVIDIA","Semiconductor Industry Association","New bill","appears on","appears in OpenSanctions"]},
     "model": {"kind":"answer","sentences":[{"claim":"none_matched","sources":["S1"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"change","found":false,"topic":{"label":"Russia"},"checked_fleet":0,"checked_lobby":0,"unchecked":10,"from":"2026-10-20","to":"2026-10-21","text":"Between 20 Oct 2026 and 21 Oct 2026 (2026-10-20 to 2026-10-21): none of the 0 updates whose programme or country could be checked involve Russia (0 on the shadow-fleet map, 0 in the lobbying network). 10 updates in that period can't be checked against Russia.","label":"Updates involving Russia, 20 Oct 2026 to 21 Oct 2026: none","url":"/stories/updates/index.html?from=2026-10-20&to=2026-10-21&graph=all","link":"/stories/updates/index.html?from=2026-10-20&to=2026-10-21&graph=all","quotes":[]}
@@ -1163,7 +1163,7 @@
     "question": "Which North Korean ships are sanctioned?",
     "calls": [["research",{"programme":["North Korea"]}]],
     "note": "The research map has two ships under a North Korea programme, UNICA and NEW KONK, both on the EU list: a good answer counts them and lists both. A name lookup of 'North Korea' finds banks and agencies with those words in their names, and none is a ship; the excludes follow today's data.",
-    "expect": {"kind":"answer","includes":["ships in Undercurrent's research map are under a North Korea programme.","Unica appears on the European Union list under North Korea since 12 Dec 2022.","New Konk appears on the European Union list"],"excludes":["Government of North Korea","Gorgeous Bank","Foreign Trade Bank","Hana Banking","Space Technology","Maritime Administration Bureau","Liaoning Foreign Trade"]},
+    "expect": {"kind":"answer","includes":["in Undercurrent's research map ","under a North Korea programme.","Unica appears on the European Union list under North Korea since 12 Dec 2022.","New Konk appears on the European Union list"],"excludes":["Government of North Korea","Gorgeous Bank","Foreign Trade Bank","Hana Banking","Space Technology","Maritime Administration Bureau","Liaoning Foreign Trade"]},
     "model": {"kind":"answer","sentences":[{"claim":"count","sources":["S1"]},{"claim":"listed","sources":["S2","S3"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"count","unit":"ships","scope":"research","filters":{"programme":[{"key":"dprk","label":"North Korea"}]},"n":2,"total_ships":1745,"shown":2,"total":2,"text":"Undercurrent's research map: 2 of its 1,745 ships match all of: in the map's North Korea programme group. Each ship is counted once. 2 follow as examples.","label":"Undercurrent's research map · ships","url":"/stories/shadow-fleet/network/shadow_fleet_map.html","quotes":[]},

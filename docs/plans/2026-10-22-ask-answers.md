@@ -113,8 +113,8 @@ All of this keeps the guarantee that the model writes no text.
     - up to 5 example `list` items;
     - the search item's `shown` and `total`.
   - **The `count` claim:** `{claim:"count", sources:[id]}` renders `COUNT(e)`:
-    - **records:** "{n} records on the {list label} are under {topic label} programmes." With no list given, one sentence per list with n > 0.
-    - **n = 0:** `NONE_MATCHED(e)` = "None of the records on the {list label} are under {topic label} programmes."
+    - **records** (Task 2 review ruling): country topics read "{n} records on the {list label} are under {Country} programmes."; other topics read "{n} records on the {list label} are under the {label} programme."; both have singular forms. With no list given, one sentence per list with n > 0.
+    - **n = 0:** `NONE_MATCHED(e)` = "No programme on the {list label} is named {topic label}." With no list given, the four-list form.
 
 - [ ] **Step 1: Write the failing tests.**
   - `programme count counts distinct refs, not alias rows`: US + Iran → the n equals the distinct-ref count from the committed data (assert against a computed value in the test, about 4,083).

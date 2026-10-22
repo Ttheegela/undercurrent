@@ -59,6 +59,9 @@ function shipFilters(f, one) {
   return and(parts);
 }
 
+/** The named claim's sentence for a firm of the chips research, or null. These sentences count towards "Showing N of M" too. */
+const firmLine = (e) => (e.kind === "chips_firm" ? `US Treasury named ${e.entity.name} (${e.countries.join(", ")}) on ${day(e.date)}.` : null);
+
 /**
  * The count claim's sentence for a count item (none matched at 0; the chips research's firms, never 0), or null. A country's are
  * "programmes", any other topic's "the … programme".
@@ -70,7 +73,11 @@ function counted(e) {
     if (Object.keys(e.filters).length === 1 && e.filters.names_changed) return `${e.n.toLocaleString("en-GB")} of the ${e.total_ships.toLocaleString("en-GB")} ${map} ${shipFilters(e.filters, e.n === 1)}.`;
     return `${e.n === 1 ? "1 ship" : `${e.n.toLocaleString("en-GB")} ships`} in Undercurrent's research map ${shipFilters(e.filters, e.n === 1)}.`;
   }
-  if (e.kind === "count" && e.unit === "firms" && e.n) return `${e.n === 1 ? "1 firm is" : `${e.n.toLocaleString("en-GB")} firms are`} named in Undercurrent's research as shipping chips to Russia.`;
+  if (e.kind === "count" && e.unit === "firms") {
+    const where = e.country ? ` in ${e.country.label}` : "";
+    if (e.n) return `${e.n === 1 ? `1 firm${where} is` : `${e.n.toLocaleString("en-GB")} firms${where} are`} named in Undercurrent's research as shipping chips to Russia.`;
+    return e.country ? `None of the firms named in Undercurrent's research as shipping chips to Russia are in ${e.country.label}.` : null;
+  }
   if (e.kind !== "count" || e.unit !== "records") return null;
   if (e.n === 0) return `No programme on ${e.list ? `the ${LIST_LABELS[e.list]} list` : "the United States, United Kingdom, European Union or United Nations lists"} is named ${e.topic.label}.`;
   const on = `on the ${LIST_LABELS[e.list]} list`;
@@ -105,6 +112,7 @@ function producers(ev, today) {
   for (const e of ev) {
     for (const q of e.quotes) add(q, e);
     if (listing(e)) add(listing(e), e);
+    if (firmLine(e)) add(firmLine(e), e);
     if (counted(e)) for (const x of [e, ...ev.filter((x) => x.result === e.id)]) add(counted(e), x); // the count, and the examples it gave
     if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted && age(e, today)) add(age(e, today), e);
     if (e.kind === "change" && e.before_start) add(`Daily updates started on ${day(e.first_run)}, so there is no record before then.`, e);
@@ -141,14 +149,14 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   // among them, and a line for any other M is caught.
   const labelled = (items, src) => [...items].some((e) => e.label === src.label && e.url === src.url);
   const key = (e) => (e.kind === "change" ? e.key : e.entity.id);
-  const shows = new Set(ev.flatMap((e) => [listing(e), counted(e), e.kind === "change" && e.entity && `${e.summary} · ${day(e.date)}`]).filter(Boolean));
+  const shows = new Set(ev.flatMap((e) => [listing(e), firmLine(e), counted(e), e.kind === "change" && e.entity && `${e.summary} · ${day(e.date)}`]).filter(Boolean));
   const named = answer.sentences.filter((s) => shows.has(s.text)).flatMap((s) => s.sources.map((src) =>
     new Set([...made.get(s.text)].filter((e) => e.entity && labelled([e], src)).map(key))));
   const maybe = new Set(named.flatMap((x) => [...x]));
   const surely = new Set(named.filter((x) => x.size === 1).flatMap((x) => [...x]));
   const showing = new Set();
   for (const r of ev.filter((x) => Number.isInteger(x.total))) {
-    const matches = [...new Set(ev.filter((e) => e.result === r.id && e.entity && (listing(e) || e.kind === "change")).map(key))];
+    const matches = [...new Set(ev.filter((e) => e.result === r.id && e.entity && (listing(e) || firmLine(e) || e.kind === "change")).map(key))];
     if (r.kind === "search" && /Found: /.test(r.text) && !/at least /.test(r.text) && r.total !== matches.length) continue;
     const among = (set) => matches.filter((x) => set.has(x)).length;
     for (let n = Math.max(1, among(surely)); n <= Math.min(among(maybe), r.total - 1); n++) showing.add(SHOWING(n, r.total));

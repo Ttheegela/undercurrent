@@ -64,6 +64,8 @@ function calendarSpan(from, to) {
   return [unit(Math.floor(months / 12), "year"), unit(months % 12, "month")].filter(Boolean).join(" ");
 }
 const num = (n) => n.toLocaleString("en-GB");
+// a firm of the chips research, by the release that named it: its name and countries are the research's own
+const NAMED = (e) => `US Treasury named ${e.entity.name} (${e.countries.join(", ")}) on ${day(e.date)}.`;
 const SHOWING = (n, total) => `Showing ${num(n)} of ${num(total)}.`;
 // A count's sentence, by what it counts (null for a unit it does not know): records on an official list, by ref. A country's records are
 // under its programmes ("Iran programmes"), any other topic's under one ("the Terrorism programme"); a none says what it rests on: no
@@ -93,8 +95,8 @@ function COUNT(e) {
     case "ships": return Object.keys(e.filters).join() === "names_changed"
       ? `${num(e.n)} of the ${num(e.total_ships)} ${MAP_SHIPS} ${shipsThat(e.filters, e.n === 1)}.`
       : `${e.n === 1 ? "1 ship" : `${num(e.n)} ships`} in Undercurrent's research map ${shipsThat(e.filters, e.n === 1)}.`;
-    // the chips research's set of firms, from the Treasury releases it reads
-    case "firms": return `${e.n === 1 ? "1 firm is" : `${num(e.n)} firms are`} named in Undercurrent's research as shipping chips to Russia.`;
+    // the chips research's set of firms, from the Treasury releases it reads, or those of it based in one country
+    case "firms": return `${e.n === 1 ? "1 firm" : `${num(e.n)} firms`}${e.country ? ` in ${e.country.label}` : ""} ${e.n === 1 ? "is" : "are"} named in Undercurrent's research as shipping chips to Russia.`;
     default: return null;
   }
 }
@@ -102,6 +104,7 @@ function NONE_MATCHED(e) {
   switch (e.unit) {
     case "records": return `No programme on ${e.list ? `the ${LIST_LABELS[e.list]} list` : ALL_LISTS} is named ${e.topic.label}.`;
     case "ships": return `None of the ${MAP_SHIPS} ${shipsThat(e.filters, false)}.`;
+    case "firms": return e.country ? `None of the firms named in Undercurrent's research as shipping chips to Russia are in ${e.country.label}.` : null;
     default: return null;
   }
 }
@@ -233,6 +236,7 @@ function typedSpan(query, question) {
 // as a name) is no failure. `listed` and `change` write the items they can and leave the others out; only a claim with none left is dropped.
 const RENDER = {
   listed: (items) => items.filter(listable).map((e) => ({ text: LISTED(e), items: [e] })),
+  named: (items) => items.filter((e) => e.kind === "chips_firm").map((e) => ({ text: NAMED(e), items: [e] })),
   // (an age that cannot be told is the listed sentence, and counts as one)
   age: (items, s, all, ctx) => items.filter((e) => listable(e) && e.kind !== "opensanctions").map((e) => {
     const text = AGE(e, ctx.today ?? new Date().toISOString().slice(0, 10));
@@ -294,9 +298,9 @@ function cite(ids, byId) {
   return items.every(Boolean) ? items : null;
 }
 
-// The claims whose sentences show a search's matches, and so count towards "Showing N of M": listings, the examples cited with a count, and
-// the changes of a capped list of updates (only a capped one is linked to a result)
-const SHOWS_MATCHES = new Set(["listed", "count", "change"]);
+// The claims whose sentences show a search's matches, and so count towards "Showing N of M": listings, the examples cited with a count, the
+// changes of a capped list of updates (only a capped one is linked to a result), and the chips research's firms
+const SHOWS_MATCHES = new Set(["listed", "count", "change", "named"]);
 // what a match is counted as: its entity, or a change by its identity in the record (the changes total counts changes, and two can be of one
 // ship; one change returned by two changes calls is one)
 const matchKey = (e) => (e.kind === "change" ? e.key : e.entity.id);

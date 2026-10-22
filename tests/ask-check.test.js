@@ -1998,7 +1998,8 @@ test("partial answers: a sentence that fails the check is dropped beside verifie
     ["a sentence citing nothing", claim("listed")],
     ["listed on a chips item", claim("listed", "C1")],
     ["a quote number the item does not have", quote(q.id, 99)],
-    ["a claim that does not exist", claim("named", uk.id)],
+    ["a claim that does not exist", claim("flagged", uk.id)],
+    ["named on a list record", claim("named", uk.id)],
   ]) {
     const out = checkAnswer(answer(claim("listed", uk.id), bad), ev, TASSOS_Q);
     assert.equal(out.kind, "answer", label);
@@ -2015,4 +2016,38 @@ test("partial answers: a sentence that fails the check is dropped beside verifie
   // the oracle holds the line to the same rule: beside fixed copy only, it is a problem
   const lone = { kind: "answer", sentences: [{ text: NOTHING_ANSWERS, sources: [] }, { text: PARTIAL, sources: [] }], next: [] };
   assert.deepEqual(groundingProblems(TASSOS_Q.question, ev, lone), ["the part-answer line without a verified sentence"]);
+});
+
+// ---- chips firms (22 Oct): a firm US Treasury named is citable, one sentence per firm, and the firms can be kept by country ------------
+
+test("chips firms: named writes one sentence per firm from its item, a capped list says Showing N of M, and by country the count says where", async () => {
+  const question = "Which Chinese firms did US Treasury name for sending chips to Russia?";
+  const ev = await ask([["chips", { topic: "firms", country: "Chinese" }]]);
+  const [c, ...firms] = ev;
+  assert.deepEqual([c.kind, c.unit, c.n, c.total, firms.length], ["count", "firms", 41, 41, 10]);
+  assert.ok(firms.every((e) => e.kind === "chips_firm" && e.countries.includes("China") && e.result === c.id));
+  const out = checkAnswer(answer(claim("count", c.id), claim("named", firms[0].id, firms[1].id)), ev, { question });
+  assert.deepEqual(texts(out), [
+    "41 firms in China are named in Undercurrent's research as shipping chips to Russia.",
+    `US Treasury named ${firms[0].entity.name} (China) on 30 Oct 2024.`,
+    `US Treasury named ${firms[1].entity.name} (China) on 30 Oct 2024.`,
+    "Showing 2 of 41.",
+  ]);
+  assert.deepEqual(out.sentences[1].sources, [{ n: 2, label: firms[0].label, url: firms[0].url }]);
+  assert.deepEqual(groundingProblems(question, ev, out), []);
+  // a firm in two countries says both; a firm item is never a listing, and a named claim on anything else fails the check
+  const both = (await ask([["chips", { topic: "firms", country: "Hong Kong" }]])).find((e) => e.kind === "chips_firm");
+  assert.deepEqual(both.countries, ["China", "Hong Kong SAR China"]);
+  const both2 = checkAnswer(answer(claim("named", both.id)), [both], { question });
+  assert.deepEqual(texts(both2), [`US Treasury named Allparts Trading Co., Ltd. (China, Hong Kong SAR China) on ${formatDate(both.date)}.`]);
+  assert.deepEqual(checkAnswer(answer(claim("listed", firms[0].id)), ev, { question }), FALLBACK_ANSWER);
+  assert.deepEqual(checkAnswer(answer(claim("named", c.id)), ev, { question }), FALLBACK_ANSWER);
+  // the oracle knows the sentence, and no other wording of it
+  assert.ok(groundingProblems(question, ev, { ...out, sentences: [{ ...out.sentences[1], text: out.sentences[1].text.replace("named", "sanctioned") }] }).some((x) => x.startsWith("not fixed copy, a server claim or a quote")));
+  // a country no firm is based in: the none line, as the none_matched claim writes it
+  const none = await ask([["chips", { topic: "firms", country: "Iran" }]]);
+  assert.deepEqual([none.length, none[0].n], [1, 0]);
+  const said = checkAnswer(answer(claim("none_matched", none[0].id)), none, { question: "Which Iranian firms sent chips to Russia?" });
+  assert.deepEqual(texts(said), ["None of the firms named in Undercurrent's research as shipping chips to Russia are in Iran."]);
+  assert.deepEqual(groundingProblems("Which Iranian firms sent chips to Russia?", none, said), []);
 });

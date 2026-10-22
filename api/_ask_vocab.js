@@ -1,6 +1,6 @@
 // The closed vocabulary of topic words: the only programme, country or group words Ask may print. It is built from the committed data:
 // the programmes of the four official lists (a compound one such as "Iran, Weapons proliferation" is two), the research map's countries
-// and programme groups, and the lobbying graph's groups. A word is a topic only when it is a topic's label or one of its known aliases,
+// and programme groups, the countries of the chips research's firms, and the lobbying graph's groups. A word is a topic only when it is a topic's label or one of its known aliases,
 // whole and in any case: "iran" and "Iranian" are Iran, "Iran Air" is a name and nothing here. The programmes the lists spell differently
 // for one country are one topic ("North Korea" and "Democratic People's Republic of Korea"). The map and the graph are 6 MB of JSON, so
 // the vocabulary is built once, on first use, never by a cold start that does not need it.
@@ -16,18 +16,18 @@ export const groupLabel = (g) => GROUP_LABELS[g] ?? g.charAt(0).toUpperCase() + 
 export const BUCKETS = new Set(["", "both", "other"]); // the research map's groups for a ship in two programmes or none: not topics
 // Nationality words and other names, by label. A topic that names no country has only other spellings here ("Al-Qaeda", and ISIL, ISIS
 // and Da'esh, which the UK's and the UN's Al-Qaida regimes name with it), so they are matched too; a country's never are
-const ALIASES = new Map(("Afghanistan:Afghan;Al-Qaida:Al-Qaeda,Al Qaida,ISIL,ISIS,Da'esh;Antigua and Barbuda:Antiguan;Aruba:Aruban;Azerbaijan:Azerbaijani;Bahamas:Bahamian;Barbados:Barbadian;"
+const ALIASES = new Map(("Afghanistan:Afghan;Al-Qaida:Al-Qaeda,Al Qaida,ISIL,ISIS,Da'esh;Antigua and Barbuda:Antiguan;Armenia:Armenian;Aruba:Aruban;Azerbaijan:Azerbaijani;Bahamas:Bahamian;Barbados:Barbadian;"
   + "Belarus:Belarusian,Republic of Belarus;Belize:Belizean;Bosnia and Herzegovina:Bosnian;Bulgaria:Bulgarian;Cambodia:Cambodian;Cameroon:Cameroonian;"
   + "Cayman Islands:Caymanian;Central African Republic:Central African;China:Chinese;Chips:chip,semiconductor,semiconductors;Comoros:Comorian;"
   + "Cuba:Cuban;Cyprus:Cypriot;DR Congo:Congolese,Congo-Kinshasa,Democratic Republic of the Congo;Denmark:Danish;Djibouti:Djiboutian;Estonia:Estonian;Eswatini:Swazi;Finland:Finnish;"
   + "France:French;Gabon:Gabonese;Gambia:Gambian;Georgia:Georgian;Germany:German;Greece:Greek;Guatemala:Guatemalan;Guinea:Guinean;"
-  + "Guinea-Bissau:Bissau-Guinean,Republic of Guinea-Bissau;Guyana:Guyanese;Haiti:Haitian;Honduras:Honduran;India:Indian;Indonesia:Indonesian;Iran:Iranian;Iraq:Iraqi;"
-  + "Italy:Italian;Jamaica:Jamaican;Kazakhstan:Kazakh;Lebanon:Lebanese;Liberia:Liberian;Libya:Libyan;Malaysia:Malaysian;Mali:Malian;"
+  + "Guinea-Bissau:Bissau-Guinean,Republic of Guinea-Bissau;Guyana:Guyanese;Haiti:Haitian;Honduras:Honduran;Hungary:Hungarian;India:Indian;Indonesia:Indonesian;Iran:Iranian;Iraq:Iraqi;"
+  + "Italy:Italian;Jamaica:Jamaican;Kazakhstan:Kazakh;Kyrgyzstan:Kyrgyz;Lebanon:Lebanese;Liberia:Liberian;Libya:Libyan;Malaysia:Malaysian;Mali:Malian;"
   + "Malta:Maltese;Marshall Islands:Marshallese;Mauritius:Mauritian;Moldova:Moldovan;Mongolia:Mongolian;Mozambique:Mozambican;"
   + "Myanmar:Burmese,Burma;Netherlands:Dutch;Nicaragua:Nicaraguan;North Korea:North Korean,DPRK,Democratic People's Republic of Korea;Oman:Omani;Palau:Palauan;Panama:Panamanian;"
   + "Romania:Romanian;Russia:Russian,Russian Federation;Seychelles:Seychellois;Sierra Leone:Sierra Leonean;Singapore:Singaporean;"
-  + "Somalia:Somali;South Sudan:South Sudanese;Spain:Spanish;Sri Lanka:Sri Lankan;Sudan:Sudanese;Suriname:Surinamese;Syria:Syrian;"
-  + "Tanzania:Tanzanian;Togo:Togolese;Tunisia:Tunisian;Turkey:Turkish,Türkiye;Tuvalu:Tuvaluan;Ukraine:Ukrainian;United Arab Emirates:Emirati;"
+  + "Somalia:Somali;South Sudan:South Sudanese;Spain:Spanish;Sri Lanka:Sri Lankan;Sudan:Sudanese;Suriname:Surinamese;Syria:Syrian;Taiwan:Taiwanese;"
+  + "Tanzania:Tanzanian;Thailand:Thai;Togo:Togolese;Tunisia:Tunisian;Turkey:Turkish,Türkiye;Tuvalu:Tuvaluan;Ukraine:Ukrainian;United Arab Emirates:Emirati;"
   + "United Kingdom:British;United States:American;Vanuatu:Ni-Vanuatu;Venezuela:Venezuelan;Vietnam:Vietnamese;Yemen:Yemeni")
   .split(";").map((pair) => pair.split(":")).map(([label, aliases]) => [label, aliases.split(",")]));
 const word = (w) => w.trim().replace(/\s+/g, " ").toLowerCase();
@@ -47,6 +47,9 @@ function build() {
   const fleet = read("stories/shadow-fleet/network/fleet-data.json").nodes;
   // (a country the map names only by its code, "DK", is given its English name)
   const countries = fleet.filter((n) => n.id.startsWith("cc:")).map((n) => [n.id.slice(3), n.name === n.id.slice(3).toUpperCase() ? REGIONS.of(n.name) : n.name]);
+  // and the countries of the chips research's firms that the map does not name ("Armenian firms"), by the region table's name
+  const named = new Set(countries.map(([cc]) => cc.toLowerCase()));
+  for (const cc of new Set(read("stories/chips-into-russia/data/listing_lag.json").firms.flatMap((f) => f.countries))) if (!named.has(cc.toLowerCase())) countries.push([cc.toLowerCase(), REGIONS.of(cc)]);
   const groups = new Set([...fleet.map((n) => n.program_group), ...read("stories/who-lobbies/influence-network/kg.json").nodes.map((n) => n.g)].filter((g) => typeof g === "string" && !BUCKETS.has(g)));
   // the region code of a name: the region table's names (long and short), then every name in an alias-table entry that holds one of them.
   // A code the runtime knows no time zone for is a grouping, not a country: "EU", "EZ", "UN", "QO", "ZZ" (both shapes of the API are

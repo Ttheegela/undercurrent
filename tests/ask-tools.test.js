@@ -1223,14 +1223,56 @@ test("chips listing_lag lists the firms founded after the invasion, shortest fir
   assert.doesNotMatch(table.text, /Old Electronics|Undated Logistics/);
 });
 
-test("chips firms: one item per Treasury release, each with its page and the reasons", async () => {
-  await run("chips", { topic: "firms" });
-  assert.deepEqual(ev.map((e) => e.kind), ["count", "chips", "chips"]); // (the firms' count first: see "chips firms count")
-  const jy2700 = ev.find((e) => /jy2700/.test(e.text));
-  assert.equal(jy2700.url, "https://home.treasury.gov/news/press-releases/jy2700");
-  assert.match(jy2700.text, /30 Oct 2024/);
-  assert.match(jy2700.text, /Allparts Trading \(United Arab Emirates\): shipped electronic integrated circuits/);
-  assert.match(jy2700.text, /Undated Logistics \(China\)/);
+test("chips firms: the count, then one item per firm, newest release first, each with its countries, release and page", async () => {
+  const out = await run("chips", { topic: "firms" });
+  assert.deepEqual(ev.map((e) => e.kind), ["count", "chips_firm", "chips_firm", "chips_firm", "chips_firm"]);
+  const [c, ...firms] = ev;
+  assert.deepEqual([c.n, c.shown, c.total, out.shown, out.total], [4, 4, 4, 4, 4]);
+  assert.deepEqual(firms.map((e) => [e.entity.name, e.countries, e.date]), [
+    ["Allparts Trading", ["United Arab Emirates"], "2024-10-30"], ["Old Electronics", ["India"], "2024-10-30"], ["Undated Logistics", ["China"], "2024-10-30"], ["Milur Electronics", ["Armenia"], "2022-11-14"],
+  ]);
+  for (const e of firms) assert.deepEqual([e.result, e.quotes], [c.id, []], e.label); // examples of the count, and no quote: the server writes their sentence
+  assert.equal(firms[0].url, "https://home.treasury.gov/news/press-releases/jy2700");
+  assert.equal(firms[0].label, "US Treasury press release jy2700, 30 Oct 2024 · Allparts Trading");
+  assert.match(firms[0].text, /^Allparts Trading \(United Arab Emirates\) in Undercurrent's research: named by US Treasury press release jy2700, 30 Oct 2024 \(2024-10-30\)/);
+  assert.match(firms[0].text, /shipped electronic integrated circuits/);
+});
+
+test("chips firms by country: a nationality word or a country keeps the firms based there; none is a count of 0; a word that is no country fails", async () => {
+  await run("chips", { topic: "firms", country: "Chinese" });
+  assert.deepEqual(ev.map((e) => e.entity?.name ?? e.kind), ["count", "Undated Logistics"]);
+  assert.deepEqual([ev[0].n, ev[0].total, ev[0].country], [1, 1, { region: "CN", label: "China" }]);
+  assert.match(ev[0].text, /; 1 of them is based in China\./);
+  ev = [];
+  await run("chips", { topic: "firms", country: "Armenian" }); // a country only the chips research names is in the vocabulary too
+  assert.deepEqual(ev.map((e) => e.entity?.name ?? e.kind), ["count", "Milur Electronics"]);
+  ev = [];
+  await run("chips", { topic: "firms", country: "Russia" }); // a country no firm of the research is based in
+  assert.deepEqual([ev.length, ev[0].n, ev[0].total, ev[0].country.label], [1, 0, 0, "Russia"]);
+  ev = [];
+  assert.match((await run("chips", { topic: "firms", country: "Atlantis" })).error, /country/);
+  assert.match((await run("chips", { topic: "routes", country: "China" })).error, /country/);
+  assert.equal(ev.length, 0);
+  // an empty or null country is no filter, on any topic
+  await run("chips", { topic: "routes", country: "" });
+  await run("chips", { topic: "firms", country: null });
+  assert.deepEqual(ev.filter((e) => e.kind === "count").map((e) => [e.n, e.country]), [[4, undefined]]);
+});
+
+test("chips firms: a firm two releases name is one firm, dated by the earliest release with that release's page", async () => {
+  const lag = CHIPS["listing_lag.json"];
+  const again = { ...lag.firms[1], release: "jy1102" }; // Allparts Trading: jy2700 (30 Oct 2024) and, here, jy1102 (14 Nov 2022) too
+  write(root, "stories/chips-into-russia/data/listing_lag.json", { ...lag, firms: [...lag.firms, again] });
+  resetAskCache();
+  try {
+    await run("chips", { topic: "firms" });
+    const allparts = ev.filter((e) => e.entity?.name === "Allparts Trading");
+    assert.equal(allparts.length, 1);
+    assert.deepEqual([allparts[0].date, allparts[0].url], ["2022-11-14", "https://home.treasury.gov/news/press-releases/jy1102"]);
+  } finally {
+    write(root, "stories/chips-into-russia/data/listing_lag.json", lag);
+    resetAskCache();
+  }
 });
 
 test("chips firms count", async () => {
@@ -1239,7 +1281,7 @@ test("chips firms count", async () => {
   const n = CHIPS["listing_lag.json"].firms.length; // the research's firm set: each named by one of the releases
   assert.deepEqual([c.kind, c.unit, c.n], ["count", "firms", n]);
   assert.equal(c.url, "/stories/chips-into-russia/FINDINGS.html#2-how-long-the-us-took-to-list-new-chip-suppliers");
-  assert.equal(c.total, undefined); // every firm's release is given: nothing is capped, so no "Showing N of M"
+  assert.equal(c.total, n); // the firms follow as its examples, so a capped list says "Showing N of M"
   const out = checkAnswer({ kind: "answer", sentences: [{ claim: "count", sources: [c.id] }], next: [] }, ev, {});
   assert.deepEqual(out.sentences, [{ text: `${n} firms are named in Undercurrent's research as shipping chips to Russia.`, sources: [{ n: 1, label: c.label, url: c.url }] }]);
   assert.deepEqual(groundingProblems("How many firms has the US Treasury named for sending chips to Russia?", ev, out), []);
@@ -1747,7 +1789,7 @@ test("TOOLS are OpenAI function definitions for the seven tools", () => {
   assert.deepEqual(by.answer.properties.kind.enum, ["answer", "refusal", "clarify"]);
   assert.deepEqual(Object.keys(by.answer.properties), ["kind", "sentences", "next"]); // no refusal_reason: nothing reads it (final wave)
   const s = by.answer.properties.sentences.items;
-  assert.deepEqual(s.properties.claim.enum, ["listed", "age", "count", "none_matched", "not_found", "change", "quote"]);
+  assert.deepEqual(s.properties.claim.enum, ["listed", "age", "count", "none_matched", "not_found", "change", "named", "quote"]);
   assert.equal(s.properties.sources.type, "array");
   assert.equal(s.properties.quote.type, "integer");
   assert.deepEqual(s.required, ["claim", "sources"]);
@@ -1785,7 +1827,7 @@ test("every item from every tool has an id in order, a text, a label and a safe 
   await run("changes", { since: "2026-10-12" });
   for (const topic of ["summary", "routes", "coverage", "listing_lag", "firms"]) await run("chips", { topic });
   await run("site_docs", { query: "matching" });
-  const KINDS = new Set(["search", "list", "research", "opensanctions", "connection", "lobbying", "change", "gap", "chips", "doc", "count"]);
+  const KINDS = new Set(["search", "list", "research", "opensanctions", "connection", "lobbying", "change", "gap", "chips", "chips_firm", "doc", "count"]);
   assert.ok(ev.length > 40);
   ev.forEach((e, i) => {
     assert.equal(e.id, `S${i + 1}`);
@@ -1875,12 +1917,8 @@ test("quote naming an entity with listing language is not offered", async () => 
   ev = [];
   await run("chips", { topic: "firms" });
   assert.ok(ev.length >= 3);
-  assert.deepEqual(ev[0].quotes, []); // (the firms' count: a count claim, never a quote)
-  for (const release of ev.slice(1)) {
-    // the title names the release's targets beside "Sanctions"; the firm list names firms beside "US Treasury" and says "it names"
-    assert.match(release.text, /^US Treasury press release \w+, .*: "Treasury .*"\. Firms outside Russia and Belarus it names/);
-    assert.deepEqual(release.quotes, [], release.label);
-  }
+  // the count and each firm: claims the server writes (count, named), never a quote
+  for (const e of ev) assert.deepEqual(e.quotes, [], e.label);
   // the summary's headline names no firm, opens with "The" and points at nothing, so the starter question's answer is quotable
   ev = [];
   await run("chips", { topic: "summary" });

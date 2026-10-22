@@ -10,7 +10,8 @@ import { checkAnswer } from "../api/_ask_check.js";
 const KEY = "ts-test-SENTINEL-key-0000";
 const ASKED = {
   question: "how many ships have changed their name of their ship?",
-  sentences: ["Across all sources, each hull had a median of 4 names (range 2 to 7)."],
+  sentences: ["Across all sources, each hull had a median of 4 names (range 2 to 7).", "Showing 1 of 3."],
+  records: ["Across all sources, each hull had a median of 4 names (range 2 to 7)."], // (the sentences that cite a record)
   sources: ["Names change, the hull stays"],
 };
 const BODY = {
@@ -33,7 +34,7 @@ function fakeFetch(answer = reply(BODY)) {
   return { calls, fetch };
 }
 
-test("it posts the question, the answer's sentences and their sources to System One with the key as a bearer token", async () => {
+test("it posts the question, the answer's sentences, its record sentences and their sources to System One with the key as a bearer token", async () => {
   const { calls, fetch } = fakeFetch();
   await judgeRelevance(ASKED, { fetch, apiKey: KEY });
   assert.equal(calls.length, 1);
@@ -44,7 +45,7 @@ test("it posts the question, the answer's sentences and their sources to System 
   assert.ok(init.signal instanceof AbortSignal);
   assert.deepEqual(JSON.parse(init.body), {
     model: "jev-latest",
-    state: { question: ASKED.question, answer: ASKED.sentences, sources: ASKED.sources },
+    state: { question: ASKED.question, answer: ASKED.sentences, records: ASKED.records, sources: ASKED.sources },
     questions: {
       addresses: {
         type: "score",
@@ -58,12 +59,14 @@ test("it posts the question, the answer's sentences and their sources to System 
       },
       unrelated: {
         type: "noul",
-        instructions: "Does the answer include any record or sentence that does not bear on the question?",
-        criteria: { true: "At least one sentence is about something the question does not ask about.", false: "Every sentence bears on what the question asks." },
+        instructions: "Does any sentence in `records` present a record or fact that does not bear on the question, as though it answered it?",
+        criteria: { true: "At least one sentence in `records` is about something the question does not ask about.", false: "Every sentence in `records` bears on what the question asks." },
       },
     },
   });
   assert.deepEqual(QUESTIONS, JSON.parse(init.body).questions);
+  // unrelated judges the record sentences only, as the live gate does; addresses reads the whole answer, "Showing 1 of 3." included
+  assert.ok([QUESTIONS.unrelated.instructions, ...Object.values(QUESTIONS.unrelated.criteria)].every((x) => x.includes("`records`")));
   // another model can be named
   const other = fakeFetch();
   await judgeRelevance(ASKED, { fetch: other.fetch, apiKey: KEY, model: "jev-1.13.0" });
@@ -142,6 +145,25 @@ test("an HTTP error, a failed request, a timeout or a malformed body: null and o
     assert.ok(!lines.join("\n").includes(KEY) && !lines.join("\n").includes(SECRET_TEXT), name);
     if (name === "timeout") assert.ok(Date.now() - t0 < 2000, "the timeout did not stop the request");
   }
+});
+
+test("an answer with no record sentence (fixed copy only): the unrelated question is skipped, unrelated is null, relevance is still judged", async (t) => {
+  const fixed = { ...ASKED, sentences: ["Showing 1 of 3."], records: [] };
+  const addresses = structuredClone(BODY);
+  delete addresses.answers.unrelated;
+  for (const body of [addresses, BODY]) { // (an unrelated answer it was not asked for is not read)
+    const { calls, fetch } = fakeFetch(reply(body));
+    const [r, lines] = await logged(t, () => judgeRelevance(fixed, { fetch, apiKey: KEY }));
+    const sent = JSON.parse(calls[0].init.body);
+    assert.deepEqual(Object.keys(sent.questions), ["addresses"]);
+    assert.deepEqual(sent.state, { question: fixed.question, answer: fixed.sentences, records: [], sources: fixed.sources });
+    assert.ok(Math.abs(r.relevance - 0.8) < 1e-9, String(r.relevance));
+    assert.deepEqual([r.unrelated, r.input_tokens], [null, 412]);
+    assert.deepEqual(lines, []);
+  }
+  // with record sentences, a reply without the unrelated answer is malformed
+  const [r, lines] = await logged(t, () => judgeRelevance(ASKED, { fetch: fakeFetch(reply(addresses)).fetch, apiKey: KEY }));
+  assert.deepEqual([r, lines], [null, UNAVAILABLE]);
 });
 
 test("a judgment that comes back logs nothing", async (t) => {
@@ -234,7 +256,8 @@ test("judgeCheck judges every label on its question, sentences and sources (none
     return Response.json({ ...BODY, answers: { addresses: { ...BODY.answers.addresses, score: v[0] }, unrelated: { type: "noul", noul: v[1] } } });
   };
   const result = await judgeCheck(labels, { fetch, apiKey: KEY });
-  assert.deepEqual(requests, labels.map((l) => ({ question: l.question, answer: l.sentences, sources: l.sources ?? [] })));
+  // every label sentence is a record (the labels carry no per-sentence sources), so the check measures unrelated as it did before
+  assert.deepEqual(requests, labels.map((l) => ({ question: l.question, answer: l.sentences, records: l.sentences, sources: l.sources ?? [] })));
   assert.deepEqual(requests[1].sources, ["Label 2", "Label 3"]);
   assert.deepEqual(result, {
     rows: [

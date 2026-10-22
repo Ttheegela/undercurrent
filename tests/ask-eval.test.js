@@ -152,15 +152,16 @@ test("final review I1: a live include holds no number the nightly data or the ru
 
 const pick = (v) => [v.kindOk, v.excludesOk, v.includesOk];
 
-test("final review I1: relevance-1 takes the none line, or the list of updates that involve Iran when a night records some", () => {
+test("final review I1: relevance-1 takes the none line, the list of updates that involve Iran, or the Iran-linked companies they name", () => {
   const c = LIVE.find((x) => x.id === "relevance-1");
   const said = (...texts) => ({ ok: true, answer: { kind: "answer", sentences: texts.map((text) => ({ text, sources: [{ n: 1, label: "Stub", url: "/" }] })), next: [] } });
   const none = ["None of the 0 updates recorded between 20 Oct 2026 and 21 Oct 2026 involve Iran.", "10 updates in that period can't be checked against Iran."];
   const listed = ["US listed ANEMOS (IMO 9205952) · 22 Oct 2026", "New link: PRIDE → ROXETTE MARITIME SHIPPING AND TRADING S.A. (linked to) · 22 Oct 2026"]; // (22 Oct's)
   for (const texts of [none, listed]) assert.deepEqual(pick(judge(c, said(...texts))), [true, true, true], texts[0]);
-  // the lobbying updates are still wrong, and a listing line is the wrong shape: excluded, and no answer to it
+  // relaunch: the Iran-linked companies an update names, as listing lines, answer it too (the 3-run eval's good answers)
+  assert.deepEqual(pick(judge(c, said("TASSOS appears on the United States list under Iran."))), [true, true, true]);
+  // the lobbying updates are still wrong
   assert.deepEqual(pick(judge(c, said("NVIDIA lobbied on H.R.8800 · 20 Oct 2026"))), [true, false, true]);
-  assert.deepEqual(pick(judge(c, said("TASSOS appears on the United States list under Iran."))), [true, false, false]);
 });
 
 // ---- the live runner (against a stub server on this machine; nothing leaves it) --------------------------------------------

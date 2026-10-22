@@ -1892,6 +1892,68 @@ test("an empty answer renders NOTHING_ANSWERS with no sources", () => {
   assert.equal(groundingProblems("", E.tassos, { ...NOTHING, sentences: [{ text: NOTHING_ANSWERS, sources: [{ n: 1, label: "x", url: "/" }] }] }).length, 1);
 });
 
+// ---- relaunch: an empty answer over an updates record that answers the question itself -------------------------------------
+
+// a range before the first night, days no longer kept, today's run not yet made, no changes, or a topic no checked update involves: the
+// record's own item is the answer, so an empty answer says it as the change claim on that item does, sources numbered by finish
+const TRIMMED = [{ id: "S1", kind: "change", found: false, trimmed: true, from: "2026-07-01", to: "2026-07-31", started: "2026-10-12", text: "Days before 12 Oct 2026 (2026-10-12) are no longer kept.", label: "Days before 12 Oct 2026 no longer kept", url: "/u", quotes: [] }];
+const ownLines = (ev, ctx) => checkAnswer(answer(claim("change", ...ev.filter((e) => e.kind === "change" && e.found === false).map((e) => e.id))), ev, ctx);
+
+test("relaunch (date-range-1): an empty answer over a range the record can't speak for says why, with its source, not NOTHING_ANSWERS", () => {
+  const question = "What changed in January 2026?";
+  const before = find(E.early, (e) => e.kind === "change" && e.before_start === true);
+  const early = checkAnswer({ kind: "answer", sentences: [], next: [{ source: before.id }] }, E.early, { question });
+  assert.deepEqual(early, {
+    kind: "answer",
+    sentences: [{ text: "Daily updates started on 20 Oct 2026, so there is no record before then.", sources: [{ n: 1, label: before.label, url: before.url }] }],
+    next: [{ label: "No record before 20 Oct 2026", href: "/stories/updates/index.html?from=2026-01-01&to=2026-01-31&graph=all" }],
+  });
+  // today's run not made yet, with the gap of its range; days no longer kept
+  const stalled = checkAnswer(answer(), E.stalled, { question: "What changed since the 23rd?" });
+  assert.deepEqual(texts(stalled), ["Today's nightly update hasn't run yet.", "The nightly update was unavailable from 23 Oct 2026 to 25 Oct 2026, so changes from it on those days aren't recorded."]);
+  assert.deepEqual(texts(checkAnswer(answer(), TRIMMED, {})), ["Days before 12 Oct 2026 are no longer kept."]);
+  for (const ev of [E.early, E.stalled, TRIMMED]) {
+    const out = checkAnswer(answer(), ev, { question });
+    assert.deepEqual(out, ownLines(ev, { question }));
+    assert.deepEqual(groundingProblems(question, ev, out), []);
+  }
+});
+
+test("relaunch: the same for a range with no changes and a topic no checked update involves, each with its caveats", () => {
+  const quiet = checkAnswer(answer(), E.ukDown, { question: "What changed on 21 and 22 Oct?" });
+  assert.deepEqual(texts(quiet), ["No changes were recorded between 21 Oct 2026 and 22 Oct 2026.", "The UK list was unavailable from 21 Oct 2026 to 22 Oct 2026, so changes from it on those days aren't recorded."]);
+  const question = "please check if there are any companies related to iran in the recent updates!";
+  const iran = checkAnswer(answer(), E.iranUpdates, { question });
+  assert.deepEqual(texts(iran).slice(0, 2), ["None of the 0 updates recorded between 20 Oct 2026 and 21 Oct 2026 involve Iran.", "10 updates in that period can't be checked against Iran."]);
+  for (const [ev, out] of [[E.ukDown, quiet], [E.iranUpdates, iran]]) {
+    assert.deepEqual(out, ownLines(ev, { question }));
+    assert.equal(out.sentences[0].sources.length, 1);
+    assert.deepEqual(groundingProblems(question, ev, out), []);
+  }
+  // records shown to an advice-shaped question close with the notice, as any answer's do
+  const advice = checkAnswer(answer(), E.ukDown, { question: "Should I trade with ships that changed on 21 Oct?" });
+  assert.deepEqual(texts(advice), [...texts(quiet), NOT_ADVICE]);
+});
+
+test("relaunch: an empty answer over any other evidence still says nothing recorded answers it", () => {
+  // check_lists alone; a list of changes the model cited none of
+  assert.ok(E.week.some((e) => e.kind === "change") && !E.week.some((e) => e.found === false));
+  for (const ev of [E.tassos, E.week]) {
+    const out = checkAnswer(answer(), ev, { question: "What changed this week?" });
+    assert.deepEqual(out, NOTHING);
+    assert.deepEqual(groundingProblems("What changed this week?", ev, out), []);
+  }
+});
+
+test("relaunch: with a tool call that failed, an empty answer is the fallback, whatever the record said", () => {
+  for (const ev of [E.early, E.stalled, E.ukDown, E.iranUpdates, TRIMMED, E.tassos]) assert.deepEqual(checkAnswer(answer(), ev, { toolFailed: true }), FALLBACK_ANSWER);
+});
+
+test("relaunch: the oracle flags NOTHING_ANSWERS when the updates record in evidence answered the question", () => {
+  for (const ev of [E.early, E.stalled, E.ukDown, E.iranUpdates, TRIMMED]) assert.equal(groundingProblems("What changed?", ev, NOTHING).length, 1, ev[0].label);
+  for (const ev of [E.tassos, E.week]) assert.deepEqual(groundingProblems("What changed?", ev, NOTHING), []);
+});
+
 test("none_matched: a count that found nothing and a topic no checked update involves, as their own claims write them; never a count that found something", async () => {
   const none = countOf(E.programmeNone, "us");
   assert.deepEqual(texts(checkAnswer(answer(claim("none_matched", none.id)), E.programmeNone, {})), ["No programme on the United States list is named Al-Qaida."]);

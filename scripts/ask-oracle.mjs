@@ -190,6 +190,9 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   for (const e of unchecked.filter((x) => said.has(uncheckedLine(x)))) {
     ok(unchecked.some((x) => uncheckedLine(x) === uncheckedLine(e) && said.has(headLine(x))), `${JSON.stringify(uncheckedLine(e)).slice(0, 80)} without its none`);
   }
+  // the updates record answered the question itself (before its first night, days no longer kept, not yet, no changes, a topic's none):
+  // the checker says that item's line, never that nothing recorded answers
+  ok(!said.has(NOTHING_ANSWERS) || !changes.some((e) => e.found === false), "nothing answers, though the updates record in evidence did");
   // the part-answer line and the notice come last (the notice after the line), once each, and only after something else
   const texts = answer.sentences.map((s) => s.text);
   const tail = texts.filter((t) => t === PARTIAL || t === NOT_ADVICE);

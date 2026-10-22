@@ -41,7 +41,7 @@ Ask stays off (`ASK_PUBLIC` unset) until this is fixed.
 3. **Partial answers say so automatically.** When a lookup returns more matches than Ask shows, the server adds "Showing N of M." The model doesn't decide this.
 4. **A relevance check before an answer is shown.** The kind of check is the owner's decision; see "Decision for the owner".
 5. **Measured success,** on the eval set (39 live cases, the Jev judge, LangSmith):
-   - mean unrelated-record score of **0.10 or lower** (Haiku today: 0.27);
+   - mean unrelated-record score of **0.10 or lower** (Haiku today: 0.27), measured on the sentences that cite a record; the owner accepted (22 Oct) a fallback bar of **0.20 or lower** if 0.10 isn't reached;
    - mean relevance of **0.85 or higher** (today: 0.82);
    - the owner's 5 live questions answered correctly, where today 4 decline or fail;
    - no drop in the deterministic pass rate.
@@ -187,6 +187,7 @@ This runs within the existing 26 s request limit, with a 3 s budget. If the chec
    - **Runs:** the targets apply to the **mean of 3 runs on Haiku**, over the full live set at that time. No single run may miss a target by more than 0.05.
    - **Answer rate:** Ask must answer at least **75%** of the questions it should answer. Today it answers 27 of 39, about 69%. This stops a lower unrelated-record score being bought by declining more.
    - **Fixed cases:** the owner's 5 questions must be answered correctly in all 3 runs.
+   - **Unrelated records (owner's decision, 22 Oct):** the judge scores only the sentences that cite a record, close to what the live gate judges; fixed lines such as "Showing N of M." are scope statements and aren't scored. The target stays 0.10, with a fallback bar of **0.20 or lower** that the owner accepted if 0.10 isn't reached; under the fallback, the 0.05 per-run rule applies to 0.20 (no run above 0.25). Caveat lines that cite their item count as records. The other bar items are unchanged.
 
 ## Relaunch bar (my recommendation)
 

@@ -23,7 +23,7 @@ and exits 1 if any case failed or was not run.
   --base <url>     the deployed site, e.g. https://undercurrent-research.vercel.app
   --only <ids>     run just these cases (comma separated); offline-only cases are refused
   --dry-run        print the plan and post nothing
-  --limit-check    also report how many answers were FALLBACK, a quality signal for the quote-only design
+  --limit-check    also report how many answers declined (FALLBACK, or only that nothing recorded answers), a quality signal for the quote-only design
   --help           this text
 
 The endpoint allows ${PER_HOUR} questions per visitor per rolling hour, so start a full run in a fresh hour (no other questions from
@@ -155,9 +155,9 @@ if (notRun.length) console.log(`Not run: ${notRun.map((c) => c.id).join(", ")}`)
 if (stopped) console.log(stopped);
 if (times.length) console.log(`Latency over ${times.length} answers: p50 ${percentile(0.5)} ms, p90 ${percentile(0.9)} ms.`);
 if (opt.limit) {
-  const fb = results.filter((x) => x.r.kind === "fallback");
+  const fb = results.filter((x) => x.r.fallback); // (a decline: FALLBACK, or only that nothing recorded answers)
   const unexpected = fb.filter((x) => x.c.expect.kind !== "fallback" && x.c.expect.fallback !== true);
-  console.log(`FALLBACK answers: ${fb.length} of ${results.length}${fb.length ? ` (${fb.length - unexpected.length} expected or allowed${unexpected.length ? `; unexpected: ${unexpected.map((x) => x.c.id).join(", ")}` : ""})` : ""}.`);
-  console.log("An unexpected FALLBACK is a question the model could not answer from sentences the checker can write; many of them means the quote-only design is too tight.");
+  console.log(`FALLBACK answers and other declines: ${fb.length} of ${results.length}${fb.length ? ` (${fb.length - unexpected.length} expected or allowed${unexpected.length ? `; unexpected: ${unexpected.map((x) => x.c.id).join(", ")}` : ""})` : ""}.`);
+  console.log("An unexpected decline is a question the model could not answer from sentences the checker can write, or one whose sentences the relevance gate dropped; many of them means the quote-only design is too tight.");
 }
 process.exit(failed.length || notRun.length ? 1 : 0);

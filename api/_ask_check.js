@@ -1,15 +1,18 @@
 // Ask's answer renderer. The model writes no words: each sentence of its `answer` call is a claim type and evidence ids (S1, S2, …),
-// and a `quote` names one item and the number of one of its quotes. This module writes every sentence itself: listing, not-found
-// and change sentences from fixed copy and the cited items, quotes copied verbatim from the cited item. Anything it can't build is
-// dropped, and an answer with nothing left is the fallback. Any `text` or label from the model is ignored. No I/O beyond the site's
+// and a `quote` names one item and the number of one of its quotes. This module writes every sentence itself: listing, age, count,
+// none, not-found and change sentences from fixed copy and the cited items, quotes copied verbatim from the cited item. Anything it can't
+// build is dropped, and an answer with nothing left is the fallback; an answer of no sentences at all says nothing recorded answers the
+// question. Any `text` or label from the model is ignored. No I/O beyond the site's
 // own prose vocabulary, read once. The output is plain text plus {label, url} / {label, href} taken from the evidence: the panel escapes it.
-import { LIST_LABELS, formatDate } from "../app/render.js";
-import { siteVocabulary, LISTING, AUTHORITY } from "./_ask_tools.js";
+import { LIST_LABELS, formatDate, joinAnd } from "../app/render.js";
+import { siteVocabulary, LISTING, AUTHORITY, SHIP_TYPES } from "./_ask_tools.js";
 
 // ---- fixed copy (global-constraints.md, verbatim; the range, one-day, OpenSanctions, clarify, before-start, trimmed, not-yet, part-answer and not-advice forms by ruling)
 
 const REFUSAL = "I can only answer questions about what's on Undercurrent: sanctions lists, ship and company connections, lobbying, the semiconductor data, the research and the daily updates. I can't give legal or compliance advice.";
 const FALLBACK = "I couldn't check an answer to that against the site's data, so I won't guess. Try the search on the home page.";
+// the model looked things up and no record answers the question: said, not the fallback, which means it couldn't be checked
+const NOTHING_ANSWERS = "Nothing recorded on this site answers that.";
 const CLARIFY = "Which of these did you mean?";
 const day = (iso) => formatDate(iso) || iso; // d MMM yyyy; a bare year stays as it is
 const NOT_FOUND = (name) => `${name} is not on the lists we check (US, UK, EU, UN, OpenSanctions). Not being found isn't proof.`;
@@ -19,14 +22,87 @@ const NOT_ADVICE = "Ask can't give legal or compliance advice. These are records
 const BEFORE_START = (first) => `Daily updates started on ${day(first)}, so there is no record before then.`;
 const TRIMMED = (started) => `Days before ${day(started)} are no longer kept.`;
 const NOT_YET = "Today's nightly update hasn't run yet.";
+// A topic none says what it rests on: the updates whose programme or country could be checked, and how many could not be checked against
+// the topic (some carry no programme or country, some carry ones that cannot settle it)
+function NONE_INVOLVE(e) {
+  const n = e.checked_fleet + e.checked_lobby;
+  const when = e.from === e.to ? `on ${day(e.from)}` : `between ${day(e.from)} and ${day(e.to)}`;
+  return n === 1 ? `The 1 update recorded ${when} does not involve ${e.topic.label}.` : `None of the ${num(n)} updates recorded ${when} involve ${e.topic.label}.`;
+}
+const UNCHECKED = (e) => `${e.unchecked === 1 ? "1 update" : `${num(e.unchecked)} updates`} in that period can't be checked against ${e.topic.label}.`;
 const SOURCE_GAP = (g) => (g.date || g.from === g.to
   ? `${g.source} was unavailable on ${day(g.date ?? g.from)}, so changes from it that day aren't recorded.`
   : `${g.source} was unavailable from ${day(g.from)} to ${day(g.to)}, so changes from it on those days aren't recorded.`);
+const onList = (e) => `the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}`;
 function LISTED(e) {
   const since = e.date ? ` since ${day(e.date)}` : "";
   return e.kind === "opensanctions"
     ? `${e.entity.name} appears in OpenSanctions${e.program ? ` as listed by ${e.program}` : ""}${since}.`
-    : `${e.entity.name} appears on the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}${since}.`;
+    : `${e.entity.name} appears on ${onList(e)}${since}.`;
+}
+// How long a listing has stood, from its date and today (UTC), with what the date stands for (the item's date_basis). "No listing date"
+// only for a record that has none (`undated`). A date after today (bad data), one without its day, or one in a form the tools could
+// not read (no `date`, not `undated`) has no age: that is LISTED.
+const BASIS = { first_seen_opensanctions: " (first seen on the list via OpenSanctions)", uk_transfer: " (the UK list's transfer date; the listing may be older)" };
+function AGE(e, today) {
+  if (!e.date) return e.undated ? `The ${LIST_LABELS[e.gov]} list gives no listing date for ${e.entity.name.replace(/\.$/, "")}.` : LISTED(e); // ("Co., Ltd.", one stop)
+  const span = calendarSpan(e.date, today);
+  if (span === null) return LISTED(e);
+  const note = Object.hasOwn(BASIS, e.date_basis) ? BASIS[e.date_basis] : "";
+  return span ? `${e.entity.name} has been on ${onList(e)} for ${span} (since ${day(e.date)})${note}.` : `${e.entity.name} was added to ${onList(e)} today${note}.`;
+}
+/** "5 years 10 months": whole months by the calendar (a month without the date's day ends on its last day, so 29 Feb to 28 Feb is a
+ * year), or days under a month; "" for none; null when `from` is after `to` or either is not a whole date. */
+function calendarSpan(from, to) {
+  const [a, b] = [from, to].map((d) => /^(\d{4})-(\d{2})-(\d{2})$/.exec(d ?? "")?.slice(1).map(Number));
+  if (!a || !b || from > to) return null;
+  const lastDay = new Date(Date.UTC(b[0], b[1], 0)).getUTCDate();
+  const months = (b[0] - a[0]) * 12 + b[1] - a[1] - (b[2] < a[2] && b[2] < lastDay ? 1 : 0);
+  const unit = (n, word) => (n ? `${n} ${word}${n === 1 ? "" : "s"}` : "");
+  if (!months) return unit((Date.UTC(b[0], b[1] - 1, b[2]) - Date.UTC(a[0], a[1] - 1, a[2])) / 864e5, "day");
+  return [unit(Math.floor(months / 12), "year"), unit(months % 12, "month")].filter(Boolean).join(" ");
+}
+const num = (n) => n.toLocaleString("en-GB");
+const SHOWING = (n, total) => `Showing ${num(n)} of ${num(total)}.`;
+// A count's sentence, by what it counts (null for a unit it does not know): records on an official list, by ref. A country's records are
+// under its programmes ("Iran programmes"), any other topic's under one ("the Terrorism programme"); a none says what it rests on: no
+// programme of that name, on the list or on any of the four
+const LABELS = Object.values(LIST_LABELS);
+const ALL_LISTS = `the ${LABELS.slice(0, -1).join(", ")} or ${LABELS.at(-1)} lists`;
+// Ships in the research map, by what its count's filters say they are, from fixed fragments and the vocabulary's labels: "are tankers and
+// are under a Russia programme and an Iran programme". A flag is always "by at least one source": the sources can disagree.
+const MAP_SHIPS = "ships in Undercurrent's research map";
+function shipsThat(f, one) {
+  const be = one ? "is" : "are";
+  return joinAnd([
+    f.ship_type && `${be} ${SHIP_TYPES[f.ship_type][one ? 0 : 1]}`, // (the tool's own table: every type it takes has its words)
+    f.programme && `${be} under ${joinAnd(f.programme.map((g) => `${/^[AEIOU]/.test(g.label) ? "an" : "a"} ${g.label} programme`))}`,
+    f.listed_by && `${be} listed by the ${LIST_LABELS[f.listed_by]}`,
+    f.flag && `${be} recorded as ${f.flag.label}-flagged by at least one source`,
+    f.names_changed && `${one ? "has" : "have"} had more than one name`,
+  ].filter(Boolean));
+}
+function COUNT(e) {
+  switch (e.unit) {
+    case "records": {
+      const under = e.topic.region ? `${e.topic.label} programmes` : `the ${e.topic.label} programme`;
+      return `${e.n === 1 ? "1 record" : `${num(e.n)} records`} on the ${LIST_LABELS[e.list]} list ${e.n === 1 ? "is" : "are"} under ${under}.`;
+    }
+    // names changed alone is counted out of every ship in the map
+    case "ships": return Object.keys(e.filters).join() === "names_changed"
+      ? `${num(e.n)} of the ${num(e.total_ships)} ${MAP_SHIPS} ${shipsThat(e.filters, e.n === 1)}.`
+      : `${e.n === 1 ? "1 ship" : `${num(e.n)} ships`} in Undercurrent's research map ${shipsThat(e.filters, e.n === 1)}.`;
+    // the chips research's set of firms, from the Treasury releases it reads
+    case "firms": return `${e.n === 1 ? "1 firm is" : `${num(e.n)} firms are`} named in Undercurrent's research as shipping chips to Russia.`;
+    default: return null;
+  }
+}
+function NONE_MATCHED(e) {
+  switch (e.unit) {
+    case "records": return `No programme on ${e.list ? `the ${LIST_LABELS[e.list]} list` : ALL_LISTS} is named ${e.topic.label}.`;
+    case "ships": return `None of the ${MAP_SHIPS} ${shipsThat(e.filters, false)}.`;
+    default: return null;
+  }
 }
 
 // ---- the notice on advice-shaped questions -----------------------------------------------------------------------------------
@@ -155,6 +231,11 @@ function typedSpan(query, question) {
 // `listed` and `change` write the items they can and leave the others out; only a claim with none left is dropped.
 const RENDER = {
   listed: (items) => items.filter(listable).map((e) => ({ text: LISTED(e), items: [e] })),
+  // (an age that cannot be told is the listed sentence, and counts as one)
+  age: (items, s, all, ctx) => items.filter((e) => listable(e) && e.kind !== "opensanctions").map((e) => {
+    const text = AGE(e, ctx.today ?? new Date().toISOString().slice(0, 10));
+    return { text, items: [e], ...(text === LISTED(e) && { claim: "listed" }) };
+  }),
   not_found: (items, s, all, ctx, state) => {
     const searches = items.filter((e) => e.kind === "search");
     if (!searches.length || !searches.every((e) => e.found === false)) return null;
@@ -168,20 +249,34 @@ const RENDER = {
       return span ? [{ text: NOT_FOUND(span), items: [e] }] : [];
     });
   },
+  // one sentence per cited count item (none matched when it is 0), its sources the item and the examples it gave that are cited with it
+  count: (items) => items.filter((e) => e.kind === "count").flatMap((c) => {
+    const text = c.n ? COUNT(c) : NONE_MATCHED(c);
+    return text ? [{ text, items: [c, ...items.filter((e) => e.result === c.id)] }] : [];
+  }),
   // "No changes" only from the change record's own item, followed by every gap of its range; never from an empty list. A range the
-  // record cannot speak for is never "no changes": before its first night, trimmed from it, or today before tonight's run.
+  // record cannot speak for is never "no changes": before its first night, trimmed from it, or today before tonight's run. The lines
+  // after a none, a no-changes or a not-yet line qualify it (`follows`): the relevance gate keeps them exactly when it keeps that line.
   change: (items, s, all) => {
-    const gaps = (e) => all.filter((g) => g.kind === "gap" && g.from <= e.to && g.to >= e.from).map((g) => ({ text: SOURCE_GAP(g), items: [g] }));
+    const gaps = (e) => all.filter((g) => g.kind === "gap" && g.from <= e.to && g.to >= e.from).map((g) => ({ text: SOURCE_GAP(g), items: [g], follows: true }));
     return items.filter((e) => e.kind === "change" || e.kind === "gap").flatMap((e) => (e.kind === "gap" ? [{ text: SOURCE_GAP(e), items: [e] }]
       : e.before_start ? [{ text: BEFORE_START(e.first_run), items: [e] }]
       : e.trimmed ? [{ text: TRIMMED(e.started), items: [e] }]
       : e.not_yet ? [{ text: NOT_YET, items: [e] }, ...gaps(e)]
+      : e.found === false && e.topic ? [{ text: NONE_INVOLVE(e), items: [e] }, ...(e.unchecked ? [{ text: UNCHECKED(e), items: [e], follows: true }] : []), ...gaps(e)]
       : e.found === false ? [{ text: NO_CHANGES(e.from, e.to), items: [e] }, ...gaps(e)]
       : [{ text: `${e.summary} · ${day(e.date)}`, items: [e] }]));
   },
+  // a none, as its count or change claim writes it: a count of 0, or a topic no checked update involves (with what could not be checked
+  // and the gaps). Anything else cited as a none is dropped: a count that found something is never one.
+  none_matched: (items, s, all) => [
+    ...RENDER.count(items.filter((e) => e.kind === "count" && e.n === 0)),
+    ...RENDER.change(items.filter((e) => e.kind === "change" && e.found === false && e.topic), s, all),
+  ],
   // one sentence of one item, verbatim. A change or gap item has no quotes: a quote of one alone is its change claim, the fixed copy above
+  // (and counts as one towards "Showing N of M")
   quote: (items, s, all) => {
-    if (items.length === 1 && (items[0].kind === "change" || items[0].kind === "gap")) return RENDER.change(items, s, all);
+    if (items.length === 1 && (items[0].kind === "change" || items[0].kind === "gap")) return RENDER.change(items, s, all).map((p) => ({ ...p, claim: "change" }));
     const q = items.length === 1 && Number.isInteger(s.quote) && Array.isArray(items[0].quotes) ? items[0].quotes[s.quote] : undefined;
     return typeof q === "string" ? [{ text: q, items }] : [];
   },
@@ -197,19 +292,46 @@ function cite(ids, byId) {
   return items.every(Boolean) ? items : null;
 }
 
-/** Numbers the sources in order of first citation; one sentence written twice becomes one sentence with both sources. */
-function finish(kind, pieces, next) {
+// The claims whose sentences show a search's matches, and so count towards "Showing N of M": listings, the examples cited with a count, and
+// the changes of a capped list of updates (only a capped one is linked to a result)
+const SHOWS_MATCHES = new Set(["listed", "count", "change"]);
+// what a match is counted as: its entity, or a change by its identity in the record (the changes total counts changes, and two can be of one
+// ship; one change returned by two changes calls is one)
+const matchKey = (e) => (e.kind === "change" ? e.key : e.entity.id);
+
+/**
+ * Numbers the sources in order of first citation; one sentence written twice becomes one sentence with both sources. Then, for each
+ * search (an item with a `total`), the entities among its matches (the items whose `result` is its id) that SHOWS_MATCHES sentences name:
+ * when they are fewer than its total, SHOWING follows the last sentence naming one. A quote, an age or any other sentence never
+ * counts. Entities, not items, are counted, so two searches of one ship (its name and its IMO number, or one query run twice) each
+ * count a record listed from either search's copy; the same line twice after one sentence is said once. The model never chooses it.
+ */
+function finish(kind, pieces, next, byId = new Map()) {
   const n = new Map();
   const byText = new Map();
-  for (const { text, items } of pieces) {
-    if (!byText.has(text)) byText.set(text, { text, sources: [] });
-    const { sources } = byText.get(text);
+  for (const { text, items, claim } of pieces) {
+    if (!byText.has(text)) byText.set(text, { text, sources: [], listed: new Set() });
+    const { sources, listed } = byText.get(text);
     for (const e of items) {
       if (!n.has(e.id)) n.set(e.id, n.size + 1);
       if (!sources.some((x) => x.n === n.get(e.id))) sources.push({ n: n.get(e.id), label: e.label, url: e.url });
+      if (SHOWS_MATCHES.has(claim) && e.entity) listed.add(matchKey(e));
     }
   }
-  return byText.size ? { kind, sentences: [...byText.values()], next } : fallback();
+  const said = [...byText.values()];
+  const named = new Set(said.flatMap((x) => [...x.listed]));
+  const matches = new Map(); // search -> the entities of its matches
+  for (const e of byId.values()) {
+    const r = byId.get(e.result);
+    if (e.entity && Number.isInteger(r?.total)) matches.set(r, (matches.get(r) ?? new Set()).add(matchKey(e)));
+  }
+  const lines = said.map(() => new Set()); // after each sentence
+  for (const [r, entities] of matches) {
+    const shown = [...entities].filter((x) => named.has(x)).length;
+    if (shown && shown < r.total) lines[said.findLastIndex((x) => [...x.listed].some((y) => entities.has(y)))].add(SHOWING(shown, r.total));
+  }
+  const sentences = said.flatMap(({ text, sources }, i) => [{ text, sources }, ...[...lines[i]].map((t) => ({ text: t, sources: [] }))]);
+  return sentences.length ? { kind, sentences, next } : fallback();
 }
 
 /** The fixed question, with the near names of the cited searches and the cited entities as the choices. */
@@ -220,19 +342,20 @@ function clarify(items, ctx) {
 }
 
 /**
- * The model's list, or [] when it is none. A model sometimes sends the list as a JSON string ("[{\"claim\":…}]", the second eval
- * run): that string is decoded once, and used only when it holds an array. Only the container's format changes: the sentences in it
- * go through the same checks as ever, so nothing the model wrote is rendered. The caller's object is left as the model sent it.
+ * The model's list, or null when it is none (so an empty list, which says something, is told from a missing or broken one). A model
+ * sometimes sends the list as a JSON string ("[{\"claim\":…}]", the second eval run): that string is decoded once, and used only when it
+ * holds an array. Only the container's format changes: the sentences in it go through the same checks as ever, so nothing the model
+ * wrote is rendered. The caller's object is left as the model sent it.
  */
 function listOf(x) {
   if (typeof x === "string") {
     try {
       x = JSON.parse(x);
     } catch {
-      return [];
+      return null;
     }
   }
-  return Array.isArray(x) ? x : [];
+  return Array.isArray(x) ? x : null;
 }
 
 /** NOT_ADVICE, as a piece to close an answer or a clarify, when the reader's question asks for advice. */
@@ -241,15 +364,20 @@ const notice = (ctx) => (adviceIntent(ctx?.question) ? [{ text: NOT_ADVICE, item
 /**
  * raw: the model's `answer` arguments {kind, sentences: [{claim, sources, quote?}], next: [{source}]} (anything else in it is ignored;
  * sentences and next may each arrive as a JSON string of that array, see listOf);
- * ev: the evidence of this question; ctx.question: the reader's latest message (NOT_FOUND names a query only when it is there).
+ * ev: the evidence of this question; ctx.question: the reader's latest message (NOT_FOUND names a query only when it is there);
+ * ctx.toolFailed: a tool call of this question returned an error.
  * Returns {kind: "answer"|"refusal"|"clarify"|"fallback", sentences: [{text, sources: [{n, label, url}]}], next: [{label, href}]}.
  */
 export function checkAnswer(raw, ev, ctx) {
   if (raw?.kind === "refusal") return only("refusal", REFUSAL);
   if (raw?.kind !== "answer" && raw?.kind !== "clarify") return fallback();
   const byId = new Map((Array.isArray(ev) ? ev : []).map((e) => [e.id, e]));
-  const said = listOf(raw.sentences).filter((s) => s !== null && typeof s === "object");
-  const linked = listOf(raw.next).map((x) => byId.get(x?.source)).filter(Boolean);
+  const sentences = listOf(raw.sentences);
+  // an answer of no sentences after the tools returned evidence: the model found no record that answers. With no evidence at all
+  // nothing was checked (every lookup failed, or none was made), and with a lookup that failed not everything was: the fallback
+  if (raw.kind === "answer" && sentences?.length === 0 && byId.size) return ctx?.toolFailed ? fallback() : only("answer", NOTHING_ANSWERS);
+  const said = (sentences ?? []).filter((s) => s !== null && typeof s === "object");
+  const linked = (listOf(raw.next) ?? []).map((x) => byId.get(x?.source)).filter(Boolean);
   const cited = said.flatMap((s) => {
     const items = cite(s.sources, byId);
     return items ? [{ s, items }] : [];
@@ -266,11 +394,47 @@ export function checkAnswer(raw, ev, ctx) {
   for (const { s, items } of cited) {
     const shown = typeof s.claim === "string" && Object.hasOwn(RENDER, s.claim) ? RENDER[s.claim](items, s, all, ctx ?? {}, state) : [];
     if (!shown) return fallback();
-    pieces.push(...shown);
+    pieces.push(...shown.map((p) => ({ ...p, claim: p.claim ?? s.claim })));
   }
   if (state.partial && pieces.length) pieces.push({ text: PARTIAL, items: [] }); // never a lone "part of the question": with nothing else to say it is the fallback
   if (pieces.length) pieces.push(...notice(ctx)); // last, after the part-answer line; an answer with nothing to say is the fallback and carries no notice
-  // a next step is the cited item's own label and link (or url)
-  const next = unique(linked.filter((e) => e.link || e.url).map((e) => ({ label: e.label, href: e.link || e.url })), "href");
-  return finish("answer", pieces, next);
+  const out = finish("answer", pieces, nextOf(linked), byId);
+  madeFrom.set(out, { pieces, byId, linked, toolFailed: Boolean(ctx?.toolFailed) });
+  return out;
+}
+
+/** The next steps: each linked item's own label and link (or url), one per link. */
+const nextOf = (linked) => unique(linked.filter((e) => e.link || e.url).map((e) => ({ label: e.label, href: e.link || e.url })), "href");
+
+// What each answer was written from, so the relevance gate can drop sentences and finish can number and count the rest again
+const madeFrom = new WeakMap(); // answer -> {pieces, byId, linked, toolFailed}
+
+/**
+ * The sentences of an answer checkAnswer wrote that the relevance gate judges: those a claim states. A caveat that follows one (the
+ * lines after a none, a no-changes or a not-yet line) is never judged on its own. null for an answer not written here.
+ */
+export function judgedSentences(answer) {
+  const made = madeFrom.get(answer);
+  if (!made) return null;
+  const claims = new Set(made.pieces.filter((p) => p.items.length && !p.follows).map((p) => p.text));
+  return answer.sentences.filter((s) => claims.has(s.text));
+}
+
+/**
+ * The answer checkAnswer wrote, keeping of the sentences written from evidence only those whose text `keep` accepts, each with the
+ * caveats that follow it. Fixed copy stays; finish numbers the sources again and rebuilds the "Showing N of M" lines from what is left,
+ * and a next step whose entity (or item) only dropped sentences cited goes with them. With none of them left it is NOTHING_ANSWERS, or
+ * the fallback when a tool call of the question failed (as for an answer of no sentences). An answer not written here comes back as it is.
+ */
+export function keepSentences(answer, keep) {
+  const made = madeFrom.get(answer);
+  if (!made) return answer;
+  let kept = false; // the last claim's verdict: the caveats after it (always right after it) go with it
+  const pieces = made.pieces.filter((p) => !p.items.length || (p.follows ? kept : (kept = keep(p.text))));
+  if (!pieces.some((p) => p.items.length)) return made.toolFailed ? fallback() : only("answer", NOTHING_ANSWERS);
+  // (a link to something no sentence cited is the model's own choice, not judged here, and stays)
+  const key = (e) => e.entity?.id ?? e.id;
+  const cited = (list) => new Set(list.flatMap((p) => p.items.map(key)));
+  const [before, after] = [cited(made.pieces), cited(pieces)];
+  return finish(answer.kind, pieces, nextOf(made.linked.filter((e) => !before.has(key(e)) || after.has(key(e)))), made.byId);
 }

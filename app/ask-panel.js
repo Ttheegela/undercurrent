@@ -87,7 +87,7 @@ function build() {
   <label class="label" for="ask-q">Your question</label>
   <textarea id="ask-q" rows="2" maxlength="500" autocomplete="off" enterkeyhint="send"></textarea>
   <div class="ask-row">
-    <p class="ask-note">Your question and data from this site go to an AI model. The conversation isn't stored. <a href="/stories/about-the-data.html#ask"${NEW_TAB}>How Ask handles questions</a></p>
+    <p class="ask-note">Your question and data from this site go to an AI model and a relevance checker (TypeSafe). The conversation isn't stored. <a href="/stories/about-the-data.html#ask"${NEW_TAB}>How Ask handles questions</a></p>
     <button type="submit" class="btn btn-accent">Send</button>
   </div>
 </form>`;

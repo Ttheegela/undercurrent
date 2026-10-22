@@ -12,9 +12,10 @@ import { pathToFileURL } from "node:url";
 import { backfillNotes, runEvals, runOptions, summary, syncDataset } from "../scripts/ask-langsmith.mjs";
 import { MODEL, runAsk } from "../api/ask.js";
 import { checkAnswer } from "../api/_ask_check.js";
+import { gate } from "../api/_ask_gate.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
 import { TOOLS } from "../api/_ask_tools.js";
-import { FALLBACK } from "../scripts/ask-oracle.mjs";
+import { FALLBACK, NOTHING_ANSWERS } from "../scripts/ask-oracle.mjs";
 
 const CASES = JSON.parse(readFileSync(new URL("./ask-eval.json", import.meta.url), "utf8"));
 const LIVE = CASES.filter((c) => c.live !== false);
@@ -24,12 +25,13 @@ const NOW = new Date("2026-10-21T13:00:00Z");
 const ENV = { LANGSMITH_API_KEY: "lsv2_test", OPENROUTER_API_KEY: "sk-or-test", TYPESAFE_API_KEY: "ts-test" };
 const WEEKLY = { trigger: "weekly", pr: null, sync: false, commit: SHA };
 const USAGE = { prompt_tokens: 1000, completion_tokens: 50, cost: 0.002 };
-const SIGNALS = ["outcome", "tool_calls", "latency_s", "tokens_in", "tokens_out", "cost_usd"]; // every case has these
+const SIGNALS = ["outcome", "tool_calls", "latency_s", "tokens_in", "tokens_out", "cost_usd", "gate_tokens"]; // every case has these
 const JUDGED = ["relevance", "unrelated"]; // answered cases whose answer is an answer have these too
 const UNAVAILABLE = { ok: false, reason: "unavailable" };
 const RESTING = { ok: false, reason: "resting", resets: "2026-11-01" };
 const UNGROUNDED = { kind: "answer", sentences: [{ text: "It is fine to trade with.", sources: [] }], next: [] };
 const FALLBACK_ANSWER = { kind: "fallback", sentences: [{ text: FALLBACK, sources: [] }], next: [] };
+const NOTHING = { kind: "answer", sentences: [{ text: NOTHING_ANSWERS, sources: [] }], next: [] }; // a decline, as the fallback is
 
 // ---- fakes ---------------------------------------------------------------------------------------------------------------
 
@@ -47,12 +49,15 @@ const fakeTraceable = (steps) => (fn, config = {}) => async (...args) => {
   return out;
 };
 
-/** evaluate over `cases` as dataset examples: the target is traced as each case's root run, then the evaluators score it. */
+/**
+ * evaluate over `cases` as dataset examples: the target is traced as each case's root run, then the evaluators score it. Each case runs
+ * numRepetitions times, and the results come in the order the SDK gives them: every case of the first repetition, then the second.
+ */
 const fakeEvaluate = (cases, calls, rows, traceable) => async (target, options) => {
   calls.push(["evaluate", options]);
   const traced = traceable(target, { name: "target" });
-  for (const [i, c] of cases.entries()) {
-    const example = { id: `ex-${i}`, inputs: { question: c.question }, outputs: { expect: c.expect }, metadata: { case_id: c.id, category: c.category } };
+  for (const [i, c] of Array.from({ length: options.numRepetitions }, () => cases).flat().entries()) {
+    const example = { id: `ex-${i % cases.length}`, inputs: { question: c.question }, outputs: { expect: c.expect }, metadata: { case_id: c.id, category: c.category } };
     const run = { id: `run-${i}`, outputs: await traced(example.inputs) };
     const results = [];
     for (const evaluator of options.evaluators) results.push(...(await evaluator({ run, example, inputs: example.inputs, outputs: run.outputs, referenceOutputs: example.outputs })).results);
@@ -144,37 +149,43 @@ const fakeExperiments = (calls) => {
  * Ask's loop in miniature, through `wrap` as runAsk calls it: a model call, a tool call that hands over the case's recorded evidence,
  * a second model call, then the checker on the case's recorded answer. `script[case id]` changes that: `stop` ends it at the first
  * model call, `answer` replaces the checker's answer, `download` records a failed download, `usage` is what each model call reports,
- * and `throws` makes runAsk throw.
+ * and `throws` makes runAsk throw. An array of plans is one plan per repetition, in order.
  */
-const fakeAsk = (script) => async (history, now, { wrap }) => {
-  const c = LIVE.find((x) => x.question === history.at(-1).content);
-  const plan = script[c.id];
-  if (plan.throws) throw new Error(`the request failed: ${JSON.stringify({ messages: history, key: ENV.OPENROUTER_API_KEY })}`);
-  const model = wrap("callModel", async () => (plan.stop ? { stop: plan.stop } : { message: { role: "assistant", content: null }, usage: plan.usage === undefined ? USAGE : plan.usage }));
-  const tool = wrap("runTool", async (name, args, ev, ctx) => {
-    ev.push(...structuredClone(c.evidence));
-    if (plan.download) ctx.failed.set("opensanctions", new Error("the download failed"));
-    return { items: ev.map((e) => e.id) };
-  });
-  const check = wrap("checkAnswer", (raw, ev, ctx) => plan.answer ?? checkAnswer(raw, ev, ctx));
-  const ev = [];
-  const ctx = { today: "2026-10-21", failed: new Map() };
-  const first = await model([{ role: "user", content: c.question }], "auto", Date.now() + 26_000, now);
-  if (first.stop) return first.stop;
-  await tool("check_lists", { query: "x" }, ev, ctx);
-  await model([{ role: "user", content: c.question }], "auto", Date.now() + 26_000, now);
-  return { ok: true, answer: await check(structuredClone(c.model), ev, { question: c.question }) };
+const fakeAsk = (script) => {
+  const runs = new Map(); // case id -> its runs so far
+  return async (history, now, { wrap }) => {
+    const c = LIVE.find((x) => x.question === history.at(-1).content);
+    runs.set(c.id, (runs.get(c.id) ?? -1) + 1);
+    const plan = Array.isArray(script[c.id]) ? script[c.id][runs.get(c.id)] : script[c.id];
+    if (plan.throws) throw new Error(`the request failed: ${JSON.stringify({ messages: history, key: ENV.OPENROUTER_API_KEY })}`);
+    const model = wrap("callModel", async () => (plan.stop ? { stop: plan.stop } : { message: { role: "assistant", content: null }, usage: plan.usage === undefined ? USAGE : plan.usage }));
+    const tool = wrap("runTool", async (name, args, ev, ctx) => {
+      ev.push(...structuredClone(c.evidence));
+      if (plan.download) ctx.failed.set("opensanctions", new Error("the download failed"));
+      return { items: ev.map((e) => e.id) };
+    });
+    const check = wrap("checkAnswer", (raw, ev, ctx) => plan.answer ?? checkAnswer(raw, ev, ctx));
+    const ev = [];
+    const ctx = { today: "2026-10-21", failed: new Map() };
+    const first = await model([{ role: "user", content: c.question }], "auto", Date.now() + 26_000, now);
+    if (first.stop) return first.stop;
+    await tool("check_lists", { query: "x" }, ev, ctx);
+    await model([{ role: "user", content: c.question }], "auto", Date.now() + 26_000, now);
+    return { ok: true, answer: await check(structuredClone(c.model), ev, { question: c.question, today: now.toISOString().slice(0, 10) }) };
+  };
 };
 
 /**
  * TypeSafe's System One as the judge sees it: each request is recorded, and the answer is `verdicts[question]` ({score, noul}; by
- * default a full score and a low noul), or `status` for an HTTP error.
+ * default a full score and a low noul), or `status` for an HTTP error. An array of verdicts is one per request for that question, in order.
  */
 const fakeJudge = (verdicts = {}) => {
   const requests = [];
   const fetch = async (url, init) => {
     requests.push({ url, headers: init.headers, body: JSON.parse(init.body) });
-    const v = verdicts[JSON.parse(init.body).state.question] ?? { score: 3, noul: 0.1 };
+    const { question } = JSON.parse(init.body).state;
+    const given = verdicts[question];
+    const v = (Array.isArray(given) ? given[requests.filter((r) => r.body.state.question === question).length - 1] : given) ?? { score: 3, noul: 0.1 };
     if (v.status) return new Response("{}", { status: v.status });
     return Response.json({ model: "jev-1.13.0", answers: { addresses: { type: "score", score: v.score, confidence: 0.9, probabilities: {}, legend: {} }, unrelated: { type: "noul", noul: v.noul } }, usage: { input_tokens: 300, output_tokens: 20 } });
   };
@@ -234,15 +245,29 @@ test("each case is scored: pass only for quality outcomes; unavailable, resting 
   assert.deepEqual(signals("area-lists-1"), [1, 2000, 100, 0.004]);
   assert.deepEqual(signals("off-topic-2"), [0, 0, 0, 0]);
   assert.ok(scores["area-lists-1"].latency_s.score >= 0);
-  assert.deepEqual(result.counts, { quality: 2, pass: 1, fail: 1, unavailable: 1, budget: 1, download_failed: 1 });
+  assert.deepEqual(result.counts, { quality: 2, pass: 1, fail: 1, unavailable: 1, budget: 1, download_failed: 1, answered: 2, should_answer: 2 });
   assert.deepEqual([result.failures, result.allInfra], [["area-research-1"], false]);
+});
+
+test("review (7): an age is graded on the run's own date, so an answer made before midnight UTC still matches after it", async () => {
+  const c = byId("area-lists-3");
+  const dji = c.evidence.find((e) => e.kind === "list" && e.date === "2020-12-18");
+  const ranOn = "2026-01-31";
+  const aged = checkAnswer({ kind: "answer", sentences: [{ claim: "age", sources: [dji.id] }], next: [] }, structuredClone(c.evidence), { question: c.question, today: ranOn });
+  assert.equal(aged.sentences[0].text, "DJI has been on the United States list under Entity List (EL) for 5 years 1 month (since 18 Dec 2020).");
+  const { rows, deps } = setup([c], fakeAsk({ [c.id]: { answer: aged } }));
+  deps.now = () => new Date(`${ranOn}T23:59:59Z`); // the run starts a second before midnight; it is graded after
+  await runEvals(WEEKLY, deps);
+  const { pass } = scoresOf(rows)[c.id];
+  assert.equal(pass.score, 1, pass.comment);
+  assert.equal(rows[0].run.outputs.today, ranOn);
 });
 
 test("a run where every case hits the key limit has allInfra true and no failures", async () => {
   const cases = LIVE.slice(0, 4);
   const { calls, deps } = setup(cases, fakeAsk(Object.fromEntries(cases.map((c) => [c.id, { stop: RESTING }]))));
   const result = await runEvals(WEEKLY, deps);
-  assert.deepEqual(result.counts, { quality: 0, pass: 0, fail: 0, unavailable: 0, budget: 4, download_failed: 0 });
+  assert.deepEqual(result.counts, { quality: 0, pass: 0, fail: 0, unavailable: 0, budget: 4, download_failed: 0, answered: 0, should_answer: 0 });
   assert.deepEqual([result.failures, result.allInfra], [[], true]);
   assert.ok(!calls.some(([name]) => name === "createFeedback"));
 });
@@ -272,10 +297,11 @@ test("metadata carries commit, trigger, pr, model and a 12-hex prompt_hash", asy
     trigger: "pr",
     model: MODEL,
     commit: SHA,
-    counts: { quality: 1, pass: 1, fail: 0, unavailable: 0, budget: 0, download_failed: 0 },
+    counts: { quality: 1, pass: 1, fail: 0, unavailable: 0, budget: 0, download_failed: 0, answered: 0, should_answer: 0 },
     failures: [],
     allInfra: false,
-    relevance: { judged: 0, mean_relevance: null, mean_unrelated: null, judge_tokens: 0, judge_models: [], unavailable: 0, clarified: 0 }, // (a refusal is not judged)
+    relevance: { judged: 0, mean_relevance: null, mean_unrelated: null, judge_tokens: 0, judge_models: [], unavailable: 0, clarified: 0, gate_tokens: 0 }, // (a refusal is not judged)
+    answer_rate: null, // (a refusal case is not one Ask should answer)
   });
   const weekly = setup([byId("off-topic-1")], fakeAsk({ "off-topic-1": {} }));
   await runEvals(WEEKLY, weekly.deps);
@@ -285,7 +311,7 @@ test("metadata carries commit, trigger, pr, model and a 12-hex prompt_hash", asy
 
 /** The labels a reader sees with an answer: its sentences' sources, then its links. */
 const labelsOf = (a) => [...new Set([...a.sentences.flatMap((s) => s.sources.map((x) => x.label)), ...a.next.map((n) => n.label)])];
-const NONE = { judged: 0, mean_relevance: null, mean_unrelated: null, judge_tokens: 0, judge_models: [], unavailable: 0, clarified: 0 };
+const NONE = { judged: 0, mean_relevance: null, mean_unrelated: null, judge_tokens: 0, judge_models: [], unavailable: 0, clarified: 0, gate_tokens: 0 };
 
 test("the relevance judge scores answered cases whose answer is an answer, on what the reader saw; a clarify is counted, not judged", async () => {
   const script = {
@@ -293,7 +319,7 @@ test("the relevance judge scores answered cases whose answer is an answer, on wh
     "clarify-1": {}, // a clarify: counted apart, not judged
     "area-research-1": { answer: UNGROUNDED }, // an answer that fails pass is judged all the same
     "off-topic-2": {}, // a refusal: fixed copy, not judged
-    "relevance-2": {}, // a fallback: fixed copy, not judged
+    "relevance-2": { answer: FALLBACK_ANSWER }, // a fallback: fixed copy, not judged
     "off-topic-3": { stop: UNAVAILABLE }, // infrastructure: no answer
   };
   const judge = fakeJudge({ [byId("area-research-1").question]: { score: 0, noul: 0.9 } });
@@ -314,8 +340,8 @@ test("the relevance judge scores answered cases whose answer is an answer, on wh
   // the run's totals: the experiment names the judge asked for; the result and the summary carry the means, the judge's tokens and
   // the version that answered, and the clarifies apart
   assert.equal(calls.find(([name]) => name === "evaluate")[1].metadata.judge_model, "jev-latest");
-  assert.deepEqual(result.relevance, { judged: 2, mean_relevance: 0.5, mean_unrelated: 0.5, judge_tokens: 600, judge_models: ["jev-1.13.0"], unavailable: 0, clarified: 1 });
-  assert.match(summary(result), /^- Relevance \(Jev\): 2 judged, mean relevance 0\.5, mean unrelated 0\.5, 600 judge input tokens \(jev-1\.13\.0\); asked to clarify: 1\.$/m);
+  assert.deepEqual(result.relevance, { judged: 2, mean_relevance: 0.5, mean_unrelated: 0.5, judge_tokens: 600, judge_models: ["jev-1.13.0"], unavailable: 0, clarified: 1, gate_tokens: 0 });
+  assert.match(summary(result), /^- Relevance \(Jev\): 2 judged, pooled mean relevance 0\.5, pooled mean unrelated 0\.5, 600 judge input tokens \(jev-1\.13\.0\); asked to clarify: 1\.$/m);
 });
 
 test("the judge never changes pass or any other score: the same answers judged as badly as can be, and not judged at all", async (t) => {
@@ -363,8 +389,8 @@ test("a case the judge could not judge gets no relevance scores and is counted a
   assert.deepEqual(errors.mock.calls.map((c) => c.arguments), [["ask-relevance: judge unavailable"]]);
   const scores = scoresOf(rows);
   assert.deepEqual([scores["area-lists-1"].relevance.score, scores["area-research-1"].relevance, scores["area-research-1"].pass.score], [1, undefined, 1]);
-  assert.deepEqual(result.relevance, { judged: 1, mean_relevance: 1, mean_unrelated: 0.1, judge_tokens: 300, judge_models: ["jev-1.13.0"], unavailable: 1, clarified: 0 });
-  assert.match(summary(result), /^- Relevance \(Jev\): 1 judged, mean relevance 1, mean unrelated 0\.1, 300 judge input tokens \(jev-1\.13\.0\); judge unavailable for 1 case; asked to clarify: 0\.$/m);
+  assert.deepEqual(result.relevance, { judged: 1, mean_relevance: 1, mean_unrelated: 0.1, judge_tokens: 300, judge_models: ["jev-1.13.0"], unavailable: 1, clarified: 0, gate_tokens: 0 });
+  assert.match(summary(result), /^- Relevance \(Jev\): 1 judged, pooled mean relevance 1, pooled mean unrelated 0\.1, 300 judge input tokens \(jev-1\.13\.0\); judge unavailable for 1 case; asked to clarify: 0\.$/m);
 });
 
 test("a key that is set but a judge that fails every time: the summary says the judge was unavailable, not that no case was judged", async (t) => {
@@ -384,7 +410,7 @@ const recordingAsk = (script, models) => (history, now, options) => (models.push
 
 test("run --model: runAsk, the model calls' traces, the metadata, the result and the summary all name it, and the prefix gets its slug", async () => {
   const opts = runOptions(["--trigger", "manual", "--model", "deepseek/deepseek-v4.1-flash", "--commit", SHA]);
-  assert.deepEqual(opts, { trigger: "manual", pr: null, sync: false, commit: SHA, model: "deepseek/deepseek-v4.1-flash", out: undefined });
+  assert.deepEqual(opts, { trigger: "manual", pr: null, sync: false, commit: SHA, model: "deepseek/deepseek-v4.1-flash", out: undefined, repetitions: 1 });
   const models = [];
   const script = { "area-lists-1": {}, "off-topic-1": {} };
   const { calls, steps, deps } = setup(Object.keys(script).map(byId), recordingAsk(script, models));
@@ -433,6 +459,87 @@ test("a --model that is not vendor/model exits 2 before any call", async () => {
   assert.match(r.stderr, /^--model must look like vendor\/model\n/);
 });
 
+test("run --repetitions N: 1 to 3, with --trigger manual only, and it maps to evaluate's numRepetitions (1 without it)", async () => {
+  assert.equal(runOptions(["--trigger", "manual", "--commit", SHA]).repetitions, 1);
+  for (const n of [1, 2, 3]) assert.equal(runOptions(["--trigger", "manual", "--repetitions", String(n), "--commit", SHA]).repetitions, n);
+  const refused = (args) => assert.throws(() => runOptions([...args, "--commit", SHA]), (err) => err.exit === 2 && err.message.startsWith("--repetitions N (1 to 3) goes with --trigger manual only\n"), args.join(" "));
+  for (const bad of ["0", "4", "-1", "1.5", "two", "", "03", " 2", "2 "]) refused(["--trigger", "manual", `--repetitions=${bad}`]);
+  for (const trigger of [["weekly"], ["pr", "--pr", "31"]]) for (const n of ["1", "3"]) refused(["--trigger", ...trigger, "--repetitions", n]);
+  for (const n of [1, 3]) {
+    const { calls, rows, deps } = setup([byId("off-topic-1")], fakeAsk({ "off-topic-1": {} }));
+    await runEvals({ ...runOptions(["--trigger", "manual", "--repetitions", String(n), "--commit", SHA]) }, deps);
+    assert.equal(calls.find(([name]) => name === "evaluate")[1].numRepetitions, n);
+    assert.equal(rows.length, n);
+  }
+  const { calls, deps } = setup([byId("off-topic-1")], fakeAsk({ "off-topic-1": {} }));
+  await runEvals(WEEKLY, deps); // (a caller that leaves it out)
+  assert.equal(calls.find(([name]) => name === "evaluate")[1].numRepetitions, 1);
+});
+
+test("answer_rate is answered / should_answer: a decline (the fallback, or only that nothing recorded answers) is neither answered nor judged", async () => {
+  const script = {
+    "area-lists-1": {}, // an answer: answered and judged
+    "relevance-2": { answer: NOTHING }, // a decline: not answered, not judged, and a fallback
+    "count-1": { answer: FALLBACK_ANSWER }, // the fallback: the same
+    "clarify-1": {}, // a clarifying question where an answer is right too: answered (no decline), and not judged
+    "off-topic-2": {}, // a refusal case: not one Ask should answer
+    "none-4": {}, // its right answer is that nothing recorded answers: not one Ask should answer either
+    "area-research-1": { stop: UNAVAILABLE }, // infrastructure: left out, as from the pass rate
+  };
+  const { rows, judge, deps } = setup(Object.keys(script).map(byId), fakeAsk(script));
+  const result = await runEvals(WEEKLY, deps);
+  assert.deepEqual([result.counts.answered, result.counts.should_answer, result.answer_rate], [2, 4, 0.5]);
+  assert.deepEqual(judge.requests.map((r) => r.body.state.question), [byId("area-lists-1").question]);
+  const scores = scoresOf(rows);
+  assert.deepEqual(["relevance-2", "count-1", "none-4", "area-lists-1"].map((id) => [scores[id].fallback.score, scores[id].pass.score]), [[1, 0], [1, 0], [1, 1], [0, 1]]);
+  assert.equal(scores["none-4"].pass.comment, undefined);
+  assert.match(summary(result), /^- Answer rate, pooled: 0\.5 \(2 of the 4 questions Ask should answer got an answer or a clarifying question, not a decline or a refusal\)\.$/m);
+  // the replies scored, apart from the answer rate's "answered": every reply that is no infrastructure outcome, refusals and declines too
+  assert.match(summary(result), /^- Replied \(outcome quality\): 6 \(4 passed, 2 failed\)$/m);
+  assert.equal(result.repetitions, undefined); // (one run: the shape of before, plus answer_rate)
+  assert.deepEqual(result.failures, ["relevance-2", "count-1"]);
+});
+
+test("with repetitions: each metric's mean and worst run, and every case that failed in any run with how many runs it failed", async () => {
+  const script = {
+    "area-lists-1": [{}, { answer: UNGROUNDED }, {}], // fails in run 2
+    "area-research-1": [{ answer: UNGROUNDED }, { answer: UNGROUNDED }, {}], // fails in runs 1 and 2
+    "count-3": [{}, { answer: FALLBACK_ANSWER }, {}], // declines in run 2
+    "off-topic-2": {}, // a refusal: passes, and is no question Ask should answer
+  };
+  // the judge finds area-research-1's first answer unrelated, and every other answer fully relevant
+  const judge = fakeJudge({ [byId("area-research-1").question]: [{ score: 0, noul: 0.9 }] });
+  const { calls, rows, deps } = setup(Object.keys(script).map(byId), fakeAsk(script), ENV, judge);
+  const result = await runEvals({ trigger: "manual", pr: null, sync: false, commit: SHA, repetitions: 3 }, deps);
+  assert.equal(rows.length, 12);
+  // runs: pass 3/4, 1/4, 4/4; answered 3/3, 2/3, 3/3; relevance (1+0+1)/3, 2/2, 3/3; unrelated (0.1+0.9+0.1)/3, 0.1, 0.1
+  assert.deepEqual(result.repetitions, {
+    n: 3,
+    pass_rate: { mean: 0.667, worst: 0.25, runs: [0.75, 0.25, 1] },
+    mean_relevance: { mean: 0.889, worst: 0.667, runs: [0.667, 1, 1] },
+    mean_unrelated: { mean: 0.189, worst: 0.367, runs: [0.367, 0.1, 0.1] },
+    answer_rate: { mean: 0.889, worst: 0.667, runs: [1, 0.667, 1] },
+  });
+  // the counts and the means over every run
+  assert.deepEqual(result.counts, { quality: 12, pass: 8, fail: 4, unavailable: 0, budget: 0, download_failed: 0, answered: 8, should_answer: 9 });
+  assert.equal(result.answer_rate, 0.889);
+  assert.deepEqual([result.relevance.judged, result.relevance.mean_relevance, result.relevance.mean_unrelated], [8, 0.875, 0.2]);
+  assert.deepEqual(result.failures, [{ id: "area-research-1", failed: 2 }, { id: "area-lists-1", failed: 1 }, { id: "count-3", failed: 1 }]);
+  assert.equal(calls.filter(([name]) => name === "createFeedback").length, 4); // (a note on each failed run)
+  const md = summary(result);
+  assert.match(md, /^- Failed: area-research-1 \(2 of 3 runs\), area-lists-1 \(1 of 3 runs\), count-3 \(1 of 3 runs\)$/m);
+  assert.match(md, /^- Repetitions: 3\. Mean of runs \(worst run\): pass rate 0\.667 \(0\.25\), relevance 0\.889 \(0\.667\), unrelated 0\.189 \(0\.367\), answer rate 0\.889 \(0\.667\)\.$/m);
+});
+
+test("final review minor 8: a case held by two examples (a copy the next sync removes) is counted by example, never past the last run", async () => {
+  const c = byId("area-lists-1");
+  const { rows, deps } = setup([c, c], fakeAsk({ [c.id]: {} }));
+  const result = await runEvals({ trigger: "manual", pr: null, sync: false, commit: SHA, repetitions: 3 }, deps);
+  assert.equal(rows.length, 6);
+  assert.deepEqual([result.counts.quality, result.counts.pass], [6, 6]);
+  assert.deepEqual(result.repetitions.pass_rate, { mean: 1, worst: 1, runs: [1, 1, 1] }); // each run holds both copies
+});
+
 test("no traced payload contains the OpenRouter key", async (t) => {
   // Ask's real loop, with fetch as a fake OpenRouter: one call to the site_docs tool (it reads data/ask-docs.json), then a refusal
   const SECRET = "sk-or-v1-SENTINEL-0000-must-never-be-traced";
@@ -469,6 +576,67 @@ test("no traced payload contains the OpenRouter key", async (t) => {
   assert.equal(scoresOf(rows)["off-topic-1"].pass.score, 1);
 });
 
+test("Ask's relevance gate runs in the evals as the step \"gate\", traced with the answer it was handed and never the TypeSafe key", async (t) => {
+  // Ask's real loop: a site_docs lookup, then an answer quoting its first quotable section, which the gate (TypeSafe faked) drops
+  const SECRET = "ts-SENTINEL-0000-must-never-be-traced";
+  const saved = { or: process.env.OPENROUTER_API_KEY, ts: process.env.TYPESAFE_API_KEY, fetch: globalThis.fetch };
+  t.after(() => {
+    globalThis.fetch = saved.fetch;
+    for (const [name, v] of [["OPENROUTER_API_KEY", saved.or], ["TYPESAFE_API_KEY", saved.ts]]) {
+      if (v === undefined) delete process.env[name];
+      else process.env[name] = v;
+    }
+  });
+  process.env.OPENROUTER_API_KEY = "sk-or-test";
+  process.env.TYPESAFE_API_KEY = SECRET; // the gate reads it from the environment, as the eval job sets it
+  const call = (name, args) => ({ choices: [{ message: { role: "assistant", content: null, tool_calls: [{ id: `call_${name}`, type: "function", function: { name, arguments: JSON.stringify(args) } }] } }], usage: USAGE });
+  const gateAuth = [];
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body);
+    if (url === "https://api.typesafe.ai/v1/systemone") {
+      gateAuth.push(init.headers.Authorization);
+      return Response.json({ model: "jev-1.13.0", answers: Object.fromEntries(body.state.sentences.map((s) => [`s${s.i}`, { type: "noul", noul: 0.1 }])), usage: { input_tokens: 90, output_tokens: 4 } });
+    }
+    const tool = body.messages.find((m) => m.role === "tool");
+    if (!tool) return Response.json(call("site_docs", { query: "how matching works" }));
+    const item = JSON.parse(tool.content).items.find((i) => i.quotes?.length);
+    return Response.json(call("answer", { kind: "answer", sentences: [{ claim: "quote", sources: [item.id], quote: 0 }] }));
+  };
+  const { steps, calls, rows, judge, deps } = setup([byId("off-topic-1")], runAsk);
+  const result = await runEvals(WEEKLY, deps);
+  assert.deepEqual(gateAuth, [`Bearer ${SECRET}`]); // the gate ran, on the key
+  assert.deepEqual(steps.map((s) => s.name), ["target", "callModel", "runTool", "callModel", "checkAnswer", "gate"]);
+  const step = steps.find((s) => s.name === "gate");
+  assert.equal(step.run_type, "chain");
+  assert.deepEqual(Object.keys(step.inputs), ["answer"]);
+  assert.equal(step.inputs.answer.sentences[0].sources.length, 1); // the checker's quote, as the gate was handed it
+  assert.deepEqual(rows[0].run.outputs.result.answer.sentences.map((s) => s.text), ["Nothing recorded on this site answers that."]); // what it gave back is what was scored
+  assert.equal(judge.requests.length, 0); // (that line alone is a decline: the relevance judge is not asked)
+  // the gate's TypeSafe input tokens: the question's own, in its trace's outputs and as a score, and the run's in all
+  assert.equal(rows[0].run.outputs.gate_tokens, 90);
+  assert.equal(scoresOf(rows)["off-topic-1"].gate_tokens.score, 90);
+  assert.equal(result.relevance.gate_tokens, 90);
+  assert.match(summary(result), /^- Relevance gate \(Jev\): 90 input tokens\.$/m);
+  const recorded = JSON.stringify({ steps, calls, rows, result });
+  assert.ok(!recorded.includes(SECRET), "the TypeSafe key is in a traced payload");
+  assert.ok(!recorded.includes("Bearer"), "a header is in a traced payload");
+});
+
+test("final review I2: a gate skipped for a follow-up is traced as the step \"gate\" with its reason, the answer and no question", async () => {
+  const c = byId("area-lists-1");
+  // (the runner asks one question at a time, so only a runAsk handed a longer history skips the gate: this one always does)
+  const ask = async (history, now, { wrap }) => {
+    const answer = checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question, today: "2026-10-21" });
+    return { ok: true, answer: await wrap("gate", gate)(c.question, answer, { skipped: "follow-up" }) };
+  };
+  const { steps, rows, deps } = setup([c], ask);
+  await runEvals(WEEKLY, deps);
+  const step = steps.find((s) => s.name === "gate");
+  assert.deepEqual(step.inputs, { answer: rows[0].run.outputs.result.answer, skipped: "follow-up" });
+  assert.ok(!JSON.stringify(step).includes(c.question));
+  assert.equal(rows[0].run.outputs.gate_tokens, 0);
+});
+
 test("cost_usd is null when usage has no cost", async () => {
   const script = { "area-lists-1": { usage: { prompt_tokens: 7, completion_tokens: 3 } }, "area-research-1": { usage: null }, "area-chips-1": {} };
   const { rows, deps } = setup(Object.keys(script).map(byId), fakeAsk(script));
@@ -486,13 +654,13 @@ test("a runAsk that throws makes its case unavailable and logs one fixed line, w
   assert.deepEqual(errors.mock.calls.map((c) => c.arguments), [["ask-langsmith: runAsk threw on case off-topic-2"]]);
   const scores = scoresOf(rows)["off-topic-2"];
   assert.deepEqual([scores.outcome.value, scores.pass], ["unavailable", undefined]);
-  assert.deepEqual(result.counts, { quality: 1, pass: 1, fail: 0, unavailable: 1, budget: 0, download_failed: 0 });
+  assert.deepEqual(result.counts, { quality: 1, pass: 1, fail: 0, unavailable: 1, budget: 0, download_failed: 0, answered: 1, should_answer: 1 });
 });
 
 test("run --commit SHA sets the commit metadata and the note's short sha; without it the commit is HEAD", async () => {
   const HEAD_SHA = "fedcba9876543210fedcba9876543210fedcba98"; // a PR's head, where HEAD is the merge commit
   const opts = runOptions(["--trigger", "pr", "--pr", "31", "--commit", HEAD_SHA]);
-  assert.deepEqual(opts, { trigger: "pr", pr: 31, sync: false, commit: HEAD_SHA, model: MODEL, out: undefined });
+  assert.deepEqual(opts, { trigger: "pr", pr: 31, sync: false, commit: HEAD_SHA, model: MODEL, out: undefined, repetitions: 1 });
   const script = { "area-research-1": { answer: UNGROUNDED } };
   const { calls, deps } = setup(Object.keys(script).map(byId), fakeAsk(script));
   await runEvals(opts, deps);
@@ -509,7 +677,7 @@ test("sync creates the dataset once and upserts by case_id; an edited case updat
   const stored = () => [...client.datasets.get("undercurrent-ask").examples.values()];
   const exampleOf = (c) => ({ inputs: { question: c.question }, outputs: { expect: c.expect }, metadata: { case_id: c.id, category: c.category, dataset_split: ["base"] } });
   // the first sync creates the dataset and one example per live case, in the shape the runner reads
-  assert.deepEqual(await syncDataset(CASES, { client }), { created: 39, updated: 0, removed: 0 });
+  assert.deepEqual(await syncDataset(CASES, { client }), { created: 45, updated: 0, removed: 0 });
   assert.deepEqual(stored().map(({ id, ...ex }) => ex), LIVE.map(exampleOf));
   // nothing changed, nothing to do (the server's dataset_split is not a change)
   const second = calls.length;
@@ -538,7 +706,7 @@ test("run without --sync on a missing dataset exits 1 with the message", async (
   assert.deepEqual(calls, [["hasDataset", { datasetName: "undercurrent-ask" }]]);
   // with --sync, a run on main creates it from tests/ask-eval.json before it evaluates
   const result = await runEvals({ ...WEEKLY, sync: true }, deps);
-  assert.deepEqual(result.sync, { created: 39, updated: 0, removed: 0 });
+  assert.deepEqual(result.sync, { created: 45, updated: 0, removed: 0 });
   assert.deepEqual(calls.slice(1).map(([name]) => name), ["hasDataset", "createDataset", "listExamples", "createExamples", "evaluate", "readProject", "getDatasetUrl"]);
 });
 

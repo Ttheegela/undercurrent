@@ -1,21 +1,29 @@
 #!/usr/bin/env node
 // Runs Ask's real-model evaluation cases in LangSmith. Each case's question goes through Ask's own loop (runAsk in api/ask.js) in this
-// process, against the real model on the eval key, and LangSmith records the model calls, the tool calls and the checker as the steps
-// of the case's run. One evaluator scores every case. A case that fails gets an "Under review" note until its real note is written.
+// process, against the real model on the eval key, and LangSmith records the model calls, the tool calls, the checker and Ask's
+// relevance gate as the steps of the case's run. One evaluator scores every case. A case that fails gets an "Under review" note until
+// its real note is written.
 // The relevance judge (scripts/ask-relevance.mjs, TypeSafe's Jev) adds `relevance` and `unrelated` to each answered case whose answer
-// is an answer (a clarify is counted apart); it never changes `pass`.
+// is an answer and no decline (a clarify is counted apart); it never changes `pass`. A decline is the fallback, or an answer that only
+// says nothing recorded answers (declined in scripts/ask-judge.mjs).
 //
-//   node scripts/ask-langsmith.mjs run --trigger weekly|manual|pr [--pr N] [--sync] [--commit SHA] [--model ID] [--out FILE]
+//   node scripts/ask-langsmith.mjs run --trigger weekly|manual|pr [--pr N] [--sync] [--commit SHA] [--model ID] [--repetitions N] [--out FILE]
 //   node scripts/ask-langsmith.mjs notes
 //   node scripts/ask-langsmith.mjs judge-check
 //
 // `run` evaluates the dataset's cases. --sync first makes the dataset match the live cases in tests/ask-eval.json; only runs on main
 // sync, so a PR run evaluates main's cases and refuses --sync. --commit is the commit the run is recorded against (default: HEAD; a PR
 // run passes its head, as HEAD there is the merge commit). --model is the OpenRouter model to compare (vendor/model; default: the
-// site's MODEL); a model other than MODEL adds its name to the experiment's prefix, as in ask-manual-deepseek-v4.1-flash. Exit 0 when
+// site's MODEL); a model other than MODEL adds its name to the experiment's prefix, as in ask-manual-deepseek-v4.1-flash.
+// --repetitions N (1 to 3, manual runs only) runs every case N times in the one experiment, as N runs of the set: the result then gives
+// each metric's mean over the runs and its worst run, and how many runs each failing case failed. The result's answer_rate is answered
+// / should_answer: of the questions Ask should answer (the case expects an answer, or also accepts one, and not the line that nothing
+// recorded answers) that it replied to, those it answered or asked back about rather than declined or refused. Exit 0 when
 // the run completed, whatever the scores; 1 on a runner error, a missing dataset included; 2 on bad arguments or a missing key. The
 // result JSON goes to --out, and a summary to $GITHUB_STEP_SUMMARY when that is set. The runner reads LANGSMITH_API_KEY,
 // OPENROUTER_API_KEY and TYPESAFE_API_KEY and prints none of them; without TYPESAFE_API_KEY it skips the relevance judge and says so.
+// Ask's relevance gate reads TYPESAFE_API_KEY from the environment too, so the cases go through it as a visitor's question does; the
+// input tokens TypeSafe bills for it are each case's gate_tokens, and the run's are in the result's relevance block.
 // It must run from the repository root, where Ask's tools read the site's data.
 //
 // `notes` posts each note in tests/ask-eval-notes.json, an array of {experiment, case, note}, as the comment of the `note` feedback on
@@ -57,8 +65,8 @@ import { pathToFileURL } from "node:url";
 import { MODEL, runAsk } from "../api/ask.js";
 import { TOOLS } from "../api/_ask_tools.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
-import { judge } from "./ask-judge.mjs";
-import { groundingProblems } from "./ask-oracle.mjs";
+import { declined, judge } from "./ask-judge.mjs";
+import { groundingProblems, NOTHING_ANSWERS } from "./ask-oracle.mjs";
 import { checkReport, JUDGE_MODEL, judgeCheck, judgeRelevance } from "./ask-relevance.mjs";
 
 const DATASET = "undercurrent-ask";
@@ -68,7 +76,7 @@ const CASES = new URL("../tests/ask-eval.json", import.meta.url);
 const NOTES = new URL("../tests/ask-eval-notes.json", import.meta.url);
 const LABELS = new URL("../tests/ask-relevance-labels.json", import.meta.url);
 const USAGE = [
-  "Usage: node scripts/ask-langsmith.mjs run --trigger weekly|manual|pr [--pr N] [--sync] [--commit SHA] [--model ID] [--out FILE]",
+  "Usage: node scripts/ask-langsmith.mjs run --trigger weekly|manual|pr [--pr N] [--sync] [--commit SHA] [--model ID] [--repetitions N] [--out FILE]",
   "       node scripts/ask-langsmith.mjs notes",
   "       node scripts/ask-langsmith.mjs judge-check",
 ].join("\n");
@@ -76,8 +84,11 @@ const PROMPT_HASH = createHash("sha256").update(SYSTEM_PROMPT + JSON.stringify(T
 const UNAVAILABLE = { ok: false, reason: "unavailable" };
 const MODEL_ID = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._:-]*$/; // vendor/model, as OpenRouter names them (the workflow checks the same)
 const usageError = (message) => Object.assign(new Error(message), { exit: 2 });
-const JUDGED = ["answer"]; // (a fallback, a refusal and a clarify's question are fixed copy: there is nothing to judge)
+const JUDGED = ["answer"]; // (a fallback, a refusal and a clarify's question are fixed copy: there is nothing to judge; nor in a decline)
 const round3 = (x) => Math.round(x * 1000) / 1000;
+const share = (part, whole) => (whole ? part / whole : null);
+// The questions Ask should answer: an answer is what the case expects (or also accepts), and not the line that nothing recorded answers
+const shouldAnswer = (e) => (e.kind === "answer" || (e.also ?? []).includes("answer")) && !(e.includes ?? []).includes(NOTHING_ANSWERS);
 
 /** The labels a reader sees with an answer: its sentences' sources, then its links. */
 const labelsOf = (a) => [...new Set([...a.sentences.flatMap((s) => (s.sources ?? []).map((x) => x.label)), ...(a.next ?? []).map((n) => n.label)])];
@@ -92,7 +103,8 @@ const usageMetadata = (u) => ({
 
 /**
  * The target: one case's question through Ask's own loop, with each step traced. It returns the reply, the evidence the tools handed
- * back, the outcome, and what the case spent. cost_usd is null once a model reply comes without a cost.
+ * back, the outcome, and what the case spent. cost_usd is null once a model reply comes without a cost; gate_tokens is what TypeSafe
+ * billed for the relevance gate (none when it ran without the key).
  */
 const target = ({ runAsk, traceable, now }, model) => async ({ question }) => {
   let ev = [];
@@ -101,6 +113,7 @@ const target = ({ runAsk, traceable, now }, model) => async ({ question }) => {
   let tokens_in = 0;
   let tokens_out = 0;
   let cost_usd = 0;
+  let gate_tokens = 0;
   const steps = {
     // traced with its messages and tool choice only: never the request's headers or the key
     callModel: (fn) => traceable(async (...args) => {
@@ -128,21 +141,35 @@ const target = ({ runAsk, traceable, now }, model) => async ({ question }) => {
       ev = evidence;
       return fn(raw, evidence, ctx);
     }, { name: "checkAnswer", run_type: "chain", processInputs: ({ args }) => ({ answer: structuredClone(args?.[0]) }) }),
+    // Ask's relevance gate, traced with the answer it is handed only, and why it was skipped when it was (a follow-up): it reads
+    // TYPESAFE_API_KEY from the environment itself. Its fetch is wrapped to count the input tokens TypeSafe bills, read from a copy of the
+    // reply (usage.input_tokens), which the gate then reads as ever
+    gate: (fn) => traceable((question, answer, options) => fn(question, answer, {
+      ...options,
+      fetch: async (...args) => {
+        const res = await options.fetch(...args);
+        const usage = await res.clone().json().then((body) => body?.usage, () => null);
+        if (Number.isInteger(usage?.input_tokens)) gate_tokens += usage.input_tokens;
+        return res;
+      },
+    }), { name: "gate", run_type: "chain", processInputs: ({ args }) => ({ answer: structuredClone(args?.[1]), ...(args?.[2]?.skipped && { skipped: args[2].skipped }) }) }),
   };
   let threw = false;
   const t0 = performance.now();
-  const result = await runAsk([{ role: "user", content: question }], now(), { wrap: (name, fn) => steps[name](fn), model }).catch(() => {
+  const at = now();
+  const result = await runAsk([{ role: "user", content: question }], at, { wrap: (name, fn) => steps[name](fn), model }).catch(() => {
     threw = true;
     return UNAVAILABLE; // (what the endpoint replies when the loop throws)
   });
   const latency_s = Math.round(performance.now() - t0) / 1000;
   const outcome = !result.ok ? (result.reason === "resting" ? "budget" : "unavailable") : failed.size ? "download_failed" : "quality";
-  return { result, ev, outcome, threw, tool_calls, tokens_in, tokens_out, cost_usd, latency_s };
+  // today: the run's date (UTC), which the answer's ages count to; the grading uses it, so a run graded after midnight still matches
+  return { result, ev, outcome, threw, tool_calls, tokens_in, tokens_out, cost_usd, gate_tokens, latency_s, today: at.toISOString().slice(0, 10) };
 };
 
 /**
  * The one evaluator: the outcome and what the case spent, for every case; pass and the answer's signals only where Ask answered; and,
- * when `relevanceOf` is given (the judge runs), relevance and unrelated where that answer is an answer.
+ * when `relevanceOf` is given (the judge runs), relevance and unrelated where that answer is an answer and no decline.
  */
 const scorer = (relevanceOf) => async ({ inputs, outputs, referenceOutputs }) => {
   const { result, ev, outcome } = outputs;
@@ -153,15 +180,16 @@ const scorer = (relevanceOf) => async ({ inputs, outputs, referenceOutputs }) =>
     { key: "tokens_in", score: outputs.tokens_in },
     { key: "tokens_out", score: outputs.tokens_out },
     { key: "cost_usd", score: outputs.cost_usd },
+    { key: "gate_tokens", score: outputs.gate_tokens },
   ];
   if (outcome !== "quality") return { results }; // so the pass rate leaves the infrastructure out
   const v = judge({ question: inputs.question, expect: referenceOutputs.expect }, result);
-  const ungrounded = groundingProblems(inputs.question, ev, result.answer);
+  const ungrounded = groundingProblems(inputs.question, ev, result.answer, outputs.today);
   const problems = [...v.problems, ...ungrounded];
   results.push({ key: "pass", score: Number(v.kindOk && v.excludesOk && !ungrounded.length), ...(problems.length && { comment: problems.join("; ") }) });
   results.push({ key: "fallback", score: Number(v.fallback) });
   if (v.includesOk !== null) results.push({ key: "includes_ok", score: Number(v.includesOk) });
-  if (relevanceOf && JUDGED.includes(result.answer.kind)) {
+  if (relevanceOf && JUDGED.includes(result.answer.kind) && !v.fallback) {
     const r = await relevanceOf(inputs.question, result.answer); // (null when the judge is unavailable: the case is left unjudged)
     if (r) results.push({ key: "relevance", score: r.relevance }, { key: "unrelated", score: r.unrelated });
   }
@@ -202,7 +230,8 @@ export async function syncDataset(cases, { client }) {
 }
 
 /**
- * One run of the dataset's cases as a LangSmith experiment. `opts` = {trigger, pr, sync, commit, model (default MODEL)}; `deps` =
+ * One run of the dataset's cases as a LangSmith experiment. `opts` = {trigger, pr, sync, commit, model (default MODEL), repetitions
+ * (default 1)}; `deps` =
  * {client, evaluate, traceable, runAsk, now, env, fetch (the relevance judge's)}. Resolves to the result JSON. Throws an error with
  * `exit: 2` for a PR run with sync or a missing key, before anything is called, and one without `exit` when the dataset is missing
  * and the run doesn't sync.
@@ -227,6 +256,7 @@ export async function runEvals(opts, deps) {
   if (!sync && !(await client.hasDataset({ datasetName: DATASET }))) throw new Error(`dataset ${DATASET} not found: run the workflow manually on main first`);
   const model = opts.model ?? MODEL;
   const prefix = opts.trigger === "pr" ? `ask-pr-${opts.pr}` : `ask-${opts.trigger}`;
+  const n = opts.repetitions ?? 1;
   const results = await deps.evaluate(target(deps, model), {
     data: DATASET,
     evaluators: [scorer(relevanceOf)],
@@ -234,42 +264,80 @@ export async function runEvals(opts, deps) {
     experimentPrefix: model === MODEL ? prefix : `${prefix}-${model.split("/")[1].toLowerCase().replace(/[^a-z0-9.-]/g, "-")}`,
     metadata: { commit: opts.commit, trigger: opts.trigger, pr: opts.pr ?? null, model, prompt_hash: PROMPT_HASH, judge_model: apiKey ? JUDGE_MODEL : null },
     maxConcurrency: 2,
-    numRepetitions: 1, // no retries: what the run shows is what a visitor would have met
+    numRepetitions: n, // n runs of the set, not retries: what each run shows is what a visitor would have met
     client,
   });
   const experiment = results.experimentName;
   const { id } = await client.readProject({ projectName: experiment });
   const url = `${await client.getDatasetUrl({ datasetName: DATASET })}/compare?selectedSessions=${id}`;
   const counts = { quality: 0, pass: 0, fail: 0, unavailable: 0, budget: 0, download_failed: 0 };
-  const failures = [];
-  const judged = { n: 0, relevance: 0, unrelated: 0, clarified: 0 };
+  const failed = new Map(); // case id -> how many of its runs failed, in the order the cases first failed
+  let clarified = 0;
+  let gateTokens = 0;
+  // each run of the set: an example's k-th result is its run k (the SDK orders the results by repetition). By example, not case: a case
+  // held by two examples (a copy the next sync removes) has twice n results
+  const runs = Array.from({ length: n }, () => ({ quality: 0, pass: 0, answered: 0, should_answer: 0, judged: 0, relevance: 0, unrelated: 0 }));
+  const seen = new Map(); // example id -> its results so far
   const note = `Under review · ${deps.now().toISOString().slice(0, 10)} · ${opts.commit.slice(0, 7)}`;
   for (const { run, example, evaluationResults } of results.results) {
-    if (run.outputs?.threw) console.error(`ask-langsmith: runAsk threw on case ${example.metadata?.case_id}`); // (not the error: it can quote the request)
+    const caseId = example.metadata?.case_id;
+    if (run.outputs?.threw) console.error(`ask-langsmith: runAsk threw on case ${caseId}`); // (not the error: it can quote the request)
     const got = Object.fromEntries(evaluationResults.results.map((r) => [r.key, r]));
-    if (!got.outcome) throw new Error(`case ${example.metadata?.case_id} has no scores: its evaluator or its feedback upload failed (see the error above)`);
+    if (!got.outcome) throw new Error(`case ${caseId} has no scores: its evaluator or its feedback upload failed (see the error above)`);
+    const k = seen.get(example.id) ?? 0;
+    seen.set(example.id, k + 1);
+    const r = runs[Math.min(k, n - 1)]; // (never past the last run, whatever the SDK hands back)
     counts[got.outcome.value]++;
-    if (got.outcome.value === "quality" && run.outputs?.result?.answer?.kind === "clarify") judged.clarified++; // (asked back, not judged)
+    gateTokens += run.outputs?.gate_tokens ?? 0;
+    const answer = run.outputs?.result?.answer;
+    if (got.outcome.value === "quality") {
+      r.quality++;
+      if (answer.kind === "clarify") clarified++; // (asked back, not judged)
+      if (shouldAnswer(example.outputs.expect)) {
+        r.should_answer++;
+        if (["answer", "clarify"].includes(answer.kind) && !declined(answer)) r.answered++; // (a decline or a refusal is no answer)
+      }
+    }
     if (got.relevance) {
-      judged.n++;
-      judged.relevance += got.relevance.score;
-      judged.unrelated += got.unrelated.score;
+      r.judged++;
+      r.relevance += got.relevance.score;
+      r.unrelated += got.unrelated.score;
     }
     if (!got.pass) continue;
     if (got.pass.score) {
-      counts.pass++;
+      r.pass++;
       continue;
     }
     counts.fail++;
-    failures.push(example.metadata.case_id);
+    failed.set(caseId, (failed.get(caseId) ?? 0) + 1);
     await client.createFeedback({ runId: run.id, sessionId: id, key: "note", comment: note });
   }
-  const mean = (sum) => (judged.n ? round3(sum / judged.n) : null);
+  // every run together
+  const total = (key) => runs.reduce((sum, r) => sum + r[key], 0);
+  const rate = (part, whole) => (whole ? round3(part / whole) : null);
+  Object.assign(counts, { pass: total("pass"), answered: total("answered"), should_answer: total("should_answer") });
   const relevance = {
-    judged: judged.n, mean_relevance: mean(judged.relevance), mean_unrelated: mean(judged.unrelated), judge_tokens: judge.tokens,
-    judge_models: [...judge.models], unavailable: judge.unavailable, clarified: judged.clarified,
+    judged: total("judged"), mean_relevance: rate(total("relevance"), total("judged")), mean_unrelated: rate(total("unrelated"), total("judged")),
+    judge_tokens: judge.tokens, judge_models: [...judge.models], unavailable: judge.unavailable, clarified, gate_tokens: gateTokens,
   };
-  return { experiment, url, trigger: opts.trigger, model, commit: opts.commit, counts, failures, allInfra: counts.quality === 0, ...(sync && { sync }), relevance };
+  // with repetitions, each metric's mean over the runs and its worst run: the lowest, or for unrelated the highest (a target is met on
+  // the mean of the runs, and no run may miss it by more than 0.05)
+  const across = (values, worst) => {
+    const known = values.filter((x) => x !== null);
+    return { mean: known.length ? round3(known.reduce((a, b) => a + b) / known.length) : null, worst: known.length ? round3(worst(...known)) : null, runs: values.map((x) => (x === null ? null : round3(x))) };
+  };
+  const repetitions = n > 1 && {
+    n,
+    pass_rate: across(runs.map((r) => share(r.pass, r.quality)), Math.min),
+    mean_relevance: across(runs.map((r) => share(r.relevance, r.judged)), Math.min),
+    mean_unrelated: across(runs.map((r) => share(r.unrelated, r.judged)), Math.max),
+    answer_rate: across(runs.map((r) => share(r.answered, r.should_answer)), Math.min),
+  };
+  const failures = n > 1 ? [...failed].map(([caseId, k]) => ({ id: caseId, failed: k })) : [...failed.keys()];
+  return {
+    experiment, url, trigger: opts.trigger, model, commit: opts.commit, counts, failures, allInfra: counts.quality === 0, ...(sync && { sync }), relevance,
+    answer_rate: rate(counts.answered, counts.should_answer), ...(repetitions && { repetitions }),
+  };
 }
 
 /**
@@ -307,23 +375,32 @@ async function noteIds(client, { experiment, case: caseId }) {
 /** What the judge made of the run: the judged cases' means, the cases it could not judge, and the clarifies, which it does not judge. */
 function relevanceLine(r) {
   const parts = [
-    ...(r.judged ? [`${r.judged} judged, mean relevance ${r.mean_relevance}, mean unrelated ${r.mean_unrelated}, ${r.judge_tokens} judge input tokens (${r.judge_models.join(", ")})`] : []),
+    // (pooled: over every judged answer of every run, apart from the repetitions line's mean of the runs' own means)
+    ...(r.judged ? [`${r.judged} judged, pooled mean relevance ${r.mean_relevance}, pooled mean unrelated ${r.mean_unrelated}, ${r.judge_tokens} judge input tokens (${r.judge_models.join(", ")})`] : []),
     ...(r.unavailable ? [`judge unavailable for ${r.unavailable} ${r.unavailable === 1 ? "case" : "cases"}`] : []),
   ];
   return [...(parts.length ? parts : ["no case judged"]), `asked to clarify: ${r.clarified}`].join("; ");
 }
 
+/** A metric over the runs of a repetition: its mean, and its worst run in brackets. */
+const meanWorst = (m) => `${m.mean ?? "n/a"} (${m.worst ?? "n/a"})`;
+
 /** The run in a few lines of Markdown, for the job summary. */
-export function summary({ experiment, url, trigger, model, commit, counts: c, failures, sync, relevance: r }) {
+export function summary({ experiment, url, trigger, model, commit, counts: c, failures, sync, relevance: r, answer_rate, repetitions: reps }) {
+  const failure = (f) => (typeof f === "string" ? f : `${f.id} (${f.failed} of ${reps.n} runs)`);
   return [
     `### Ask evals: ${experiment}`,
     "",
     `Trigger: ${trigger}, model \`${model}\`, commit ${commit.slice(0, 7)}. [Open the experiment in LangSmith](${url})`,
     "",
-    `- Answered: ${c.quality} (${c.pass} passed, ${c.fail} failed)`,
+    // (every reply with the outcome quality, a refusal or a decline too: the answer rate's "answered" is narrower)
+    `- Replied (outcome quality): ${c.quality} (${c.pass} passed, ${c.fail} failed)`,
     `- Unavailable: ${c.unavailable}. Budget reached: ${c.budget}. Download failed: ${c.download_failed}.`,
-    ...(failures.length ? [`- Failed: ${failures.join(", ")}`] : []),
+    ...(failures.length ? [`- Failed: ${failures.map(failure).join(", ")}`] : []),
+    `- Answer rate, pooled: ${answer_rate ?? "n/a"} (${c.answered} of the ${c.should_answer} questions Ask should answer got an answer or a clarifying question, not a decline or a refusal).`,
     `- Relevance (Jev): ${relevanceLine(r)}.`,
+    `- Relevance gate (Jev): ${r.gate_tokens} input tokens.`,
+    ...(reps ? [`- Repetitions: ${reps.n}. Mean of runs (worst run): pass rate ${meanWorst(reps.pass_rate)}, relevance ${meanWorst(reps.mean_relevance)}, unrelated ${meanWorst(reps.mean_unrelated)}, answer rate ${meanWorst(reps.answer_rate)}.`] : []),
     ...(sync ? [`- Dataset synced from main: ${sync.created} added, ${sync.updated} updated, ${sync.removed} removed.`] : []),
     "",
   ].join("\n");
@@ -333,7 +410,7 @@ export function summary({ experiment, url, trigger, model, commit, counts: c, fa
 export function runOptions(args) {
   let values;
   try {
-    ({ values } = parseArgs({ args, options: { trigger: { type: "string" }, pr: { type: "string" }, sync: { type: "boolean", default: false }, commit: { type: "string" }, model: { type: "string" }, out: { type: "string" } } }));
+    ({ values } = parseArgs({ args, options: { trigger: { type: "string" }, pr: { type: "string" }, sync: { type: "boolean", default: false }, commit: { type: "string" }, model: { type: "string" }, repetitions: { type: "string" }, out: { type: "string" } } }));
   } catch (err) {
     throw usageError(`${err.message}\n${USAGE}`);
   }
@@ -341,8 +418,9 @@ export function runOptions(args) {
   if (values.trigger === "pr" ? !/^[1-9]\d*$/.test(values.pr ?? "") : values.pr !== undefined) throw usageError(`--pr N (the pull request's number) goes with --trigger pr, and only with it\n${USAGE}`);
   if (values.commit !== undefined && !/^[0-9a-f]{40}$/.test(values.commit)) throw usageError(`--commit takes a full commit SHA (40 lowercase hex characters)\n${USAGE}`);
   if (values.model !== undefined && !MODEL_ID.test(values.model)) throw usageError(`--model must look like vendor/model\n${USAGE}`);
+  if (values.repetitions !== undefined && (values.trigger !== "manual" || !/^[1-3]$/.test(values.repetitions))) throw usageError(`--repetitions N (1 to 3) goes with --trigger manual only\n${USAGE}`);
   const commit = values.commit ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-  return { trigger: values.trigger, pr: values.pr ? Number(values.pr) : null, sync: values.sync, commit, model: values.model ?? MODEL, out: values.out };
+  return { trigger: values.trigger, pr: values.pr ? Number(values.pr) : null, sync: values.sync, commit, model: values.model ?? MODEL, out: values.out, repetitions: Number(values.repetitions ?? 1) };
 }
 
 async function main(argv) {

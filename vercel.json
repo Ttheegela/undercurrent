@@ -3,7 +3,7 @@
   "installCommand": "true",
   "functions": {
     "api/ask.js": {
-      "includeFiles": "{data/lists/*.json,data/research-index.json,data/changes/changes.json,data/site-stats.json,data/ask-docs.json,stories/chips-into-russia/data/*.json}",
+      "includeFiles": "{data/lists/*.json,data/research-index.json,data/changes/changes.json,data/site-stats.json,data/ask-docs.json,stories/chips-into-russia/data/*.json,stories/shadow-fleet/network/fleet-data.json,stories/who-lobbies/influence-network/kg.json}",
       "maxDuration": 30
     }
   },

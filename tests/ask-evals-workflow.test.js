@@ -54,7 +54,7 @@ const secretLines = (lines) => lines.map((l) => l.trim()).filter((l) => !l.start
 
 // ---- what the workflow is -------------------------------------------------------------------------------------------------
 
-test("it runs weekly on Monday, by hand (with an optional model to compare, or the judge check instead), once per opened or ready PR that touches Ask, and on a push of the notes to main", () => {
+test("it runs weekly on Monday, by hand (with an optional model to compare and a number of repetitions, or the judge check instead), once per opened or ready PR that touches Ask, and on a push of the notes to main", () => {
   assert.deepEqual(block(TOP.split("\n"), "on:"), [
     "schedule:",
     '- cron: "0 13 * * 1"',
@@ -70,6 +70,11 @@ test("it runs weekly on Monday, by hand (with an optional model to compare, or t
     "type: choice",
     "options: [evals, judge-check]",
     "default: evals",
+    "repetitions:",
+    'description: "How many times to run each case, for a mean and a worst run (the evals only)"',
+    "type: choice",
+    'options: ["1", "2", "3"]',
+    'default: "1"',
     "pull_request:",
     "types: [opened, ready_for_review]",
     "paths:",
@@ -162,8 +167,8 @@ test("evals runs on schedule, dispatch and same-repo PRs that are not drafts, an
   assert.equal(runs({ event_name: "workflow_dispatch", event: {} }, { task: "judge-check", model: "" }), false);
 });
 
-test("evals gets 20 minutes, one concurrency group per ref that never cancels a run, and uploads the result", () => {
-  assert.ok(JOBS.evals.includes("    timeout-minutes: 20"));
+test("evals gets 45 minutes (three repetitions of every case), one concurrency group per ref that never cancels a run, and uploads the result", () => {
+  assert.ok(JOBS.evals.includes("    timeout-minutes: 45"));
   // main's runs (weekly, and a dispatch on main) share refs/heads/main, a PR has refs/pull/N/merge, so two syncs cannot overlap
   assert.deepEqual(block(JOBS.evals, "    concurrency:"), ["group: ask-evals-${{ github.ref }}", "cancel-in-progress: false"]);
   assert.ok(JOBS.evals.includes("      - run: npm ci"));
@@ -225,6 +230,22 @@ test("a model input that is not vendor/model fails the step with a fixed message
     assert.throws(() => runnerArgs({ SHA, EVENT: "workflow_dispatch", REF: "refs/heads/main", MODEL_ID: value }), (e) => {
       assert.equal(e.status, 1, JSON.stringify(value));
       assert.equal(e.stdout.toString(), "::error::The model input must look like vendor/model.\n", JSON.stringify(value)); // (fixed: the value is not echoed)
+      return true;
+    });
+  }
+});
+
+test("a dispatch's repetitions input reaches the runner as --repetitions, through env; anything but 1, 2 or 3 stops the step with a fixed message", () => {
+  assert.ok(step("evals", "Run the evals").includes("          REPETITIONS: ${{ inputs.repetitions }}"));
+  const got = (env) => runnerArgs({ SHA, ...env }).slice(0, -1); // (the last is the --out path)
+  for (const n of ["1", "2", "3"]) assert.deepEqual(got({ EVENT: "workflow_dispatch", REF: "refs/heads/main", REPETITIONS: n }), OUT(["--trigger", "manual", "--commit", SHA, "--sync", "--repetitions", n]));
+  const id = "deepseek/deepseek-v4.1-flash";
+  assert.deepEqual(got({ EVENT: "workflow_dispatch", REF: "refs/heads/feat/x", MODEL_ID: id, REPETITIONS: "3" }), OUT(["--trigger", "manual", "--commit", SHA, "--model", id, "--repetitions", "3"]));
+  assert.deepEqual(got({ EVENT: "schedule", REF: "refs/heads/main" }), OUT(["--trigger", "weekly", "--commit", SHA, "--sync"])); // (no input outside a dispatch)
+  for (const value of ["0", "4", "10", "1; id", "$(id)", "--sync", " 2", "2\n", "two"]) {
+    assert.throws(() => runnerArgs({ SHA, EVENT: "workflow_dispatch", REF: "refs/heads/main", REPETITIONS: value }), (e) => {
+      assert.equal(e.status, 1, JSON.stringify(value));
+      assert.equal(e.stdout.toString(), "::error::The repetitions input must be 1, 2 or 3.\n", JSON.stringify(value)); // (fixed: the value is not echoed)
       return true;
     });
   }

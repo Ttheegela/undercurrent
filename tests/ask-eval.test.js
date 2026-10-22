@@ -11,7 +11,8 @@ import { createServer } from "node:http";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { checkAnswer } from "../api/_ask_check.js";
-import { groundingProblems, REFUSAL, FALLBACK, CLARIFY, NOT_ADVICE } from "../scripts/ask-oracle.mjs";
+import { groundingProblems, REFUSAL, FALLBACK, CLARIFY, NOT_ADVICE, NOTHING_ANSWERS } from "../scripts/ask-oracle.mjs";
+import { holds, judge } from "../scripts/ask-judge.mjs";
 
 const CASES = JSON.parse(readFileSync(new URL("./ask-eval.json", import.meta.url), "utf8"));
 const SCRIPT = fileURLToPath(new URL("../scripts/ask-live-eval.mjs", import.meta.url));
@@ -56,7 +57,10 @@ test("every case is well formed, and its evidence is the tools' own S1, S2, … 
     assert.ok(Array.isArray(c.evidence), c.id);
     assert.ok(c.model === null || typeof c.model === "object", `${c.id}: model`);
     assert.ok(["answer", "refusal", "clarify", "fallback"].includes(c.expect?.kind), `${c.id}: expect.kind`);
-    for (const key of ["includes", "excludes"]) assert.ok(c.expect[key] === undefined || (Array.isArray(c.expect[key]) && c.expect[key].every((s) => typeof s === "string" && s)), `${c.id}: expect.${key}`);
+    // an include is a phrase, or a list of phrases any one of which will do (an answer that can rightly take either of two shapes)
+    const phrase = (s) => typeof s === "string" && s;
+    assert.ok(c.expect.includes === undefined || (Array.isArray(c.expect.includes) && c.expect.includes.every((s) => phrase(s) || (Array.isArray(s) && s.length > 1 && s.every(phrase)))), `${c.id}: expect.includes`);
+    assert.ok(c.expect.excludes === undefined || (Array.isArray(c.expect.excludes) && c.expect.excludes.every(phrase)), `${c.id}: expect.excludes`);
     assert.ok(c.expect.fallback === undefined || c.expect.fallback === true, `${c.id}: expect.fallback`);
     // (a fallback is allowed only by expect.fallback: true, the one flag the live script reads)
     assert.ok(c.expect.also === undefined || (Array.isArray(c.expect.also) && c.expect.also.length && c.expect.also.every((k) => ["answer", "refusal", "clarify"].includes(k) && k !== c.expect.kind)), `${c.id}: expect.also`);
@@ -86,7 +90,7 @@ for (const c of CASES) {
     assert.equal(out.kind, c.expect.kind, `${c.id}: kind`);
     assertNoLeak(c, out);
     const text = out.sentences.map((s) => s.text).join("\n").toLowerCase();
-    for (const s of c.expect.includes ?? []) assert.ok(text.includes(s.toLowerCase()), `${c.id}: missing ${JSON.stringify(s)} in ${JSON.stringify(text.slice(0, 300))}`);
+    for (const s of c.expect.includes ?? []) assert.ok(holds(text, s), `${c.id}: missing ${JSON.stringify(s)} in ${JSON.stringify(text.slice(0, 300))}`);
     for (const s of c.expect.excludes ?? []) assert.ok(!text.includes(s.toLowerCase()), `${c.id}: contains ${JSON.stringify(s)}`);
     // the fixed answers are exactly their copy
     if (out.kind === "refusal") assert.deepEqual(out, { kind: "refusal", sentences: [{ text: REFUSAL, sources: [] }], next: [] }); // (no notice on a refusal)
@@ -98,9 +102,69 @@ for (const c of CASES) {
   });
 }
 
-// ---- the live runner (against a stub server on this machine; nothing leaves it) --------------------------------------------
+// ---- the server's claims in the live set --------------------------------------------------------------------------------
 
 const LIVE = CASES.filter((c) => c.live !== false);
+const rendered = (c) => endpoint(c).sentences.map((s) => s.text);
+
+test("the new claims have live cases: an undated US age, a UK transfer-date age, EU-listed ships, ships under two flags, a programme with no records, and nothing answering", () => {
+  const shapes = {
+    "an undated US listing": /^The United States list gives no listing date for /,
+    "a UK transfer date": / \(since 31 Dec 2020\) \(the UK list's transfer date; the listing may be older\)\.$/,
+    "EU-listed ships": /^[\d,]+ ships in Undercurrent's research map are listed by the European Union\.$/,
+    "a flag by at least one source": /^[\d,]+ ships in Undercurrent's research map are recorded as [A-Z][a-z]+-flagged by at least one source\.$/,
+    "a programme with no records": /^No programme on the [A-Za-z ]+ list is named [A-Z]/,
+    "nothing answering": { test: (t) => t === NOTHING_ANSWERS },
+  };
+  for (const [what, shape] of Object.entries(shapes)) assert.ok(LIVE.some((c) => rendered(c).some((t) => shape.test(t))), what);
+  // a ship under two flags: an example of a flag count whose own head line gives another flag
+  assert.ok(LIVE.some((c) => c.evidence.some((n) => n.filters?.flag && c.evidence.some((e) => e.result === n.id && /, flag [^)]+\) in /.test(e.text) && !e.text.includes(`, flag ${n.filters.flag.label}) in `)))));
+});
+
+test("a live case whose recorded answer counts, ages or says none expects that sentence (its fixed parts), and no fallback", () => {
+  const CLAIMS = ["count", "age", "none_matched"];
+  const cases = LIVE.filter((c) => c.model?.sentences?.some((s) => CLAIMS.includes(s.claim)));
+  assert.ok(cases.length >= 15, `${cases.length} cases`);
+  for (const c of cases) {
+    assert.deepEqual([c.expect.kind, c.expect.fallback], ["answer", undefined], c.id);
+    // the lines those claims write from the recorded evidence: an include must be one of them, or a part of one
+    const own = { ...c.model, sentences: c.model.sentences.filter((s) => CLAIMS.includes(s.claim)) };
+    const lines = endpoint({ ...c, model: own }).sentences.filter((s) => s.sources.length).map((s) => s.text.toLowerCase());
+    assert.ok(lines.length, c.id);
+    assert.ok((c.expect.includes ?? []).some((s) => lines.some((line) => holds(line, s))), `${c.id}: no include is in ${JSON.stringify(lines)}`);
+  }
+});
+
+// Numbers no night can move, each with why. Anything else in a live include (a count, a total, a "Showing N of M" line, an age, the date
+// of an update) moves with the nightly data or the run date, so there the include holds the sentence's fixed parts only.
+const STABLE = [
+  [/\bsince \d{1,2} [A-Z][a-z]{2} \d{4}\b/g, "a listing's own date"],
+  [/^Daily updates started on 20 Oct 2026, so /g, "the record's first night, which never moves"],
+  [/\bIMO 1234567\b/g, "the reader's own number, from the question"],
+  [/\b50% or more\b/g, "the 50% rule's wording on its explainer page"],
+];
+
+test("final review I1: a live include holds no number the nightly data or the run date can move", () => {
+  for (const c of LIVE) {
+    for (const s of (c.expect.includes ?? []).flat()) assert.doesNotMatch(STABLE.reduce((t, [re]) => t.replace(re, ""), s), /\d/, `${c.id}: ${s}`);
+  }
+});
+
+const pick = (v) => [v.kindOk, v.excludesOk, v.includesOk];
+
+test("final review I1: relevance-1 takes the none line, or the list of updates that involve Iran when a night records some", () => {
+  const c = LIVE.find((x) => x.id === "relevance-1");
+  const said = (...texts) => ({ ok: true, answer: { kind: "answer", sentences: texts.map((text) => ({ text, sources: [{ n: 1, label: "Stub", url: "/" }] })), next: [] } });
+  const none = ["None of the 0 updates recorded between 20 Oct 2026 and 21 Oct 2026 involve Iran.", "10 updates in that period can't be checked against Iran."];
+  const listed = ["US listed ANEMOS (IMO 9205952) · 22 Oct 2026", "New link: PRIDE → ROXETTE MARITIME SHIPPING AND TRADING S.A. (linked to) · 22 Oct 2026"]; // (22 Oct's)
+  for (const texts of [none, listed]) assert.deepEqual(pick(judge(c, said(...texts))), [true, true, true], texts[0]);
+  // the lobbying updates are still wrong, and a listing line is the wrong shape: excluded, and no answer to it
+  assert.deepEqual(pick(judge(c, said("NVIDIA lobbied on H.R.8800 · 20 Oct 2026"))), [true, false, true]);
+  assert.deepEqual(pick(judge(c, said("TASSOS appears on the United States list under Iran."))), [true, false, false]);
+});
+
+// ---- the live runner (against a stub server on this machine; nothing leaves it) --------------------------------------------
+
 const run = (args) => new Promise((resolve) => {
   execFile(process.execPath, [SCRIPT, ...args], { timeout: 60_000, env: { PATH: process.env.PATH } }, (err, stdout, stderr) => resolve({ code: err ? (typeof err.code === "number" ? err.code : 1) : 0, stdout, stderr }));
 });
@@ -130,15 +194,15 @@ async function withSite(reply, fn) {
 const says = (kind, text = "Stub answer.") => [200, { ok: true, answer: { kind, sentences: [{ text, sources: [{ n: 1, label: "Stub", url: "/" }] }], next: [] } }];
 const byQuestion = (body) => LIVE.find((c) => c.question === body.messages?.[0]?.text);
 
-test("live runner: the 39 questions go in two batches an hour apart, each within one hour's limit of 20", async () => {
-  assert.equal(LIVE.length, 39);
+test("live runner: the 45 questions go in three batches an hour apart, each within one hour's limit of 20", async () => {
+  assert.equal(LIVE.length, 45);
   const questions = LIVE.map((c) => c.question);
   assert.equal(new Set(questions).size, questions.length, "a question is posted twice");
   for (const q of SPEC_QUESTIONS) assert.ok(questions.includes(q), `${q} is not live`);
   const { code, stdout } = await run(["--dry-run"]);
   assert.equal(code, 0);
   const batches = [...stdout.matchAll(/^ {2}--only (\S+)$/gm)].map((m) => m[1].split(","));
-  assert.deepEqual(batches.map((b) => b.length), [20, 19]);
+  assert.deepEqual(batches.map((b) => b.length), [20, 20, 5]);
   assert.deepEqual(batches.flat(), LIVE.map((c) => c.id)); // every live case once
 });
 
@@ -153,7 +217,7 @@ test("live runner: --dry-run prints the plan and posts nothing", async () => {
   const { code, stdout } = await run(["--base", "https://undercurrent.invalid", "--dry-run"]);
   assert.equal(code, 0);
   for (const c of LIVE) assert.ok(stdout.includes(c.id) && stdout.includes(c.question), c.id);
-  assert.match(stdout, /39 questions/);
+  assert.match(stdout, /45 questions/);
   assert.ok(!CASES.filter((c) => c.live === false).some((c) => stdout.includes(`${c.id} `)), "an offline-only case is in the plan");
 });
 
@@ -216,6 +280,19 @@ test("live runner: --limit-check counts the answers that fell back; a fallback t
     assert.equal(code, 1, "a fallback where an answer was expected is a failure");
     assert.match(stdout, /FALLBACK[^\n]*1 of 1/i);
   });
+});
+
+test("live runner: an answer of only the line that nothing recorded answers is a decline: counted with the fallbacks, and a failure where the case allows none", async () => {
+  const nothing = [200, { ok: true, answer: { kind: "answer", sentences: [{ text: NOTHING_ANSWERS, sources: [] }], next: [] } }];
+  const allowed = LIVE.find((x) => x.expect.kind === "answer" && x.expect.fallback === true);
+  const strict = LIVE.find((x) => x.expect.kind === "answer" && !x.expect.fallback);
+  for (const [c, code] of [[allowed, 0], [strict, 1]]) {
+    await withSite(() => nothing, async (base) => {
+      const { code: got, stdout } = await run(["--base", base, "--only", c.id, "--limit-check"]);
+      assert.equal(got, code, stdout);
+      assert.match(stdout, /FALLBACK[^\n]*1 of 1/i);
+    });
+  }
 });
 
 test("live runner: off-topic-1 passes as a refusal or as an answer that ends with the advice notice, and fails otherwise", async () => {

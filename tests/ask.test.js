@@ -1,6 +1,7 @@
 // POST /api/ask end to end, with `fetch` stubbed as a fake OpenRouter that returns scripted tool calls and answers built from the
 // evidence ids the real tools handed back. The site is a small one on disk (the tools read it from process.cwd()); OpenSanctions
-// is stubbed too. The key is a fake one set inside each test. Nothing here reaches the network.
+// is stubbed too. The key is a fake one set inside each test. TYPESAFE_API_KEY is unset, so the relevance gate logs its fixed line and
+// leaves answers as they are, except where a test sets it and stubs TypeSafe too. Nothing here reaches the network.
 import { test, before, after, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
 import { gzipSync } from "node:zlib";
@@ -11,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GET, POST, MODEL, runAsk, visitors } from "../api/ask.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
-import { TOOLS, resetAskCache } from "../api/_ask_tools.js";
+import { TOOLS, SHIP_TYPES, resetAskCache } from "../api/_ask_tools.js";
 import { INDEX_URL, resetIndexCache } from "../api/search.js";
 import { CONNECTIONS_URL, LOBBYING_URL, resetConnectionsCache } from "../api/connections.js";
 import { normalizeName } from "../app/normalize.js";
@@ -130,7 +131,7 @@ async function inZone(zone, fn) {
 const home = process.cwd();
 let root;
 let logged; // everything the endpoint wrote to the console
-const saved = { OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY, ASK_PUBLIC: process.env.ASK_PUBLIC };
+const saved = { OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY, ASK_PUBLIC: process.env.ASK_PUBLIC, TYPESAFE_API_KEY: process.env.TYPESAFE_API_KEY };
 before(() => {
   root = mkdtempSync(join(tmpdir(), "ask-endpoint-"));
   for (const [id, records] of Object.entries(LISTS)) write(root, `data/lists/${id}.json`, { list: id, records });
@@ -139,6 +140,8 @@ before(() => {
   write(root, "data/changes/changes.json", CHANGES);
   write(root, "data/site-stats.json", { fleet: { ships: 1, companies: 1 }, generated: "2026-10-20", opensanctions_sources: 95 });
   write(root, "data/ask-docs.json", DOCS);
+  // the research tool's schema names the map's programme groups, from the map
+  write(root, "stories/shadow-fleet/network/fleet-data.json", { nodes: [{ id: "IMO9408695", name: "TASSOS", programs: ["russia", "iran"] }], edges: [] });
   process.chdir(root);
 });
 after(() => {
@@ -148,6 +151,7 @@ after(() => {
 beforeEach(() => {
   process.env.OPENROUTER_API_KEY = KEY;
   delete process.env.ASK_PUBLIC;
+  delete process.env.TYPESAFE_API_KEY;
   ip = `203.0.113.${++visitor % 250}`;
   visitors.clear();
   indexFetch = indexOk;
@@ -326,7 +330,9 @@ test("check_lists then answer gives a rendered listed sentence", async () => {
   assert.deepEqual(out.answer.sentences.map((s) => s.text), [
     "TASSOS appears on the United States list under Iran.",
     "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.",
+    "Showing 2 of 4.", // two of the fixture search's four matches
   ]);
+  assert.deepEqual(out.answer.sentences[2].sources, []);
   assert.match(out.answer.sentences[0].sources[0].url, /Details\.aspx\?id=54815/);
   assert.match(out.answer.sentences[1].sources[0].url, /RUS3483/);
   assert.equal(out.answer.next.length, 1);
@@ -377,7 +383,7 @@ test("forces answer after 4 tool rounds", async () => {
   assert.deepEqual(sent.slice(0, 4).map((s) => s.body.tool_choice), ["auto", "auto", "auto", "auto"]);
   assert.deepEqual(sent[4].body.tool_choice, FORCE_ANSWER);
   assert.equal(out.answer.kind, "answer");
-  assert.equal(out.answer.sentences.length, 2);
+  assert.equal(out.answer.sentences.length, 3); // two listings and "Showing 2 of 4."
   // a forced call that still is not an answer is the fallback, and there is never a sixth call
   openrouter(round, round, round, round, { choices: [{ message: { role: "assistant", content: "TASSOS is fine." } }] });
   const none = (await run(ask("Is TASSOS sanctioned?"))).json.answer;
@@ -695,7 +701,8 @@ test("every model call has a 20 s timeout, and no call starts in the last 3 s of
   openrouter(slow(23_500), listedAnswer); // 2.5 s left: too little for a call to finish
   assert.deepEqual((await run(ask("Is TASSOS sanctioned?"))).json, { ok: false, reason: "unavailable" });
   assert.equal(sent.length, 1);
-  assert.deepEqual(logged, []); // it stopped before calling, rather than calling and failing
+  // the two that stopped did so before calling, rather than calling and failing; the line is the first one's gate, which has no key here
+  assert.deepEqual(logged, ["ask: relevance gate unavailable"]);
 });
 
 test("a stalled tool cannot hold the request past 26 s", async () => {
@@ -797,7 +804,7 @@ test("request carries model, max_tokens 800, provider.data_collection deny, no u
 });
 
 test("the system prompt is short, scoped, and carries today's date", () => {
-  assert.ok(SYSTEM_PROMPT.length < 2500, `${SYSTEM_PROMPT.length} characters`);
+  assert.ok(SYSTEM_PROMPT.length < 3500, `${SYSTEM_PROMPT.length} characters`);
   assert.match(SYSTEM_PROMPT, /\{today\}/);
   // the second eval run (area-lobbying-1) cited lobbying items as listed: a listing is cited only from list items, the rest are quotes
   assert.match(SYSTEM_PROMPT, /^- listed: .*Cite only its list, research or OpenSanctions items, never connections, lobbying or chips items\.$/m);
@@ -805,6 +812,20 @@ test("the system prompt is short, scoped, and carries today's date", () => {
   for (const { function: { name } } of TOOLS) assert.ok(SYSTEM_PROMPT.includes(name), `the prompt does not name the ${name} tool`);
   assert.doesNotMatch(SYSTEM_PROMPT, /sk-or|OPENROUTER|Sayari|Tradeverifyd|\bteam\b/i);
   assert.doesNotMatch(SYSTEM_PROMPT, /never "sanctioned"/); // the model writes no words, so wording rules for it are dead weight (final wave)
+});
+
+test("the prompt names each claim and the research tool, and stays under 3500 characters", () => {
+  assert.ok(SYSTEM_PROMPT.length < 3500, `${SYSTEM_PROMPT.length} characters`);
+  const answerTool = TOOLS.find((t) => t.function.name === "answer").function;
+  for (const claim of answerTool.parameters.properties.sentences.items.properties.claim.enum) assert.match(SYSTEM_PROMPT, new RegExp(`^- ${claim}: `, "m"), claim);
+  // the new parameters, and the closed values the tools take (the map's groups are named by the research tool itself, from the map)
+  for (const word of ["research", "programme", "listed_by", "flag", "ship_type", "names_changed", "topic", ...Object.keys(SHIP_TYPES)]) assert.ok(SYSTEM_PROMPT.includes(word), word);
+  assert.match(SYSTEM_PROMPT, /\bus, uk or eu\b/);
+  assert.ok(SYSTEM_PROMPT.includes("If no record answers the question, finish with an answer that has no sentences."));
+  // the updates' topic is what the tool can check: a programme that names a country (Syria, Cuba) is an error there, never a none
+  const topic = "a programme group, or a country with no programme of its own (such as Panama)";
+  assert.ok(SYSTEM_PROMPT.includes(topic));
+  assert.ok(TOOLS.find((t) => t.function.name === "changes").function.parameters.properties.topic.description.includes(topic));
 });
 
 // ---- privacy -----------------------------------------------------------------------------------------------------
@@ -863,7 +884,7 @@ test("runAsk without wrap gives the same reply as POST for the same stubbed mode
   }
 });
 
-test("runAsk calls wrap once each for callModel, runTool and checkAnswer, and uses what it returns", async () => {
+test("runAsk calls wrap once each for callModel, runTool, checkAnswer and gate, and uses what it returns", async () => {
   const SENTINEL = { kind: "sentinel" };
   const wrapped = [];
   const calls = { callModel: 0, runTool: 0 };
@@ -874,19 +895,135 @@ test("runAsk calls wrap once each for callModel, runTool and checkAnswer, and us
     return (...args) => (calls[name]++, fn(...args));
   };
   openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
-  assert.deepEqual(await runAsk(history("Is TASSOS sanctioned?"), new Date(Date.now()), { wrap }), { ok: true, answer: SENTINEL });
-  assert.deepEqual(wrapped.sort(), ["callModel", "checkAnswer", "runTool"]);
-  assert.deepEqual(calls, { callModel: 2, runTool: 1 });
+  assert.deepEqual(await runAsk(history("Is TASSOS sanctioned?"), new Date("2026-10-21T23:59:59Z"), { wrap }), { ok: true, answer: SENTINEL });
+  assert.deepEqual(wrapped.sort(), ["callModel", "checkAnswer", "gate", "runTool"]);
+  assert.deepEqual(calls, { callModel: 2, runTool: 1 }); // (the gate is wrapped, and called only for an answer)
   assert.equal(sent.length, 2);
   assert.equal(checked[0].kind, "answer");
   assert.ok(checked[1].length > 0); // the evidence check_lists returned
-  assert.deepEqual(checked[2], { question: "Is TASSOS sanctioned?" });
+  assert.deepEqual(checked[2], { question: "Is TASSOS sanctioned?", today: "2026-10-21", toolFailed: false }); // ages count to the request's date (UTC)
   // once a request, whether or not a tool runs
   wrapped.length = 0;
   openrouter(answer({ kind: "refusal", sentences: [] }));
   assert.deepEqual(await runAsk(history("hi"), new Date(Date.now()), { wrap }), { ok: true, answer: SENTINEL });
-  assert.deepEqual(wrapped.sort(), ["callModel", "checkAnswer", "runTool"]);
+  assert.deepEqual(wrapped.sort(), ["callModel", "checkAnswer", "gate", "runTool"]);
   assert.deepEqual(calls, { callModel: 3, runTool: 1 });
+});
+
+const TYPESAFE = "https://api.typesafe.ai/v1/systemone";
+/** TypeSafe beside the fake OpenRouter: each request is recorded, and a sentence is judged unrelated when `drop(text)`. */
+function withTypesafe(drop) {
+  const judged = [];
+  const model = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    if (url !== TYPESAFE) return model(url, init);
+    const body = JSON.parse(init.body);
+    judged.push({ authorization: new Headers(init.headers).get("authorization"), body });
+    const answers = Object.fromEntries(body.state.sentences.map((s) => [`s${s.i}`, { type: "noul", noul: drop(s.text) ? 0.05 : 0.95 }]));
+    return json({ model: "jev-1.13.0", answers, usage: { input_tokens: 120, output_tokens: 6 } });
+  };
+  return judged;
+}
+
+test("runAsk wraps the gate as \"gate\" and POST still passes no model", async () => {
+  process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
+  const US = "TASSOS appears on the United States list under Iran.";
+  const flow = () => [reply(call("check_lists", { query: "TASSOS" })), listedAnswer]; // a listed sentence for each of its two records
+  const gated = [];
+  const wrap = (name, fn) => (name === "gate" ? (...args) => (gated.push(args), fn(...args)) : fn);
+  openrouter(...flow());
+  let judged = withTypesafe((text) => text !== US); // the UK record is judged unrelated to a question about the US list
+  const out = await runAsk(history("Is TASSOS on the US list?"), new Date(Date.now()), { wrap });
+  assert.deepEqual(out.answer.sentences, [
+    { text: US, sources: [{ n: 1, label: "United States list · TASSOS", url: "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=54815" }] },
+    { text: "Showing 1 of 4.", sources: [] }, // (it was 2 of 4 with the UK record)
+  ]);
+  // the gate was handed the question and the checker's answer, and no key: it reads TYPESAFE_API_KEY itself
+  assert.equal(gated.length, 1);
+  const [question, checked, options] = gated[0];
+  assert.deepEqual([question, checked.kind, checked.sentences.filter((s) => s.sources.length).length], ["Is TASSOS on the US list?", "answer", 2]);
+  assert.equal("apiKey" in options, false);
+  assert.deepEqual(judged.map((j) => [j.authorization, j.body.state.question]), [["Bearer ts-fake-key-for-tests-only", "Is TASSOS on the US list?"]]);
+  // only an answer is gated: a refusal never reaches it
+  openrouter(answer({ kind: "refusal", sentences: [] }));
+  judged = withTypesafe(() => true);
+  assert.equal((await runAsk(history("hi"), new Date(Date.now()), { wrap })).answer.kind, "refusal");
+  assert.deepEqual([gated.length, judged.length], [1, 0]);
+  // POST passes runAsk no wrap and no model: it is gated the same, and the site's MODEL is sent
+  openrouter(...flow());
+  judged = withTypesafe((text) => text !== US);
+  const { json: body } = await run(ask("Is TASSOS on the US list?"));
+  assert.deepEqual(body, out);
+  assert.deepEqual(sent.map((s) => s.body.model), [MODEL, MODEL]);
+  assert.equal(judged.length, 1);
+  assert.deepEqual([logged.filter((line) => line.startsWith("ask")), other], [[], []]); // (Node's own warnings aside)
+});
+
+test("final review I2: a follow-up skips the gate: no TypeSafe call, the answer as the checker wrote it, and the gate step marked skipped", async () => {
+  process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
+  const CHECKED = ["TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4."];
+  // "And the other one?" can't be judged without the turns before it, and only the latest question is ever sent
+  const followUp = [
+    { role: "user", content: "Is TASSOS sanctioned?" }, { role: "assistant", content: "TASSOS appears on the United States list under Iran." },
+    { role: "user", content: "And the other one?" },
+  ];
+  const gated = [];
+  const wrap = (name, fn) => (name === "gate" ? (...args) => (gated.push(args), fn(...args)) : fn);
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
+  let judged = withTypesafe(() => true); // (it would drop every sentence)
+  const out = await runAsk(followUp, new Date(Date.now()), { wrap });
+  assert.deepEqual([judged.length, out.answer.sentences.map((s) => s.text)], [0, CHECKED]);
+  // the step still runs, handed the answer and the reason (and sends nothing on: the trace records the answer and the reason only)
+  assert.equal(gated.length, 1);
+  assert.deepEqual(gated[0], ["And the other one?", out.answer, { skipped: "follow-up" }]);
+  // through POST too, and nothing is logged: the gate was not unavailable, it was not asked
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
+  judged = withTypesafe(() => true);
+  const { json: body } = await run({ messages: followUp.map(({ role, content }) => ({ role, text: content })) });
+  assert.deepEqual([judged.length, body.answer.sentences.map((s) => s.text)], [0, CHECKED]);
+  assert.deepEqual(logged.filter((line) => line.startsWith("ask")), []);
+  // a history of one question still gates
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
+  judged = withTypesafe(() => true);
+  const one = await runAsk([{ role: "user", content: "Is TASSOS sanctioned?" }], new Date(Date.now()));
+  assert.deepEqual([judged.length, one.answer.sentences.map((s) => s.text)], [1, ["Nothing recorded on this site answers that."]]);
+});
+
+test("a gate that drops every sentence after a tool failed gives the fallback, not that nothing answers", async () => {
+  process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
+  // check_lists hands back TASSOS's records, the research call fails (no such group), and the gate judges every listing unrelated
+  openrouter(reply(call("check_lists", { query: "TASSOS" }), call("research", { programme: ["Atlantis"] })), listedAnswer);
+  withTypesafe(() => true);
+  const failed = await runAsk(history("How many Atlantis ships is TASSOS grouped with?"), new Date(Date.now()));
+  assert.deepEqual(failed.answer, { kind: "fallback", sentences: [{ text: FALLBACK, sources: [] }], next: [{ label: "Search", href: "/" }] });
+  // with every call answered, the same drop says nothing recorded answers
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
+  withTypesafe(() => true);
+  const checked = await runAsk(history("How many Atlantis ships is TASSOS grouped with?"), new Date(Date.now()));
+  assert.deepEqual(checked.answer.sentences, [{ text: "Nothing recorded on this site answers that.", sources: [] }]);
+});
+
+test("the gate gives up before the request's 26 s are out, so a slow answer is still shown", async () => {
+  process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
+  const real = AbortSignal.timeout.bind(AbortSignal);
+  const budgets = [];
+  mock.method(AbortSignal, "timeout", (ms) => (budgets.push(ms), real(ms)));
+  let now = Date.parse("2026-10-20T10:00:00Z");
+  mock.method(Date, "now", () => now);
+  // the answer comes back with 1 s of the 26 left; TypeSafe never replies, and gives up only when the gate does
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), (body) => {
+    now += 25_000;
+    return listedAnswer(body);
+  });
+  const model = globalThis.fetch;
+  globalThis.fetch = (url, init = {}) => (url === TYPESAFE ? new Promise((_, reject) => init.signal.addEventListener("abort", () => reject(init.signal.reason))) : model(url, init));
+  const out = await runAsk(history("Is TASSOS sanctioned?"), new Date(now));
+  assert.equal(out.ok, true);
+  assert.deepEqual(out.answer.sentences.map((s) => s.text), [ // as the checker wrote it
+    "TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4.",
+  ]);
+  assert.equal(budgets.at(-1), 950); // the gate's: what was left of the 26 s, less 50 ms, not its usual 3 s
+  assert.deepEqual(logged.filter((line) => line.startsWith("ask")), ["ask: relevance gate unavailable"]); // (Node's own warnings aside)
 });
 
 test("the wrapped callModel resolves to {message, usage} with OpenRouter's usage", async () => {
@@ -920,6 +1057,64 @@ test("POST always sends MODEL, whatever the request body holds", async () => {
   const { json: body } = await run({ ...ask("Is TASSOS sanctioned?"), model: "deepseek/deepseek-v4.1-flash" });
   assert.equal(body.ok, true);
   assert.deepEqual(sent.map((s) => s.body.model), [MODEL, MODEL]);
+});
+
+test("Ask stays up if the research map can't be read: the schema names the default groups, and only a research call fails", async () => {
+  const fleet = join(root, "stories/shadow-fleet/network/fleet-data.json");
+  const saved = readFileSync(fleet, "utf8");
+  try {
+    for (const broken of ["not json", null]) { // unparseable, then missing
+      if (broken === null) rmSync(fleet);
+      else writeFileSync(fleet, broken);
+      resetAskCache();
+      logged = [];
+      openrouter(reply(call("research", { programme: ["Iran"] })), (body) => {
+        // the research call is a failed tool, handed to the model like any other
+        assert.equal(typeof JSON.parse(body.messages.find((m) => m.role === "tool").content).error, "string");
+        return answer({ kind: "refusal", sentences: [] });
+      });
+      const out = await runAsk(history("How many Iranian tankers are listed?"), new Date(Date.now()));
+      assert.deepEqual([out.ok, out.answer.kind, sent.length], [true, "refusal", 2], String(broken));
+      for (const { body } of sent) {
+        const { programme } = body.tools.find((t) => t.function.name === "research").function.parameters.properties;
+        assert.equal(programme.description, "Programme groups a ship must all be in. The map's groups: Russia, Iran, Terrorism, Venezuela and North Korea.");
+      }
+      assert.ok(logged.length && logged.every((line) => line === "ask: research groups unavailable, using defaults"), logged.join("\n"));
+    }
+  } finally {
+    writeFileSync(fleet, saved);
+    resetAskCache();
+  }
+});
+
+test("the research schema names only the map's groups: a ship's empty, both or other group is none, and nothing is logged", async () => {
+  const fleet = join(root, "stories/shadow-fleet/network/fleet-data.json");
+  const saved = readFileSync(fleet, "utf8");
+  try {
+    writeFileSync(fleet, JSON.stringify({ nodes: [{ id: "IMO9408695", name: "TASSOS", programs: ["russia", "iran"] }, { id: "IMO1000001", name: "SHIP 1", programs: ["", "both", "other"] }], edges: [] }));
+    resetAskCache();
+    logged = [];
+    openrouter(answer({ kind: "refusal", sentences: [] }));
+    await runAsk(history("How many tankers are listed?"), new Date(Date.now()));
+    const { programme } = sent[0].body.tools.find((t) => t.function.name === "research").function.parameters.properties;
+    assert.equal(programme.description, "Programme groups a ship must all be in. The map's groups: Russia and Iran.");
+    assert.deepEqual(logged, []);
+  } finally {
+    writeFileSync(fleet, saved);
+    resetAskCache();
+  }
+});
+
+test("an answer of no sentences after a failed tool call is the fallback, not that nothing answers", async () => {
+  const empty = answer({ kind: "answer", sentences: [] });
+  // check_lists hands back TASSOS's records; the research call fails (no such group), so not everything asked was checked
+  openrouter(reply(call("check_lists", { query: "TASSOS" }), call("research", { programme: ["Atlantis"] })), empty);
+  const failed = await runAsk(history("How many Atlantis ships is TASSOS grouped with?"), new Date(Date.now()));
+  assert.deepEqual(failed.answer.sentences, [{ text: FALLBACK, sources: [] }]);
+  // the same evidence with every call answered: nothing recorded answers
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), empty);
+  const checked = await runAsk(history("How many Atlantis ships is TASSOS grouped with?"), new Date(Date.now()));
+  assert.deepEqual(checked.answer.sentences, [{ text: "Nothing recorded on this site answers that.", sources: [] }]);
 });
 
 test("nothing under api/ imports langsmith, and package.json has it only in devDependencies", () => {

@@ -4,8 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { checkAnswer } from "../api/_ask_check.js";
-import { judge } from "../scripts/ask-judge.mjs";
-import { groundingProblems, REFUSAL, NOT_ADVICE } from "../scripts/ask-oracle.mjs";
+import { declined, judge } from "../scripts/ask-judge.mjs";
+import { groundingProblems, REFUSAL, NOT_ADVICE, NOTHING_ANSWERS, FALLBACK } from "../scripts/ask-oracle.mjs";
 
 const CASES = JSON.parse(readFileSync(new URL("./ask-eval.json", import.meta.url), "utf8"));
 const byId = (id) => CASES.find((c) => c.id === id);
@@ -53,6 +53,29 @@ test("judge allows a fallback where the case does, and reports includes only whe
   assert.equal(judge(withIncludes, reply(withIncludes.expect.kind, withIncludes.expect.includes[0].toUpperCase())).includesOk, true);
   assert.equal(judge(withIncludes, reply(withIncludes.expect.kind, "nothing")).includesOk, false);
   assert.equal(judge(CASES.find((x) => !x.expect.includes), reply("answer", "x")).includesOk, null);
+});
+
+test("final review I1: an include that is a list of phrases is met by any one of them, case-insensitively", () => {
+  const c = { question: "q", expect: { kind: "answer", includes: ["fixed head", ["involve Iran.", " · "]] } };
+  assert.equal(judge(c, reply("answer", "FIXED HEAD", "None of the 3 updates recorded … INVOLVE IRAN.")).includesOk, true);
+  assert.equal(judge(c, reply("answer", "fixed head", "US listed ANEMOS (IMO 9205952) · 22 Oct 2026")).includesOk, true);
+  assert.equal(judge(c, reply("answer", "fixed head", "Neither shape.")).includesOk, false);
+  assert.equal(judge(c, reply("answer", "involve Iran.")).includesOk, false); // (every include is still needed)
+});
+
+test("an answer of only the line that nothing recorded answers (with or without the advice notice) is a decline, as the fallback is", () => {
+  const listed = "TASSOS appears on the United Kingdom list under Russia.";
+  for (const result of [reply("fallback", FALLBACK), reply("answer", NOTHING_ANSWERS), reply("answer", NOTHING_ANSWERS, NOT_ADVICE)]) assert.equal(declined(result.answer), true, JSON.stringify(result));
+  for (const result of [reply("answer", listed), reply("answer", NOTHING_ANSWERS, listed), reply("refusal", REFUSAL), reply("clarify", NOTHING_ANSWERS), reply("answer", NOT_ADVICE)]) assert.equal(declined(result.answer), false, JSON.stringify(result));
+  // the judge: a decline wherever a fallback is, so it passes only where the case allows a fallback
+  const allowed = CASES.find((x) => x.expect.kind === "answer" && x.expect.fallback === true);
+  const strict = CASES.find((x) => x.expect.kind === "answer" && !x.expect.fallback);
+  const v = judge(allowed, reply("answer", NOTHING_ANSWERS));
+  assert.deepEqual([v.kind, v.fallback, v.kindOk, v.problems], ["answer", true, true, []]);
+  const w = judge(strict, reply("answer", NOTHING_ANSWERS, NOT_ADVICE));
+  assert.deepEqual([w.fallback, w.kindOk, w.problems], [true, false, ["expected answer, got answer (only that nothing recorded answers: a decline)"]]);
+  assert.equal(judge(byId("none-2"), reply("answer", NOTHING_ANSWERS)).kindOk, true, "a case that expects the fallback takes either decline");
+  assert.equal(judge(byId("off-topic-1"), reply("answer", NOTHING_ANSWERS, NOT_ADVICE)).kindOk, false, "a decline is not an answer that ends in the notice");
 });
 
 test("judge accepts a kind listed in expect.also, still rejects an unlisted one, and also does nothing when absent", () => {

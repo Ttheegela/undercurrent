@@ -1501,9 +1501,9 @@ test("count renders with its list and topic, and n=0 renders none_matched", () =
   assert.deepEqual(texts(checkAnswer(answer(claim("count", ...all.map((x) => x.id))), E.iran, {})), all.map(iranLine));
   const ukExample = examplesOf(E.iran, all[1])[0];
   assert.deepEqual(checkAnswer(answer(claim("count", all[0].id, ukExample.id)), E.iran, {}).sentences, [{ text: iranLine(all[0]), sources: [{ n: 1, label: all[0].label, url: all[0].url }] }]);
-  // none, and one
-  assert.deepEqual(texts(checkAnswer(answer(claim("count", countOf(E.programmeNone, "us").id)), E.programmeNone, {})), ["None of the records on the United States list are under Al-Qaida programmes."]);
-  assert.deepEqual(texts(checkAnswer(answer(claim("count", countOf(E.programmeOne, "us").id)), E.programmeOne, {})), ["1 record on the United States list is under UHRPA programmes."]);
+  // none (saying what it rests on), and one (a programme that names no country is "the … programme")
+  assert.deepEqual(texts(checkAnswer(answer(claim("count", countOf(E.programmeNone, "us").id)), E.programmeNone, {})), ["No programme on the United States list is named Al-Qaida."]);
+  assert.deepEqual(texts(checkAnswer(answer(claim("count", countOf(E.programmeOne, "us").id)), E.programmeOne, {})), ["1 record on the United States list is under the UHRPA programme."]);
   // examples alone, a count cited as a listing, and the search of a word that is no programme say nothing
   assert.deepEqual(checkAnswer(answer(claim("count", a.id, b.id)), E.iranUs, {}), FALLBACK_ANSWER);
   assert.deepEqual(checkAnswer(answer(claim("listed", c.id)), E.iranUs, {}), FALLBACK_ANSWER);
@@ -1529,11 +1529,51 @@ test("groundingProblems accepts count and none_matched copy", () => {
   const tamper = (i, s, ev = E.iranUs, base = alone) => groundingProblems("", ev, { ...base, sentences: base.sentences.map((x, j) => (j === i ? { ...x, ...s } : x)) });
   assert.equal(tamper(0, { text: `${num(c.n + 1)} records on the United States list are under Iran programmes.` }).length, 1);
   assert.equal(tamper(0, { text: `${num(c.n)} records on the United Kingdom list are under Iran programmes.` }).length, 1);
-  assert.equal(tamper(0, { text: "None of the records on the United States list are under Iran programmes." }).length, 1);
+  assert.equal(tamper(0, { text: "No programme on the United States list is named Iran." }).length, 1);
+  assert.equal(tamper(0, { text: `${num(c.n)} records on the United States list are under the Iran programme.` }).length, 1); // (a country's are "programmes")
   assert.equal(tamper(1, { text: `Showing 3 of ${num(c.n)}.` }, E.iranUs, out).length, 1);
   assert.equal(tamper(0, { text: `${num(c.n + 1)} records on the United States list are under Iran programmes.` }, E.iranUs, out).length, 2); // (its line goes with it)
   const us = countOf(E.iran, "us");
   const ukExample = examplesOf(E.iran, countOf(E.iran, "uk"))[0];
   const usOnly = checkAnswer(answer(claim("count", us.id)), E.iran, {});
   assert.equal(tamper(0, { sources: [...usOnly.sentences[0].sources, { n: 2, label: ukExample.label, url: ukExample.url }] }, E.iran, usOnly).length, 1);
+});
+
+// ---- Task 2 fix round 1 ------------------------------------------------------------------------------------------------
+
+const REGIME = "isil (da'esh) and al-qaeda (united nations sanctions) (eu exit) regulations 2019"; // the UK's, by its programme name
+const sayCount = (ev, c) => {
+  const out = checkAnswer(answer(claim("count", c.id)), ev, {});
+  assert.deepEqual(groundingProblems("How many records?", ev, out), [], texts(out).join(" | "));
+  return texts(out)[0];
+};
+
+test("fix round 1 (1): Al-Qaida counts the UK's ISIL (Da'esh) and Al-Qaeda regime; a none says what it rests on; the copy follows the topic's kind", async () => {
+  // the UK spells it Al-Qaeda, beside ISIL (Da'esh): the regime is under Al-Qaida, by whatever name it is asked for
+  assert.ok(refsOf(REGIME)[1] > 0);
+  const uk = await ask([["check_lists", { programme: "Al-Qaida", list: "uk" }]]);
+  assert.equal(countOf(uk, "uk").n, refsOf(REGIME)[1]);
+  assert.equal(sayCount(uk, countOf(uk, "uk")), `${num(refsOf(REGIME)[1])} records on the United Kingdom list are under the Al-Qaida programme.`);
+  for (const programme of ["Al-Qaeda", "ISIS", "Da'esh"]) assert.deepEqual(await countsOf(programme), refsOf("al-qaida", REGIME), programme);
+  // a none on one list, and on all four
+  assert.equal(sayCount(E.programmeNone, countOf(E.programmeNone, "us")), "No programme on the United States list is named Al-Qaida.");
+  const panama = await ask([["check_lists", { programme: "Panama" }]]);
+  assert.deepEqual(panama.map((e) => [e.kind, e.list, e.n]), [["count", undefined, 0]]);
+  assert.equal(sayCount(panama, panama[0]), "No programme on the United States, United Kingdom, European Union or United Nations lists is named Panama.");
+  // a country's are "programmes"; a programme that names no country is "the … programme", one record or many
+  const terrorism = await ask([["check_lists", { programme: "Terrorism", list: "us" }]]);
+  const t = refsOf("terrorism", "counter-terrorism", "counter-terrorism (international")[0];
+  assert.equal(sayCount(terrorism, countOf(terrorism, "us")), `${num(t)} records on the United States list are under the Terrorism programme.`);
+  assert.equal(sayCount(E.iranUs, countOf(E.iranUs, "us")), iranLine(countOf(E.iranUs, "us")));
+  assert.equal(sayCount(E.programmeOne, countOf(E.programmeOne, "us")), "1 record on the United States list is under the UHRPA programme.");
+});
+
+test("fix round 1 (2): a country counts the programmes naming it as a whole word, after a slash too: Russia/Ukraine is under Ukraine", async () => {
+  const parts = refsOf("russia/ukraine"); // the only programme parts naming Ukraine
+  assert.ok(parts.some(Boolean));
+  assert.deepEqual(await countsOf("Ukraine"), parts);
+  const eu = await ask([["check_lists", { programme: "Ukraine", list: "eu" }]]);
+  assert.equal(sayCount(eu, countOf(eu, "eu")), `${num(parts[2])} records on the European Union list are under Ukraine programmes.`);
+  const uk = await ask([["check_lists", { programme: "Ukraine", list: "uk" }]]);
+  assert.equal(sayCount(uk, countOf(uk, "uk")), "No programme on the United Kingdom list is named Ukraine.");
 });

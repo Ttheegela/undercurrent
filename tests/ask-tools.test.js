@@ -36,6 +36,7 @@ const LISTS = {
   uk: [
     rec("TASSOS", "Russia", "2026-02-24", "RUS3483", "9408695"), rec("Orion Ship Management", "Russia", "2025-03-03", "RUS777"), ...Array.from({ length: 8 }, (_, i) => rec(`QUARTZ UK ${i}`, "Russia", "2024-02-0" + (i + 1), `QU${i}`)),
     rec("Navumau", "Republic of Belarus", "2020-12-31", "BEL0001"), // the UK list's post-Brexit transfer date
+    rec("Marlowe Holdings", "European Union", "", "EUP1"), // a programme named for a grouping the region table also names
   ],
   eu: [rec("Zulu Ships Management", "Russia", "2025-10-24", "EU-9", "", "https://eur-lex.europa.eu/example")],
   un: [rec("Unrelated Group", "Somalia", "2010-01-01", "SOe.001")],
@@ -653,7 +654,7 @@ test("programme counts each list's records under it by ref, with up to 5 example
   assert.equal(n, 9);
   const [count, ...examples] = ev;
   assert.deepEqual({ ...count, text: undefined }, {
-    id: "S1", kind: "count", unit: "records", scope: "list", list: "us", topic: { label: "Iran" }, n, examples_shown: 5, shown: 5, total: n,
+    id: "S1", kind: "count", unit: "records", scope: "list", list: "us", topic: { label: "Iran", region: "IR" }, n, examples_shown: 5, shown: 5, total: n,
     text: undefined, label: "United States list · records under Iran programmes", url: "https://www.trade.gov/consolidated-screening-list", quotes: [],
   });
   assert.match(count.text, /^United States list: 9 records under Iran programmes/);
@@ -665,7 +666,7 @@ test("programme counts each list's records under it by ref, with up to 5 example
   for (const programme of ["IRANIAN", "iran"]) {
     ev = [];
     await run("check_lists", { programme });
-    assert.deepEqual([ev[0].topic, ev[0].n, ev.length], [{ label: "Iran" }, n, 6], programme);
+    assert.deepEqual([ev[0].topic, ev[0].n, ev.length], [{ label: "Iran", region: "IR" }, n, 6], programme);
   }
   ev = [];
   await run("check_lists", { programme: "Russia", list: "uk" });
@@ -711,6 +712,15 @@ test("programme filter never matches names: IRAN AIR, on the Entity List, is no 
   assert.deepEqual(unnumbered(ev), [...named, ...alone]);
   assert.deepEqual(ev.map((e) => e.result), [undefined, "S1", undefined, ...Array.from({ length: 5 }, () => "S3")]);
   assert.deepEqual([out.query, out.found, out.items.length], ["Iran Air", true, 8]);
+});
+
+test("fix round 1 (3): a grouping the region table names is no country: a programme named European Union has no region; Iran has IR", async () => {
+  await run("check_lists", { programme: "European Union", list: "uk" });
+  assert.deepEqual([ev[0].kind, ev[0].n, ev[0].topic], ["count", 1, { label: "European Union" }]);
+  assert.equal(ev[0].label, "United Kingdom list · records under the European Union programme");
+  ev = [];
+  await run("check_lists", { programme: "Iran", list: "us" });
+  assert.deepEqual(ev[0].topic, { label: "Iran", region: "IR" });
 });
 
 test("an unknown programme word returns a search item found:false, never a count, and never repeats the word", async () => {

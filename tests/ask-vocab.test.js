@@ -70,3 +70,11 @@ test("one programme topic per country, whatever the lists call it: its spellings
   assert.equal(topicOf("Yemen") && VOCAB.topics.find((t) => t.kind === "programme" && t.label === "Yemen").region, "YE");
   assert.equal(VOCAB.topics.find((t) => t.kind === "programme" && t.label === "Terrorism").region, undefined);
 });
+
+test("fix round 1 (1a): a regime's other spellings are aliases of one topic; a country of the map has its region code", () => {
+  const alQaida = { kind: "programme", key: "Al-Qaida", label: "Al-Qaida" };
+  for (const w of ["Al-Qaida", "Al-Qaeda", "al qaida", "ISIL", "ISIS", "Da'esh"]) assert.deepEqual(topicOf(w), alQaida, w);
+  assert.equal(VOCAB.topics.find((t) => t.kind === "programme" && t.key === "Al-Qaida").region, undefined);
+  assert.deepEqual(topicOf("Ukraine"), { kind: "country", key: "ua", label: "Ukraine" });
+  assert.equal(VOCAB.topics.find((t) => t.kind === "country" && t.key === "ua").region, "UA");
+});

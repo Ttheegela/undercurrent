@@ -12,8 +12,9 @@ const REGIONS = new Intl.DisplayNames("en", { type: "region" });
 const SHORT_REGIONS = new Intl.DisplayNames("en", { type: "region", style: "short" });
 const GROUP_LABELS = { dprk: "North Korea" };
 const BUCKETS = new Set(["", "both", "other"]); // the research map's groups for a ship in two programmes or none: not topics
-// Nationality words and other names, by label
-const ALIASES = new Map(("Afghanistan:Afghan;Antigua and Barbuda:Antiguan;Aruba:Aruban;Azerbaijan:Azerbaijani;Bahamas:Bahamian;Barbados:Barbadian;"
+// Nationality words and other names, by label. A topic that names no country has only other spellings here ("Al-Qaeda", and ISIL, ISIS
+// and Da'esh, which the UK's and the UN's Al-Qaida regimes name with it), so they are matched too; a country's never are
+const ALIASES = new Map(("Afghanistan:Afghan;Al-Qaida:Al-Qaeda,Al Qaida,ISIL,ISIS,Da'esh;Antigua and Barbuda:Antiguan;Aruba:Aruban;Azerbaijan:Azerbaijani;Bahamas:Bahamian;Barbados:Barbadian;"
   + "Belarus:Belarusian,Republic of Belarus;Belize:Belizean;Bosnia and Herzegovina:Bosnian;Bulgaria:Bulgarian;Cambodia:Cambodian;Cameroon:Cameroonian;"
   + "Cayman Islands:Caymanian;Central African Republic:Central African;China:Chinese;Chips:chip,semiconductor,semiconductors;Comoros:Comorian;"
   + "Cuba:Cuban;Cyprus:Cypriot;DR Congo:Congolese,Congo-Kinshasa,Democratic Republic of the Congo;Denmark:Danish;Djibouti:Djiboutian;Estonia:Estonian;Eswatini:Swazi;Finland:Finnish;"
@@ -45,10 +46,14 @@ function build() {
   // (a country the map names only by its code, "DK", is given its English name)
   const countries = fleet.filter((n) => n.id.startsWith("cc:")).map((n) => [n.id.slice(3), n.name === n.id.slice(3).toUpperCase() ? REGIONS.of(n.name) : n.name]);
   const groups = new Set([...fleet.map((n) => n.program_group), ...read("stories/who-lobbies/influence-network/kg.json").nodes.map((n) => n.g)].filter((g) => typeof g === "string" && !BUCKETS.has(g)));
-  // the region code of a name: the region table's names (long and short), then every name in an alias-table entry that holds one of them
+  // the region code of a name: the region table's names (long and short), then every name in an alias-table entry that holds one of them.
+  // A code the runtime knows no time zone for is a grouping, not a country: "EU", "EZ", "UN", "QO", "ZZ" (both shapes of the API are
+  // read; a runtime with neither keeps every code)
   const codes = new Map();
   for (let i = 0; i < 26 * 26; i++) {
     const code = String.fromCharCode(65 + Math.floor(i / 26), 65 + (i % 26));
+    const place = new Intl.Locale("und", { region: code });
+    if ((place.getTimeZones?.() ?? place.timeZones)?.length === 0) continue;
     const cc = Intl.getCanonicalLocales(`und-${code}`)[0].slice(4); // a retired code is its successor: YD (named "Yemen") is YE
     for (const name of [REGIONS.of(code), SHORT_REGIONS.of(code)]) if (name !== code && !codes.has(plain(name))) codes.set(plain(name), cc);
   }
@@ -71,7 +76,7 @@ function build() {
   const topic = (kind, key, label) => ({ kind, key, label, aliases: ALIASES.get(label) ?? [] });
   const topics = [
     ...[...byCountry.values()].map(programme),
-    ...countries.map(([cc, name]) => topic("country", cc, name)),
+    ...countries.map(([cc, name]) => ({ ...topic("country", cc, name), region: cc.toUpperCase() })),
     ...[...groups].map((g) => topic("group", g, GROUP_LABELS[g] ?? g[0].toUpperCase() + g.slice(1))),
   ];
   // a word shared by several topics ("Iran": the programme, the country and the group) is the first: programme, then country, then group
@@ -82,7 +87,7 @@ function build() {
 
 /**
  * VOCAB.topics: every topic as {kind: "programme"|"country"|"group", key, label, aliases}, built on first use. A programme also has its
- * `spellings` on the lists, and its `region` code when it names a country.
+ * `spellings` on the lists. A country, and a programme that names one, has its `region` code.
  */
 export const VOCAB = { get topics() { return (built ??= build()).topics; } };
 

@@ -44,12 +44,13 @@ function listing(e) {
   return null;
 }
 
-/** The count claim's sentence for a count item (none matched at 0), or null. */
+/** The count claim's sentence for a count item (none matched at 0), or null. A country's are "programmes", any other topic's "the … programme". */
 function counted(e) {
   if (e.kind !== "count" || e.unit !== "records") return null;
+  if (e.n === 0) return `No programme on ${e.list ? `the ${LIST_LABELS[e.list]} list` : "the United States, United Kingdom, European Union or United Nations lists"} is named ${e.topic.label}.`;
   const on = `on the ${LIST_LABELS[e.list]} list`;
-  if (e.n === 0) return `None of the records ${on} are under ${e.topic.label} programmes.`;
-  return e.n === 1 ? `1 record ${on} is under ${e.topic.label} programmes.` : `${e.n.toLocaleString("en-GB")} records ${on} are under ${e.topic.label} programmes.`;
+  const under = e.topic.region ? `${e.topic.label} programmes` : `the ${e.topic.label} programme`;
+  return e.n === 1 ? `1 record ${on} is under ${under}.` : `${e.n.toLocaleString("en-GB")} records ${on} are under ${under}.`;
 }
 
 /**

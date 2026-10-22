@@ -53,16 +53,23 @@ function calendarSpan(from, to) {
 }
 const num = (n) => n.toLocaleString("en-GB");
 const SHOWING = (n, total) => `Showing ${num(n)} of ${num(total)}.`;
-// A count's sentence, by what it counts (null for a unit it does not know): records on an official list, by ref
+// A count's sentence, by what it counts (null for a unit it does not know): records on an official list, by ref. A country's records are
+// under its programmes ("Iran programmes"), any other topic's under one ("the Terrorism programme"); a none says what it rests on: no
+// programme of that name, on the list or on any of the four
+const LABELS = Object.values(LIST_LABELS);
+const ALL_LISTS = `the ${LABELS.slice(0, -1).join(", ")} or ${LABELS.at(-1)} lists`;
 function COUNT(e) {
   switch (e.unit) {
-    case "records": return `${e.n === 1 ? "1 record" : `${num(e.n)} records`} on the ${LIST_LABELS[e.list]} list ${e.n === 1 ? "is" : "are"} under ${e.topic.label} programmes.`;
+    case "records": {
+      const under = e.topic.region ? `${e.topic.label} programmes` : `the ${e.topic.label} programme`;
+      return `${e.n === 1 ? "1 record" : `${num(e.n)} records`} on the ${LIST_LABELS[e.list]} list ${e.n === 1 ? "is" : "are"} under ${under}.`;
+    }
     default: return null;
   }
 }
 function NONE_MATCHED(e) {
   switch (e.unit) {
-    case "records": return `None of the records on the ${LIST_LABELS[e.list]} list are under ${e.topic.label} programmes.`;
+    case "records": return `No programme on ${e.list ? `the ${LIST_LABELS[e.list]} list` : ALL_LISTS} is named ${e.topic.label}.`;
     default: return null;
   }
 }

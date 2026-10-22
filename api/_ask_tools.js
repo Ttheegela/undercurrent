@@ -1193,7 +1193,7 @@ function lagTable() {
 function firmsTool(args, ev) {
   const lag = ch("listing_lag.json");
   let want = null;
-  if (args.country !== undefined) {
+  if (args.country !== undefined && args.country !== null && args.country !== "") {
     const t = topicOf(textArg(args.country));
     const region = t && VOCAB.topics.find((x) => sameTopic(x, t)).region;
     if (!region) return fail("country must be a country, such as China or Turkey");
@@ -1211,7 +1211,7 @@ function firmsTool(args, ev) {
   const shown = matched.slice(0, CAP.firms);
   const count = add(ev, {
     ...chip("firms named by US Treasury", LAG, sentence(
-      `The research's set: ${num(n)} firms${want ? ` based in ${want.label}` : ""} outside Russia and Belarus that US Treasury press releases name for sending chips, microelectronics or electronic components to Russia.`,
+      `The research's set is the firms outside Russia and Belarus that US Treasury press releases name for sending chips, microelectronics or electronic components to Russia${want ? `; ${num(n)} of them ${n === 1 ? "is" : "are"} based in ${want.label}` : `: ${num(n)} firms`}.`,
       shown.length && `${num(shown.length)} follow${shown.length === 1 ? "s" : ""}, newest release first.`,
     ), "listing_lag.html"),
     kind: "count", unit: "firms", n, shown: shown.length, total: n, ...(want && { country: want }),
@@ -1259,7 +1259,7 @@ function chipsTool(args, ev) {
   const { topic } = args;
   if (!CHIP_TOPICS.includes(topic)) return fail(`topic must be one of ${CHIP_TOPICS.join(", ")}`);
   if (topic === "firms") return firmsTool(args, ev);
-  if (args.country !== undefined) return fail("country goes with topic firms only");
+  if (args.country !== undefined && args.country !== null && args.country !== "") return fail("country goes with topic firms only");
   const items = { summary: () => [lagStats()], routes: routeItems, coverage: coverageItems, listing_lag: () => [lagStats(), lagTable()] }[topic]();
   return { topic, items: addAll(ev, items).map(view) };
 }

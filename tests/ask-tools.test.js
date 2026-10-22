@@ -1242,7 +1242,7 @@ test("chips firms by country: a nationality word or a country keeps the firms ba
   await run("chips", { topic: "firms", country: "Chinese" });
   assert.deepEqual(ev.map((e) => e.entity?.name ?? e.kind), ["count", "Undated Logistics"]);
   assert.deepEqual([ev[0].n, ev[0].total, ev[0].country], [1, 1, { region: "CN", label: "China" }]);
-  assert.match(ev[0].text, /based in China/);
+  assert.match(ev[0].text, /; 1 of them is based in China\./);
   ev = [];
   await run("chips", { topic: "firms", country: "Armenian" }); // a country only the chips research names is in the vocabulary too
   assert.deepEqual(ev.map((e) => e.entity?.name ?? e.kind), ["count", "Milur Electronics"]);
@@ -1253,6 +1253,26 @@ test("chips firms by country: a nationality word or a country keeps the firms ba
   assert.match((await run("chips", { topic: "firms", country: "Atlantis" })).error, /country/);
   assert.match((await run("chips", { topic: "routes", country: "China" })).error, /country/);
   assert.equal(ev.length, 0);
+  // an empty or null country is no filter, on any topic
+  await run("chips", { topic: "routes", country: "" });
+  await run("chips", { topic: "firms", country: null });
+  assert.deepEqual(ev.filter((e) => e.kind === "count").map((e) => [e.n, e.country]), [[4, undefined]]);
+});
+
+test("chips firms: a firm two releases name is one firm, dated by the earliest release with that release's page", async () => {
+  const lag = CHIPS["listing_lag.json"];
+  const again = { ...lag.firms[1], release: "jy1102" }; // Allparts Trading: jy2700 (30 Oct 2024) and, here, jy1102 (14 Nov 2022) too
+  write(root, "stories/chips-into-russia/data/listing_lag.json", { ...lag, firms: [...lag.firms, again] });
+  resetAskCache();
+  try {
+    await run("chips", { topic: "firms" });
+    const allparts = ev.filter((e) => e.entity?.name === "Allparts Trading");
+    assert.equal(allparts.length, 1);
+    assert.deepEqual([allparts[0].date, allparts[0].url], ["2022-11-14", "https://home.treasury.gov/news/press-releases/jy1102"]);
+  } finally {
+    write(root, "stories/chips-into-russia/data/listing_lag.json", lag);
+    resetAskCache();
+  }
 });
 
 test("chips firms count", async () => {

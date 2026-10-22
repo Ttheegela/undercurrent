@@ -1998,7 +1998,8 @@ test("partial answers: a sentence that fails the check is dropped beside verifie
     ["a sentence citing nothing", claim("listed")],
     ["listed on a chips item", claim("listed", "C1")],
     ["a quote number the item does not have", quote(q.id, 99)],
-    ["a claim that does not exist", claim("named", uk.id)],
+    ["a claim that does not exist", claim("flagged", uk.id)],
+    ["named on a list record", claim("named", uk.id)],
   ]) {
     const out = checkAnswer(answer(claim("listed", uk.id), bad), ev, TASSOS_Q);
     assert.equal(out.kind, "answer", label);

@@ -282,8 +282,9 @@ function cite(ids, byId) {
 // The claims whose sentences show a search's matches, and so count towards "Showing N of M": listings, the examples cited with a count, and
 // the changes of a capped list of updates (only a capped one is linked to a result)
 const SHOWS_MATCHES = new Set(["listed", "count", "change"]);
-// what a match is counted as: its entity, or a change itself (the changes total counts changes, and two can be of one ship)
-const matchKey = (e) => (e.kind === "change" ? e.id : e.entity.id);
+// what a match is counted as: its entity, or a change by its identity in the record (the changes total counts changes, and two can be of one
+// ship; one change returned by two changes calls is one)
+const matchKey = (e) => (e.kind === "change" ? e.key : e.entity.id);
 
 /**
  * Numbers the sources in order of first citation; one sentence written twice becomes one sentence with both sources. Then, for each

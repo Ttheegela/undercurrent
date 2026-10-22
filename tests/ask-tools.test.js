@@ -9,6 +9,7 @@ import { INDEX_URL, resetIndexCache } from "../api/search.js";
 import { CONNECTIONS_URL, LOBBYING_URL, resetConnectionsCache } from "../api/connections.js";
 import { normalizeName } from "../app/normalize.js";
 import { checkAnswer } from "../api/_ask_check.js";
+import { formatDate } from "../app/render.js";
 import { groundingProblems } from "../scripts/ask-oracle.mjs";
 
 // ---- a small site on disk: the tools read it from process.cwd() ---------------------------------------------------
@@ -126,6 +127,7 @@ const FLEET = {
     hull("700000", { name: "AMBER 0", program_group: "russia", programs: ["russia"], listed_by: ["uk"] }), // in the research, with no listing to show
     { id: "ship:nameless", type: "ship", name: "NAMELESS", program_group: "russia", programs: ["russia"], listed_by: ["uk"], name_count: 2 },
     { id: "gov:us", type: "government", name: "United States (sanctioning government)" },
+    { id: "co:al-kina-commercial-broker", type: "company", name: "Al Kina Commercial Broker LLC", program_group: "other", country: "AE" }, // the real node's shape
   ],
   edges: [{ s: "IMO9408695", t: "cc:lr", y: "flagged_in" }, { s: "IMO7654321", t: "cc:sl", y: "formerly_flagged_in" }],
 };
@@ -1024,8 +1026,9 @@ test("free-text query still works and is unaffected by topic", () => withTopicRe
 }));
 
 test("topic: a word that is no topic, or a topic the updates can't be checked against, is an error, never a none", () => withTopicRecord(async () => {
-  // Terrorism is a programme of the lists, but here no graph groups by it and it is no country
-  for (const topic of ["Gatik", "Iran Air", "Terrorism", "", 7, ["Iran"]]) {
+  // Terrorism is a programme of the lists, but here no graph groups by it and it is no country; Somalia (the UN's) and Republic of Belarus
+  // (the UK's) are programmes that name a country, which no group tells and a country alone can't settle (fix round 1 (2))
+  for (const topic of ["Gatik", "Iran Air", "Terrorism", "Somalia", "Republic of Belarus", "", 7, ["Iran"]]) {
     ev = [];
     const out = await run("changes", { since: "2026-10-18", topic });
     assert.match(out.error ?? "", /^topic must be/, String(topic));
@@ -1056,6 +1059,77 @@ test("fix (government ends): a designation is decided by its ship; an update of 
   // Russia: the same designation, and the lobbying of the Senate, involve it
   assert.deepEqual((await topicRun({ since: "2026-10-19", topic: "Russia" })).names, ["AMBER 0 → United States (sanctioning government)", "Rus Client → US Senate"]);
 }, GOV_RECORD));
+
+// ---- fix round 1 -------------------------------------------------------------------------------------------------
+// one change on the 19th, in a record otherwise like TOPIC_RECORD's
+const oneChange = (change) => ({ started: "2026-10-12", first_run: "2026-10-12", days: [{ date: "2026-10-19", sources: FRESH, changes: [change] }] });
+const amberChange = (o) => ship(0, "2026-10-19", { kind: "changed", id: "IMO700000", name: "AMBER 0", ...o }); // AMBER 0: Russia today, no flag
+const bearsOn = async (topic) => {
+  const { out, names } = await topicRun({ since: "2026-10-19", topic });
+  const none = ev.find((e) => e.topic);
+  return none ? [none.checked_fleet + none.checked_lobby, none.unchecked] : [out.total, names];
+};
+
+test("fix round 1 (1): a programmes change is judged by what it was and became, not by today's node alone", () => withTopicRecord(async () => {
+  // AMBER 0 left the Iran programme: today's node is Russia only, but the update involves Iran
+  assert.deepEqual(await bearsOn("Iran"), [1, ["AMBER 0"]]);
+  assert.deepEqual(await bearsOn("Russia"), [1, ["AMBER 0"]]);
+}, oneChange(amberChange({ field: "programs", from: ["iran", "russia"], to: ["russia"], summary: "AMBER 0 changed programmes: iran, russia → russia" }))));
+
+test("fix round 1 (1): a flag change is judged by the flag it left and the one it took", () => withTopicRecord(async () => {
+  assert.deepEqual(await bearsOn("Iran"), [1, ["AMBER 0"]]); // the flag it left (the map gives AMBER 0 none today)
+  assert.deepEqual(await bearsOn("Comoros"), [1, ["AMBER 0"]]); // the flag it took
+  assert.deepEqual(await bearsOn("Liberia"), [0, 1]); // neither: but today's node gives no country to check, so it is not counted
+}, oneChange(amberChange({ field: "flag_now", from: "Iran", to: "Comoros", summary: "AMBER 0 changed flag: Iran → Comoros" }))));
+
+test("fix round 1 (1): a list's removal is unchecked unless today's node carries the topic: what it lost is gone from the node", () => withTopicRecord(async () => {
+  assert.deepEqual(await bearsOn("Iran"), [0, 1]);
+  assert.deepEqual(await bearsOn("Russia"), [1, ["AMBER 0"]]);
+}, oneChange(amberChange({ field: "listed_by", from: ["US"], summary: "US removed AMBER 0" }))));
+
+test("fix round 1 (2): a programme topic needs a known programme group; a country settles only a topic that is just a country", () => withTopicRecord(async () => {
+  // the map's "other" group with a country (the real Al Kina Commercial Broker LLC): no programme to check Iran or Russia against
+  assert.deepEqual(await bearsOn("Iran"), [0, 1]);
+  assert.deepEqual(await bearsOn("Russia"), [0, 1]);
+  // Comoros is only a country: its country, the UAE, settles it
+  assert.deepEqual(await bearsOn("Comoros"), [1, 0]);
+}, oneChange({ date: "2026-10-19", graph: "fleet", kind: "added", item: "node", id: "co:al-kina-commercial-broker", name: "Al Kina Commercial Broker LLC", node_type: "company", summary: "New on the map: Al Kina Commercial Broker LLC", source_url: "https://example.org/list", source_label: "UK Sanctions List" })));
+
+test("fix round 1 (3): a range with no recorded night is the gap alone, with a topic or without", () => withTopicRecord(async () => {
+  for (const topic of ["Iran", undefined]) {
+    ev = [];
+    const out = await run("changes", { since: "2026-10-15", until: "2026-10-16", topic });
+    assert.equal(out.error, undefined);
+    assert.deepEqual(ev.map((e) => [e.kind, e.source, e.from, e.to]), [["gap", "The nightly update", "2026-10-15", "2026-10-16"]], String(topic));
+  }
+}));
+
+test("fix round 1 (4): a change is one change in every changes call: a plain capped call and a topic call share its line", () => withTopicRecord(async () => {
+  // the 19th: TASSOS STAR and SI HE (both Iran) changed, then 33 ships the map does not hold
+  await run("changes", { since: "2026-10-19", until: "2026-10-19" });
+  await run("changes", { since: "2026-10-19", until: "2026-10-19", topic: "Iran" });
+  const [plain, topical] = [ev.filter((e) => e.kind === "change" && !/involving/.test(e.text)), ev.filter((e) => e.kind === "change" && /involving/.test(e.text))];
+  assert.deepEqual([plain.length, plain[0].total, topical.length, topical[0].total], [30, 35, 2, undefined]);
+  const line = (c) => `${c.summary} · ${formatDate(c.date)}`;
+  const say = (...ids) => {
+    const out = checkAnswer({ kind: "answer", sentences: [{ claim: "change", sources: ids }] }, ev, {});
+    assert.deepEqual(groundingProblems("What changed on the Iran ships?", ev, out), [], out.sentences.map((s) => s.text).join(" | "));
+    return out.sentences.map((s) => s.text);
+  };
+  // TASSOS STAR from the plain call, SI HE from the topic call: two of the plain call's 35, one line
+  assert.deepEqual(say(plain[0].id, topical[1].id), [line(plain[0]), line(plain[1]), "Showing 2 of 35."]);
+  // one change from both calls is one sentence, counted once
+  assert.deepEqual(say(plain[1].id, topical[1].id), [line(plain[1]), "Showing 1 of 35."]);
+}, {
+  started: "2026-10-12", first_run: "2026-10-12",
+  days: [{
+    date: "2026-10-19", sources: FRESH, changes: [
+      ship(1, "2026-10-19", { kind: "changed", id: "IMO1111111", name: "TASSOS STAR", field: "listed_by", to: ["EU"], summary: "EU listed TASSOS STAR (IMO 1111111)" }),
+      ship(2, "2026-10-19", { kind: "changed", id: "IMO7654321", name: "SI HE", field: "listed_by", to: ["EU"], summary: "EU listed SI HE (IMO 7654321)" }),
+      ...Array.from({ length: 33 }, (_, i) => ship(100 + i, "2026-10-19")),
+    ],
+  }],
+}));
 
 // ---- connections -----------------------------------------------------------------------------------------------
 

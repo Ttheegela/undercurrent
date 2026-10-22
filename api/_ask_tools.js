@@ -821,10 +821,12 @@ function gapRuns(gaps) {
 // An update carries no programme or country of its own: they come from the nodes it involves (an edge's two ends, or the node itself),
 // joined to the map's nodes for a fleet update and to the lobbying graph's for a lobby update. A topic is told by the programme groups
 // whose word it is and by its country's code (Iran by both, Panama by its code, Chips by its group). An update involves the topic when a
-// node of it carries the topic; it was checked when each of its parties carries a group or a country the topic is told by and none is the
-// topic; otherwise it is unchecked (a bill, a lobbyist, a node no join finds), and is never counted as not involving the topic. A
-// government (type "government" in both graphs: the map's sanctioning governments, the network's agencies and governments) is the
-// authority or the body lobbied, not a party: a designation is decided by its ship, and an update of governments only is unchecked.
+// node of it carries the topic, or, for a change of a node's programmes or flag, what the field was or became. It was checked when each of
+// its parties carries what settles the topic and none is the topic: a known programme group for a topic with groups (a country says nothing
+// of a node's programmes), a country for a topic that is only a country. Otherwise it is unchecked (a bill, a lobbyist, a node no join
+// finds, the map's "other" group, a list's removal, whose lost programme is gone from today's node), and is never counted as not involving
+// the topic. A government (type "government" in both graphs: the map's sanctioning governments, the network's agencies and governments) is
+// the authority or the body lobbied, not a party: a designation is decided by its ship, and an update of governments only is unchecked.
 const KG = "stories/who-lobbies/influence-network/kg.json";
 const kgIndex = new WeakMap();
 function lobbyFacts() {
@@ -835,23 +837,30 @@ function lobbyFacts() {
   return kgIndex.get(kg);
 }
 
-/** What a topic word is told by: {label, groups, region}; null for a word that is no topic. */
+const regionTopic = (t) => VOCAB.topics.find((x) => sameTopic(x, t)).region?.toLowerCase();
+/**
+ * What a topic word is told by: {label, groups, region}. Null for a word that is no topic, and for a programme no group tells (Cyber, or
+ * Somalia: neither a group nor a country can say a node is not under it), which would only ever give a none that is not true.
+ */
 function topicWant(word) {
   const t = topicOf(textArg(word));
-  return t && {
-    label: t.label,
-    groups: new Set(VOCAB.topics.filter((x) => x.kind === "group" && sameTopic(topicOf(x.label), t)).map((x) => x.key)),
-    region: VOCAB.topics.find((x) => sameTopic(x, t)).region?.toLowerCase(),
-  };
+  const groups = new Set(t ? VOCAB.topics.filter((x) => x.kind === "group" && sameTopic(topicOf(x.label), t)).map((x) => x.key) : []);
+  return groups.size || t?.kind === "country" ? { label: t.label, groups, region: regionTopic(t) } : null;
 }
+// a flag as the change record writes it, a country's name (or its code when it has none), as a country code
+const regionOf = (w) => (topicOf(w) ? regionTopic(topicOf(w)) : /^[a-z]{2}$/i.test(w ?? "") ? w.toLowerCase() : undefined);
 
 /** "match", "checked" or "unchecked": how one update bears on a topic (see above). */
 function bearing(c, want) {
   const facts = c.graph === "fleet" ? mapShips().facts : lobbyFacts();
   const nodes = (c.endpoint_ids?.length ? c.endpoint_ids : [c.id]).map((id) => facts.get(id));
-  if (nodes.some((f) => f && ([...f.groups].some((g) => want.groups.has(g)) || f.regions.has(want.region)))) return "match";
+  // a change of a node's programmes or flag bears on what they were too: today's node holds only what they became
+  const field = c.field === "programs" ? { groups: groupsOf([c.from, c.to].flat()), regions: new Set() }
+    : c.field === "flag_now" ? { groups: new Set(), regions: new Set([c.from, c.to].map(regionOf).filter(Boolean)) } : null;
+  if ([...nodes, field].some((f) => f && ([...f.groups].some((g) => want.groups.has(g)) || f.regions.has(want.region)))) return "match";
+  if (c.field === "listed_by" && c.from?.length) return "unchecked"; // a list's removal: what it took away is gone from today's node
   const parties = nodes.filter((f) => !f?.neutral); // (a node no join finds is a party: it could be anything)
-  return parties.length && parties.every((f) => f && ((want.groups.size && f.groups.size) || (want.region && f.regions.size))) ? "checked" : "unchecked";
+  return parties.length && parties.every((f) => f && (want.groups.size ? f.groups.size : f.regions.size)) ? "checked" : "unchecked";
 }
 
 function changesTool(args, ev, ctx) {
@@ -861,10 +870,9 @@ function changesTool(args, ev, ctx) {
   if (graph !== undefined && !(typeof graph === "string" && Object.hasOwn(GRAPH_NAME, graph))) return fail('graph must be "fleet" or "lobby"');
   const query = args.query === undefined ? "" : textArg(args.query, 1);
   if (query === null) return fail("query must be 1 to 200 characters");
-  // a topic no join can tell (a programme the graphs do not group by, and no country) would only ever give a none that is not true
   const want = args.topic === undefined ? null : topicWant(args.topic);
-  if (args.topic !== undefined && !want?.groups.size && !want?.region) {
-    return fail(`topic must be a country, or a programme group the updates can be checked against: ${VOCAB.topics.filter((x) => x.kind === "group").map((x) => x.label).join(", ")}`);
+  if (args.topic !== undefined && !want) {
+    return fail(`topic must be a programme group the updates can be checked against (${VOCAB.topics.filter((x) => x.kind === "group").map((x) => x.label).join(", ")}), or a country with no sanctions programme of its own, such as Panama`);
   }
   const today = ctx.today ?? new Date().toISOString().slice(0, 10);
   if (since > today) return fail("since is after today");
@@ -937,7 +945,7 @@ function changesTool(args, ev, ctx) {
       text: from === to ? `No changes were recorded on ${formatDate(to)} (${to}).` : `No changes were recorded between ${formatDate(from)} and ${formatDate(to)} (${from} to ${to}).`,
       label: from === to ? `No changes on ${formatDate(to)}` : `No changes ${formatDate(from)} to ${formatDate(to)}`, url: updates(from, to, "all"), link: updates(from, to, "all"),
     });
-  } else if (want && !notYet && ![...bears.values()].includes("match")) {
+  } else if (want && !notYet && inRange.length && ![...bears.values()].includes("match")) {
     // no update of the range involves the topic: how many could be checked, by graph, and how many could not. (One that does, left out by
     // the graph or the words asked, is no none: only the gaps are reported then.)
     const tally = (b, g) => inRange.filter((c) => bears.get(c) === b && (!g || c.graph === g)).length;
@@ -955,6 +963,8 @@ function changesTool(args, ev, ctx) {
   for (const c of shown) {
     items.push({
       kind: "change", entity: { id: c.id, name: c.name }, date: c.date, summary: c.summary,
+      // the change's identity in the record, the same in every changes call: "Showing N of M" counts a change once, however it was cited
+      key: [c.date, c.graph, c.kind, c.id, c.field ?? "", JSON.stringify(c.from ?? null), JSON.stringify(c.to ?? null)].join("|"),
       text: sentence(
         `${c.summary}.`, `Item: ${c.name}.`, c.endpoints?.length && `Involves ${c.endpoints.join(" and ")}.`, `Kind: ${c.kind}.`,
         c.field && `Field ${c.field}: from ${show(c.from)} to ${show(c.to)}.`,

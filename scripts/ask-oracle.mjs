@@ -118,10 +118,10 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   // searches of one ship (its name and its IMO number) counts for both. A source is only a label and a url, which records can share (UN
   // records of one name, EU records under one act, US records whose url is the list's home page): it names one of the items with them
   // that write its sentence. So N may be any count from the entities the sources surely name to all those they may name.
-  // A capped list of updates is a search too: its first change holds the total, and its changes are matches, each counted as itself (two
-  // can be of one ship), when an answer gives its line.
+  // A capped list of updates is a search too: its first change holds the total, and its changes are matches, each counted by its identity
+  // in the record (two can be of one ship; one change in two changes calls is one), when an answer gives its line.
   const labelled = (items, src) => [...items].some((e) => e.label === src.label && e.url === src.url);
-  const key = (e) => (e.kind === "change" ? e.id : e.entity.id);
+  const key = (e) => (e.kind === "change" ? e.key : e.entity.id);
   const shows = new Set(ev.flatMap((e) => [listing(e), counted(e), e.kind === "change" && e.entity && `${e.summary} · ${day(e.date)}`]).filter(Boolean));
   const named = answer.sentences.filter((s) => shows.has(s.text)).flatMap((s) => s.sources.map((src) =>
     new Set([...made.get(s.text)].filter((e) => e.entity && labelled([e], src)).map(key))));

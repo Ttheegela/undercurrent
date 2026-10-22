@@ -88,6 +88,12 @@ before(async () => {
   // ages: an Entity List record with its own date, and a UK record on the post-Brexit transfer date
   E.dji = await ask([["check_lists", { query: "DJI" }]]);
   E.navumau = await ask([["check_lists", { query: "Navumau" }]]);
+  // programme counts: Iran on the US list, and on every list; none under Al-Qaida on the US list, one under UHRPA; a word that is no programme
+  E.iranUs = await ask([["check_lists", { programme: "Iran", list: "us" }]]);
+  E.iran = await ask([["check_lists", { programme: "Iran" }]]);
+  E.programmeNone = await ask([["check_lists", { programme: "Al-Qaida", list: "us" }]]);
+  E.programmeOne = await ask([["check_lists", { programme: "UHRPA", list: "us" }]]);
+  E.programmeUnknown = await ask([["check_lists", { programme: "Gatik" }]]);
   // one ship searched twice: by name and by IMO number (the two searches share its records)
   E.nameImo = await ask([["check_lists", { query: "TASSOS" }], ["check_lists", { query: "IMO 9408695" }]]);
   E.final = await ask(["The 50% rule: blocked without being named", "How sanctions work", "How the lists stay current", "Semiconductors into Russia: what the official records show", "What the map cannot tell you", "7. Why this is a climate story", "Parent groups, lobbying and cargo (added 25 Sep 2026, afternoon)", "Fleet Tanqo (India)", "Strongest cases", "One line for the demo", "2. How long the US took to list new chip suppliers", "How countries and companies evade"].map((query) => ["site_docs", { query }]));
@@ -1354,4 +1360,115 @@ test("groundingProblems accepts the age and Showing lines", () => {
   assert.equal(tamper(1, { sources: [{ n: 1, label: "United States list · ZINNIA 0", url: "https://example.org/z0" }] }).length, 1);
   const age = checkAnswer(answer(claim("age", dji().id)), E.dji, AT);
   assert.equal(groundingProblems("", E.dji, age, "2026-11-22").length, 1); // a month later, the age reads otherwise
+});
+
+// Two UN records of one name, "AQI" (QDe.115 and QDi.244), that share their label and url, as the real list writes them: a source
+// names one of them, and the oracle cannot always tell which
+const aqi = (dates) => [
+  { id: "S1", kind: "search", query: "AQI", found: true, near: [], shown: 2, total: 2, quotes: [], label: "Search of the lists, research and OpenSanctions", url: "/" },
+  ...["QDe.115", "QDi.244"].map((ref, i) => ({
+    id: `S${i + 2}`, kind: "list", entity: { id: `un:${ref}`, name: "AQI" }, gov: "un", program: "Al-Qaida", ...(dates ? { date: dates[i], date_basis: "list" } : { undated: true }),
+    result: "S1", quotes: [], label: "United Nations list · AQI", url: "https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list",
+  })),
+];
+
+test("review (Task 1): records sharing a label and url; the oracle accepts the server's Showing line for one of them", () => {
+  for (const dates of [["2004-10-18", "2008-06-04"], null]) { // told apart by their dates, and not at all
+    const ev = aqi(dates);
+    const out = checkAnswer(answer(claim("listed", "S2")), ev, {});
+    assert.equal(texts(out).at(-1), "Showing 1 of 2.");
+    assert.deepEqual(groundingProblems("Is AQI listed?", ev, out), [], String(dates));
+    const both = checkAnswer(answer(claim("listed", "S2", "S3")), ev, {});
+    assert.ok(!texts(both).some((t) => t.startsWith("Showing ")));
+    assert.deepEqual(groundingProblems("Is AQI listed?", ev, both), []);
+    // a line no answer citing them could carry is still caught
+    for (const text of ["Showing 2 of 2.", "Showing 1 of 3."]) {
+      assert.equal(groundingProblems("", ev, { ...out, sentences: out.sentences.map((x, j) => (j === 1 ? { ...x, text } : x)) }).length, 1, text);
+    }
+  }
+});
+
+// ---- programme counts on the official lists ------------------------------------------------------------------------------
+
+const LIST_NAME = { us: "United States", uk: "United Kingdom", eu: "European Union", un: "United Nations" };
+const committed = (id) => JSON.parse(readFileSync(`data/lists/${id}.json`, "utf8")).records;
+const under = (records, programme) => records.filter((r) => r[2].split(", ").some((p) => p.toLowerCase() === programme.toLowerCase()));
+const num = (n) => n.toLocaleString("en-GB");
+const countOf = (ev, list) => find(ev, (e) => e.kind === "count" && e.list === list);
+const examplesOf = (ev, c) => ev.filter((e) => e.result === c.id);
+const iranLine = (c) => `${num(c.n)} records on the ${LIST_NAME[c.list]} list are under Iran programmes.`;
+
+test("programme count counts distinct refs, not alias rows", () => {
+  const rows = under(committed("us"), "Iran");
+  const refs = new Set(rows.map((r) => r[4]));
+  assert.ok(refs.size < rows.length, `${refs.size} records in ${rows.length} rows`); // a record's other names are rows of their own
+  const c = countOf(E.iranUs, "us");
+  assert.deepEqual([c.n, c.total, c.shown, c.examples_shown], [refs.size, refs.size, 5, 5]);
+  assert.deepEqual(examplesOf(E.iranUs, c).map((e) => e.entity.id), [...refs].slice(0, 5).map((ref) => `us:${ref}`));
+  // with no list given, each list is counted the same way
+  for (const id of ["us", "uk", "eu", "un"]) assert.equal(countOf(E.iran, id).n, new Set(under(committed(id), "Iran").map((r) => r[4])).size, id);
+});
+
+test("programme filter never matches names: on the US list a name holding IRAN counts only when its programme holds Iran", () => {
+  const records = committed("us");
+  const iran = new Set(under(records, "Iran").map((r) => r[4]));
+  const named = (re) => [...new Set(records.filter((r) => re.test(r[1])).map((r) => r[4]))];
+  assert.ok(named(/\bIRAN\b/).some((ref) => !iran.has(ref))); // there are such names under other programmes
+  const iranAir = named(/^IRAN AIR$/); // on the Entity List and the Denied Persons List, and under "Iran, Russia": only that one counts
+  assert.ok(iranAir.some((ref) => !iran.has(ref)) && iranAir.some((ref) => iran.has(ref)));
+  assert.ok(named(/^BIMEH IRAN$/).length && named(/^BIMEH IRAN$/).every((ref) => iran.has(ref))); // under Iran: counted for its programme
+  assert.equal(countOf(E.iranUs, "us").n, iran.size);
+});
+
+test("count renders with its list and topic, and n=0 renders none_matched", () => {
+  const c = countOf(E.iranUs, "us");
+  const [a, b] = examplesOf(E.iranUs, c);
+  const source = { label: "United States list · records under Iran programmes", url: "https://www.trade.gov/consolidated-screening-list" };
+  assert.deepEqual(checkAnswer(answer(claim("count", c.id)), E.iranUs, {}).sentences, [{ text: iranLine(c), sources: [{ n: 1, ...source }] }]);
+  // examples cited with their count are its sources, and count towards "Showing N of M"; so do examples listed on their own
+  const shown = checkAnswer(answer(claim("count", c.id, a.id, b.id)), E.iranUs, {});
+  assert.deepEqual(texts(shown), [iranLine(c), `Showing 2 of ${num(c.n)}.`]);
+  assert.deepEqual(shown.sentences[0].sources.map((s) => s.label), [source.label, a.label, b.label]);
+  const listed = texts(checkAnswer(answer(claim("count", c.id), claim("listed", a.id)), E.iranUs, {}));
+  assert.deepEqual([listed.length, listed[0], listed[2]], [3, iranLine(c), `Showing 1 of ${num(c.n)}.`]);
+  // no list given: one sentence per list (each with records under the programme), and an example belongs to its own list's count only
+  const all = ["us", "uk", "eu", "un"].map((id) => countOf(E.iran, id));
+  assert.deepEqual(texts(checkAnswer(answer(claim("count", ...all.map((x) => x.id))), E.iran, {})), all.map(iranLine));
+  const ukExample = examplesOf(E.iran, all[1])[0];
+  assert.deepEqual(checkAnswer(answer(claim("count", all[0].id, ukExample.id)), E.iran, {}).sentences, [{ text: iranLine(all[0]), sources: [{ n: 1, label: all[0].label, url: all[0].url }] }]);
+  // none, and one
+  assert.deepEqual(texts(checkAnswer(answer(claim("count", countOf(E.programmeNone, "us").id)), E.programmeNone, {})), ["None of the records on the United States list are under Al-Qaida programmes."]);
+  assert.deepEqual(texts(checkAnswer(answer(claim("count", countOf(E.programmeOne, "us").id)), E.programmeOne, {})), ["1 record on the United States list is under UHRPA programmes."]);
+  // examples alone, a count cited as a listing, and the search of a word that is no programme say nothing
+  assert.deepEqual(checkAnswer(answer(claim("count", a.id, b.id)), E.iranUs, {}), FALLBACK_ANSWER);
+  assert.deepEqual(checkAnswer(answer(claim("listed", c.id)), E.iranUs, {}), FALLBACK_ANSWER);
+  assert.deepEqual(checkAnswer(answer(claim("not_found", E.programmeUnknown[0].id)), E.programmeUnknown, { question: "How many records are under Gatik?" }), FALLBACK_ANSWER);
+});
+
+test("groundingProblems accepts count and none_matched copy", () => {
+  const ok = (ev, raw) => {
+    const out = checkAnswer(raw, ev, {});
+    assert.notEqual(out.kind, "fallback");
+    assert.deepEqual(groundingProblems("How many records are under Iran programmes?", ev, out), [], texts(out).join(" | "));
+    return out;
+  };
+  const c = countOf(E.iranUs, "us");
+  const [a, b] = examplesOf(E.iranUs, c);
+  const alone = ok(E.iranUs, answer(claim("count", c.id)));
+  ok(E.iranUs, answer(claim("count", c.id), claim("listed", a.id)));
+  ok(E.iran, answer(claim("count", ...["us", "uk", "eu", "un"].map((id) => countOf(E.iran, id).id))));
+  ok(E.programmeNone, answer(claim("count", countOf(E.programmeNone, "us").id)));
+  ok(E.programmeOne, answer(claim("count", countOf(E.programmeOne, "us").id)));
+  const out = ok(E.iranUs, answer(claim("count", c.id, a.id, b.id)));
+  // caught: another number, list or verdict; another count on the line; an example of another list's count as a source
+  const tamper = (i, s, ev = E.iranUs, base = alone) => groundingProblems("", ev, { ...base, sentences: base.sentences.map((x, j) => (j === i ? { ...x, ...s } : x)) });
+  assert.equal(tamper(0, { text: `${num(c.n + 1)} records on the United States list are under Iran programmes.` }).length, 1);
+  assert.equal(tamper(0, { text: `${num(c.n)} records on the United Kingdom list are under Iran programmes.` }).length, 1);
+  assert.equal(tamper(0, { text: "None of the records on the United States list are under Iran programmes." }).length, 1);
+  assert.equal(tamper(1, { text: `Showing 3 of ${num(c.n)}.` }, E.iranUs, out).length, 1);
+  assert.equal(tamper(0, { text: `${num(c.n + 1)} records on the United States list are under Iran programmes.` }, E.iranUs, out).length, 2); // (its line goes with it)
+  const us = countOf(E.iran, "us");
+  const ukExample = examplesOf(E.iran, countOf(E.iran, "uk"))[0];
+  const usOnly = checkAnswer(answer(claim("count", us.id)), E.iran, {});
+  assert.equal(tamper(0, { sources: [...usOnly.sentences[0].sources, { n: 2, label: ukExample.label, url: ukExample.url }] }, E.iran, usOnly).length, 1);
 });

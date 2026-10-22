@@ -36,12 +36,20 @@ function age(e, today) {
   return span.length ? `${e.entity.name} has been on ${on} for ${span.join(" ")} (since ${day(e.date)})${note}.` : `${e.entity.name} was added to ${on} today${note}.`;
 }
 
-/** The listed claim's sentence for an item, or null. Only these sentences count towards "Showing N of M". */
+/** The listed claim's sentence for an item, or null. These sentences, and count sentences, count towards "Showing N of M". */
 function listing(e) {
   const since = e.date ? ` since ${day(e.date)}` : "";
   if (e.kind === "opensanctions") return `${e.entity.name} appears in OpenSanctions${e.program ? ` as listed by ${e.program}` : ""}${since}.`;
   if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted) return `${e.entity.name} appears on the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}${since}.`;
   return null;
+}
+
+/** The count claim's sentence for a count item (none matched at 0), or null. */
+function counted(e) {
+  if (e.kind !== "count" || e.unit !== "records") return null;
+  const on = `on the ${LIST_LABELS[e.list]} list`;
+  if (e.n === 0) return `None of the records ${on} are under ${e.topic.label} programmes.`;
+  return e.n === 1 ? `1 record ${on} is under ${e.topic.label} programmes.` : `${e.n.toLocaleString("en-GB")} records ${on} are under ${e.topic.label} programmes.`;
 }
 
 /**
@@ -54,6 +62,7 @@ function producers(ev, today) {
   for (const e of ev) {
     for (const q of e.quotes) add(q, e);
     if (listing(e)) add(listing(e), e);
+    if (counted(e)) for (const x of [e, ...ev.filter((x) => x.result === e.id)]) add(counted(e), x); // the count, and the examples it gave
     if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted && age(e, today)) add(age(e, today), e);
     if (e.kind === "change" && e.before_start) add(`Daily updates started on ${day(e.first_run)}, so there is no record before then.`, e);
     else if (e.kind === "change" && e.trimmed) add(`Days before ${day(e.started)} are no longer kept.`, e);
@@ -77,17 +86,23 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   const problems = [];
   const ok = (cond, message) => { if (!cond) problems.push(message); };
   const made = producers(ev, today);
-  // "Showing N of M." for a search of M matches when N of the entities among them are named by the answer's listing sentences, fewer than
-  // all. A quote, an age or any other sentence never counts; entities are counted, so a record listed from either of two searches of one
-  // ship (its name and its IMO number) counts for both
-  const listings = new Set(ev.map(listing).filter(Boolean));
-  const cites = new Set(answer.sentences.filter((s) => listings.has(s.text)).flatMap((s) => s.sources.map((x) => `${x.label}\n${x.url}`)));
-  const named = new Set(ev.filter((e) => e.entity && cites.has(`${e.label}\n${e.url}`)).map((e) => e.entity.id));
-  const showing = new Set(ev.filter((r) => Number.isInteger(r.total)).flatMap((r) => {
-    const n = new Set(ev.filter((e) => e.result === r.id && e.entity && named.has(e.entity.id)).map((e) => e.entity.id)).size;
-    return n && n < r.total ? [SHOWING(n, r.total)] : [];
-  }));
+  // "Showing N of M." for a search of M matches when N of the entities among them are named by the answer's listing and count sentences,
+  // fewer than all. A quote, an age or any other sentence never counts; entities are counted, so a record listed from either of two
+  // searches of one ship (its name and its IMO number) counts for both. A source is only a label and a url, which records can share (UN
+  // records of one name, EU records under one act, US records whose url is the list's home page): it names one of the items with them
+  // that write its sentence. So N may be any count from the entities the sources surely name to all those they may name.
   const labelled = (items, src) => [...items].some((e) => e.label === src.label && e.url === src.url);
+  const shows = new Set(ev.flatMap((e) => [listing(e), counted(e)]).filter(Boolean));
+  const named = answer.sentences.filter((s) => shows.has(s.text)).flatMap((s) => s.sources.map((src) =>
+    new Set([...made.get(s.text)].filter((e) => e.entity && labelled([e], src)).map((e) => e.entity.id))));
+  const maybe = new Set(named.flatMap((x) => [...x]));
+  const surely = new Set(named.filter((x) => x.size === 1).flatMap((x) => [...x]));
+  const showing = new Set();
+  for (const r of ev.filter((x) => Number.isInteger(x.total))) {
+    const matches = [...new Set(ev.filter((e) => e.result === r.id && e.entity).map((e) => e.entity.id))];
+    const among = (set) => matches.filter((x) => set.has(x)).length;
+    for (let n = Math.max(1, among(surely)); n <= Math.min(among(maybe), r.total - 1); n++) showing.add(SHOWING(n, r.total));
+  }
   for (const s of answer.sentences) {
     if (FIXED.has(s.text) || showing.has(s.text)) {
       ok(isDeepStrictEqual(s.sources, []), `fixed copy has no source: ${s.text.slice(0, 60)}`);

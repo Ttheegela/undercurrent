@@ -1,6 +1,6 @@
 // Ask's answer renderer. The model writes no words: each sentence of its `answer` call is a claim type and evidence ids (S1, S2, …),
-// and a `quote` names one item and the number of one of its quotes. This module writes every sentence itself: listing, age, not-found
-// and change sentences from fixed copy and the cited items, quotes copied verbatim from the cited item. Anything it can't build is
+// and a `quote` names one item and the number of one of its quotes. This module writes every sentence itself: listing, age, count,
+// not-found and change sentences from fixed copy and the cited items, quotes copied verbatim from the cited item. Anything it can't build is
 // dropped, and an answer with nothing left is the fallback. Any `text` or label from the model is ignored. No I/O beyond the site's
 // own prose vocabulary, read once. The output is plain text plus {label, url} / {label, href} taken from the evidence: the panel escapes it.
 import { LIST_LABELS, formatDate } from "../app/render.js";
@@ -51,7 +51,21 @@ function calendarSpan(from, to) {
   if (!months) return unit((Date.UTC(b[0], b[1] - 1, b[2]) - Date.UTC(a[0], a[1] - 1, a[2])) / 864e5, "day");
   return [unit(Math.floor(months / 12), "year"), unit(months % 12, "month")].filter(Boolean).join(" ");
 }
-const SHOWING = (n, total) => `Showing ${n.toLocaleString("en-GB")} of ${total.toLocaleString("en-GB")}.`;
+const num = (n) => n.toLocaleString("en-GB");
+const SHOWING = (n, total) => `Showing ${num(n)} of ${num(total)}.`;
+// A count's sentence, by what it counts (null for a unit it does not know): records on an official list, by ref
+function COUNT(e) {
+  switch (e.unit) {
+    case "records": return `${e.n === 1 ? "1 record" : `${num(e.n)} records`} on the ${LIST_LABELS[e.list]} list ${e.n === 1 ? "is" : "are"} under ${e.topic.label} programmes.`;
+    default: return null;
+  }
+}
+function NONE_MATCHED(e) {
+  switch (e.unit) {
+    case "records": return `None of the records on the ${LIST_LABELS[e.list]} list are under ${e.topic.label} programmes.`;
+    default: return null;
+  }
+}
 
 // ---- the notice on advice-shaped questions -----------------------------------------------------------------------------------
 // Ask cannot give advice: no model word is ever shown, only records and their sources. A question that asks for it ("Should I buy oil
@@ -197,6 +211,11 @@ const RENDER = {
       return span ? [{ text: NOT_FOUND(span), items: [e] }] : [];
     });
   },
+  // one sentence per cited count item (none matched when it is 0), its sources the item and the examples it gave that are cited with it
+  count: (items) => items.filter((e) => e.kind === "count").flatMap((c) => {
+    const text = c.n ? COUNT(c) : NONE_MATCHED(c);
+    return text ? [{ text, items: [c, ...items.filter((e) => e.result === c.id)] }] : [];
+  }),
   // "No changes" only from the change record's own item, followed by every gap of its range; never from an empty list. A range the
   // record cannot speak for is never "no changes": before its first night, trimmed from it, or today before tonight's run.
   change: (items, s, all) => {
@@ -226,12 +245,12 @@ function cite(ids, byId) {
   return items.every(Boolean) ? items : null;
 }
 
-// The claims whose sentences show a search's matches, and so count towards "Showing N of M" (the count claim's examples join it later)
-const SHOWS_MATCHES = new Set(["listed"]);
+// The claims whose sentences show a search's matches, and so count towards "Showing N of M": listings, and the examples cited with a count
+const SHOWS_MATCHES = new Set(["listed", "count"]);
 
 /**
  * Numbers the sources in order of first citation; one sentence written twice becomes one sentence with both sources. Then, for each
- * search (an item with a `total`), the entities among its matches (the items whose `result` is its id) that `listed` sentences name:
+ * search (an item with a `total`), the entities among its matches (the items whose `result` is its id) that SHOWS_MATCHES sentences name:
  * when they are fewer than its total, SHOWING follows the last sentence naming one. A quote, an age or any other sentence never
  * counts. Entities, not items, are counted, so two searches of one ship (its name and its IMO number, or one query run twice) each
  * count a record listed from either search's copy; the same line twice after one sentence is said once. The model never chooses it.

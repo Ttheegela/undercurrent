@@ -4,7 +4,7 @@
 // dropped, and an answer with nothing left is the fallback. Any `text` or label from the model is ignored. No I/O beyond the site's
 // own prose vocabulary, read once. The output is plain text plus {label, url} / {label, href} taken from the evidence: the panel escapes it.
 import { LIST_LABELS, formatDate, joinAnd } from "../app/render.js";
-import { siteVocabulary, LISTING, AUTHORITY } from "./_ask_tools.js";
+import { siteVocabulary, LISTING, AUTHORITY, SHIP_TYPES } from "./_ask_tools.js";
 
 // ---- fixed copy (global-constraints.md, verbatim; the range, one-day, OpenSanctions, clarify, before-start, trimmed, not-yet, part-answer and not-advice forms by ruling)
 
@@ -61,11 +61,10 @@ const ALL_LISTS = `the ${LABELS.slice(0, -1).join(", ")} or ${LABELS.at(-1)} lis
 // Ships in the research map, by what its count's filters say they are, from fixed fragments and the vocabulary's labels: "are tankers and
 // are under a Russia programme and an Iran programme". A flag is always "by at least one source": the sources can disagree.
 const MAP_SHIPS = "ships in Undercurrent's research map";
-const SHIP_TYPE = { tanker: ["a tanker", "tankers"], cargo: ["a cargo ship", "cargo ships"], container: ["a container ship", "container ships"], "bulk carrier": ["a bulk carrier", "bulk carriers"], tug: ["a tug", "tugs"] };
 function shipsThat(f, one) {
   const be = one ? "is" : "are";
   return joinAnd([
-    f.ship_type && `${be} ${SHIP_TYPE[f.ship_type][one ? 0 : 1]}`,
+    f.ship_type && `${be} ${SHIP_TYPES[f.ship_type][one ? 0 : 1]}`, // (the tool's own table: every type it takes has its words)
     f.programme && `${be} under ${joinAnd(f.programme.map((g) => `${/^[AEIOU]/.test(g.label) ? "an" : "a"} ${g.label} programme`))}`,
     f.listed_by && `${be} listed by the ${LIST_LABELS[f.listed_by]}`,
     f.flag && `${be} recorded as ${f.flag.label}-flagged by at least one source`,

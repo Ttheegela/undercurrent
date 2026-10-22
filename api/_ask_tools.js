@@ -685,7 +685,9 @@ async function checkLists(args, ev, ctx = {}) {
 // the map does not group by would not be true). The map is 3.4 MB, so it is indexed on first use.
 const FLEET = "stories/shadow-fleet/network/fleet-data.json";
 const MAP_LISTS = ["us", "uk", "eu"];
-const SHIP_TYPES = ["tanker", "cargo", "container", "bulk carrier", "tug"]; // each found inside the recorded type: "tanker" in "Crude Oil Tanker"
+// The ship types a count takes, each found inside the recorded type ("tanker" in "Crude Oil Tanker"), with how the renderer names one
+// ship of it and several: one table, so a type the tool takes always has its words
+export const SHIP_TYPES = { tanker: ["a tanker", "tankers"], cargo: ["a cargo ship", "cargo ships"], container: ["a container ship", "container ships"], "bulk carrier": ["a bulk carrier", "bulk carriers"], tug: ["a tug", "tugs"] };
 const shipIndex = new WeakMap();
 function mapShips() {
   const fleet = data(FLEET);
@@ -713,12 +715,13 @@ const shipCriteria = (f) => [
 
 /** A count of the map's ships under every filter given, then up to CAP.ships of them as examples: research items, one current listing each. */
 function researchTool(args, ev) {
-  const { ships, groups } = mapShips();
+  const index = mapShips();
+  const { ships, groups } = index;
   const filters = {};
   const tests = [];
   if (args.ship_type !== undefined) {
     const type = typeof args.ship_type === "string" ? args.ship_type.trim().toLowerCase().replace(/s$/, "") : "";
-    if (!SHIP_TYPES.includes(type)) return fail(`ship_type must be one of ${SHIP_TYPES.join(", ")}`);
+    if (!Object.hasOwn(SHIP_TYPES, type)) return fail(`ship_type must be one of ${Object.keys(SHIP_TYPES).join(", ")}`);
     filters.ship_type = type;
     tests.push((s) => s.ship_type.includes(type));
   }
@@ -759,7 +762,7 @@ function researchTool(args, ev) {
   const matched = ships.filter((s) => tests.every((test) => test(s)));
   const n = matched.length;
   // the examples: the first ships, in the map's order, whose research entry holds a current listing (on the list asked for)
-  const entries = new Map(data("data/research-index.json").entries.map((e) => [e.id, e]));
+  const entries = (index.entries ??= new Map(data("data/research-index.json").entries.map((e) => [e.id, e]))); // built once, with the map's index
   const note = `An example of the ${num(n)} ships counted, in the map's order.`;
   const examples = [];
   for (const s of matched) {
@@ -775,7 +778,7 @@ function researchTool(args, ev) {
       filters.flag && "A ship's flags are every flag a source records for it, so a ship whose sources disagree counts under each.",
       examples.length && (examples.length === 1 ? "One follows as an example." : `${examples.length} follow as examples.`),
     ),
-    label: `Undercurrent's research map · ships ${what}`, url: MAP,
+    label: "Undercurrent's research map · ships", url: MAP, // (the criteria are in the text: in the label they ran to 245 characters)
   });
   const items = [count, ...addAll(ev, examples.map((e) => ({ ...e, result: count.id })))]; // "Showing N of M" counts the examples cited
   return { shown: examples.length, total: n, items: items.map(view) };
@@ -1206,7 +1209,7 @@ export const TOOLS = [
       programme: { type: "array", items: { type: "string" }, description: "Programme groups a ship must all be in. The map's groups are Russia, Iran, Venezuela, Terrorism and North Korea." },
       listed_by: str("Only the ships on this list.", { enum: MAP_LISTS }),
       flag: str("A country, such as Panama: the ships any source records under that flag."),
-      ship_type: str("Only the ships of this type.", { enum: SHIP_TYPES }),
+      ship_type: str("Only the ships of this type.", { enum: Object.keys(SHIP_TYPES) }),
       names_changed: { type: "boolean", description: "true: only the ships recorded under more than one name." },
     }, []),
   fn("answer", "Give the final answer. Call this last, exactly once. You write no words: the server writes each sentence from the evidence you cite. listed: an entity appears on a sanctions list (cite only its list, research or OpenSanctions items, never connections, lobbying or chips items). not_found: the name the reader asked about matched nothing (cite the search item). change: what the nightly updates recorded (cite change and gap items). quote: one sentence copied from one item's quotes, for anything else, including connections and lobbying (cite that one item and give the quote's number).",

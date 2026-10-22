@@ -793,7 +793,7 @@ test("research: programme is the map's programme groups (an array is an AND), na
     n: 1, total_ships: 4, shown: 1, total: 1, text: undefined, label: undefined, url: "/stories/shadow-fleet/network/shadow_fleet_map.html", quotes: [],
   });
   assert.match(count.text, /^Undercurrent's research map: 1 of its 4 ships match all of: whose recorded type contains "tanker"; in the map's Russia programme group and its Iran programme group; listed by the European Union\. /);
-  assert.match(count.label, /^Undercurrent's research map · ships /);
+  assert.equal(count.label, "Undercurrent's research map · ships"); // the criteria are the text's: a label of every filter ran to 245 characters
   assert.deepEqual(examples.map((e) => [e.kind, e.entity.id, e.gov, e.program, e.date, e.result]), [["research", "IMO9408695", "eu", "Russia", "2025-10-24", "S1"]]);
   assert.deepEqual([out.shown, out.total, out.items.map((i) => i.id)], [1, 1, ["S1", "S2"]]);
 });

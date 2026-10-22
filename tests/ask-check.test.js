@@ -9,7 +9,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkAnswer, adviceIntent } from "../api/_ask_check.js";
-import { runTool, resetAskCache, LISTING } from "../api/_ask_tools.js";
+import { runTool, resetAskCache, LISTING, SHIP_TYPES, TOOLS } from "../api/_ask_tools.js";
 import { INDEX_URL } from "../api/search.js";
 import { VOCAB } from "../api/_ask_vocab.js";
 import { formatDate } from "../app/render.js";
@@ -1702,4 +1702,20 @@ test("research copy: one ship is singular; every filter at once reads as one lis
   assert.equal(tamper(0, `2 ${MAP} are tankers and are listed by the United Kingdom.`), 1);
   assert.equal(tamper(3, `0 ${MAP} are container ships and are recorded as Panama-flagged by at least one source.`), 1);
   assert.equal(tamper(3, `None of the ${MAP} are container ships and are flagged in Panama.`), 1);
+});
+
+test("Task 3 carry (1): one ship-type table: every type the research tool takes renders, one ship, several or none, and the oracle accepts it", async () => {
+  const by = Object.fromEntries(TOOLS.map((t) => [t.function.name, t.function.parameters]));
+  assert.deepEqual(by.research.properties.ship_type.enum, Object.keys(SHIP_TYPES));
+  for (const type of Object.keys(SHIP_TYPES)) {
+    const { c } = await shipCount({ ship_type: type });
+    for (const n of [0, 1, 2]) {
+      const one = [{ ...c, n, total: n, shown: 0 }];
+      const out = checkAnswer(answer(claim("count", c.id)), one, {});
+      assert.equal(out.kind, "answer", `${type} ${n}`);
+      assert.deepEqual(groundingProblems("How many ships?", one, out), [], `${type} ${n}`);
+    }
+    assert.equal(c.label, "Undercurrent's research map · ships"); // (Task 3 carry (3): the criteria are the text's)
+    assert.match(c.text, new RegExp(`whose recorded type contains "${type}"`));
+  }
 });

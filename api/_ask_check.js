@@ -1,7 +1,8 @@
 // Ask's answer renderer. The model writes no words: each sentence of its `answer` call is a claim type and evidence ids (S1, S2, …),
 // and a `quote` names one item and the number of one of its quotes. This module writes every sentence itself: listing, age, count,
-// not-found and change sentences from fixed copy and the cited items, quotes copied verbatim from the cited item. Anything it can't build is
-// dropped, and an answer with nothing left is the fallback. Any `text` or label from the model is ignored. No I/O beyond the site's
+// none, not-found and change sentences from fixed copy and the cited items, quotes copied verbatim from the cited item. Anything it can't
+// build is dropped, and an answer with nothing left is the fallback; an answer of no sentences at all says nothing recorded answers the
+// question. Any `text` or label from the model is ignored. No I/O beyond the site's
 // own prose vocabulary, read once. The output is plain text plus {label, url} / {label, href} taken from the evidence: the panel escapes it.
 import { LIST_LABELS, formatDate, joinAnd } from "../app/render.js";
 import { siteVocabulary, LISTING, AUTHORITY, SHIP_TYPES } from "./_ask_tools.js";
@@ -10,6 +11,8 @@ import { siteVocabulary, LISTING, AUTHORITY, SHIP_TYPES } from "./_ask_tools.js"
 
 const REFUSAL = "I can only answer questions about what's on Undercurrent: sanctions lists, ship and company connections, lobbying, the semiconductor data, the research and the daily updates. I can't give legal or compliance advice.";
 const FALLBACK = "I couldn't check an answer to that against the site's data, so I won't guess. Try the search on the home page.";
+// the model looked things up and no record answers the question: said, not the fallback, which means it couldn't be checked
+const NOTHING_ANSWERS = "Nothing recorded on this site answers that.";
 const CLARIFY = "Which of these did you mean?";
 const day = (iso) => formatDate(iso) || iso; // d MMM yyyy; a bare year stays as it is
 const NOT_FOUND = (name) => `${name} is not on the lists we check (US, UK, EU, UN, OpenSanctions). Not being found isn't proof.`;
@@ -19,13 +22,14 @@ const NOT_ADVICE = "Ask can't give legal or compliance advice. These are records
 const BEFORE_START = (first) => `Daily updates started on ${day(first)}, so there is no record before then.`;
 const TRIMMED = (started) => `Days before ${day(started)} are no longer kept.`;
 const NOT_YET = "Today's nightly update hasn't run yet.";
-// A topic none says what it rests on: the updates whose programme or country could be checked, and how many could not be
+// A topic none says what it rests on: the updates whose programme or country could be checked, and how many could not be checked against
+// the topic (some carry no programme or country, some carry ones that cannot settle it)
 function NONE_INVOLVE(e) {
   const n = e.checked_fleet + e.checked_lobby;
   const when = e.from === e.to ? `on ${day(e.from)}` : `between ${day(e.from)} and ${day(e.to)}`;
   return n === 1 ? `The 1 update recorded ${when} does not involve ${e.topic.label}.` : `None of the ${num(n)} updates recorded ${when} involve ${e.topic.label}.`;
 }
-const UNCHECKED = (n) => (n === 1 ? "1 update in that period carries no programme or country to check." : `${num(n)} updates in that period carry no programme or country to check.`);
+const UNCHECKED = (e) => `${e.unchecked === 1 ? "1 update" : `${num(e.unchecked)} updates`} in that period can't be checked against ${e.topic.label}.`;
 const SOURCE_GAP = (g) => (g.date || g.from === g.to
   ? `${g.source} was unavailable on ${day(g.date ?? g.from)}, so changes from it that day aren't recorded.`
   : `${g.source} was unavailable from ${day(g.from)} to ${day(g.to)}, so changes from it on those days aren't recorded.`);
@@ -88,6 +92,8 @@ function COUNT(e) {
     case "ships": return Object.keys(e.filters).join() === "names_changed"
       ? `${num(e.n)} of the ${num(e.total_ships)} ${MAP_SHIPS} ${shipsThat(e.filters, e.n === 1)}.`
       : `${e.n === 1 ? "1 ship" : `${num(e.n)} ships`} in Undercurrent's research map ${shipsThat(e.filters, e.n === 1)}.`;
+    // the chips research's set of firms, from the Treasury releases it reads
+    case "firms": return `${e.n === 1 ? "1 firm is" : `${num(e.n)} firms are`} named in Undercurrent's research as shipping chips to Russia.`;
     default: return null;
   }
 }
@@ -256,10 +262,16 @@ const RENDER = {
       : e.before_start ? [{ text: BEFORE_START(e.first_run), items: [e] }]
       : e.trimmed ? [{ text: TRIMMED(e.started), items: [e] }]
       : e.not_yet ? [{ text: NOT_YET, items: [e] }, ...gaps(e)]
-      : e.found === false && e.topic ? [{ text: NONE_INVOLVE(e), items: [e] }, ...(e.unchecked ? [{ text: UNCHECKED(e.unchecked), items: [e] }] : []), ...gaps(e)]
+      : e.found === false && e.topic ? [{ text: NONE_INVOLVE(e), items: [e] }, ...(e.unchecked ? [{ text: UNCHECKED(e), items: [e] }] : []), ...gaps(e)]
       : e.found === false ? [{ text: NO_CHANGES(e.from, e.to), items: [e] }, ...gaps(e)]
       : [{ text: `${e.summary} · ${day(e.date)}`, items: [e] }]));
   },
+  // a none, as its count or change claim writes it: a count of 0, or a topic no checked update involves (with what could not be checked
+  // and the gaps). Anything else cited as a none is dropped: a count that found something is never one.
+  none_matched: (items, s, all) => [
+    ...RENDER.count(items.filter((e) => e.kind === "count" && e.n === 0)),
+    ...RENDER.change(items.filter((e) => e.kind === "change" && e.found === false && e.topic), s, all),
+  ],
   // one sentence of one item, verbatim. A change or gap item has no quotes: a quote of one alone is its change claim, the fixed copy above
   // (and counts as one towards "Showing N of M")
   quote: (items, s, all) => {
@@ -329,19 +341,20 @@ function clarify(items, ctx) {
 }
 
 /**
- * The model's list, or [] when it is none. A model sometimes sends the list as a JSON string ("[{\"claim\":…}]", the second eval
- * run): that string is decoded once, and used only when it holds an array. Only the container's format changes: the sentences in it
- * go through the same checks as ever, so nothing the model wrote is rendered. The caller's object is left as the model sent it.
+ * The model's list, or null when it is none (so an empty list, which says something, is told from a missing or broken one). A model
+ * sometimes sends the list as a JSON string ("[{\"claim\":…}]", the second eval run): that string is decoded once, and used only when it
+ * holds an array. Only the container's format changes: the sentences in it go through the same checks as ever, so nothing the model
+ * wrote is rendered. The caller's object is left as the model sent it.
  */
 function listOf(x) {
   if (typeof x === "string") {
     try {
       x = JSON.parse(x);
     } catch {
-      return [];
+      return null;
     }
   }
-  return Array.isArray(x) ? x : [];
+  return Array.isArray(x) ? x : null;
 }
 
 /** NOT_ADVICE, as a piece to close an answer or a clarify, when the reader's question asks for advice. */
@@ -357,8 +370,12 @@ export function checkAnswer(raw, ev, ctx) {
   if (raw?.kind === "refusal") return only("refusal", REFUSAL);
   if (raw?.kind !== "answer" && raw?.kind !== "clarify") return fallback();
   const byId = new Map((Array.isArray(ev) ? ev : []).map((e) => [e.id, e]));
-  const said = listOf(raw.sentences).filter((s) => s !== null && typeof s === "object");
-  const linked = listOf(raw.next).map((x) => byId.get(x?.source)).filter(Boolean);
+  const sentences = listOf(raw.sentences);
+  // an answer of no sentences after the tools returned evidence: the model found no record that answers. With no evidence at all
+  // nothing was checked (every lookup failed, or none was made), so that is the fallback
+  if (raw.kind === "answer" && sentences?.length === 0 && byId.size) return only("answer", NOTHING_ANSWERS);
+  const said = (sentences ?? []).filter((s) => s !== null && typeof s === "object");
+  const linked = (listOf(raw.next) ?? []).map((x) => byId.get(x?.source)).filter(Boolean);
   const cited = said.flatMap((s) => {
     const items = cite(s.sources, byId);
     return items ? [{ s, items }] : [];

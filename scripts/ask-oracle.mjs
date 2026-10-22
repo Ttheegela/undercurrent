@@ -9,7 +9,8 @@ export const FALLBACK = "I couldn't check an answer to that against the site's d
 export const CLARIFY = "Which of these did you mean?";
 export const PARTIAL = "I could only answer part of the question. Ask about each name on its own to check the rest.";
 export const NOT_ADVICE = "Ask can't give legal or compliance advice. These are records from the site, each with its source.";
-const FIXED = new Set([REFUSAL, FALLBACK, CLARIFY, PARTIAL, NOT_ADVICE]); // fixed copy: written by the server, so it has no source
+export const NOTHING_ANSWERS = "Nothing recorded on this site answers that.";
+const FIXED = new Set([REFUSAL, FALLBACK, CLARIFY, PARTIAL, NOT_ADVICE, NOTHING_ANSWERS]); // fixed copy: written by the server, so it has no source
 const NOT_FOUND = /^(.+) is not on the lists we check \(US, UK, EU, UN, OpenSanctions\)\. Not being found isn't proof\.$/;
 
 const day = (iso) => formatDate(iso) || iso;
@@ -58,7 +59,10 @@ function shipFilters(f, one) {
   return and(parts);
 }
 
-/** The count claim's sentence for a count item (none matched at 0), or null. A country's are "programmes", any other topic's "the … programme". */
+/**
+ * The count claim's sentence for a count item (none matched at 0; the chips research's firms, never 0), or null. A country's are
+ * "programmes", any other topic's "the … programme".
+ */
 function counted(e) {
   if (e.kind === "count" && e.unit === "ships") {
     const map = "ships in Undercurrent's research map";
@@ -66,6 +70,7 @@ function counted(e) {
     if (Object.keys(e.filters).length === 1 && e.filters.names_changed) return `${e.n.toLocaleString("en-GB")} of the ${e.total_ships.toLocaleString("en-GB")} ${map} ${shipFilters(e.filters, e.n === 1)}.`;
     return `${e.n === 1 ? "1 ship" : `${e.n.toLocaleString("en-GB")} ships`} in Undercurrent's research map ${shipFilters(e.filters, e.n === 1)}.`;
   }
+  if (e.kind === "count" && e.unit === "firms" && e.n) return `${e.n === 1 ? "1 firm is" : `${e.n.toLocaleString("en-GB")} firms are`} named in Undercurrent's research as shipping chips to Russia.`;
   if (e.kind !== "count" || e.unit !== "records") return null;
   if (e.n === 0) return `No programme on ${e.list ? `the ${LIST_LABELS[e.list]} list` : "the United States, United Kingdom, European Union or United Nations lists"} is named ${e.topic.label}.`;
   const on = `on the ${LIST_LABELS[e.list]} list`;
@@ -89,11 +94,11 @@ function producers(ev, today) {
     else if (e.kind === "change" && e.trimmed) add(`Days before ${day(e.started)} are no longer kept.`, e);
     else if (e.kind === "change" && e.not_yet) add("Today's nightly update hasn't run yet.", e);
     else if (e.kind === "change" && e.found === false && e.topic) {
-      // no update involves the topic: how many could be checked, and how many carry nothing to check
+      // no update involves the topic: how many could be checked, and how many could not be checked against it
       const n = e.checked_fleet + e.checked_lobby;
       const when = e.from === e.to ? `on ${day(e.from)}` : `between ${day(e.from)} and ${day(e.to)}`;
       add(n === 1 ? `The 1 update recorded ${when} does not involve ${e.topic.label}.` : `None of the ${n.toLocaleString("en-GB")} updates recorded ${when} involve ${e.topic.label}.`, e);
-      if (e.unchecked) add(e.unchecked === 1 ? "1 update in that period carries no programme or country to check." : `${e.unchecked.toLocaleString("en-GB")} updates in that period carry no programme or country to check.`, e);
+      if (e.unchecked) add(`${e.unchecked === 1 ? "1 update" : `${e.unchecked.toLocaleString("en-GB")} updates`} in that period can't be checked against ${e.topic.label}.`, e);
     } else if (e.kind === "change" && e.found === false) add(e.from === e.to ? `No changes were recorded on ${day(e.from)}.` : `No changes were recorded between ${day(e.from)} and ${day(e.to)}.`, e);
     else if (e.kind === "change") add(`${e.summary} · ${day(e.date)}`, e);
     if (e.kind === "gap") {

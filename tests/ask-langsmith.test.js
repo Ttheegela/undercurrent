@@ -307,7 +307,7 @@ test("the relevance judge scores answered cases whose answer is an answer, on wh
     "clarify-1": {}, // a clarify: counted apart, not judged
     "area-research-1": { answer: UNGROUNDED }, // an answer that fails pass is judged all the same
     "off-topic-2": {}, // a refusal: fixed copy, not judged
-    "relevance-2": {}, // a fallback: fixed copy, not judged
+    "relevance-2": { answer: FALLBACK_ANSWER }, // a fallback: fixed copy, not judged (its recorded answer of no sentences is NOTHING_ANSWERS now)
     "off-topic-3": { stop: UNAVAILABLE }, // infrastructure: no answer
   };
   const judge = fakeJudge({ [byId("area-research-1").question]: { score: 0, noul: 0.9 } });

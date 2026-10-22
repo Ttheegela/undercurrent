@@ -11,6 +11,8 @@ const read = (rel) => JSON.parse(readFileSync(join(process.cwd(), rel), "utf8"))
 const REGIONS = new Intl.DisplayNames("en", { type: "region" });
 const SHORT_REGIONS = new Intl.DisplayNames("en", { type: "region", style: "short" });
 const GROUP_LABELS = { dprk: "North Korea" };
+/** A programme group's label, from its key alone ("dprk" is North Korea): the research tool names the map's groups without the vocabulary. */
+export const groupLabel = (g) => GROUP_LABELS[g] ?? g[0].toUpperCase() + g.slice(1);
 const BUCKETS = new Set(["", "both", "other"]); // the research map's groups for a ship in two programmes or none: not topics
 // Nationality words and other names, by label. A topic that names no country has only other spellings here ("Al-Qaeda", and ISIL, ISIS
 // and Da'esh, which the UK's and the UN's Al-Qaida regimes name with it), so they are matched too; a country's never are
@@ -77,7 +79,7 @@ function build() {
   const topics = [
     ...[...byCountry.values()].map(programme),
     ...countries.map(([cc, name]) => ({ ...topic("country", cc, name), region: cc.toUpperCase() })),
-    ...[...groups].map((g) => topic("group", g, GROUP_LABELS[g] ?? g[0].toUpperCase() + g.slice(1))),
+    ...[...groups].map((g) => topic("group", g, groupLabel(g))),
   ];
   // a word shared by several topics ("Iran": the programme, the country and the group) is the first: programme, then country, then group
   const byWord = new Map();

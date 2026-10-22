@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { GET, POST, MODEL, runAsk, visitors } from "../api/ask.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
-import { TOOLS, resetAskCache } from "../api/_ask_tools.js";
+import { TOOLS, SHIP_TYPES, resetAskCache } from "../api/_ask_tools.js";
 import { INDEX_URL, resetIndexCache } from "../api/search.js";
 import { CONNECTIONS_URL, LOBBYING_URL, resetConnectionsCache } from "../api/connections.js";
 import { normalizeName } from "../app/normalize.js";
@@ -139,6 +139,8 @@ before(() => {
   write(root, "data/changes/changes.json", CHANGES);
   write(root, "data/site-stats.json", { fleet: { ships: 1, companies: 1 }, generated: "2026-10-20", opensanctions_sources: 95 });
   write(root, "data/ask-docs.json", DOCS);
+  // the research tool's schema names the map's programme groups, from the map
+  write(root, "stories/shadow-fleet/network/fleet-data.json", { nodes: [{ id: "IMO9408695", name: "TASSOS", programs: ["russia", "iran"] }], edges: [] });
   process.chdir(root);
 });
 after(() => {
@@ -799,7 +801,7 @@ test("request carries model, max_tokens 800, provider.data_collection deny, no u
 });
 
 test("the system prompt is short, scoped, and carries today's date", () => {
-  assert.ok(SYSTEM_PROMPT.length < 2500, `${SYSTEM_PROMPT.length} characters`);
+  assert.ok(SYSTEM_PROMPT.length < 3500, `${SYSTEM_PROMPT.length} characters`);
   assert.match(SYSTEM_PROMPT, /\{today\}/);
   // the second eval run (area-lobbying-1) cited lobbying items as listed: a listing is cited only from list items, the rest are quotes
   assert.match(SYSTEM_PROMPT, /^- listed: .*Cite only its list, research or OpenSanctions items, never connections, lobbying or chips items\.$/m);
@@ -807,6 +809,16 @@ test("the system prompt is short, scoped, and carries today's date", () => {
   for (const { function: { name } } of TOOLS) assert.ok(SYSTEM_PROMPT.includes(name), `the prompt does not name the ${name} tool`);
   assert.doesNotMatch(SYSTEM_PROMPT, /sk-or|OPENROUTER|Sayari|Tradeverifyd|\bteam\b/i);
   assert.doesNotMatch(SYSTEM_PROMPT, /never "sanctioned"/); // the model writes no words, so wording rules for it are dead weight (final wave)
+});
+
+test("the prompt names each claim and the research tool, and stays under 3500 characters", () => {
+  assert.ok(SYSTEM_PROMPT.length < 3500, `${SYSTEM_PROMPT.length} characters`);
+  const answerTool = TOOLS.find((t) => t.function.name === "answer").function;
+  for (const claim of answerTool.parameters.properties.sentences.items.properties.claim.enum) assert.match(SYSTEM_PROMPT, new RegExp(`^- ${claim}: `, "m"), claim);
+  // the new parameters, and the closed values the tools take (the map's groups are named by the research tool itself, from the map)
+  for (const word of ["research", "programme", "listed_by", "flag", "ship_type", "names_changed", "topic", ...Object.keys(SHIP_TYPES)]) assert.ok(SYSTEM_PROMPT.includes(word), word);
+  assert.match(SYSTEM_PROMPT, /\bus, uk or eu\b/);
+  assert.ok(SYSTEM_PROMPT.includes("If no record answers the question, finish with an answer that has no sentences."));
 });
 
 // ---- privacy -----------------------------------------------------------------------------------------------------

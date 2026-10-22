@@ -13,7 +13,7 @@ import { runTool, resetAskCache, LISTING, SHIP_TYPES, TOOLS } from "../api/_ask_
 import { INDEX_URL } from "../api/search.js";
 import { VOCAB } from "../api/_ask_vocab.js";
 import { formatDate } from "../app/render.js";
-import { groundingProblems } from "../scripts/ask-oracle.mjs";
+import { groundingProblems, NOTHING_ANSWERS } from "../scripts/ask-oracle.mjs";
 
 const REFUSAL = "I can only answer questions about what's on Undercurrent: sanctions lists, ship and company connections, lobbying, the semiconductor data, the research and the daily updates. I can't give legal or compliance advice.";
 const FALLBACK = "I couldn't check an answer to that against the site's data, so I won't guess. Try the search on the home page.";
@@ -171,7 +171,7 @@ const TASSOS_Q = { question: "Is TASSOS sanctioned?" };
  */
 function serverOnly(out, ev, ctx) {
   assert.ok(["answer", "refusal", "clarify", "fallback"].includes(out.kind), out.kind);
-  const ok = new Set([REFUSAL, FALLBACK, CLARIFY]);
+  const ok = new Set([REFUSAL, FALLBACK, CLARIFY, NOTHING_ANSWERS]);
   for (const e of ev) {
     for (const q of e.quotes) ok.add(q);
     for (const c of ["listed", "age", "not_found", "change"]) for (const x of checkAnswer(answer(claim(c, e.id)), ev, ctx).sentences) ok.add(x.text);
@@ -378,11 +378,12 @@ test("model-supplied URL in next is ignored", () => {
 test("no surviving sentence gives FALLBACK", () => {
   const r = tassosResearch().id;
   assert.deepEqual(checkAnswer(answer(fact("TASSOS is managed by Gatik.", r), claim("quote")), E.tassos), FALLBACK_ANSWER);
-  for (const raw of [null, undefined, "TASSOS is listed", {}, { kind: "answer" }, answer(), { kind: "verdict", sentences: [quote(r, 0)] }]) {
+  // (an answer of no sentences is not one of these: it is NOTHING_ANSWERS, below; sentences that are no list are)
+  for (const raw of [null, undefined, "TASSOS is listed", {}, { kind: "answer" }, { kind: "answer", sentences: "[{" }, { kind: "answer", sentences: {} }, { kind: "verdict", sentences: [quote(r, 0)] }]) {
     assert.deepEqual(checkAnswer(raw, E.tassos), FALLBACK_ANSWER, JSON.stringify(raw));
   }
   // next steps alone are not an answer
-  assert.deepEqual(checkAnswer({ kind: "answer", sentences: [], next: [{ source: r }] }, E.tassos), FALLBACK_ANSWER);
+  assert.deepEqual(checkAnswer({ kind: "answer", sentences: [null], next: [{ source: r }] }, E.tassos), FALLBACK_ANSWER);
 });
 
 // ---- rules and rulings ----------------------------------------------------------------------------------------------
@@ -907,7 +908,7 @@ test("nothing matching says none of the checked updates and counts the unchecked
   const source = [{ n: 1, label: none.label, url: none.url }];
   assert.deepEqual(out.sentences, [
     { text: "None of the 0 updates recorded between 20 Oct 2026 and 21 Oct 2026 involve Iran.", sources: source },
-    { text: "10 updates in that period carry no programme or country to check.", sources: source },
+    { text: "10 updates in that period can't be checked against Iran.", sources: source },
   ]);
   assert.deepEqual(groundingProblems("Any Iran-related companies in recent updates?", E.iranUpdates, out), []);
   // a quote of it is its change claim, as for every change item
@@ -927,9 +928,9 @@ test("the none copy: one day reads 'on', one update is singular, no second line 
     return texts(out);
   };
   assert.deepEqual(say([item({ checked_fleet: 2, checked_lobby: 1 })]), ["None of the 3 updates recorded on 19 Oct 2026 involve Iran."]);
-  assert.deepEqual(say([item({ checked_lobby: 1, unchecked: 1 })]), ["The 1 update recorded on 19 Oct 2026 does not involve Iran.", "1 update in that period carries no programme or country to check."]);
+  assert.deepEqual(say([item({ checked_lobby: 1, unchecked: 1 })]), ["The 1 update recorded on 19 Oct 2026 does not involve Iran.", "1 update in that period can't be checked against Iran."]);
   assert.deepEqual(say([item({ checked_fleet: 1200, checked_lobby: 34, unchecked: 2000, to: "2026-10-21" })]), [
-    "None of the 1,234 updates recorded between 19 Oct 2026 and 21 Oct 2026 involve Iran.", "2,000 updates in that period carry no programme or country to check.",
+    "None of the 1,234 updates recorded between 19 Oct 2026 and 21 Oct 2026 involve Iran.", "2,000 updates in that period can't be checked against Iran.",
   ]);
   const gap = { id: "S2", kind: "gap", source: "The UK list", from: "2026-10-19", to: "2026-10-19", date: "2026-10-19", text: "(the tool's text)", label: "The UK list unavailable on 19 Oct 2026", url: "/g", quotes: [] };
   assert.deepEqual(say([item({ checked_fleet: 2 }), gap]), ["None of the 2 updates recorded on 19 Oct 2026 involve Iran.", "The UK list was unavailable on 19 Oct 2026, so changes from it that day aren't recorded."]);
@@ -938,7 +939,8 @@ test("the none copy: one day reads 'on', one update is singular, no second line 
   const tamper = (i, text) => groundingProblems("", ev, { ...out, sentences: out.sentences.map((x, j) => (j === i ? { ...x, text } : x)) }).length;
   assert.equal(tamper(0, "None of the 3 updates recorded on 19 Oct 2026 involve Iran."), 1);
   assert.equal(tamper(0, "None of the updates recorded on 19 Oct 2026 involve Iran."), 1);
-  assert.equal(tamper(1, "2 updates in that period carry no programme or country to check."), 1);
+  assert.equal(tamper(1, "2 updates in that period can't be checked against Iran."), 1);
+  assert.equal(tamper(1, "3 updates in that period can't be checked against Russia."), 1); // (the topic is the item's)
 });
 
 test("a capped list of updates: the change lines cited count toward 'Showing N of M' against the changes total; an uncapped list never has the line", () => {
@@ -1178,7 +1180,7 @@ test("property: 200 random answers against real evidence render only server copy
     assert.doesNotThrow(() => { out = checkAnswer(raw, ev, ctx); }, `case ${i}`);
     serverOnly(out, ev, ctx);
     kinds[out.kind] = (kinds[out.kind] ?? 0) + 1;
-    if (out.sentences.some((x) => x.text !== FALLBACK && x.text !== REFUSAL && x.text !== CLARIFY)) rendered++;
+    if (out.sentences.some((x) => x.text !== FALLBACK && x.text !== REFUSAL && x.text !== CLARIFY && x.text !== NOTHING_ANSWERS)) rendered++;
   }
   // every outcome occurs, and dozens of answers carry rendered claims or quotes
   for (const k of ["answer", "refusal", "clarify", "fallback"]) assert.ok(kinds[k] > 0, `${k}: ${JSON.stringify(kinds)}`);
@@ -1794,4 +1796,56 @@ test("Task 3 carry (1): one ship-type table: every type the research tool takes 
     assert.equal(c.label, "Undercurrent's research map · ships"); // (Task 3 carry (3): the criteria are the text's)
     assert.match(c.text, new RegExp(`whose recorded type contains "${type}"`));
   }
+});
+
+// ---- Task 5: an answer of no sentences, the none_matched claim, and the chips firms' count ----------------------------------
+
+const NOTHING = { kind: "answer", sentences: [{ text: NOTHING_ANSWERS, sources: [] }], next: [] };
+
+test("an empty answer renders NOTHING_ANSWERS with no sources", () => {
+  // the model looked things up and no record answers: said in fixed copy, never the fallback, which means "couldn't check"
+  assert.equal(NOTHING_ANSWERS, "Nothing recorded on this site answers that.");
+  const r = tassosResearch().id;
+  for (const raw of [answer(), { kind: "answer", sentences: "[]" }, { kind: "answer", sentences: [], next: [{ source: r }] }]) {
+    const out = checkAnswer(raw, E.tassos, { question: "Who manages TASSOS?" });
+    assert.deepEqual(out, NOTHING, JSON.stringify(raw));
+    assert.deepEqual(groundingProblems("Who manages TASSOS?", E.tassos, out), []);
+  }
+  // no notice: there are no records to be read as a verdict
+  assert.deepEqual(checkAnswer(answer(), E.tassos, { question: "Should I buy oil from TASSOS?" }), NOTHING);
+  // with no evidence at all nothing was checked (every lookup failed, or none was made): the fallback
+  assert.deepEqual(checkAnswer(answer(), [], { question: "Who manages TASSOS?" }), FALLBACK_ANSWER);
+  // sentences that are all dropped are the fallback too: the model claimed something, and none of it could be checked
+  assert.deepEqual(checkAnswer(answer(claim("listed", "S999")), E.tassos), FALLBACK_ANSWER);
+  // the oracle takes it as fixed copy only without a source
+  assert.equal(groundingProblems("", E.tassos, { ...NOTHING, sentences: [{ text: NOTHING_ANSWERS, sources: [{ n: 1, label: "x", url: "/" }] }] }).length, 1);
+});
+
+test("none_matched: a count that found nothing and a topic no checked update involves, as their own claims write them; never a count that found something", async () => {
+  const none = countOf(E.programmeNone, "us");
+  assert.deepEqual(texts(checkAnswer(answer(claim("none_matched", none.id)), E.programmeNone, {})), ["No programme on the United States list is named Al-Qaida."]);
+  const ships = await shipCount({ programme: "North Korea", ship_type: "tug" });
+  const shipNone = checkAnswer(answer(claim("none_matched", ships.c.id)), ships.ev, {});
+  assert.deepEqual(texts(shipNone), [`None of the ${MAP} are tugs and are under a North Korea programme.`]);
+  assert.deepEqual(groundingProblems("How many North Korean tugs are there?", ships.ev, shipNone), []);
+  const updates = E.iranUpdates[0];
+  const out = checkAnswer(answer(claim("none_matched", updates.id)), E.iranUpdates, {});
+  assert.deepEqual(out, checkAnswer(answer(claim("change", updates.id)), E.iranUpdates, {}));
+  assert.deepEqual(groundingProblems("Any Iran-related updates?", E.iranUpdates, out), []);
+  // a count that found something, a listing, a search and a plain "no changes" are no none: dropped, so alone they are the fallback
+  const quiet = { id: "S1", kind: "change", found: false, from: "2026-10-18", to: "2026-10-18", text: "(the tool's text)", label: "No changes on 18 Oct 2026", url: "/u", quotes: [] };
+  for (const [ev, e] of [[E.iranUs, countOf(E.iranUs, "us")], [E.tassos, tassosResearch()], [E.tassos, searchFor(E.tassos, "TASSOS")], [[quiet], quiet]]) {
+    assert.deepEqual(checkAnswer(answer(claim("none_matched", e.id)), ev, {}), FALLBACK_ANSWER, e.kind);
+  }
+});
+
+test("chips firms count on the committed data: every firm of the research's set, each named by one of its Treasury releases", async () => {
+  const lag = JSON.parse(readFileSync("stories/chips-into-russia/data/listing_lag.json", "utf8"));
+  const n = new Set(lag.firms.filter((f) => Object.hasOwn(lag.releases, f.release)).map((f) => f.ofac_id)).size;
+  const ev = await ask([["chips", { topic: "firms" }]]);
+  const c = find(ev, (e) => e.kind === "count" && e.unit === "firms");
+  assert.equal(c.n, n);
+  const out = checkAnswer(answer(claim("count", c.id)), ev, {});
+  assert.deepEqual(texts(out), [`${n} firms are named in Undercurrent's research as shipping chips to Russia.`]);
+  assert.deepEqual(groundingProblems("How many firms has the US Treasury named for sending chips to Russia?", ev, out), []);
 });

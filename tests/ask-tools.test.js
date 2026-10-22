@@ -988,7 +988,7 @@ test("nothing matching says none of the checked updates and counts the unchecked
   assert.deepEqual(ev.map((e) => [e.kind, e.found]), [["change", false]]);
   const { topic, checked_fleet: fleet, checked_lobby: lobby, unchecked, from, to } = ev[0];
   assert.deepEqual({ topic, fleet, lobby, unchecked, from, to }, { topic: { label: "Iran" }, fleet: 1, lobby: 1, unchecked: 2, from: "2026-10-19", to: "2026-10-19" });
-  assert.match(ev[0].text, /^On 19 Oct 2026 \(2026-10-19\): none of the 2 updates whose programme or country could be checked involve Iran \(1 on the shadow-fleet map, 1 in the lobbying network\)\. 2 updates in that period carry no programme or country to check\.$/);
+  assert.match(ev[0].text, /^On 19 Oct 2026 \(2026-10-19\): none of the 2 updates whose programme or country could be checked involve Iran \(1 on the shadow-fleet map, 1 in the lobbying network\)\. 2 updates in that period can't be checked against Iran\.$/);
   assert.equal(ev[0].label, "Updates involving Iran on 19 Oct 2026: none");
   // a country is told only by a country: a flag, or a company's country. AMBER 0 has no flag and the lobbying graph gives none here
   await topicRun({ topic: "Comoros" });
@@ -1054,7 +1054,7 @@ test("fix (government ends): a designation is decided by its ship; an update of 
   await topicRun({ since: "2026-10-19", topic: "Iran" });
   assert.deepEqual(ev.map((e) => [e.kind, e.found, e.checked_fleet, e.checked_lobby, e.unchecked]), [["change", false, 1, 1, 1]]);
   const out = checkAnswer({ kind: "answer", sentences: [{ claim: "change", sources: [ev[0].id] }] }, ev, {});
-  assert.deepEqual(out.sentences.map((s) => s.text), ["None of the 2 updates recorded on 19 Oct 2026 involve Iran.", "1 update in that period carries no programme or country to check."]);
+  assert.deepEqual(out.sentences.map((s) => s.text), ["None of the 2 updates recorded on 19 Oct 2026 involve Iran.", "1 update in that period can't be checked against Iran."]);
   assert.deepEqual(groundingProblems("Any Iran-related updates?", ev, out), []);
   // Russia: the same designation, and the lobbying of the Senate, involve it
   assert.deepEqual((await topicRun({ since: "2026-10-19", topic: "Russia" })).names, ["AMBER 0 → United States (sanctioning government)", "Rus Client → US Senate"]);
@@ -1225,12 +1225,30 @@ test("chips listing_lag lists the firms founded after the invasion, shortest fir
 
 test("chips firms: one item per Treasury release, each with its page and the reasons", async () => {
   await run("chips", { topic: "firms" });
-  assert.equal(ev.length, 2);
+  assert.deepEqual(ev.map((e) => e.kind), ["count", "chips", "chips"]); // (the firms' count first: see "chips firms count")
   const jy2700 = ev.find((e) => /jy2700/.test(e.text));
   assert.equal(jy2700.url, "https://home.treasury.gov/news/press-releases/jy2700");
   assert.match(jy2700.text, /30 Oct 2024/);
   assert.match(jy2700.text, /Allparts Trading \(United Arab Emirates\): shipped electronic integrated circuits/);
   assert.match(jy2700.text, /Undated Logistics \(China\)/);
+});
+
+test("chips firms count", async () => {
+  await run("chips", { topic: "firms" });
+  const [c] = ev;
+  const n = CHIPS["listing_lag.json"].firms.length; // the research's firm set: each named by one of the releases
+  assert.deepEqual([c.kind, c.unit, c.n], ["count", "firms", n]);
+  assert.equal(c.url, "/stories/chips-into-russia/FINDINGS.html#2-how-long-the-us-took-to-list-new-chip-suppliers");
+  assert.equal(c.total, undefined); // every firm's release is given: nothing is capped, so no "Showing N of M"
+  const out = checkAnswer({ kind: "answer", sentences: [{ claim: "count", sources: [c.id] }], next: [] }, ev, {});
+  assert.deepEqual(out.sentences, [{ text: `${n} firms are named in Undercurrent's research as shipping chips to Russia.`, sources: [{ n: 1, label: c.label, url: c.url }] }]);
+  assert.deepEqual(groundingProblems("How many firms has the US Treasury named for sending chips to Russia?", ev, out), []);
+  // one firm is singular; the oracle catches another number
+  const one = [{ ...c, n: 1 }];
+  const single = checkAnswer({ kind: "answer", sentences: [{ claim: "count", sources: [c.id] }], next: [] }, one, {});
+  assert.deepEqual(single.sentences.map((s) => s.text), ["1 firm is named in Undercurrent's research as shipping chips to Russia."]);
+  assert.deepEqual(groundingProblems("", one, single), []);
+  assert.equal(groundingProblems("", ev, { ...out, sentences: [{ ...out.sentences[0], text: `${n + 1} firms are named in Undercurrent's research as shipping chips to Russia.` }] }).length, 1);
 });
 
 test("chips routes and coverage: the figures, as the site states them", async () => {
@@ -1715,7 +1733,7 @@ test("TOOLS are OpenAI function definitions for the seven tools", () => {
   assert.deepEqual(by.answer.properties.kind.enum, ["answer", "refusal", "clarify"]);
   assert.deepEqual(Object.keys(by.answer.properties), ["kind", "sentences", "next"]); // no refusal_reason: nothing reads it (final wave)
   const s = by.answer.properties.sentences.items;
-  assert.deepEqual(s.properties.claim.enum, ["listed", "not_found", "change", "quote"]);
+  assert.deepEqual(s.properties.claim.enum, ["listed", "age", "count", "none_matched", "not_found", "change", "quote"]);
   assert.equal(s.properties.sources.type, "array");
   assert.equal(s.properties.quote.type, "integer");
   assert.deepEqual(s.required, ["claim", "sources"]);
@@ -1724,6 +1742,24 @@ test("TOOLS are OpenAI function definitions for the seven tools", () => {
   assert.equal(s.properties.text, undefined);
   assert.deepEqual(Object.keys(by.answer.properties.next.items.properties), ["source"]);
   assert.deepEqual(by.answer.properties.next.items.required, ["source"]);
+});
+
+test("the answer tool's claim enum includes count, age and none_matched", () => {
+  const answerTool = TOOLS.find((t) => t.function.name === "answer").function;
+  const claim = answerTool.parameters.properties.sentences.items.properties.claim;
+  for (const name of ["count", "age", "none_matched"]) {
+    assert.ok(claim.enum.includes(name), name);
+    assert.match(answerTool.description, new RegExp(`\\b${name}: `), name);
+    assert.match(claim.description, new RegExp(`\\b${name}\\b`), name);
+  }
+  // an answer with no sentences is how the model says nothing answers
+  assert.match(answerTool.description, /no sentences/);
+  // the research tool names the map's own programme groups, read from the map (this site's map has two), and the updates' topic
+  // filter says what it returns when nothing matches
+  const by = Object.fromEntries(TOOLS.map((t) => [t.function.name, t.function]));
+  assert.match(by.research.parameters.properties.programme.description, /: Russia and Iran\.$/);
+  assert.doesNotMatch(by.research.parameters.properties.programme.description, /Venezuela|Terrorism|North Korea/);
+  assert.match(by.changes.description, /topic[^.]*none item[^.]*checked[^.]*not/i);
 });
 
 test("every item from every tool has an id in order, a text, a label and a safe url", async () => {
@@ -1824,8 +1860,9 @@ test("quote naming an entity with listing language is not offered", async () => 
   assert.deepEqual(ev.find((e) => /shortest first/.test(e.text)).quotes, []);
   ev = [];
   await run("chips", { topic: "firms" });
-  assert.ok(ev.length >= 2);
-  for (const release of ev) {
+  assert.ok(ev.length >= 3);
+  assert.deepEqual(ev[0].quotes, []); // (the firms' count: a count claim, never a quote)
+  for (const release of ev.slice(1)) {
     // the title names the release's targets beside "Sanctions"; the firm list names firms beside "US Treasury" and says "it names"
     assert.match(release.text, /^US Treasury press release \w+, .*: "Treasury .*"\. Firms outside Russia and Belarus it names/);
     assert.deepEqual(release.quotes, [], release.label);

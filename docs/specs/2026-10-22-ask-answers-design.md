@@ -187,7 +187,7 @@ This runs within the existing 26 s request limit, with a 3 s budget. If the chec
    - **Runs:** the targets apply to the **mean of 3 runs on Haiku**, over the full live set at that time. No single run may miss a target by more than 0.05.
    - **Answer rate:** Ask must answer at least **75%** of the questions it should answer. Today it answers 27 of 39, about 69%. This stops a lower unrelated-record score being bought by declining more.
    - **Fixed cases:** the owner's 5 questions must be answered correctly in all 3 runs.
-   - **Unrelated records (owner's decision, 22 Oct):** the judge scores only the sentences that cite a record, as the live gate does; fixed lines such as "Showing N of M." are scope statements and aren't scored. The target stays 0.10, with a fallback bar of **0.20 or lower** that the owner accepted if 0.10 isn't reached. The other bar items are unchanged.
+   - **Unrelated records (owner's decision, 22 Oct):** the judge scores only the sentences that cite a record, close to what the live gate judges; fixed lines such as "Showing N of M." are scope statements and aren't scored. The target stays 0.10, with a fallback bar of **0.20 or lower** that the owner accepted if 0.10 isn't reached; under the fallback, the 0.05 per-run rule applies to 0.20 (no run above 0.25). Caveat lines that cite their item count as records. The other bar items are unchanged.
 
 ## Relaunch bar (my recommendation)
 

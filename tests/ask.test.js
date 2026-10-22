@@ -959,6 +959,20 @@ test("runAsk wraps the gate as \"gate\" and POST still passes no model", async (
   assert.deepEqual([logged.filter((line) => line.startsWith("ask")), other], [[], []]); // (Node's own warnings aside)
 });
 
+test("a gate that drops every sentence after a tool failed gives the fallback, not that nothing answers", async () => {
+  process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
+  // check_lists hands back TASSOS's records, the research call fails (no such group), and the gate judges every listing unrelated
+  openrouter(reply(call("check_lists", { query: "TASSOS" }), call("research", { programme: ["Atlantis"] })), listedAnswer);
+  withTypesafe(() => true);
+  const failed = await runAsk(history("How many Atlantis ships is TASSOS grouped with?"), new Date(Date.now()));
+  assert.deepEqual(failed.answer, { kind: "fallback", sentences: [{ text: FALLBACK, sources: [] }], next: [{ label: "Search", href: "/" }] });
+  // with every call answered, the same drop says nothing recorded answers
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
+  withTypesafe(() => true);
+  const checked = await runAsk(history("How many Atlantis ships is TASSOS grouped with?"), new Date(Date.now()));
+  assert.deepEqual(checked.answer.sentences, [{ text: "Nothing recorded on this site answers that.", sources: [] }]);
+});
+
 test("the gate gives up before the request's 26 s are out, so a slow answer is still shown", async () => {
   process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
   const real = AbortSignal.timeout.bind(AbortSignal);

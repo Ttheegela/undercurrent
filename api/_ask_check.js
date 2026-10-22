@@ -400,21 +400,23 @@ export function checkAnswer(raw, ev, ctx) {
   // a next step is the cited item's own label and link (or url)
   const next = unique(linked.filter((e) => e.link || e.url).map((e) => ({ label: e.label, href: e.link || e.url })), "href");
   const out = finish("answer", pieces, next, byId);
-  madeFrom.set(out, { pieces, byId });
+  madeFrom.set(out, { pieces, byId, toolFailed: Boolean(ctx?.toolFailed) });
   return out;
 }
 
 // What each answer was written from, so the relevance gate can drop sentences and finish can number and count the rest again
-const madeFrom = new WeakMap(); // answer -> {pieces, byId}
+const madeFrom = new WeakMap(); // answer -> {pieces, byId, toolFailed}
 
 /**
  * The answer checkAnswer wrote, keeping of the sentences written from evidence only those whose text `keep` accepts. Fixed copy stays;
  * finish numbers the sources again and rebuilds the "Showing N of M" lines from what is left. With none of them left it is
- * NOTHING_ANSWERS. An answer not written here comes back as it is.
+ * NOTHING_ANSWERS, or the fallback when a tool call of the question failed (as for an answer of no sentences). An answer not written
+ * here comes back as it is.
  */
 export function keepSentences(answer, keep) {
   const made = madeFrom.get(answer);
   if (!made) return answer;
   const pieces = made.pieces.filter((p) => !p.items.length || keep(p.text));
-  return pieces.some((p) => p.items.length) ? finish(answer.kind, pieces, answer.next, made.byId) : only("answer", NOTHING_ANSWERS);
+  if (pieces.some((p) => p.items.length)) return finish(answer.kind, pieces, answer.next, made.byId);
+  return made.toolFailed ? fallback() : only("answer", NOTHING_ANSWERS);
 }

@@ -30,6 +30,8 @@ const LISTS = {
     ...Array.from({ length: 12 }, (_, i) => rec(`ZINNIA ${i}`, "Russia", "", `Z${i}`)), // more than the site's search returns for one list (10)
     rec("Oddly Dated Trading", "Iran", "8/11/2015", "OD1"), // a date in a form the tools don't read
     rec("IRAN AIR", "Entity List (EL)", "2008-01-01", "IA1"), // a name holding a programme word, under another programme
+    rec("CAATSA EXAMPLE TRADING", "CAATSA - IRAN", "", "CA1"), // a programme holding Iran as a whole word
+    rec("PERSIA LINE TRADING", "Iranian Transactions Regulations", "", "IT1"), // and one holding it inside a word only
   ],
   uk: [
     rec("TASSOS", "Russia", "2026-02-24", "RUS3483", "9408695"), rec("Orion Ship Management", "Russia", "2025-03-03", "RUS777"), ...Array.from({ length: 8 }, (_, i) => rec(`QUARTZ UK ${i}`, "Russia", "2024-02-0" + (i + 1), `QU${i}`)),
@@ -642,19 +644,19 @@ test("check_lists: the search item says when each official list was downloaded",
 
 // ---- check_lists by programme ------------------------------------------------------------------------------------
 
-const underIran = (id) => LISTS[id].filter((r) => r[2].split(", ").some((p) => p.toLowerCase() === "iran"));
+const underIran = (id) => LISTS[id].filter((r) => /(?<![\p{L}\p{N}])iran(?![\p{L}\p{N}])/iu.test(r[2]));
 const unnumbered = (items) => items.map((e) => ({ ...e, id: undefined, result: undefined }));
 
 test("programme counts each list's records under it by ref, with up to 5 examples linked to the count; no list given, only lists that have some", async () => {
   const out = await run("check_lists", { programme: "Iran" });
   const n = new Set(underIran("us").map((r) => r[4])).size; // "Terrorism, Iran" is under Iran; the UK, EU and UN fixtures have none
-  assert.equal(n, 8);
+  assert.equal(n, 9);
   const [count, ...examples] = ev;
   assert.deepEqual({ ...count, text: undefined }, {
     id: "S1", kind: "count", unit: "records", scope: "list", list: "us", topic: { label: "Iran" }, n, examples_shown: 5, shown: 5, total: n,
     text: undefined, label: "United States list · records under Iran programmes", url: "https://www.trade.gov/consolidated-screening-list", quotes: [],
   });
-  assert.match(count.text, /^United States list: 8 records under Iran programmes/);
+  assert.match(count.text, /^United States list: 9 records under Iran programmes/);
   assert.deepEqual(examples.map((e) => [e.kind, e.gov, e.result]), Array.from({ length: 5 }, () => ["list", "us", "S1"]));
   assert.deepEqual(examples.map((e) => e.entity.name), underIran("us").slice(0, 5).map((r) => r[0])); // the first, in the list's order
   for (const e of examples) assert.doesNotMatch(e.text, /Match:/); // an example matched no name
@@ -672,16 +674,32 @@ test("programme counts each list's records under it by ref, with up to 5 example
   ev = [];
   await run("check_lists", { programme: "Iran", list: "uk" });
   assert.deepEqual(ev.map((e) => [e.kind, e.list, e.n, e.shown, e.total]), [["count", "uk", 0, 0, 0]]);
+  // no list given: five examples in all, the first record of each list with some, then the next ones from the US list on
   ev = [];
   await run("check_lists", { programme: "Russia" }); // three lists hold Russia records, the UN fixture none
-  assert.deepEqual(ofKind("count").map((e) => [e.list, e.n, e.examples_shown]), [["us", 23, 5], ["uk", 10, 5], ["eu", 1, 1]]);
-  for (const c of ofKind("count")) assert.ok(ev.filter((e) => e.result === c.id).every((e) => e.gov === c.list), c.list);
+  assert.deepEqual(ofKind("count").map((e) => [e.list, e.n, e.examples_shown, e.shown]), [["us", 23, 3, 3], ["uk", 10, 1, 1], ["eu", 1, 1, 1]]);
+  assert.deepEqual(ofKind("count").map((c) => ev.filter((e) => e.result === c.id).map((e) => e.entity.name)), [
+    ["SOVCOMFLOT", "Shipping Ltd", "Ship Management Ltd"], ["TASSOS"], ["Zulu Ships Management"],
+  ]);
+  assert.equal(ofKind("list").length, 5);
+});
+
+test("a programme matches a whole word of a record's programme, in any case: CAATSA - IRAN is under Iran, Iranian Transactions … is not", async () => {
+  await run("check_lists", { programme: "Iran", list: "us" });
+  const refs = (part) => new Set(LISTS.us.filter((r) => r[2].split(", ").some((p) => part.test(p))).map((r) => r[4])).size;
+  assert.deepEqual([refs(/^iran$/i), refs(/iran/i), ev[0].n], [8, 10, 9]); // the parts that are Iran, CAATSA - IRAN too, never Iranian …
+  // each is also a programme of its own
+  for (const programme of ["CAATSA - IRAN", "iranian transactions regulations"]) {
+    ev = [];
+    await run("check_lists", { programme });
+    assert.deepEqual(ofKind("count").map((e) => [e.list, e.n]), [["us", 1]], programme);
+  }
 });
 
 test("programme filter never matches names: IRAN AIR, on the Entity List, is no Iran record, and a name search beside it is unchanged", async () => {
   await run("check_lists", { programme: "Iran", list: "us" });
   const alone = unnumbered(ev);
-  assert.equal(alone[0].n, 8);
+  assert.equal(alone[0].n, 9);
   assert.ok(!alone.some((e) => e.entity?.name === "IRAN AIR"));
   ev = [];
   await run("check_lists", { query: "Iran Air" });

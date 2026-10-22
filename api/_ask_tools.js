@@ -575,26 +575,34 @@ async function checkNames(args, ev, ctx = {}) {
 
 // ---- check_lists by programme -----------------------------------------------------------------------------------
 // A programme is a topic of the closed vocabulary (api/_ask_vocab.js), so the words printed are the lists' own: a word that names no
-// programme is a search that found nothing, and is never repeated. A record is under a programme when one comma part of its programme
-// is that programme, in any case ("Terrorism, Iran" is under Iran; "CAATSA - IRAN" is a programme of its own). Names are never read, so
-// "Iran Air" on the Entity List is no Iran record. Records are counted by ref: a record's other names are rows of their own.
+// programme is a search that found nothing, and is never repeated. A record is under a programme when a comma part of its programme holds
+// that programme's name as a whole word, in any case: "Terrorism, Iran" and "CAATSA - IRAN" are under Iran, "Iranian …" is not (and so
+// "South Sudan" is under Sudan). Names are never read, so "Iran Air" on the Entity List is no Iran record. Records are counted by ref: a
+// record's other names are rows of their own.
+const escaped = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** One list's records under a programme topic: its count item, then the first CAP.list of them, in the list's order, as examples. */
+/** The records of one list under a programme topic, one per ref (its first row), in the list's order. */
 function programmeCount(list, topic) {
-  const want = topic.key.toLowerCase();
+  // (the whole string is read: a programme's name holds no ", ", so a whole word of it is a whole word of one part)
+  const whole = new RegExp(`(?<![\\p{L}\\p{N}])${escaped(topic.key)}(?![\\p{L}\\p{N}])`, "iu");
   const first = new Map(); // ref -> the record's first row
   for (const r of data(`data/lists/${list}.json`).records) {
     const ref = r[4] || r[1];
-    if (!first.has(ref) && (r[2] || "").split(", ").some((p) => p.toLowerCase() === want)) first.set(ref, r);
+    if (!first.has(ref) && whole.test(r[2] || "")) first.set(ref, r);
   }
-  const n = first.size;
-  const examples = [...first.values()].slice(0, CAP.list).map(([name, , program, date, ref, imo, url]) =>
+  return [...first.values()];
+}
+
+/** A list's count item for a programme, then the first `k` of its records as examples. */
+function countItems(list, topic, rows, k) {
+  const n = rows.length;
+  const examples = rows.slice(0, k).map(([name, , program, date, ref, imo, url]) =>
     listItem({ list, name, program, date, ref, imo, url }, `An example of the ${num(n)} records under ${topic.label} programmes, in the list's order.`));
   const label = LIST_LABELS[list];
   return [{
     kind: "count", unit: "records", scope: "list", list, topic: { label: topic.label }, n, examples_shown: examples.length, shown: examples.length, total: n,
     text: sentence(`${label} list: ${num(n)} ${n === 1 ? "record" : "records"} under ${topic.label} programmes, each counted once whatever its other names.`,
-      examples.length && `The first ${examples.length} follow as examples.`, list === "us" && US_NOTE),
+      examples.length && (examples.length === 1 ? "The first follows as an example." : `The first ${examples.length} follow as examples.`), list === "us" && US_NOTE),
     label: `${label} list · records under ${topic.label} programmes`, url: LIST_PAGES[list],
   }, ...examples];
 }
@@ -618,12 +626,21 @@ async function checkLists(args, ev, ctx = {}) {
   const items = [];
   if (topic?.kind !== "programme") items.push(add(ev, NO_PROGRAMME));
   else {
-    for (const id of list ? [list] : LIST_IDS) {
-      const [count, ...examples] = programmeCount(id, topic);
-      if (!count.n && !list) continue; // no list asked for: only the lists with records under it
+    // no list asked for: only the lists with records under it
+    const byList = (list ? [list] : LIST_IDS).map((id) => [id, programmeCount(id, topic)]).filter(([, rows]) => list || rows.length);
+    // CAP.list examples in all: the first record of each list, then more from the first list on
+    const k = byList.map(([, rows]) => Math.min(rows.length, 1));
+    let left = CAP.list - k.reduce((a, b) => a + b, 0);
+    byList.forEach(([, rows], i) => {
+      const more = Math.min(left, rows.length - k[i]);
+      k[i] += more;
+      left -= more;
+    });
+    byList.forEach(([id, rows], i) => {
+      const [count, ...examples] = countItems(id, topic, rows, k[i]);
       const c = add(ev, count);
       items.push(c, ...addAll(ev, examples.map((e) => ({ ...e, result: c.id })))); // "Showing N of M" counts the examples cited
-    }
+    });
   }
   return { ...names, programme: word, items: [...(names.items ?? []), ...items.map(view)] };
 }

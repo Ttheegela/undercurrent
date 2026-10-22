@@ -94,6 +94,7 @@ before(async () => {
   E.programmeNone = await ask([["check_lists", { programme: "Al-Qaida", list: "us" }]]);
   E.programmeOne = await ask([["check_lists", { programme: "UHRPA", list: "us" }]]);
   E.programmeUnknown = await ask([["check_lists", { programme: "Gatik" }]]);
+  E.afghanistan = await ask([["check_lists", { programme: "Afghanistan" }]]); // on the UK and EU lists, not the US list
   // one ship searched twice: by name and by IMO number (the two searches share its records)
   E.nameImo = await ask([["check_lists", { query: "TASSOS" }], ["check_lists", { query: "IMO 9408695" }]]);
   E.final = await ask(["The 50% rule: blocked without being named", "How sanctions work", "How the lists stay current", "Semiconductors into Russia: what the official records show", "What the map cannot tell you", "7. Why this is a climate story", "Parent groups, lobbying and cargo (added 25 Sep 2026, afternoon)", "Fleet Tanqo (India)", "Strongest cases", "One line for the demo", "2. How long the US took to list new chip suppliers", "How countries and companies evade"].map((query) => ["site_docs", { query }]));
@@ -1391,8 +1392,11 @@ test("review (Task 1): records sharing a label and url; the oracle accepts the s
 // ---- programme counts on the official lists ------------------------------------------------------------------------------
 
 const LIST_NAME = { us: "United States", uk: "United Kingdom", eu: "European Union", un: "United Nations" };
-const committed = (id) => JSON.parse(readFileSync(`data/lists/${id}.json`, "utf8")).records;
-const under = (records, programme) => records.filter((r) => r[2].split(", ").some((p) => p.toLowerCase() === programme.toLowerCase()));
+const lists = {};
+const committed = (id) => (lists[id] ??= JSON.parse(readFileSync(`data/lists/${id}.json`, "utf8")).records);
+// the records whose programme holds the programme's name as a whole word, in any case (the names tested hold no regex characters)
+const under = (records, programme) => records.filter((r) => new RegExp(`(?<![\\p{L}\\p{N}])${programme}(?![\\p{L}\\p{N}])`, "iu").test(r[2]));
+const refsUnder = (id, programme) => [...new Set(under(committed(id), programme).map((r) => r[4]))];
 const num = (n) => n.toLocaleString("en-GB");
 const countOf = (ev, list) => find(ev, (e) => e.kind === "count" && e.list === list);
 const examplesOf = (ev, c) => ev.filter((e) => e.result === c.id);
@@ -1405,8 +1409,28 @@ test("programme count counts distinct refs, not alias rows", () => {
   const c = countOf(E.iranUs, "us");
   assert.deepEqual([c.n, c.total, c.shown, c.examples_shown], [refs.size, refs.size, 5, 5]);
   assert.deepEqual(examplesOf(E.iranUs, c).map((e) => e.entity.id), [...refs].slice(0, 5).map((ref) => `us:${ref}`));
+  // "CAATSA - IRAN" is under Iran: a part holding the programme's name as a whole word
+  const caatsa = committed("us").filter((r) => r[2].split(", ").includes("CAATSA - IRAN")).map((r) => r[4]);
+  assert.ok(caatsa.length && caatsa.every((ref) => refs.has(ref)));
   // with no list given, each list is counted the same way
-  for (const id of ["us", "uk", "eu", "un"]) assert.equal(countOf(E.iran, id).n, new Set(under(committed(id), "Iran").map((r) => r[4])).size, id);
+  for (const id of ["us", "uk", "eu", "un"]) assert.equal(countOf(E.iran, id).n, refsUnder(id, "Iran").length, id);
+});
+
+test("with no list given, five examples in all: the first record of each list with some, then the next ones from the US list on", () => {
+  assert.equal(refsUnder("us", "Afghanistan").length, 0); // (the case where the US list has none, so the UK list gives the rest)
+  for (const [ev, programme] of [[E.iran, "Iran"], [E.afghanistan, "Afghanistan"]]) {
+    const has = ["us", "uk", "eu", "un"].filter((id) => refsUnder(id, programme).length);
+    const picks = [...has, ...has.flatMap((id) => Array(refsUnder(id, programme).length - 1).fill(id))].slice(0, 5);
+    const counts = ev.filter((e) => e.kind === "count");
+    assert.deepEqual(counts.map((c) => c.list), has, programme);
+    for (const c of counts) {
+      const k = picks.filter((id) => id === c.list).length;
+      assert.deepEqual([c.shown, c.examples_shown], [k, k], `${programme} ${c.list}`);
+      assert.deepEqual(examplesOf(ev, c).map((e) => e.entity.id), refsUnder(c.list, programme).slice(0, k).map((ref) => `${c.list}:${ref}`));
+    }
+    assert.equal(ev.filter((e) => e.kind === "list").length, 5, programme);
+  }
+  assert.deepEqual(E.iran.filter((e) => e.kind === "count").map((c) => [c.list, c.shown]), [["us", 2], ["uk", 1], ["eu", 1], ["un", 1]]);
 });
 
 test("programme filter never matches names: on the US list a name holding IRAN counts only when its programme holds Iran", () => {

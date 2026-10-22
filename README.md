@@ -78,7 +78,8 @@ A chat panel on every page that answers questions about what is on the site: the
 - **How it answers:** the model writes no sentences. `api/ask.js` runs it through OpenRouter (Claude Haiku 5.5, `provider.data_collection: deny`) for at most four rounds (ten calls in all) of lookups in `api/_ask_tools.js`, then forces one `answer` call. That call only cites evidence ids, each with a claim. `api/_ask_check.js` writes every sentence itself, either fixed copy filled from the cited items or one sentence copied word for word from a cited item. The fixed copy covers:
   - listings ("appears on the … list") and not-found lines ("not on the lists we check");
   - ages ("has been on the … list for 5 years 10 months (since …)", with what the date stands for, or "gives no listing date");
-  - counts the tools compute: records on an official list under a programme, the research map's ships by programme group, list, flag, type or names (the `research` tool), and the chips research's firms;
+  - counts the tools compute: records on an official list under a programme, the research map's ships by programme group, list, flag, type or names (the `research` tool), and the chips research's firms, all of them or those based in one country;
+  - the chips research's firms, one sentence each from the press release that named it ("US Treasury named … (China) on 30 Oct 2024."), newest release first;
   - nones that say what they rest on ("No programme on the … list is named …", "None of the ships in Undercurrent's research map …", "None of the N updates recorded … involve …" with how many could not be checked);
   - changes and source gaps, and "Showing N of M." after a capped result, counting the matches the answer names.
 

@@ -32,7 +32,11 @@ test("the vocabulary holds every list programme, the map's countries and the gro
   // a country only the map knows, and one the map names by its code
   assert.deepEqual(topicOf("Panamanian"), { kind: "country", key: "pa", label: "Panama" });
   assert.deepEqual(topicOf("denmark"), { kind: "country", key: "dk", label: "Denmark" });
-  assert.equal(labels("country").size, read("stories/shadow-fleet/network/fleet-data.json").nodes.filter((n) => n.id.startsWith("cc:")).length);
+  // the map's countries, and those of the chips research's firms the map does not name ("Armenian firms")
+  const mapCountries = read("stories/shadow-fleet/network/fleet-data.json").nodes.filter((n) => n.id.startsWith("cc:")).map((n) => n.id.slice(3).toLowerCase());
+  const firmCountries = read("stories/chips-into-russia/data/listing_lag.json").firms.flatMap((f) => f.countries.map((cc) => cc.toLowerCase()));
+  assert.equal(labels("country").size, new Set([...mapCountries, ...firmCountries]).size);
+  assert.deepEqual(topicOf("Armenian"), { kind: "country", key: "am", label: "Armenia" });
   // the research map's programme groups and the lobbying graph's, never the buckets "both" and "other"
   assert.deepEqual(topicOf("semiconductors"), { kind: "group", key: "chips", label: "Chips" });
   assert.deepEqual([...labels("group")].sort(), ["China", "Chips", "Iran", "North Korea", "Russia", "Terrorism", "Venezuela"]);

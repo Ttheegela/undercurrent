@@ -125,7 +125,8 @@ async function callModel(messages, toolChoice, deadline, now, model) {
         "HTTP-Referer": "https://undercurrent-research.vercel.app",
         "X-Title": "Undercurrent",
       },
-      body: JSON.stringify({ model, max_tokens: 800, provider: { data_collection: "deny" }, messages, tools: TOOLS, tool_choice: toolChoice }),
+      // (the model reasons before it calls a tool, and that counts here: at 800 a long reasoning left no room for the answer call)
+      body: JSON.stringify({ model, max_tokens: 2000, provider: { data_collection: "deny" }, messages, tools: TOOLS, tool_choice: toolChoice }),
     });
     body = await res.json();
   } catch {

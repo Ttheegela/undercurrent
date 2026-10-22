@@ -141,8 +141,9 @@ const target = ({ runAsk, traceable, now }, model) => async ({ question }) => {
       ev = evidence;
       return fn(raw, evidence, ctx);
     }, { name: "checkAnswer", run_type: "chain", processInputs: ({ args }) => ({ answer: structuredClone(args?.[0]) }) }),
-    // Ask's relevance gate, traced with the answer it is handed only: it reads TYPESAFE_API_KEY from the environment itself. Its fetch is
-    // wrapped to count the input tokens TypeSafe bills, read from a copy of the reply (usage.input_tokens), which the gate then reads as ever
+    // Ask's relevance gate, traced with the answer it is handed only, and why it was skipped when it was (a follow-up): it reads
+    // TYPESAFE_API_KEY from the environment itself. Its fetch is wrapped to count the input tokens TypeSafe bills, read from a copy of the
+    // reply (usage.input_tokens), which the gate then reads as ever
     gate: (fn) => traceable((question, answer, options) => fn(question, answer, {
       ...options,
       fetch: async (...args) => {
@@ -151,7 +152,7 @@ const target = ({ runAsk, traceable, now }, model) => async ({ question }) => {
         if (Number.isInteger(usage?.input_tokens)) gate_tokens += usage.input_tokens;
         return res;
       },
-    }), { name: "gate", run_type: "chain", processInputs: ({ args }) => ({ answer: structuredClone(args?.[1]) }) }),
+    }), { name: "gate", run_type: "chain", processInputs: ({ args }) => ({ answer: structuredClone(args?.[1]), ...(args?.[2]?.skipped && { skipped: args[2].skipped }) }) }),
   };
   let threw = false;
   const t0 = performance.now();

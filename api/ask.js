@@ -167,9 +167,10 @@ const parse = (args) => {
 /**
  * Up to four rounds of tool calls (ten calls in all), then one call forced to `answer`. The answer call's arguments go to the checker
  * with the evidence the tools returned in this request, which is the only evidence there is: earlier turns are plain context. An answer
- * (not a refusal, a clarify or the fallback) then goes through the relevance gate (_ask_gate.js), inside the request's 26 s.
- * callModel, runTool, checkAnswer and gate are used as `wrap` returns them, for this request only, and each is awaited: a tracing
- * wrapper returns a promise even for the checker.
+ * (not a refusal, a clarify or the fallback) then goes through the relevance gate (_ask_gate.js), inside the request's 26 s, unless the
+ * question is a follow-up: the gate is handed it `skipped` and sends nothing, since Jev would need the earlier turns and only the latest
+ * question is ever sent. callModel, runTool, checkAnswer and gate are used as `wrap` returns them, for this request only, and each is
+ * awaited: a tracing wrapper returns a promise even for the checker.
  */
 async function converse(history, now, wrap, modelId) {
   const model = wrap("callModel", callModel);
@@ -196,6 +197,8 @@ async function converse(history, now, wrap, modelId) {
     if (final || forced || !calls.length) {
       const answer = await check(final && calls.length === 1 ? parse(final.function.arguments) : undefined, ev, { question, today, toolFailed });
       if (answer.kind !== "answer") return { ok: true, answer };
+      // ("And the other one?" can't be judged on its own: shown unchecked, the step still traced)
+      if (history.filter((m) => m.role === "user").length > 1) return { ok: true, answer: await relevant(question, answer, { skipped: "follow-up" }) };
       // the gate gives up 50 ms before the request's time is out, so a slow answer is still shown, unchecked
       const timeoutMs = Math.max(0, Math.min(GATE_MS, deadline - Date.now() - 50));
       return { ok: true, answer: await relevant(question, answer, { fetch, timeoutMs }) };

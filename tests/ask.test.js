@@ -959,6 +959,36 @@ test("runAsk wraps the gate as \"gate\" and POST still passes no model", async (
   assert.deepEqual([logged.filter((line) => line.startsWith("ask")), other], [[], []]); // (Node's own warnings aside)
 });
 
+test("final review I2: a follow-up skips the gate: no TypeSafe call, the answer as the checker wrote it, and the gate step marked skipped", async () => {
+  process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
+  const CHECKED = ["TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4."];
+  // "And the other one?" can't be judged without the turns before it, and only the latest question is ever sent
+  const followUp = [
+    { role: "user", content: "Is TASSOS sanctioned?" }, { role: "assistant", content: "TASSOS appears on the United States list under Iran." },
+    { role: "user", content: "And the other one?" },
+  ];
+  const gated = [];
+  const wrap = (name, fn) => (name === "gate" ? (...args) => (gated.push(args), fn(...args)) : fn);
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
+  let judged = withTypesafe(() => true); // (it would drop every sentence)
+  const out = await runAsk(followUp, new Date(Date.now()), { wrap });
+  assert.deepEqual([judged.length, out.answer.sentences.map((s) => s.text)], [0, CHECKED]);
+  // the step still runs, handed the answer and the reason (and sends nothing on: the trace records the answer and the reason only)
+  assert.equal(gated.length, 1);
+  assert.deepEqual(gated[0], ["And the other one?", out.answer, { skipped: "follow-up" }]);
+  // through POST too, and nothing is logged: the gate was not unavailable, it was not asked
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
+  judged = withTypesafe(() => true);
+  const { json: body } = await run({ messages: followUp.map(({ role, content }) => ({ role, text: content })) });
+  assert.deepEqual([judged.length, body.answer.sentences.map((s) => s.text)], [0, CHECKED]);
+  assert.deepEqual(logged.filter((line) => line.startsWith("ask")), []);
+  // a history of one question still gates
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
+  judged = withTypesafe(() => true);
+  const one = await runAsk([{ role: "user", content: "Is TASSOS sanctioned?" }], new Date(Date.now()));
+  assert.deepEqual([judged.length, one.answer.sentences.map((s) => s.text)], [1, ["Nothing recorded on this site answers that."]]);
+});
+
 test("a gate that drops every sentence after a tool failed gives the fallback, not that nothing answers", async () => {
   process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
   // check_lists hands back TASSOS's records, the research call fails (no such group), and the gate judges every listing unrelated

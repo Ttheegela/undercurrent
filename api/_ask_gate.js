@@ -21,10 +21,13 @@ const unavailable = (answer) => {
   return answer;
 };
 
-/** The answer with only the sentences that bear on `question`, or the answer as it is when the gate is unavailable (see above). Never throws. */
-export async function gate(question, answer, { fetch, apiKey = process.env.TYPESAFE_API_KEY, timeoutMs = GATE_MS } = {}) {
+/**
+ * The answer with only the sentences that bear on `question`, or the answer as it is when the gate is unavailable (see above), or
+ * `skipped` (its reason, such as "follow-up": nothing is sent or logged). Never throws.
+ */
+export async function gate(question, answer, { fetch, apiKey = process.env.TYPESAFE_API_KEY, timeoutMs = GATE_MS, skipped } = {}) {
   try {
-    if (!answer.sentences.some((s) => s.sources.length)) return answer; // fixed copy only: nothing to judge
+    if (skipped || !answer.sentences.some((s) => s.sources.length)) return answer; // skipped, or fixed copy only: nothing to judge
     const said = judgedSentences(answer);
     if (!said || !apiKey) return unavailable(answer);
     const res = await fetch(ENDPOINT, {

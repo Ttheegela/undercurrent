@@ -12,6 +12,7 @@ import { pathToFileURL } from "node:url";
 import { backfillNotes, runEvals, runOptions, summary, syncDataset } from "../scripts/ask-langsmith.mjs";
 import { MODEL, runAsk } from "../api/ask.js";
 import { checkAnswer } from "../api/_ask_check.js";
+import { gate } from "../api/_ask_gate.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
 import { TOOLS } from "../api/_ask_tools.js";
 import { FALLBACK, NOTHING_ANSWERS } from "../scripts/ask-oracle.mjs";
@@ -608,6 +609,21 @@ test("Ask's relevance gate runs in the evals as the step \"gate\", traced with t
   const recorded = JSON.stringify({ steps, calls, rows, result });
   assert.ok(!recorded.includes(SECRET), "the TypeSafe key is in a traced payload");
   assert.ok(!recorded.includes("Bearer"), "a header is in a traced payload");
+});
+
+test("final review I2: a gate skipped for a follow-up is traced as the step \"gate\" with its reason, the answer and no question", async () => {
+  const c = byId("area-lists-1");
+  // (the runner asks one question at a time, so only a runAsk handed a longer history skips the gate: this one always does)
+  const ask = async (history, now, { wrap }) => {
+    const answer = checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question, today: "2026-10-21" });
+    return { ok: true, answer: await wrap("gate", gate)(c.question, answer, { skipped: "follow-up" }) };
+  };
+  const { steps, rows, deps } = setup([c], ask);
+  await runEvals(WEEKLY, deps);
+  const step = steps.find((s) => s.name === "gate");
+  assert.deepEqual(step.inputs, { answer: rows[0].run.outputs.result.answer, skipped: "follow-up" });
+  assert.ok(!JSON.stringify(step).includes(c.question));
+  assert.equal(rows[0].run.outputs.gate_tokens, 0);
 });
 
 test("cost_usd is null when usage has no cost", async () => {

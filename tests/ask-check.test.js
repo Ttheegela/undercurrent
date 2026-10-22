@@ -213,7 +213,7 @@ test("fix round 0 (2): a listed claim drops the items it cannot write and keeps 
   assert.deepEqual(texts(checkAnswer(answer(claim("listed", delisted.id, twoLists.id, lukoilUs.id)), [...E.lukoil, delisted])), ["PAO LUKOIL appears on the United States list under US Treasury sanctions list since 2025.", shows(1, E.lukoil, "PAO LUKOIL")]);
   // none valid: the claim is dropped; the rest of the answer stands, and with nothing else the answer is the fallback
   const q = tassosResearch();
-  assert.deepEqual(texts(checkAnswer(answer(claim("listed", freezeDoc().id, E.tassos[0].id), quote(q.id, 1)), E.tassos)), [q.quotes[1], shows(1)]);
+  assert.deepEqual(texts(checkAnswer(answer(claim("listed", freezeDoc().id, E.tassos[0].id), quote(q.id, 1)), E.tassos)), [q.quotes[1]]);
   assert.deepEqual(checkAnswer(answer(claim("listed", freezeDoc().id, E.tassos[0].id)), E.tassos), FALLBACK_ANSWER);
   // an id that is not evidence at all is a different thing: it drops the whole sentence, the valid items beside it too
   assert.deepEqual(checkAnswer(answer(claim("listed", uk.id, "S99")), E.tassos), FALLBACK_ANSWER);
@@ -253,7 +253,7 @@ test("fix round 0 (3): a not_found dropped for a found search in the answer says
   assert.deepEqual(texts(checkAnswer(answer(claim("listed", uk.id), claim("not_found", zephyr.id)), E.two, { question: "Is TASSOS sanctioned?" })), ["TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", shows(1, E.two)]);
   const role = searchFor(E.side, "technical manager");
   const r = find(E.side, (e) => e.kind === "research" && e.gov === "uk");
-  assert.deepEqual(texts(checkAnswer(answer(quote(r.id, 1), claim("not_found", role.id)), E.side, { question: "Who is the technical manager of TASSOS?" })), [r.quotes[1], shows(1, E.side)]);
+  assert.deepEqual(texts(checkAnswer(answer(quote(r.id, 1), claim("not_found", role.id)), E.side, { question: "Who is the technical manager of TASSOS?" })), [r.quotes[1]]);
   // and when the answer holds no found search the not-found is written, with no such line
   assert.deepEqual(texts(checkAnswer(answer(claim("not_found", zephyr.id)), E.two.filter((e) => e !== found), { question })), [NOT_FOUND("Zephyr Marine Services")]);
 });
@@ -262,7 +262,7 @@ test("fact with listing language is dropped", () => {
   // Review Focus 1: a fact is not a claim the server writes, so "TASSOS is listed by the UK." on the TASSOS STAR hit never renders
   const ok = quote(tassosResearch().id, 0);
   const out = checkAnswer(answer(fact("TASSOS is listed by the UK.", star().id), fact("TASSOS is listed by the UK.", tassosList("uk").id), ok), E.tassos);
-  assert.deepEqual(texts(out), [tassosResearch().quotes[0], shows(1)]);
+  assert.deepEqual(texts(out), [tassosResearch().quotes[0]]);
   // a listed claim on that hit names the evidence entity, never the model's (or the reader's) name
   assert.deepEqual(texts(checkAnswer(answer({ ...claim("listed", star().id), text: "TASSOS is listed by the UK." }), E.tassos)), ["TASSOS STAR appears in OpenSanctions as listed by US.", shows(1)]);
 });
@@ -281,7 +281,7 @@ test("fact with a name not in its sources is dropped", () => {
   const manager = r.quotes.findIndex((q) => q.startsWith("Manager of TASSOS: "));
   assert.ok(manager >= 0);
   const out = checkAnswer(answer(fact("TASSOS is managed by Gatik Ship Management.", r.id), quote(r.id, manager, "TASSOS is managed by Gatik Ship Management.")), E.tassos);
-  assert.deepEqual(texts(out), ["Manager of TASSOS: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C.", shows(1)]);
+  assert.deepEqual(texts(out), ["Manager of TASSOS: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C."]);
 });
 
 test("fact with a number not in its sources is dropped", () => {
@@ -301,10 +301,10 @@ test("a quote renders one sentence of one item, verbatim, or nothing", () => {
   for (const bad of [quote(doc.id, doc.quotes.length), quote(doc.id, -1), quote(doc.id, 1.5), quote(doc.id, "1"), { claim: "quote", sources: [doc.id] }, quote(tassosList("uk").id, 0), quote(E.tassos[0].id, 0), { claim: "quote", sources: [doc.id, r.id], quote: 0 }, quote("S99", 0)]) {
     assert.deepEqual(checkAnswer(answer(bad), E.tassos), FALLBACK_ANSWER, JSON.stringify(bad));
   }
-  // the three TASSOS research items quote the same facts: one sentence, its sources merged, and one match of the search (one entity)
+  // the three TASSOS research items quote the same facts: one sentence, its sources merged
   const all = E.tassos.filter((e) => e.kind === "research");
   const merged = checkAnswer(answer(...all.map((e) => quote(e.id, 0))), E.tassos);
-  assert.deepEqual(merged.sentences, [{ text: r.quotes[0], sources: all.map((e, i) => ({ n: i + 1, label: e.label, url: e.url })) }, { text: shows(1), sources: [] }]);
+  assert.deepEqual(merged.sentences, [{ text: r.quotes[0], sources: all.map((e, i) => ({ n: i + 1, label: e.label, url: e.url })) }]);
 });
 
 test("not_found renders the fixed copy; found:true gives fallback", () => {
@@ -372,7 +372,7 @@ test("no surviving sentence gives FALLBACK", () => {
 test("a sentence citing an unknown id is dropped, the rest of the answer stands", () => {
   const r = tassosResearch();
   const out = checkAnswer(answer(claim("listed", tassosList("uk").id, "S99"), quote(r.id, 3), claim("listed", "__proto__"), claim("change", 2)), E.tassos);
-  assert.deepEqual(texts(out), [r.quotes[3], shows(1)]);
+  assert.deepEqual(texts(out), [r.quotes[3]]);
 });
 
 test("listed omits the programme when the evidence has none", () => {
@@ -625,7 +625,7 @@ test("round 5 (3): with a found search in the answer's evidence, a side search's
   const r = find(E.role, (e) => e.kind === "research" && e.entity.name === "TASSOS");
   const i = r.quotes.findIndex((q) => q.startsWith("Manager of TASSOS: "));
   const question = "Who is the technical manager of TASSOS, and is the technical manager sanctioned?";
-  assert.deepEqual(texts(checkAnswer(answer(quote(r.id, i), claim("not_found", nf.id)), E.role, { question })), [r.quotes[i], shows(1, E.role)]);
+  assert.deepEqual(texts(checkAnswer(answer(quote(r.id, i), claim("not_found", nf.id)), E.role, { question })), [r.quotes[i]]);
   // the rule on its own: a side search no close name explains, beside the found name, is dropped, and renders only with the found search gone
   const side = searchFor(E.side, "Zephyr Marine Services");
   const q = "Is TASSOS sanctioned? Is Zephyr Marine Services sanctioned?";
@@ -949,8 +949,7 @@ for (const [group, words, get] of ATTACKS) {
     // the item's own quote 0, if it has one, is what a quote renders; a change or gap item has none, and renders its change claim
     const shown = checkAnswer(answer(quote(src, 0, words)), ev);
     const own = item.kind === "change" || item.kind === "gap" ? texts(checkAnswer(answer(claim("change", src)), ev)) : item.quotes.length ? [item.quotes[0]] : [FALLBACK];
-    const search = ev.find((e) => e.id === item.result); // a match of a search of more than one: it says it is 1 of them
-    assert.deepEqual(texts(shown), item.quotes.length && search?.total > 1 ? [...own, shows(1, ev, search.query)] : own);
+    assert.deepEqual(texts(shown), own);
     if (ev === E.week) assert.deepEqual(texts(shown), [WEEK_LINE[src]], src);
   });
 }
@@ -1039,7 +1038,7 @@ test("huge model input is ignored without throwing (review M1)", () => {
   const out = checkAnswer({ kind: "answer", sentences: [fact(big, "S1"), quote("S1", 0, big), claim("not_found", "S1")], next: [{ label: big, source: "S1" }], refusal_reason: big }, ev, { question: `Is ${ev[0].query} on a list? ${big}` });
   assert.deepEqual(texts(out), [NOT_FOUND(ev[0].query)]);
   assert.ok(performance.now() - t0 < 2000);
-  assert.deepEqual(texts(checkAnswer({ kind: "answer", sentences: Array.from({ length: 20000 }, () => quote(tassosResearch().id, 0)), next: [] }, E.tassos)), [tassosResearch().quotes[0], shows(1)]);
+  assert.deepEqual(checkAnswer({ kind: "answer", sentences: Array.from({ length: 20000 }, () => quote(tassosResearch().id, 0)), next: [] }, E.tassos).sentences.length, 1);
 });
 
 // ---- property: whatever the model sends, only server copy comes out ------------------------------------------------------
@@ -1168,10 +1167,9 @@ test("final wave (3): on the committed data every research quote names its entit
   const out = texts(checkAnswer(answer(claim("listed", wafa.id), ...said), E.alWafa, { question: "Is AL WAFA sanctioned, and tell me about TASSOS" }));
   assert.ok(out.includes("TASSOS has also sailed as Bay Global, Front Balder, Roxen Star and Seasalvia."), out.join(" | "));
   assert.ok(out.some((t) => /^9 September 2024: TASSOS managed by /.test(t)), out.join(" | "));
-  // two searches, each with its own line after its last sentence: AL WAFA's after its listing, TASSOS's at the end
-  const lines = [shows(1, E.alWafa, "AL WAFA"), shows(1, E.alWafa)];
-  assert.deepEqual([out[1], out.at(-1)], lines, out.join(" | "));
-  assert.ok(out.slice(2, -1).every((t) => t.includes("TASSOS")), out.join(" | "));
+  // AL WAFA's listing is 1 of its search's matches; the quotes about TASSOS list nothing, so its search has no line
+  assert.equal(out[1], shows(1, E.alWafa, "AL WAFA"));
+  assert.ok(out.slice(2).every((t) => t.includes("TASSOS")), out.join(" | "));
 });
 
 test("final wave (12): on the committed data no quote holds a heading; a chapter label is cut from its sentence", () => {
@@ -1251,15 +1249,24 @@ const orchid = () => [
   ...[0, 1].map((i) => ({ id: `S${i + 8}`, kind: "list", entity: { id: `uk:O${i}`, name: `ORCHID ${i}` }, gov: "uk", program: "Russia", result: "S7", quotes: [], label: `United Kingdom list · ORCHID ${i}`, url: `https://example.org/o${i}` })),
 ];
 
-test("Showing N of M counts the search's matches the answer cites, after its sentences", () => {
+test("Showing N of M counts the search's matches the answer lists, after its sentences", () => {
   const ev = zinnia();
   const five = checkAnswer(answer(claim("listed", "S2", "S3", "S4", "S5", "S6")), ev, { question: "Is ZINNIA listed?" });
   assert.equal(five.sentences.length, 6);
   assert.deepEqual(five.sentences.at(-1), { text: "Showing 5 of 12.", sources: [] });
-  // 1 of the 5 shown: N is what the answer cites, after the last sentence citing it and before the closing lines, whatever the claims
+  // 1 of the 5 shown: N is what the answer lists, after the last sentence listing them and before the closing lines; an age never counts
   assert.deepEqual(texts(checkAnswer(answer(claim("listed", "S2")), ev, {})), ["ZINNIA 0 appears on the United States list under Russia.", "Showing 1 of 12."]);
   const two = checkAnswer(answer(claim("listed", "S2"), claim("age", "S3")), ev, { question: "Should I buy from ZINNIA?", ...AT });
-  assert.deepEqual(texts(two), ["ZINNIA 0 appears on the United States list under Russia.", "The United States list gives no listing date for ZINNIA 1.", "Showing 2 of 12.", NOT_ADVICE]);
+  assert.deepEqual(texts(two), ["ZINNIA 0 appears on the United States list under Russia.", "Showing 1 of 12.", "The United States list gives no listing date for ZINNIA 1.", NOT_ADVICE]);
+  assert.deepEqual(texts(checkAnswer(answer(claim("age", "S2", "S3")), ev, AT)), ["The United States list gives no listing date for ZINNIA 0.", "The United States list gives no listing date for ZINNIA 1."]);
+  // only listings count: a quote about a found ship has no line; two listings of TASSOS's matches do; a listing beside a quote about
+  // the same ship counts the listing alone, its line straight after it
+  const manager = tassosResearch().quotes.findIndex((q) => q.startsWith("Manager of TASSOS: "));
+  assert.deepEqual(texts(checkAnswer(answer(quote(tassosResearch().id, manager)), E.tassos)), ["Manager of TASSOS: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C."]);
+  assert.deepEqual(texts(checkAnswer(answer(claim("listed", tassosList("us").id, tassosList("uk").id)), E.tassos)).at(-1), shows(2));
+  const mixed = checkAnswer(answer(claim("listed", tassosList("uk").id), quote(tassosResearch().id, manager)), E.tassos, TASSOS_Q);
+  assert.deepEqual(texts(mixed), ["TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", shows(1), "Manager of TASSOS: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C."]);
+  assert.deepEqual(groundingProblems(TASSOS_Q.question, E.tassos, mixed), []);
   // the real PAO LUKOIL search shows 14 of its 18 matches; an answer citing one of them says 1
   const lukoil = searchFor(E.lukoil, "PAO LUKOIL");
   assert.ok(lukoil.shown > 1 && lukoil.total > lukoil.shown, `${lukoil.shown} of ${lukoil.total}`);
@@ -1298,12 +1305,13 @@ test("groundingProblems accepts the age and Showing lines", () => {
   ok(E.tassos, answer(claim("age", tassosResearch().id, tassosList("us").id, tassosList("uk").id)), { question: "How long has TASSOS been sanctioned?", ...AT });
   ok(E.dji, answer(claim("age", dji().id)), { question: "How old?", today: "2020-12-18" });
   const out = ok(zinnia(), answer(claim("listed", "S2"), claim("age", "S3")), { question: "Is ZINNIA listed?", ...AT });
-  assert.equal(out.sentences[2].text, "Showing 2 of 12.");
-  // a line the server did not write is caught: another count (the search's 5 shown, where the answer cites 2), a source on the line, or another age
+  assert.equal(out.sentences[1].text, "Showing 1 of 12.");
+  // a line the server did not write is caught: another count (the search's 5 shown, or the age counted too), a source on the line, or another age
   const tamper = (i, s) => groundingProblems("", zinnia(), { ...out, sentences: out.sentences.map((x, j) => (j === i ? { ...x, ...s } : x)) }, AT.today);
-  assert.equal(tamper(2, { text: "Showing 5 of 12." }).length, 1);
-  assert.equal(tamper(2, { text: "Showing 2 of 13." }).length, 1);
-  assert.equal(tamper(2, { sources: [{ n: 1, label: "United States list · ZINNIA 0", url: "https://example.org/z0" }] }).length, 1);
+  assert.equal(tamper(1, { text: "Showing 5 of 12." }).length, 1);
+  assert.equal(tamper(1, { text: "Showing 2 of 12." }).length, 1);
+  assert.equal(tamper(1, { text: "Showing 1 of 13." }).length, 1);
+  assert.equal(tamper(1, { sources: [{ n: 1, label: "United States list · ZINNIA 0", url: "https://example.org/z0" }] }).length, 1);
   const age = checkAnswer(answer(claim("age", dji().id)), E.dji, AT);
   assert.equal(groundingProblems("", E.dji, age, "2026-11-22").length, 1); // a month later, the age reads otherwise
 });

@@ -33,6 +33,14 @@ function age(e, today) {
   return span.length ? `${e.entity.name} has been on ${on} for ${span.join(" ")} (since ${day(e.date)})${note}.` : `${e.entity.name} was added to ${on} today${note}.`;
 }
 
+/** The listed claim's sentence for an item, or null. Only these sentences count towards "Showing N of M". */
+function listing(e) {
+  const since = e.date ? ` since ${day(e.date)}` : "";
+  if (e.kind === "opensanctions") return `${e.entity.name} appears in OpenSanctions${e.program ? ` as listed by ${e.program}` : ""}${since}.`;
+  if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted) return `${e.entity.name} appears on the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}${since}.`;
+  return null;
+}
+
 /**
  * Every sentence the checker may write for this evidence on `today`, from its fixed copy and the evidence alone, and which items can
  * have produced it: text -> Set of evidence items. A quote comes from the items that hold it, a claim from the items it is built from.
@@ -42,12 +50,8 @@ function producers(ev, today) {
   const add = (text, e) => made.set(text, (made.get(text) ?? new Set()).add(e));
   for (const e of ev) {
     for (const q of e.quotes) add(q, e);
-    const since = e.date ? ` since ${day(e.date)}` : "";
-    if (e.kind === "opensanctions") add(`${e.entity.name} appears in OpenSanctions${e.program ? ` as listed by ${e.program}` : ""}${since}.`, e);
-    if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted) {
-      add(`${e.entity.name} appears on the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}${since}.`, e);
-      if (age(e, today)) add(age(e, today), e);
-    }
+    if (listing(e)) add(listing(e), e);
+    if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted && age(e, today)) add(age(e, today), e);
     if (e.kind === "change" && e.before_start) add(`Daily updates started on ${day(e.first_run)}, so there is no record before then.`, e);
     else if (e.kind === "change" && e.trimmed) add(`Days before ${day(e.started)} are no longer kept.`, e);
     else if (e.kind === "change" && e.not_yet) add("Today's nightly update hasn't run yet.", e);
@@ -70,9 +74,10 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   const problems = [];
   const ok = (cond, message) => { if (!cond) problems.push(message); };
   const made = producers(ev, today);
-  // "Showing N of M." for a search of M matches when the answer's sources are N of them (distinct entities), fewer than all; the same
-  // search run twice (one query) is one search
-  const cites = new Set(answer.sentences.flatMap((s) => s.sources.map((x) => `${x.label}\n${x.url}`)));
+  // "Showing N of M." for a search of M matches when the answer's listing sentences cite N of them (distinct entities), fewer than all;
+  // a quote, an age or any other sentence never counts, and the same search run twice (one query) is one search
+  const listings = new Set(ev.map(listing).filter(Boolean));
+  const cites = new Set(answer.sentences.filter((s) => listings.has(s.text)).flatMap((s) => s.sources.map((x) => `${x.label}\n${x.url}`)));
   const searches = new Map();
   for (const r of ev.filter((x) => Number.isInteger(x.total))) {
     const key = `${r.kind}:${r.query ?? r.id}`;

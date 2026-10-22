@@ -222,23 +222,26 @@ function cite(ids, byId) {
   return items.every(Boolean) ? items : null;
 }
 
+// The claims whose sentences show a search's matches, and so count towards "Showing N of M" (the count claim's examples join it later)
+const SHOWS_MATCHES = new Set(["listed"]);
+
 /**
- * Numbers the sources in order of first citation; one sentence written twice becomes one sentence with both sources. A cited item
- * that is one of a search's matches (`result`, the search's id in byId) counts towards that search: when the answer cites fewer of
- * its matches (distinct entities) than the search's total, SHOWING follows the last sentence citing them, once. The same search run
- * twice (one query) is one search. The model never chooses it.
+ * Numbers the sources in order of first citation; one sentence written twice becomes one sentence with both sources. A match of a
+ * search (`result`, the search's id in byId) cited by a `listed` sentence counts towards that search: when the answer lists fewer of
+ * its matches (distinct entities) than the search's total, SHOWING follows the last sentence listing them, once. A quote, an age or
+ * any other sentence never counts. The same search run twice (one query) is one search. The model never chooses the line.
  */
 function finish(kind, pieces, next, byId = new Map()) {
   const n = new Map();
   const byText = new Map();
-  const cited = new Map(); // search ("kind:query") -> {total, entities: its matches the answer cites}
-  for (const { text, items } of pieces) {
+  const cited = new Map(); // search ("kind:query") -> {total, entities: its matches the answer lists}
+  for (const { text, items, claim } of pieces) {
     if (!byText.has(text)) byText.set(text, { text, sources: [], searches: new Set() });
     const { sources, searches } = byText.get(text);
     for (const e of items) {
       if (!n.has(e.id)) n.set(e.id, n.size + 1);
       if (!sources.some((x) => x.n === n.get(e.id))) sources.push({ n: n.get(e.id), label: e.label, url: e.url });
-      const r = byId.get(e.result);
+      const r = SHOWS_MATCHES.has(claim) && byId.get(e.result);
       if (!r) continue;
       const key = `${r.kind}:${r.query ?? r.id}`;
       if (!cited.has(key)) cited.set(key, { total: r.total, entities: new Set() });
@@ -310,7 +313,7 @@ export function checkAnswer(raw, ev, ctx) {
   for (const { s, items } of cited) {
     const shown = typeof s.claim === "string" && Object.hasOwn(RENDER, s.claim) ? RENDER[s.claim](items, s, all, ctx ?? {}, state) : [];
     if (!shown) return fallback();
-    pieces.push(...shown);
+    pieces.push(...shown.map((p) => ({ ...p, claim: s.claim })));
   }
   if (state.partial && pieces.length) pieces.push({ text: PARTIAL, items: [] }); // never a lone "part of the question": with nothing else to say it is the fallback
   if (pieces.length) pieces.push(...notice(ctx)); // last, after the part-answer line; an answer with nothing to say is the fallback and carries no notice

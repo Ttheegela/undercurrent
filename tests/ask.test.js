@@ -936,6 +936,34 @@ test("POST always sends MODEL, whatever the request body holds", async () => {
   assert.deepEqual(sent.map((s) => s.body.model), [MODEL, MODEL]);
 });
 
+test("Ask stays up if the research map can't be read: the schema names the default groups, and only a research call fails", async () => {
+  const fleet = join(root, "stories/shadow-fleet/network/fleet-data.json");
+  const saved = readFileSync(fleet, "utf8");
+  try {
+    for (const broken of ["not json", null]) { // unparseable, then missing
+      if (broken === null) rmSync(fleet);
+      else writeFileSync(fleet, broken);
+      resetAskCache();
+      logged = [];
+      openrouter(reply(call("research", { programme: ["Iran"] })), (body) => {
+        // the research call is a failed tool, handed to the model like any other
+        assert.equal(typeof JSON.parse(body.messages.find((m) => m.role === "tool").content).error, "string");
+        return answer({ kind: "refusal", sentences: [] });
+      });
+      const out = await runAsk(history("How many Iranian tankers are listed?"), new Date(Date.now()));
+      assert.deepEqual([out.ok, out.answer.kind, sent.length], [true, "refusal", 2], String(broken));
+      for (const { body } of sent) {
+        const { programme } = body.tools.find((t) => t.function.name === "research").function.parameters.properties;
+        assert.equal(programme.description, "Programme groups a ship must all be in. The map's groups: Russia, Iran, Terrorism, Venezuela and North Korea.");
+      }
+      assert.ok(logged.length && logged.every((line) => line === "ask: research groups unavailable, using defaults"), logged.join("\n"));
+    }
+  } finally {
+    writeFileSync(fleet, saved);
+    resetAskCache();
+  }
+});
+
 test("nothing under api/ imports langsmith, and package.json has it only in devDependencies", () => {
   const api = new URL("../api/", import.meta.url);
   const files = readdirSync(api, { recursive: true }).filter((f) => /\.[cm]?js$/.test(f));

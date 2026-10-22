@@ -11,7 +11,7 @@ import { createServer } from "node:http";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { checkAnswer } from "../api/_ask_check.js";
-import { groundingProblems, REFUSAL, FALLBACK, CLARIFY, NOT_ADVICE } from "../scripts/ask-oracle.mjs";
+import { groundingProblems, REFUSAL, FALLBACK, CLARIFY, NOT_ADVICE, NOTHING_ANSWERS } from "../scripts/ask-oracle.mjs";
 
 const CASES = JSON.parse(readFileSync(new URL("./ask-eval.json", import.meta.url), "utf8"));
 const SCRIPT = fileURLToPath(new URL("../scripts/ask-live-eval.mjs", import.meta.url));
@@ -98,9 +98,33 @@ for (const c of CASES) {
   });
 }
 
-// ---- the live runner (against a stub server on this machine; nothing leaves it) --------------------------------------------
+// ---- the server's claims in the live set --------------------------------------------------------------------------------
 
 const LIVE = CASES.filter((c) => c.live !== false);
+const rendered = (c) => endpoint(c).sentences.map((s) => s.text);
+
+test("the new claims have live cases: an undated US age, a UK transfer-date age, EU-listed ships, ships under two flags, a programme with no records, and nothing answering", () => {
+  const shapes = {
+    "an undated US listing": /^The United States list gives no listing date for /,
+    "a UK transfer date": / \(since 31 Dec 2020\) \(the UK list's transfer date; the listing may be older\)\.$/,
+    "EU-listed ships": /^[\d,]+ ships in Undercurrent's research map are listed by the European Union\.$/,
+    "a flag by at least one source": /^[\d,]+ ships in Undercurrent's research map are recorded as [A-Z][a-z]+-flagged by at least one source\.$/,
+    "a programme with no records": /^No programme on the [A-Za-z ]+ list is named [A-Z]/,
+    "nothing answering": { test: (t) => t === NOTHING_ANSWERS },
+  };
+  for (const [what, shape] of Object.entries(shapes)) assert.ok(LIVE.some((c) => rendered(c).some((t) => shape.test(t))), what);
+  // a ship under two flags: an example of a flag count whose own head line gives another flag
+  assert.ok(LIVE.some((c) => c.evidence.some((n) => n.filters?.flag && c.evidence.some((e) => e.result === n.id && /, flag [^)]+\) in /.test(e.text) && !e.text.includes(`, flag ${n.filters.flag.label}) in `)))));
+});
+
+test("a live case whose recorded answer counts, ages or says none expects that sentence, and no fallback", () => {
+  const cases = LIVE.filter((c) => c.model?.sentences?.some((s) => ["count", "age", "none_matched"].includes(s.claim)));
+  assert.ok(cases.length >= 15, `${cases.length} cases`);
+  for (const c of cases) assert.deepEqual([c.expect.kind, c.expect.fallback, c.expect.includes?.length > 0], ["answer", undefined, true], c.id);
+});
+
+// ---- the live runner (against a stub server on this machine; nothing leaves it) --------------------------------------------
+
 const run = (args) => new Promise((resolve) => {
   execFile(process.execPath, [SCRIPT, ...args], { timeout: 60_000, env: { PATH: process.env.PATH } }, (err, stdout, stderr) => resolve({ code: err ? (typeof err.code === "number" ? err.code : 1) : 0, stdout, stderr }));
 });
@@ -130,15 +154,15 @@ async function withSite(reply, fn) {
 const says = (kind, text = "Stub answer.") => [200, { ok: true, answer: { kind, sentences: [{ text, sources: [{ n: 1, label: "Stub", url: "/" }] }], next: [] } }];
 const byQuestion = (body) => LIVE.find((c) => c.question === body.messages?.[0]?.text);
 
-test("live runner: the 39 questions go in two batches an hour apart, each within one hour's limit of 20", async () => {
-  assert.equal(LIVE.length, 39);
+test("live runner: the 45 questions go in three batches an hour apart, each within one hour's limit of 20", async () => {
+  assert.equal(LIVE.length, 45);
   const questions = LIVE.map((c) => c.question);
   assert.equal(new Set(questions).size, questions.length, "a question is posted twice");
   for (const q of SPEC_QUESTIONS) assert.ok(questions.includes(q), `${q} is not live`);
   const { code, stdout } = await run(["--dry-run"]);
   assert.equal(code, 0);
   const batches = [...stdout.matchAll(/^ {2}--only (\S+)$/gm)].map((m) => m[1].split(","));
-  assert.deepEqual(batches.map((b) => b.length), [20, 19]);
+  assert.deepEqual(batches.map((b) => b.length), [20, 20, 5]);
   assert.deepEqual(batches.flat(), LIVE.map((c) => c.id)); // every live case once
 });
 
@@ -153,7 +177,7 @@ test("live runner: --dry-run prints the plan and posts nothing", async () => {
   const { code, stdout } = await run(["--base", "https://undercurrent.invalid", "--dry-run"]);
   assert.equal(code, 0);
   for (const c of LIVE) assert.ok(stdout.includes(c.id) && stdout.includes(c.question), c.id);
-  assert.match(stdout, /39 questions/);
+  assert.match(stdout, /45 questions/);
   assert.ok(!CASES.filter((c) => c.live === false).some((c) => stdout.includes(`${c.id} `)), "an offline-only case is in the plan");
 });
 
@@ -216,6 +240,19 @@ test("live runner: --limit-check counts the answers that fell back; a fallback t
     assert.equal(code, 1, "a fallback where an answer was expected is a failure");
     assert.match(stdout, /FALLBACK[^\n]*1 of 1/i);
   });
+});
+
+test("live runner: an answer of only the line that nothing recorded answers is a decline: counted with the fallbacks, and a failure where the case allows none", async () => {
+  const nothing = [200, { ok: true, answer: { kind: "answer", sentences: [{ text: NOTHING_ANSWERS, sources: [] }], next: [] } }];
+  const allowed = LIVE.find((x) => x.expect.kind === "answer" && x.expect.fallback === true);
+  const strict = LIVE.find((x) => x.expect.kind === "answer" && !x.expect.fallback);
+  for (const [c, code] of [[allowed, 0], [strict, 1]]) {
+    await withSite(() => nothing, async (base) => {
+      const { code: got, stdout } = await run(["--base", base, "--only", c.id, "--limit-check"]);
+      assert.equal(got, code, stdout);
+      assert.match(stdout, /FALLBACK[^\n]*1 of 1/i);
+    });
+  }
 });
 
 test("live runner: off-topic-1 passes as a refusal or as an answer that ends with the advice notice, and fails otherwise", async () => {

@@ -3,8 +3,9 @@ name: Ask evals
 # Runs Ask's real-model cases in LangSmith (scripts/ask-langsmith.mjs). Weekly and manual runs on main sync the dataset first; a pull
 # request evaluates main's cases and never syncs. Secrets reach three steps only: the one that runs the cases, the one that posts the
 # notes, and the judge check.
-# A manual run can name another OpenRouter model to run the same cases on, for comparison; the site itself keeps its own model. A manual
-# run can instead check the relevance judge against its hand labels (task: judge-check), in a job of its own that holds the TypeSafe key alone.
+# A manual run can name another OpenRouter model to run the same cases on, for comparison; the site itself keeps its own model. It can
+# run every case up to three times (repetitions), for each metric's mean and worst run. A manual run can instead check the relevance judge
+# against its hand labels (task: judge-check), in a job of its own that holds the TypeSafe key alone.
 on:
   schedule:
     - cron: "0 13 * * 1"
@@ -20,6 +21,11 @@ on:
         type: choice
         options: [evals, judge-check]
         default: evals
+      repetitions:
+        description: "How many times to run each case, for a mean and a worst run (the evals only)"
+        type: choice
+        options: ["1", "2", "3"]
+        default: "1"
   pull_request:
     types: [opened, ready_for_review]
     paths:
@@ -42,7 +48,7 @@ jobs:
   evals:
     if: ${{ github.event_name != 'push' && inputs.task != 'judge-check' && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft)) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     permissions:
       contents: read
     # Two syncs must not overlap (a weekly run and a manual dispatch). The group is the ref: main's runs share one, each PR has its own.
@@ -70,6 +76,7 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           MODEL_ID: ${{ inputs.model }}
+          REPETITIONS: ${{ inputs.repetitions }}
         run: |
           case "$EVENT" in
             schedule) args=(--trigger weekly --commit "$SHA") ;;
@@ -84,6 +91,11 @@ jobs:
           if [ -n "$MODEL_ID" ]; then
             if ! [[ "$MODEL_ID" =~ $re ]]; then echo "::error::The model input must look like vendor/model."; exit 1; fi
             args+=(--model "$MODEL_ID")
+          fi
+          # Repetitions come from a dispatch's choice (empty otherwise), and are checked all the same: 1, 2 or 3, never echoed.
+          if [ -n "$REPETITIONS" ]; then
+            if ! [[ "$REPETITIONS" =~ ^[1-3]$ ]]; then echo "::error::The repetitions input must be 1, 2 or 3."; exit 1; fi
+            args+=(--repetitions "$REPETITIONS")
           fi
           node scripts/ask-langsmith.mjs run "${args[@]}" --out "$RUNNER_TEMP/ask-evals.json"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

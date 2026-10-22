@@ -12,8 +12,8 @@ const REGIONS = new Intl.DisplayNames("en", { type: "region" });
 const SHORT_REGIONS = new Intl.DisplayNames("en", { type: "region", style: "short" });
 const GROUP_LABELS = { dprk: "North Korea" };
 /** A programme group's label, from its key alone ("dprk" is North Korea): the research tool names the map's groups without the vocabulary. */
-export const groupLabel = (g) => GROUP_LABELS[g] ?? g[0].toUpperCase() + g.slice(1);
-const BUCKETS = new Set(["", "both", "other"]); // the research map's groups for a ship in two programmes or none: not topics
+export const groupLabel = (g) => GROUP_LABELS[g] ?? g.charAt(0).toUpperCase() + g.slice(1); // ("" is no label)
+export const BUCKETS = new Set(["", "both", "other"]); // the research map's groups for a ship in two programmes or none: not topics
 // Nationality words and other names, by label. A topic that names no country has only other spellings here ("Al-Qaeda", and ISIL, ISIS
 // and Da'esh, which the UK's and the UN's Al-Qaida regimes name with it), so they are matched too; a country's never are
 const ALIASES = new Map(("Afghanistan:Afghan;Al-Qaida:Al-Qaeda,Al Qaida,ISIL,ISIS,Da'esh;Antigua and Barbuda:Antiguan;Aruba:Aruban;Azerbaijan:Azerbaijani;Bahamas:Bahamian;Barbados:Barbadian;"

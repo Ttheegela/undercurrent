@@ -12,7 +12,7 @@ import { LIST_LABELS, LIST_PAGES, recordLink, formatDate, safeUrl, joinAnd } fro
 import { isDate, addDays, changesSince, sourceGaps, SOURCES } from "../app/changes.js";
 import { loadIndex, searchIndex } from "./search.js";
 import { sanctionsFor, lobbyingFor, resolve, loadGraph, loadLobby } from "./connections.js";
-import { VOCAB, topicOf, groupLabel } from "./_ask_vocab.js";
+import { VOCAB, topicOf, groupLabel, BUCKETS } from "./_ask_vocab.js";
 
 const MAX_QUERY = 200;
 const CAP = { research: 3, list: 5, opensanctions: 3, changes: 30, links: 10, hop: 6, lobbyists: 10, ships: 5 };
@@ -712,13 +712,12 @@ function mapShips() {
   return shipIndex.get(fleet);
 }
 
-/** The map's programme groups as {key, label}: what its ships' programmes hold ("both" and "other" are none). The tool's schema names them too. */
-const NOT_GROUPS = new Set(["both", "other"]);
-const asGroups = (keys) => keys.filter((g) => !NOT_GROUPS.has(g)).map((key) => ({ key, label: groupLabel(key) }));
+/** The map's programme groups as {key, label}: what its ships' programmes hold ("", "both" and "other" are none). The tool's schema names them too. */
+const asGroups = (keys) => keys.filter((g) => !BUCKETS.has(g)).map((key) => ({ key, label: groupLabel(key) }));
 const mapGroups = () => asGroups([...mapShips().groups]);
 // The schema's names when the map can't be read or parsed: its groups as the data has them today. The request is still sent; only a
 // research call fails, as a failed tool.
-const DEFAULT_GROUPS = ["russia", "iran", "both", "terrorism", "venezuela", "dprk", "other"];
+const DEFAULT_GROUPS = ["russia", "iran", "terrorism", "venezuela", "dprk"];
 function schemaGroups() {
   try {
     return mapGroups();
@@ -1180,10 +1179,10 @@ function lagTable() {
   return chip("firms founded after the invasion", LAG, `Firms founded after 24 February 2022 that OFAC later listed (${fresh.length}), shortest first, with months from founding to OFAC listing:\n${rows.join("\n")}`, "listing_lag.html");
 }
 
-// how many firms the research names: the firms of its releases (one each), as a count the renderer writes its own copy for
+// how many firms the research names: the firms of its releases, each once by its OFAC id, as a count the renderer writes its own copy for
 function firmCount() {
   const lag = ch("listing_lag.json");
-  const n = lag.firms.filter((f) => own(lag.releases, f.release)).length;
+  const n = new Set(lag.firms.filter((f) => own(lag.releases, f.release)).map((f) => f.ofac_id)).size;
   return {
     ...chip("firms named by US Treasury", LAG, `The research's set: ${n} firms outside Russia and Belarus that US Treasury press releases name for sending chips, microelectronics or electronic components to Russia. One item per press release follows, with the firms it names.`, "listing_lag.html"),
     kind: "count", unit: "firms", n,
@@ -1308,7 +1307,7 @@ export const TOOLS = [
       since: str("First day, YYYY-MM-DD."), until: str("Last day, YYYY-MM-DD. Defaults to today."),
       graph: str("Only one graph: fleet (ships, companies, listings) or lobby (lobbying).", { enum: ["fleet", "lobby"] }),
       query: str("Only changes whose name or summary contain these words."),
-      topic: str("Only changes involving this programme group or country, such as Iran, Russia or Panama."),
+      topic: str("Only changes involving this topic: a programme group, or a country with no programme of its own (such as Panama)."),
     }, ["since"]),
   fn("chips", "Facts from the semiconductors-into-Russia research: how long the US took to list new chip suppliers (summary, listing_lag), declared chip exports to Russia by country (routes), who reported to UN Comtrade (coverage), and the firms US Treasury press releases name (firms: their count, then one item per release). Returns numbered evidence items.",
     { topic: str("Which part of the research.", { enum: CHIP_TOPICS }) }, ["topic"]),

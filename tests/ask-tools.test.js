@@ -1251,6 +1251,20 @@ test("chips firms count", async () => {
   assert.equal(groundingProblems("", ev, { ...out, sentences: [{ ...out.sentences[0], text: `${n + 1} firms are named in Undercurrent's research as shipping chips to Russia.` }] }).length, 1);
 });
 
+test("chips firms count counts a firm by its OFAC id: one named by two releases is one firm", async () => {
+  const lag = CHIPS["listing_lag.json"];
+  const again = { ...lag.firms[1], release: "jy1102" }; // Allparts Trading, named by the earlier release too
+  write(root, "stories/chips-into-russia/data/listing_lag.json", { ...lag, firms: [...lag.firms, again] });
+  resetAskCache();
+  try {
+    await run("chips", { topic: "firms" });
+    assert.deepEqual([ev[0].unit, ev[0].n], ["firms", lag.firms.length]);
+  } finally {
+    write(root, "stories/chips-into-russia/data/listing_lag.json", lag);
+    resetAskCache();
+  }
+});
+
 test("chips routes and coverage: the figures, as the site states them", async () => {
   await run("chips", { topic: "routes" });
   const all = ev.map((e) => e.text).join("\n");

@@ -819,6 +819,10 @@ test("the prompt names each claim and the research tool, and stays under 3500 ch
   for (const word of ["research", "programme", "listed_by", "flag", "ship_type", "names_changed", "topic", ...Object.keys(SHIP_TYPES)]) assert.ok(SYSTEM_PROMPT.includes(word), word);
   assert.match(SYSTEM_PROMPT, /\bus, uk or eu\b/);
   assert.ok(SYSTEM_PROMPT.includes("If no record answers the question, finish with an answer that has no sentences."));
+  // the updates' topic is what the tool can check: a programme that names a country (Syria, Cuba) is an error there, never a none
+  const topic = "a programme group, or a country with no programme of its own (such as Panama)";
+  assert.ok(SYSTEM_PROMPT.includes(topic));
+  assert.ok(TOOLS.find((t) => t.function.name === "changes").function.parameters.properties.topic.description.includes(topic));
 });
 
 // ---- privacy -----------------------------------------------------------------------------------------------------
@@ -894,7 +898,7 @@ test("runAsk calls wrap once each for callModel, runTool and checkAnswer, and us
   assert.equal(sent.length, 2);
   assert.equal(checked[0].kind, "answer");
   assert.ok(checked[1].length > 0); // the evidence check_lists returned
-  assert.deepEqual(checked[2], { question: "Is TASSOS sanctioned?", today: "2026-10-21" }); // ages count to the request's date (UTC)
+  assert.deepEqual(checked[2], { question: "Is TASSOS sanctioned?", today: "2026-10-21", toolFailed: false }); // ages count to the request's date (UTC)
   // once a request, whether or not a tool runs
   wrapped.length = 0;
   openrouter(answer({ kind: "refusal", sentences: [] }));
@@ -962,6 +966,36 @@ test("Ask stays up if the research map can't be read: the schema names the defau
     writeFileSync(fleet, saved);
     resetAskCache();
   }
+});
+
+test("the research schema names only the map's groups: a ship's empty, both or other group is none, and nothing is logged", async () => {
+  const fleet = join(root, "stories/shadow-fleet/network/fleet-data.json");
+  const saved = readFileSync(fleet, "utf8");
+  try {
+    writeFileSync(fleet, JSON.stringify({ nodes: [{ id: "IMO9408695", name: "TASSOS", programs: ["russia", "iran"] }, { id: "IMO1000001", name: "SHIP 1", programs: ["", "both", "other"] }], edges: [] }));
+    resetAskCache();
+    logged = [];
+    openrouter(answer({ kind: "refusal", sentences: [] }));
+    await runAsk(history("How many tankers are listed?"), new Date(Date.now()));
+    const { programme } = sent[0].body.tools.find((t) => t.function.name === "research").function.parameters.properties;
+    assert.equal(programme.description, "Programme groups a ship must all be in. The map's groups: Russia and Iran.");
+    assert.deepEqual(logged, []);
+  } finally {
+    writeFileSync(fleet, saved);
+    resetAskCache();
+  }
+});
+
+test("an answer of no sentences after a failed tool call is the fallback, not that nothing answers", async () => {
+  const empty = answer({ kind: "answer", sentences: [] });
+  // check_lists hands back TASSOS's records; the research call fails (no such group), so not everything asked was checked
+  openrouter(reply(call("check_lists", { query: "TASSOS" }), call("research", { programme: ["Atlantis"] })), empty);
+  const failed = await runAsk(history("How many Atlantis ships is TASSOS grouped with?"), new Date(Date.now()));
+  assert.deepEqual(failed.answer.sentences, [{ text: FALLBACK, sources: [] }]);
+  // the same evidence with every call answered: nothing recorded answers
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), empty);
+  const checked = await runAsk(history("How many Atlantis ships is TASSOS grouped with?"), new Date(Date.now()));
+  assert.deepEqual(checked.answer.sentences, [{ text: "Nothing recorded on this site answers that.", sources: [] }]);
 });
 
 test("nothing under api/ imports langsmith, and package.json has it only in devDependencies", () => {

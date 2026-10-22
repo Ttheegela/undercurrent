@@ -363,7 +363,8 @@ const notice = (ctx) => (adviceIntent(ctx?.question) ? [{ text: NOT_ADVICE, item
 /**
  * raw: the model's `answer` arguments {kind, sentences: [{claim, sources, quote?}], next: [{source}]} (anything else in it is ignored;
  * sentences and next may each arrive as a JSON string of that array, see listOf);
- * ev: the evidence of this question; ctx.question: the reader's latest message (NOT_FOUND names a query only when it is there).
+ * ev: the evidence of this question; ctx.question: the reader's latest message (NOT_FOUND names a query only when it is there);
+ * ctx.toolFailed: a tool call of this question returned an error.
  * Returns {kind: "answer"|"refusal"|"clarify"|"fallback", sentences: [{text, sources: [{n, label, url}]}], next: [{label, href}]}.
  */
 export function checkAnswer(raw, ev, ctx) {
@@ -372,8 +373,8 @@ export function checkAnswer(raw, ev, ctx) {
   const byId = new Map((Array.isArray(ev) ? ev : []).map((e) => [e.id, e]));
   const sentences = listOf(raw.sentences);
   // an answer of no sentences after the tools returned evidence: the model found no record that answers. With no evidence at all
-  // nothing was checked (every lookup failed, or none was made), so that is the fallback
-  if (raw.kind === "answer" && sentences?.length === 0 && byId.size) return only("answer", NOTHING_ANSWERS);
+  // nothing was checked (every lookup failed, or none was made), and with a lookup that failed not everything was: the fallback
+  if (raw.kind === "answer" && sentences?.length === 0 && byId.size) return ctx?.toolFailed ? fallback() : only("answer", NOTHING_ANSWERS);
   const said = (sentences ?? []).filter((s) => s !== null && typeof s === "object");
   const linked = (listOf(raw.next) ?? []).map((x) => byId.get(x?.source)).filter(Boolean);
   const cited = said.flatMap((s) => {

@@ -179,6 +179,7 @@ async function converse(history, now, wrap, modelId) {
   const ctx = { today, failed: new Map() }; // one for the request: a download that failed stays failed until it ends (see _ask_tools.js)
   const messages = [{ role: "system", content: SYSTEM_PROMPT.replace("{today}", today) }, ...history];
   let used = 0;
+  let toolFailed = false; // a call that returned an error: then an answer of no sentences can't say that nothing answers
   for (let round = 0; round <= TOOL_ROUNDS; round++) {
     const forced = round === TOOL_ROUNDS || used >= MAX_TOOL_CALLS;
     const { message, stop } = await model(messages, forced ? FORCE_ANSWER : "auto", deadline, now, modelId);
@@ -188,7 +189,7 @@ async function converse(history, now, wrap, modelId) {
     // An answer call is final, but only alone: beside lookups it was written before their results, so it cannot cite them and would
     // read as complete without them. A forced call that is not an answer, and a reply with no call, are the fallback.
     // (ages count to the request's own date, the one the tools and the prompt use)
-    if (final || forced || !calls.length) return { ok: true, answer: await check(final && calls.length === 1 ? parse(final.function.arguments) : undefined, ev, { question, today }) };
+    if (final || forced || !calls.length) return { ok: true, answer: await check(final && calls.length === 1 ? parse(final.function.arguments) : undefined, ev, { question, today, toolFailed }) };
     const asked = calls.slice(0, Math.min(CALLS_PER_ROUND, MAX_TOOL_CALLS - used)).map((c, i) => ({
       id: typeof c.id === "string" && c.id ? c.id : `call_${round}_${i}`,
       type: "function",
@@ -198,7 +199,9 @@ async function converse(history, now, wrap, modelId) {
     messages.push({ role: "assistant", content: null, tool_calls: asked });
     for (const c of asked) {
       if (deadline - Date.now() <= 0) return UNAVAILABLE;
-      messages.push({ role: "tool", tool_call_id: c.id, content: JSON.stringify(await tool(c.function.name, parse(c.function.arguments), ev, ctx)) });
+      const result = await tool(c.function.name, parse(c.function.arguments), ev, ctx);
+      if (result?.error) toolFailed = true;
+      messages.push({ role: "tool", tool_call_id: c.id, content: JSON.stringify(result) });
     }
   }
 }

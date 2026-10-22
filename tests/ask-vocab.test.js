@@ -2,10 +2,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { VOCAB, topicOf } from "../api/_ask_vocab.js";
+import { VOCAB, topicOf, groupLabel, BUCKETS } from "../api/_ask_vocab.js";
 
 const read = (rel) => JSON.parse(readFileSync(rel, "utf8"));
 const balanced = (s) => s.split("(").length === s.split(")").length;
+
+test("groupLabel names a group from its key, an empty key is no label, and the map's buckets are no group", () => {
+  assert.deepEqual(["dprk", "iran", "terrorism", ""].map(groupLabel), ["North Korea", "Iran", "Terrorism", ""]);
+  assert.deepEqual([...BUCKETS].sort(), ["", "both", "other"]);
+});
 
 test("topicOf maps labels and aliases and rejects free text", () => {
   assert.deepEqual(topicOf("iran"), { kind: "programme", key: "Iran", label: "Iran" });

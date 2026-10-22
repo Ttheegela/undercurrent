@@ -175,7 +175,7 @@ const TASSOS_Q = { question: "Is TASSOS sanctioned?" };
  */
 function serverOnly(out, ev, ctx) {
   assert.ok(["answer", "refusal", "clarify", "fallback"].includes(out.kind), out.kind);
-  const ok = new Set([REFUSAL, FALLBACK, CLARIFY, NOTHING_ANSWERS]);
+  const ok = new Set([REFUSAL, FALLBACK, CLARIFY, NOTHING_ANSWERS, PARTIAL]);
   for (const e of ev) {
     for (const q of e.quotes) ok.add(q);
     for (const c of ["listed", "age", "not_found", "change"]) for (const x of checkAnswer(answer(claim(c, e.id)), ev, ctx).sentences) ok.add(x.text);
@@ -233,9 +233,9 @@ test("fix round 0 (2): a listed claim drops the items it cannot write and keeps 
   const twoLists = find(E.lukoil, (e) => e.kind === "research" && e.program === "EU and UK sanctions lists");
   const lukoilUs = find(E.lukoil, (e) => e.kind === "research" && e.gov === "us");
   assert.deepEqual(texts(checkAnswer(answer(claim("listed", delisted.id, twoLists.id, lukoilUs.id)), [...E.lukoil, delisted])), ["PAO LUKOIL appears on the United States list under US Treasury sanctions list since 2025.", shows(1, E.lukoil, "PAO LUKOIL")]);
-  // none valid: the claim is dropped; the rest of the answer stands, and with nothing else the answer is the fallback
+  // none valid: the claim is dropped; the rest of the answer stands with the part-answer line, and with nothing else the answer is the fallback
   const q = tassosResearch();
-  assert.deepEqual(texts(checkAnswer(answer(claim("listed", freezeDoc().id, E.tassos[0].id), quote(q.id, 1)), E.tassos)), [q.quotes[1]]);
+  assert.deepEqual(texts(checkAnswer(answer(claim("listed", freezeDoc().id, E.tassos[0].id), quote(q.id, 1)), E.tassos)), [q.quotes[1], PARTIAL]);
   assert.deepEqual(checkAnswer(answer(claim("listed", freezeDoc().id, E.tassos[0].id)), E.tassos), FALLBACK_ANSWER);
   // an id that is not evidence at all is a different thing: it drops the whole sentence, the valid items beside it too
   assert.deepEqual(checkAnswer(answer(claim("listed", uk.id, "S99")), E.tassos), FALLBACK_ANSWER);
@@ -247,8 +247,8 @@ test("fix round 0 (2): a change claim drops the items it cannot write and keeps 
   const lines = (list) => list.map((c) => `${c.summary} · ${formatDate(c.date)}`);
   assert.ok(changes.length >= 2 && doc);
   assert.deepEqual(texts(checkAnswer(answer(claim("change", changes[0].id, doc.id, changes[1].id)), E.weekDoc)), lines(changes.slice(0, 2)));
-  // none valid: the claim is dropped (the doc has no change to give); the rest stands, or the fallback comes
-  assert.deepEqual(texts(checkAnswer(answer(claim("change", doc.id), claim("change", changes[2].id)), E.weekDoc)), lines([changes[2]]));
+  // none valid: the claim is dropped (the doc has no change to give); the rest stands with the part-answer line, or the fallback comes
+  assert.deepEqual(texts(checkAnswer(answer(claim("change", doc.id), claim("change", changes[2].id)), E.weekDoc)), [...lines([changes[2]]), PARTIAL]);
   assert.deepEqual(checkAnswer(answer(claim("change", doc.id, E.weekDoc[0].kind === "change" ? doc.id : doc.id)), E.weekDoc), FALLBACK_ANSWER);
   assert.deepEqual(checkAnswer(answer(claim("change", changes[0].id, "S99")), E.weekDoc), FALLBACK_ANSWER); // an unknown id drops the whole sentence
   // a gap beside a research item is still a gap
@@ -284,7 +284,7 @@ test("fact with listing language is dropped", () => {
   // Review Focus 1: a fact is not a claim the server writes, so "TASSOS is listed by the UK." on the TASSOS STAR hit never renders
   const ok = quote(tassosResearch().id, 0);
   const out = checkAnswer(answer(fact("TASSOS is listed by the UK.", star().id), fact("TASSOS is listed by the UK.", tassosList("uk").id), ok), E.tassos);
-  assert.deepEqual(texts(out), [tassosResearch().quotes[0]]);
+  assert.deepEqual(texts(out), [tassosResearch().quotes[0], PARTIAL]);
   // a listed claim on that hit names the evidence entity, never the model's (or the reader's) name
   assert.deepEqual(texts(checkAnswer(answer({ ...claim("listed", star().id), text: "TASSOS is listed by the UK." }), E.tassos)), ["TASSOS STAR appears in OpenSanctions as listed by US.", shows(1)]);
 });
@@ -303,13 +303,13 @@ test("fact with a name not in its sources is dropped", () => {
   const manager = r.quotes.findIndex((q) => q.startsWith("Manager of TASSOS: "));
   assert.ok(manager >= 0);
   const out = checkAnswer(answer(fact("TASSOS is managed by Gatik Ship Management.", r.id), quote(r.id, manager, "TASSOS is managed by Gatik Ship Management.")), E.tassos);
-  assert.deepEqual(texts(out), ["Manager of TASSOS: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C."]);
+  assert.deepEqual(texts(out), ["Manager of TASSOS: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C.", PARTIAL]);
 });
 
 test("fact with a number not in its sources is dropped", () => {
   const sum = find(E.chips, (e) => e.kind === "chips");
   const out = checkAnswer(answer(fact("The median is 21.5 months.", sum.id), quote(sum.id, 0, "The median is 21.5 months.")), E.chips);
-  assert.deepEqual(texts(out), [sum.quotes[0]]);
+  assert.deepEqual(texts(out), [sum.quotes[0], PARTIAL]);
   assert.doesNotMatch(JSON.stringify(out), /21\.5/);
 });
 
@@ -395,7 +395,7 @@ test("no surviving sentence gives FALLBACK", () => {
 test("a sentence citing an unknown id is dropped, the rest of the answer stands", () => {
   const r = tassosResearch();
   const out = checkAnswer(answer(claim("listed", tassosList("uk").id, "S99"), quote(r.id, 3), claim("listed", "__proto__"), claim("change", 2)), E.tassos);
-  assert.deepEqual(texts(out), [r.quotes[3]]);
+  assert.deepEqual(texts(out), [r.quotes[3], PARTIAL]);
 });
 
 test("listed omits the programme when the evidence has none", () => {
@@ -1129,7 +1129,7 @@ test("huge model input is ignored without throwing (review M1)", () => {
   const ev = E.gatik.map((e) => ({ ...e, query: `Gatik ${"Ship ".repeat(20000)}Management` }));
   const t0 = performance.now();
   const out = checkAnswer({ kind: "answer", sentences: [fact(big, "S1"), quote("S1", 0, big), claim("not_found", "S1")], next: [{ label: big, source: "S1" }], refusal_reason: big }, ev, { question: `Is ${ev[0].query} on a list? ${big}` });
-  assert.deepEqual(texts(out), [NOT_FOUND(ev[0].query)]);
+  assert.deepEqual(texts(out), [NOT_FOUND(ev[0].query), PARTIAL]); // (the fact and the out-of-range quote fail the check)
   assert.ok(performance.now() - t0 < 2000);
   assert.deepEqual(checkAnswer({ kind: "answer", sentences: Array.from({ length: 20000 }, () => quote(tassosResearch().id, 0)), next: [] }, E.tassos).sentences.length, 1);
 });
@@ -1981,4 +1981,38 @@ test("chips firms count on the committed data: every firm of the research's set,
   const out = checkAnswer(answer(claim("count", c.id)), ev, {});
   assert.deepEqual(texts(out), [`${n} firms are named in Undercurrent's research as shipping chips to Russia.`]);
   assert.deepEqual(groundingProblems("How many firms has the US Treasury named for sending chips to Russia?", ev, out), []);
+});
+
+// ---- partial answers (22 Oct): a sentence that fails the check is dropped, the verified ones stand, and the part-answer line says so ----
+
+test("partial answers: a sentence that fails the check is dropped beside verified ones, with the part-answer line; nothing verified is the fallback", () => {
+  const uk = tassosList("uk");
+  const listed = "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.";
+  const q = tassosResearch();
+  const chip = find(E.chips, (e) => e.kind === "chips");
+  const ev = [...E.tassos, { ...chip, id: "C1" }];
+  for (const [label, bad] of [
+    ["not_found on a search that found its name", claim("not_found", E.tassos[0].id)],
+    ["not_found citing no search", claim("not_found", uk.id)],
+    ["an id that is not evidence", claim("listed", uk.id, "S99")],
+    ["a sentence citing nothing", claim("listed")],
+    ["listed on a chips item", claim("listed", "C1")],
+    ["a quote number the item does not have", quote(q.id, 99)],
+    ["a claim that does not exist", claim("named", uk.id)],
+  ]) {
+    const out = checkAnswer(answer(claim("listed", uk.id), bad), ev, TASSOS_Q);
+    assert.equal(out.kind, "answer", label);
+    assert.deepEqual(texts(out), [listed, shows(1), PARTIAL], label);
+    assert.deepEqual(groundingProblems(TASSOS_Q.question, ev, out), [], label);
+    // the failed sentence alone: nothing verified is left, so the fallback (never a lone part-answer line)
+    assert.deepEqual(checkAnswer(answer(bad), ev, TASSOS_Q), FALLBACK_ANSWER, label);
+  }
+  // said once, after the verified sentences and before the advice notice
+  const two = checkAnswer(answer(claim("not_found", E.tassos[0].id), claim("listed", uk.id), quote(q.id, 99)), ev, { question: "Should I trade with TASSOS?" });
+  assert.deepEqual(texts(two), [listed, shows(1), PARTIAL, NOT_ADVICE]);
+  // every sentence verified: no part-answer line
+  assert.deepEqual(texts(checkAnswer(answer(claim("listed", uk.id), quote(q.id, 1)), ev, TASSOS_Q)), [listed, shows(1), q.quotes[1]]);
+  // the oracle holds the line to the same rule: beside fixed copy only, it is a problem
+  const lone = { kind: "answer", sentences: [{ text: NOTHING_ANSWERS, sources: [] }, { text: PARTIAL, sources: [] }], next: [] };
+  assert.deepEqual(groundingProblems(TASSOS_Q.question, ev, lone), ["the part-answer line without a verified sentence"]);
 });

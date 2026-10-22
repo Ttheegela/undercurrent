@@ -775,7 +775,7 @@ test("no tool starts once the 26 s are gone", async () => {
 
 // ---- the request to OpenRouter -----------------------------------------------------------------------------------
 
-test("request carries model, max_tokens 800, provider.data_collection deny, no user field, Authorization from env", async () => {
+test("request carries model, max_tokens 2000, provider.data_collection deny, no user field, Authorization from env", async () => {
   mock.method(Date, "now", () => Date.parse("2026-10-20T23:59:00Z")); // in Kiritimati (UTC+14) it is already the 21st
   openrouter(reply(call("check_lists", { query: "TASSOS" })), listedAnswer);
   await inZone("Pacific/Kiritimati", () => run(ask("Is TASSOS sanctioned?")));
@@ -788,7 +788,7 @@ test("request carries model, max_tokens 800, provider.data_collection deny, no u
     assert.equal(h.get("http-referer"), "https://undercurrent-research.vercel.app");
     assert.equal(h.get("x-title"), "Undercurrent");
     assert.equal(body.model, "anthropic/claude-haiku-5.5");
-    assert.equal(body.max_tokens, 800);
+    assert.equal(body.max_tokens, 2000);
     assert.deepEqual(body.provider, { data_collection: "deny" });
     assert.equal("user" in body, false);
     assert.deepEqual(body.tools, TOOLS);

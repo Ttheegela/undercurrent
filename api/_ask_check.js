@@ -1,7 +1,8 @@
 // Ask's answer renderer. The model writes no words: each sentence of its `answer` call is a claim type and evidence ids (S1, S2, …),
 // and a `quote` names one item and the number of one of its quotes. This module writes every sentence itself: listing, age, count,
 // none, not-found and change sentences from fixed copy and the cited items, quotes copied verbatim from the cited item. Anything it can't
-// build is dropped, and an answer with nothing left is the fallback; an answer of no sentences at all says nothing recorded answers the
+// build is dropped, the sentences it could build stand with the part-answer line after them, and an answer with nothing left is the
+// fallback; an answer of no sentences at all says nothing recorded answers the
 // question, or what the updates record said of the range asked. Any `text` or label from the model is ignored. No I/O beyond the site's
 // own prose vocabulary, read once. The output is plain text plus {label, url} / {label, href} taken from the evidence: the panel escapes it.
 import { LIST_LABELS, formatDate, joinAnd } from "../app/render.js";
@@ -227,8 +228,9 @@ function typedSpan(query, question) {
   return null;
 }
 
-// Each returns the sentences to show as [{text, items}], [] to drop the sentence, or null to give the fallback for the whole answer.
-// `listed` and `change` write the items they can and leave the others out; only a claim with none left is dropped.
+// Each returns the sentences to show as [{text, items}], or none ([] or null) when the sentence fails the check: it is dropped, and the
+// answer says it is only part. A not_found left unsaid on purpose ([] from it: a name beside a found one, or words the reader never typed
+// as a name) is no failure. `listed` and `change` write the items they can and leave the others out; only a claim with none left is dropped.
 const RENDER = {
   listed: (items) => items.filter(listable).map((e) => ({ text: LISTED(e), items: [e] })),
   // (an age that cannot be told is the listed sentence, and counts as one)
@@ -396,11 +398,13 @@ export function checkAnswer(raw, ev, ctx) {
   const near = cited.filter(({ s }) => s.claim === "not_found").flatMap(({ items }) => items).filter((e) => e.kind === "search" && e.found === false && e.near?.length);
   if (near.length) return finish("clarify", [{ text: CLARIFY, items: [] }, ...notice(ctx)], unique(near.flatMap((e) => e.near.map(choice)), "label"));
 
-  const state = { partial: false };
+  // a sentence that cites no evidence, names no claim, or whose claim writes nothing from what it cites fails the check: it is dropped
+  // and the verified ones stand, followed by the part-answer line
+  const state = { partial: cited.length < said.length };
   for (const { s, items } of cited) {
-    const shown = typeof s.claim === "string" && Object.hasOwn(RENDER, s.claim) ? RENDER[s.claim](items, s, all, ctx ?? {}, state) : [];
-    if (!shown) return fallback();
-    pieces.push(...shown.map((p) => ({ ...p, claim: p.claim ?? s.claim })));
+    const shown = typeof s.claim === "string" && Object.hasOwn(RENDER, s.claim) ? RENDER[s.claim](items, s, all, ctx ?? {}, state) : null;
+    if (!shown?.length && (shown === null || s.claim !== "not_found")) state.partial = true;
+    pieces.push(...(shown ?? []).map((p) => ({ ...p, claim: p.claim ?? s.claim })));
   }
   if (state.partial && pieces.length) pieces.push({ text: PARTIAL, items: [] }); // never a lone "part of the question": with nothing else to say it is the fallback
   if (pieces.length) pieces.push(...notice(ctx)); // last, after the part-answer line; an answer with nothing to say is the fallback and carries no notice

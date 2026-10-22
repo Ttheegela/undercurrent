@@ -199,6 +199,8 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   ok(isDeepStrictEqual(texts.slice(texts.length - tail.length), tail), "the closing lines are not last");
   ok(tail.length === new Set(tail).size && (tail.length < 2 || tail[0] === PARTIAL), `${tail.length} closing lines, out of order`);
   if (tail.length) ok(texts.length > tail.length || texts[0] === CLARIFY, "a closing line alone");
+  // the part-answer line follows sentences that passed the check, so at least one with its source; with none the answer is the fallback
+  if (tail.includes(PARTIAL)) ok(answer.sentences.some((s) => s.sources.length), "the part-answer line without a verified sentence");
   // sources are numbered 1, 2, … in order of first citation
   const numbered = new Map();
   for (const s of answer.sentences) for (const src of s.sources) numbered.set(src.n, src.label);

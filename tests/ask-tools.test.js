@@ -27,8 +27,12 @@ const LISTS = {
     rec("ABGO TRADING LIMITED", "Iran", "", "AB1"),
     rec("AREN SHIP MANAGEMENT", "Iran", "", "53099", "6088476"),
     ...Array.from({ length: 8 }, (_, i) => rec(`QUARTZ ${i}`, "Russia", "2024-01-0" + (i + 1), `Q${i}`)),
+    ...Array.from({ length: 12 }, (_, i) => rec(`ZINNIA ${i}`, "Russia", "", `Z${i}`)), // more than the site's search returns for one list (10)
   ],
-  uk: [rec("TASSOS", "Russia", "2026-02-24", "RUS3483", "9408695"), rec("Orion Ship Management", "Russia", "2025-03-03", "RUS777"), ...Array.from({ length: 8 }, (_, i) => rec(`QUARTZ UK ${i}`, "Russia", "2024-02-0" + (i + 1), `QU${i}`))],
+  uk: [
+    rec("TASSOS", "Russia", "2026-02-24", "RUS3483", "9408695"), rec("Orion Ship Management", "Russia", "2025-03-03", "RUS777"), ...Array.from({ length: 8 }, (_, i) => rec(`QUARTZ UK ${i}`, "Russia", "2024-02-0" + (i + 1), `QU${i}`)),
+    rec("Navumau", "Republic of Belarus", "2020-12-31", "BEL0001"), // the UK list's post-Brexit transfer date
+  ],
   eu: [rec("Zulu Ships Management", "Russia", "2025-10-24", "EU-9", "", "https://eur-lex.europa.eu/example")],
   un: [rec("Unrelated Group", "Somalia", "2010-01-01", "SOe.001")],
 };
@@ -556,6 +560,34 @@ test("check_lists caps hits: 3 research entries, 5 per list, 3 OpenSanctions", a
   await run("check_lists", { query: "QUARTZ" });
   assert.equal(ofKind("list").filter((e) => e.gov === "us").length, 5);
   assert.equal(ofKind("list").filter((e) => e.gov === "uk").length, 5);
+});
+
+test("check_lists counts every strong match, past the search's own limit, and says how many it shows", async () => {
+  await run("check_lists", { query: "ZINNIA" });
+  assert.deepEqual([ev[0].kind, ev[0].shown, ev[0].total], ["search", 5, 12]); // the site's search returns 10 names per list
+  assert.deepEqual(ev.slice(1).map((e) => [e.kind, e.result]), Array.from({ length: 5 }, () => ["list", ev[0].id]));
+  ev = [];
+  await run("check_lists", { query: "QUARTZ" });
+  assert.deepEqual([ev[0].shown, ev[0].total], [10, 16]); // 5 of 8 on each of two lists
+  ev = [];
+  await run("check_lists", { query: "TASSOS" });
+  assert.deepEqual([ev[0].shown, ev[0].total], [7, 7]); // nothing held back
+  assert.ok(ev.slice(1).every((e) => e.result === "S1"));
+});
+
+test("list and research items say what their date stands for: the list's own, OpenSanctions' first sighting, or the UK's transfer date", async () => {
+  await run("check_lists", { query: "IMO 9408695" });
+  // the US research date cites an OFAC list entry, which carries no date: it is the day OpenSanctions first saw it there
+  assert.deepEqual(ofKind("research").map((e) => [e.gov, e.date_basis]), [["us", "first_seen_opensanctions"], ["eu", "list"], ["uk", "list"]]);
+  assert.equal(ofKind("list").find((e) => e.gov === "uk").date_basis, "list");
+  assert.equal("date_basis" in ofKind("list").find((e) => e.gov === "us"), false); // no date, no basis
+  for (const e of ofKind("opensanctions")) assert.equal("date_basis" in e, false);
+  ev = [];
+  await run("check_lists", { query: "Navumau" });
+  assert.deepEqual(ofKind("list").map((e) => [e.date, e.date_basis]), [["2020-12-31", "uk_transfer"]]);
+  ev = [];
+  await run("check_lists", { query: "Hikvision" }); // an Entity List date from the Federal Register is the list's own
+  assert.deepEqual(ofKind("research").map((e) => [e.date, e.date_basis]), [["2019-10-09", "list"]]);
 });
 
 test("check_lists: OpenSanctions hits carry the entry, who lists it, and its page", async () => {
@@ -1725,5 +1757,5 @@ test("a data file that cannot be read gives an error, not a throw, and no eviden
 test("vercel.json ships the data files and allows 30 seconds for api/ask.js", () => {
   const cfg = JSON.parse(readFileSync(join(home, "vercel.json"), "utf8")).functions["api/ask.js"];
   assert.equal(cfg.maxDuration, 30);
-  assert.equal(cfg.includeFiles, "{data/lists/*.json,data/research-index.json,data/changes/changes.json,data/site-stats.json,data/ask-docs.json,stories/chips-into-russia/data/*.json}");
+  assert.equal(cfg.includeFiles, "{data/lists/*.json,data/research-index.json,data/changes/changes.json,data/site-stats.json,data/ask-docs.json,stories/chips-into-russia/data/*.json,stories/shadow-fleet/network/fleet-data.json,stories/who-lobbies/influence-network/kg.json}");
 });

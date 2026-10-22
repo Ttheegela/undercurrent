@@ -14,19 +14,40 @@ const NOT_FOUND = /^(.+) is not on the lists we check \(US, UK, EU, UN, OpenSanc
 
 const day = (iso) => formatDate(iso) || iso;
 const clean = (s) => s.normalize("NFKC").replace(/[\p{Cf}\p{M}\uFEFF]/gu, "").replace(/\s+/g, " ").toLowerCase();
+const SHOWING = (e) => `Showing ${e.shown.toLocaleString("en-GB")} of ${e.total.toLocaleString("en-GB")}.`; // written by the server, no source
+const NOTE = { first_seen_opensanctions: " (first seen on the list via OpenSanctions)", uk_transfer: " (the UK list's transfer date; the listing may be older)" };
+const plural = (n, word) => (n ? [`${n} ${word}${n === 1 ? "" : "s"}`] : []);
+
+/** The age of a dated list or research listing on `today`, or the undated copy; null for no age (a future date, or one without its day). */
+function age(e, today) {
+  const on = `the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}`;
+  if (!e.date) return `The ${LIST_LABELS[e.gov]} list gives no listing date for ${e.entity.name.replace(/\.$/, "")}.`;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(e.date) || e.date > today) return null;
+  // the whole months: the date moved on k months (to the month's last day when it has no such day) is still on or before today
+  const [y, m, d] = e.date.split("-").map(Number);
+  const after = (k) => new Date(Date.UTC(y, m - 1 + k, Math.min(d, new Date(Date.UTC(y, m + k, 0)).getUTCDate()))).toISOString().slice(0, 10);
+  let k = 0;
+  while (after(k + 1) <= today) k++;
+  const span = k ? [...plural(Math.floor(k / 12), "year"), ...plural(k % 12, "month")] : plural((Date.parse(today) - Date.parse(e.date)) / 864e5, "day");
+  const note = Object.hasOwn(NOTE, e.date_basis) ? NOTE[e.date_basis] : "";
+  return span.length ? `${e.entity.name} has been on ${on} for ${span.join(" ")} (since ${day(e.date)})${note}.` : `${e.entity.name} was added to ${on} today${note}.`;
+}
 
 /**
- * Every sentence the checker may write for this evidence, from its fixed copy and the evidence alone, and which items can have produced
- * it: text -> Set of evidence items. A quote comes from the items that hold it, a claim from the items it is built from.
+ * Every sentence the checker may write for this evidence on `today`, from its fixed copy and the evidence alone, and which items can
+ * have produced it: text -> Set of evidence items. A quote comes from the items that hold it, a claim from the items it is built from.
  */
-function producers(ev) {
+function producers(ev, today) {
   const made = new Map();
   const add = (text, e) => made.set(text, (made.get(text) ?? new Set()).add(e));
   for (const e of ev) {
     for (const q of e.quotes) add(q, e);
     const since = e.date ? ` since ${day(e.date)}` : "";
     if (e.kind === "opensanctions") add(`${e.entity.name} appears in OpenSanctions${e.program ? ` as listed by ${e.program}` : ""}${since}.`, e);
-    if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted) add(`${e.entity.name} appears on the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}${since}.`, e);
+    if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted) {
+      add(`${e.entity.name} appears on the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}${since}.`, e);
+      if (age(e, today)) add(age(e, today), e);
+    }
     if (e.kind === "change" && e.before_start) add(`Daily updates started on ${day(e.first_run)}, so there is no record before then.`, e);
     else if (e.kind === "change" && e.trimmed) add(`Days before ${day(e.started)} are no longer kept.`, e);
     else if (e.kind === "change" && e.not_yet) add("Today's nightly update hasn't run yet.", e);
@@ -42,16 +63,17 @@ function producers(ev) {
 }
 
 /**
- * What is wrong with `answer` (the checker's output for `question` and the evidence `ev`): no sentence the model chose the words of, and
- * every sentence with its source. An empty array means the answer is grounded.
+ * What is wrong with `answer` (the checker's output for `question` and the evidence `ev`, on `today` in UTC, which ages are counted to):
+ * no sentence the model chose the words of, and every sentence with its source. An empty array means the answer is grounded.
  */
-export function groundingProblems(question, ev, answer) {
+export function groundingProblems(question, ev, answer, today = new Date().toISOString().slice(0, 10)) {
   const problems = [];
   const ok = (cond, message) => { if (!cond) problems.push(message); };
-  const made = producers(ev);
+  const made = producers(ev, today);
+  const showing = new Set(ev.filter((e) => e.total > e.shown).map(SHOWING)); // a search that held some of its matches back
   const labelled = (items, src) => [...items].some((e) => e.label === src.label && e.url === src.url);
   for (const s of answer.sentences) {
-    if (FIXED.has(s.text)) {
+    if (FIXED.has(s.text) || showing.has(s.text)) {
       ok(isDeepStrictEqual(s.sources, []), `fixed copy has no source: ${s.text.slice(0, 60)}`);
       continue;
     }

@@ -367,6 +367,12 @@ function govOf(by) {
   return m && !/\band\b/.test(by) ? m[1].toLowerCase() : undefined;
 }
 const delisted = (l) => /delist|removed|lifted|revoked/i.test(l.date || ""); // "2018-04-06 (delisted 2019-01)"
+// What a listing date stands for: the list's own date; on a UK record, 31 Dec 2020 is the day the UK list took over the listings made
+// under EU law, so an older listing shows it; a research listing that cites an OFAC list entry (which gives no date) holds the day
+// OpenSanctions first saw the entry on the OFAC list
+const UK_TRANSFER = "2020-12-31";
+const OFAC_ENTRY = /^https:\/\/sanctions(?:search|list)\.ofac\.treas\.gov\//;
+const dateBasis = (gov, date, source = "") => (gov === "uk" && date === UK_TRANSFER ? "uk_transfer" : gov === "us" && OFAC_ENTRY.test(source) ? "first_seen_opensanctions" : "list");
 const datesIn = (s) => [...s.matchAll(/\d{4}-\d{2}(?:-\d{2})?/g)].map((m) => dt(m[0]));
 const absolute = (u) => (typeof u === "string" && u && !/^([a-z][a-z0-9+.-]*:|\/)/i.test(u) ? `/${u}` : u); // the index holds some site paths without the slash
 
@@ -409,7 +415,7 @@ function researchItems(e, s, q, how) {
       : gone ? `This item: was on ${the}${l.by}${named ? ` under ${named}`: ""}${when}; that listing has been removed, so it is not a current listing.`
       : `This item: listed by ${the}${l.by}${named ? ` under ${named}` : ""}${when}.`;
     return {
-      kind: "research", entity, ...(gov && { gov }), ...(program && { program }), ...(plain && l.date && { date: l.date }), ...(gone && { delisted: true }),
+      kind: "research", entity, ...(gov && { gov }), ...(program && { program }), ...(plain && l.date && { date: l.date, date_basis: dateBasis(gov, l.date, src?.url) }), ...(gone && { delisted: true }),
       text: sentence(profile[0], about, matchNote(s, q, how), ...profile.slice(1)), quotes,
       label: `Undercurrent research: ${e.name}${l ? ` · ${l.by}` : ""}`,
       url: href(absolute(src?.url), link ?? "/"), ...(link && { link }),
@@ -421,7 +427,7 @@ function listItem(h, s, q, how) {
   const label = own(LIST_LABELS, h.list);
   const plain = PLAIN_DATE.test(h.date || "");
   return {
-    kind: "list", entity: { id: `${h.list}:${h.ref}`, name: h.name, ...(h.imo && { imo: h.imo }) }, gov: h.list, program: h.program, ...(plain && h.date && { date: h.date }),
+    kind: "list", entity: { id: `${h.list}:${h.ref}`, name: h.name, ...(h.imo && { imo: h.imo }) }, gov: h.list, program: h.program, ...(plain && h.date && { date: h.date, date_basis: dateBasis(h.list, h.date) }),
     text: sentence(
       `${label} list record: "${h.name}". Programme: ${h.program || "not stated"}.`,
       h.date ? `Listing date on the record: ${dt(h.date)}.` : "The record has no listing date.",
@@ -515,6 +521,13 @@ async function checkLists(args, ev, ctx = {}) {
   const taken = [...allResearch.map((x) => x.hit.name), ...strong.lists.flatMap((m) => [...m.values()].map((x) => x.hit.name)), ...[...strong.os.values()].map((x) => x.hit.r.name)];
   const contained = attempt("Undercurrent research", () => containedIn(variants[0].q, entries(), LIST_IDS.map(doc), entities));
   const hits = research.length + lists.flat().length + os.length;
+  // How many strong matches there are in all, for "Showing {hits} of {total}". The site's search returns at most LIMIT names a source,
+  // so a source that filled its cap is counted over all its rows: a list's records by ref, research and OpenSanctions entries by id.
+  const counted = (map, cap, rows, keys, imo, id) => (map.size < cap ? map.size
+    : new Set(rows().filter((x) => variants.some(({ q }) => strength(q, keys(x), imo(x)))).map(id)).size);
+  const total = counted(strong.research, CAP.research, entries, (e) => e.keys, (e) => e.imo, (e) => e.id)
+    + LIST_IDS.reduce((sum, id, i) => sum + counted(strong.lists[i], CAP.list, () => doc(id).records, (r) => [r[1]], (r) => r[5], (r) => r[4] || r[1]), 0)
+    + counted(strong.os, CAP.opensanctions, () => entities.filter(governmental), (e) => e.keys, (e) => e.imo, (e) => e.id);
   // Found means a current government listing: a research entry that no government lists (a lobbying client), or one whose listing was
   // removed, is context. It is judged over every strong research hit, not only the three shown.
   const found = strong.lists.some((m) => m.size) || strong.os.size > 0 || allResearch.some((x) => x.hit.listings.some((l) => !delisted(l)));
@@ -538,7 +551,7 @@ async function checkLists(args, ev, ctx = {}) {
   // The reader's words are in the `query` field only: an echo in `text` would let a sentence repeating them pass for sourced.
   const items = [
     {
-      kind: "search", query, found, near,
+      kind: "search", query, found, near, shown: hits, total,
       text: sentence(
         "Searched the US, UK, EU and UN official lists, Undercurrent research and OpenSanctions for the name or IMO number asked about.", `${hits ? `Found: ${counts}` : counts}.`,
         hits && !found && "None of them is a current government listing.", freshness(), down.size && `${joinAnd([...down])} could not be checked just now.`,
@@ -550,7 +563,9 @@ async function checkLists(args, ev, ctx = {}) {
     ...lists.flat().map(({ hit, s, v }) => listItem(hit, s, v.q, v.how)),
     ...os.map(({ hit, s, v }) => osItem(hit.r, hit.e, s, v.q, v.how)),
   ];
-  return { query, found, items: addAll(ev, items).map(view) };
+  const added = addAll(ev, items);
+  for (const e of added.slice(1)) e.result = added[0].id; // each match is one of the search's results (see `shown`)
+  return { query, found, items: added.map(view) };
 }
 
 // ---- changes --------------------------------------------------------------------------------------------------

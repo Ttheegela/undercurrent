@@ -1,5 +1,5 @@
 // Ask's answer renderer. The model writes no words: each sentence of its `answer` call is a claim type and evidence ids (S1, S2, …),
-// and a `quote` names one item and the number of one of its quotes. This module writes every sentence itself: listing, not-found
+// and a `quote` names one item and the number of one of its quotes. This module writes every sentence itself: listing, age, not-found
 // and change sentences from fixed copy and the cited items, quotes copied verbatim from the cited item. Anything it can't build is
 // dropped, and an answer with nothing left is the fallback. Any `text` or label from the model is ignored. No I/O beyond the site's
 // own prose vocabulary, read once. The output is plain text plus {label, url} / {label, href} taken from the evidence: the panel escapes it.
@@ -22,12 +22,35 @@ const NOT_YET = "Today's nightly update hasn't run yet.";
 const SOURCE_GAP = (g) => (g.date || g.from === g.to
   ? `${g.source} was unavailable on ${day(g.date ?? g.from)}, so changes from it that day aren't recorded.`
   : `${g.source} was unavailable from ${day(g.from)} to ${day(g.to)}, so changes from it on those days aren't recorded.`);
+const onList = (e) => `the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}`;
 function LISTED(e) {
   const since = e.date ? ` since ${day(e.date)}` : "";
   return e.kind === "opensanctions"
     ? `${e.entity.name} appears in OpenSanctions${e.program ? ` as listed by ${e.program}` : ""}${since}.`
-    : `${e.entity.name} appears on the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}${since}.`;
+    : `${e.entity.name} appears on ${onList(e)}${since}.`;
 }
+// How long a listing has stood, from its date and today (UTC), with what the date stands for (the item's date_basis). A date after
+// today (bad data) or without its day has no age: that is LISTED.
+const BASIS = { first_seen_opensanctions: " (first seen on the list via OpenSanctions)", uk_transfer: " (the UK list's transfer date; the listing may be older)" };
+function AGE(e, today) {
+  if (!e.date) return `The ${LIST_LABELS[e.gov]} list gives no listing date for ${e.entity.name.replace(/\.$/, "")}.`; // ("Co., Ltd.", one stop)
+  const span = calendarSpan(e.date, today);
+  if (span === null) return LISTED(e);
+  const note = Object.hasOwn(BASIS, e.date_basis) ? BASIS[e.date_basis] : "";
+  return span ? `${e.entity.name} has been on ${onList(e)} for ${span} (since ${day(e.date)})${note}.` : `${e.entity.name} was added to ${onList(e)} today${note}.`;
+}
+/** "5 years 10 months": whole months by the calendar (a month without the date's day ends on its last day, so 29 Feb to 28 Feb is a
+ * year), or days under a month; "" for none; null when `from` is after `to` or either is not a whole date. */
+function calendarSpan(from, to) {
+  const [a, b] = [from, to].map((d) => /^(\d{4})-(\d{2})-(\d{2})$/.exec(d ?? "")?.slice(1).map(Number));
+  if (!a || !b || from > to) return null;
+  const lastDay = new Date(Date.UTC(b[0], b[1], 0)).getUTCDate();
+  const months = (b[0] - a[0]) * 12 + b[1] - a[1] - (b[2] < a[2] && b[2] < lastDay ? 1 : 0);
+  const unit = (n, word) => (n ? `${n} ${word}${n === 1 ? "" : "s"}` : "");
+  if (!months) return unit((Date.UTC(b[0], b[1] - 1, b[2]) - Date.UTC(a[0], a[1] - 1, a[2])) / 864e5, "day");
+  return [unit(Math.floor(months / 12), "year"), unit(months % 12, "month")].filter(Boolean).join(" ");
+}
+const SHOWING = (r) => `Showing ${r.shown.toLocaleString("en-GB")} of ${r.total.toLocaleString("en-GB")}.`;
 
 // ---- the notice on advice-shaped questions -----------------------------------------------------------------------------------
 // Ask cannot give advice: no model word is ever shown, only records and their sources. A question that asks for it ("Should I buy oil
@@ -155,6 +178,8 @@ function typedSpan(query, question) {
 // `listed` and `change` write the items they can and leave the others out; only a claim with none left is dropped.
 const RENDER = {
   listed: (items) => items.filter(listable).map((e) => ({ text: LISTED(e), items: [e] })),
+  age: (items, s, all, ctx) => items.filter((e) => listable(e) && e.kind !== "opensanctions")
+    .map((e) => ({ text: AGE(e, ctx.today ?? new Date().toISOString().slice(0, 10)), items: [e] })),
   not_found: (items, s, all, ctx, state) => {
     const searches = items.filter((e) => e.kind === "search");
     if (!searches.length || !searches.every((e) => e.found === false)) return null;
@@ -197,19 +222,30 @@ function cite(ids, byId) {
   return items.every(Boolean) ? items : null;
 }
 
-/** Numbers the sources in order of first citation; one sentence written twice becomes one sentence with both sources. */
-function finish(kind, pieces, next) {
+/**
+ * Numbers the sources in order of first citation; one sentence written twice becomes one sentence with both sources. A cited item
+ * that is one of a search's results (`result`, its id in byId), where the search held some back (total > shown), puts SHOWING after
+ * the last sentence citing that search's results, once: the model never chooses it.
+ */
+function finish(kind, pieces, next, byId = new Map()) {
   const n = new Map();
   const byText = new Map();
   for (const { text, items } of pieces) {
-    if (!byText.has(text)) byText.set(text, { text, sources: [] });
-    const { sources } = byText.get(text);
+    if (!byText.has(text)) byText.set(text, { text, sources: [], capped: new Set() });
+    const { sources, capped } = byText.get(text);
     for (const e of items) {
       if (!n.has(e.id)) n.set(e.id, n.size + 1);
       if (!sources.some((x) => x.n === n.get(e.id))) sources.push({ n: n.get(e.id), label: e.label, url: e.url });
+      const r = byId.get(e.result);
+      if (r?.total > r?.shown) capped.add(r);
     }
   }
-  return byText.size ? { kind, sentences: [...byText.values()], next } : fallback();
+  const said = [...byText.values()];
+  const sentences = said.flatMap(({ text, sources, capped }, i) => [
+    { text, sources },
+    ...[...capped].filter((r) => !said.slice(i + 1).some((x) => x.capped.has(r))).map((r) => ({ text: SHOWING(r), sources: [] })),
+  ]);
+  return sentences.length ? { kind, sentences, next } : fallback();
 }
 
 /** The fixed question, with the near names of the cited searches and the cited entities as the choices. */
@@ -272,5 +308,5 @@ export function checkAnswer(raw, ev, ctx) {
   if (pieces.length) pieces.push(...notice(ctx)); // last, after the part-answer line; an answer with nothing to say is the fallback and carries no notice
   // a next step is the cited item's own label and link (or url)
   const next = unique(linked.filter((e) => e.link || e.url).map((e) => ({ label: e.label, href: e.link || e.url })), "href");
-  return finish("answer", pieces, next);
+  return finish("answer", pieces, next, byId);
 }

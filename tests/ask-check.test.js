@@ -12,6 +12,7 @@ import { checkAnswer, adviceIntent } from "../api/_ask_check.js";
 import { runTool, resetAskCache, LISTING } from "../api/_ask_tools.js";
 import { INDEX_URL } from "../api/search.js";
 import { formatDate } from "../app/render.js";
+import { groundingProblems } from "../scripts/ask-oracle.mjs";
 
 const REFUSAL = "I can only answer questions about what's on Undercurrent: sanctions lists, ship and company connections, lobbying, the semiconductor data, the research and the daily updates. I can't give legal or compliance advice.";
 const FALLBACK = "I couldn't check an answer to that against the site's data, so I won't guess. Try the search on the home page.";
@@ -84,6 +85,9 @@ before(async () => {
   // round 5: a lookalike (Cyrillic Т and А) the search cannot find, and a role phrase searched beside the found ship it belongs to
   E.cyrillic = await ask([["check_lists", { query: "ТАSSOS" }]]);
   E.role = await ask([["check_lists", { query: "TASSOS" }], ["check_lists", { query: "technical manager" }]]);
+  // ages: an Entity List record with its own date, and a UK record on the post-Brexit transfer date
+  E.dji = await ask([["check_lists", { query: "DJI" }]]);
+  E.navumau = await ask([["check_lists", { query: "Navumau" }]]);
   E.final = await ask(["The 50% rule: blocked without being named", "How sanctions work", "How the lists stay current", "Semiconductors into Russia: what the official records show", "What the map cannot tell you", "7. Why this is a climate story", "Parent groups, lobbying and cargo (added 25 Sep 2026, afternoon)", "Fleet Tanqo (India)", "Strongest cases", "One line for the demo", "2. How long the US took to list new chip suppliers", "How countries and companies evade"].map((query) => ["site_docs", { query }]));
 
   const real = JSON.parse(readFileSync("data/changes/changes.json", "utf8"));
@@ -135,6 +139,10 @@ const tassosResearch = () => find(E.tassos, (e) => e.kind === "research" && e.en
 const star = () => find(E.tassos, (e) => e.kind === "opensanctions" && e.entity.name === "TASSOS STAR");
 const freezeDoc = () => find(E.tassos, (e) => e.kind === "doc" && e.label === "The main tools");
 const searchFor = (ev, query) => find(ev, (e) => e.kind === "search" && e.query === query);
+const showing = (search) => {
+  assert.ok(search.total > search.shown, "the search holds matches back"); // so it says how many it shows
+  return `Showing ${search.shown} of ${search.total}.`;
+};
 const TASSOS_Q = { question: "Is TASSOS sanctioned?" };
 
 /**
@@ -146,7 +154,7 @@ function serverOnly(out, ev, ctx) {
   const ok = new Set([REFUSAL, FALLBACK, CLARIFY]);
   for (const e of ev) {
     for (const q of e.quotes) ok.add(q);
-    for (const c of ["listed", "not_found", "change"]) for (const x of checkAnswer(answer(claim(c, e.id)), ev, ctx).sentences) ok.add(x.text);
+    for (const c of ["listed", "age", "not_found", "change"]) for (const x of checkAnswer(answer(claim(c, e.id)), ev, ctx).sentences) ok.add(x.text);
   }
   const near = ev.flatMap((e) => e.near ?? []);
   const labels = new Set(["Search", ...near, ...ev.map((e) => e.label), ...ev.map((e) => e.entity?.name).filter(Boolean)]);
@@ -198,7 +206,7 @@ test("fix round 0 (2): a listed claim drops the items it cannot write and keeps 
   const delisted = { ...find(E.rusal, (e) => e.kind === "research" && e.delisted === true), id: "D1" };
   const twoLists = find(E.lukoil, (e) => e.kind === "research" && e.program === "EU and UK sanctions lists");
   const lukoilUs = find(E.lukoil, (e) => e.kind === "research" && e.gov === "us");
-  assert.deepEqual(texts(checkAnswer(answer(claim("listed", delisted.id, twoLists.id, lukoilUs.id)), [...E.lukoil, delisted])), ["PAO LUKOIL appears on the United States list under US Treasury sanctions list since 2025."]);
+  assert.deepEqual(texts(checkAnswer(answer(claim("listed", delisted.id, twoLists.id, lukoilUs.id)), [...E.lukoil, delisted])), ["PAO LUKOIL appears on the United States list under US Treasury sanctions list since 2025.", showing(searchFor(E.lukoil, "PAO LUKOIL"))]);
   // none valid: the claim is dropped; the rest of the answer stands, and with nothing else the answer is the fallback
   const q = tassosResearch();
   assert.deepEqual(texts(checkAnswer(answer(claim("listed", freezeDoc().id, E.tassos[0].id), quote(q.id, 1)), E.tassos)), [q.quotes[1]]);
@@ -380,7 +388,7 @@ test("listed never renders a delisted or government-less research item", () => {
   }
   // a year-only date reads as the year
   const us = find(E.lukoil, (e) => e.kind === "research" && e.gov === "us");
-  assert.deepEqual(texts(checkAnswer(answer(claim("listed", us.id)), E.lukoil)), ["PAO LUKOIL appears on the United States list under US Treasury sanctions list since 2025."]);
+  assert.deepEqual(texts(checkAnswer(answer(claim("listed", us.id)), E.lukoil)), ["PAO LUKOIL appears on the United States list under US Treasury sanctions list since 2025.", showing(searchFor(E.lukoil, "PAO LUKOIL"))]);
 });
 
 test("an OpenSanctions item renders as listed by its authorities", () => {
@@ -1173,4 +1181,94 @@ test("final wave (12): on the committed data no quote holds a heading; a chapter
   for (const s of ["A sanction is a government rule that says: do not do business with a named person, company or country.", "Every sanctions case is built from the same seven pieces."]) {
     assert.ok(quotes.includes(s), `not quotable: ${s}`);
   }
+});
+
+// ---- ages and "Showing N of M" -------------------------------------------------------------------------------------
+
+const AT = { today: "2026-10-22" };
+const dji = () => find(E.dji, (e) => e.kind === "list" && e.gov === "us" && e.entity.name === "DJI" && e.program === "Entity List (EL)");
+const djiLtd = () => find(E.dji, (e) => e.kind === "list" && e.entity.name === "SZ DJI Technology Co., Ltd." && !e.date); // Chinese military companies: no date
+const navumau = () => find(E.navumau, (e) => e.kind === "list" && e.gov === "uk" && e.entity.name === "Navumau");
+const ageOf = (ev, id, today) => texts(checkAnswer(answer(claim("age", id)), ev, { today }))[0];
+// one UK record with the date given, as check_lists would write it
+const leap = (date) => [{ id: "S1", kind: "list", entity: { id: "uk:L1", name: "LEAP" }, gov: "uk", program: "Russia", date, date_basis: "list", quotes: [], label: "United Kingdom list · LEAP", url: "/" }];
+
+test("age renders years and months from a dated list item", () => {
+  assert.equal(dji().date_basis, "list");
+  assert.equal(ageOf(E.dji, dji().id, AT.today), "DJI has been on the United States list under Entity List (EL) for 5 years 10 months (since 18 Dec 2020).");
+  // the age is the server's: the model's own text is never read
+  const out = checkAnswer(answer({ ...claim("age", dji().id), text: "DJI has been sanctioned for 40 years." }), E.dji, AT);
+  assert.doesNotMatch(texts(out).join(" "), /40/);
+  assert.deepEqual(out.sentences[0].sources, [{ n: 1, label: dji().label, url: dji().url }]);
+});
+
+test("age flags approximate and UK-transfer dates, and says when a list gives no date", () => {
+  const research = tassosResearch();
+  assert.deepEqual([research.gov, research.date, research.date_basis], ["us", "2025-07-30", "first_seen_opensanctions"]);
+  assert.equal(ageOf(E.tassos, research.id, AT.today), "TASSOS has been on the United States list under Iran for 1 year 2 months (since 30 Jul 2025) (first seen on the list via OpenSanctions).");
+  assert.equal(navumau().date_basis, "uk_transfer");
+  assert.equal(ageOf(E.navumau, navumau().id, AT.today), "Navumau has been on the United Kingdom list under Republic of Belarus for 5 years 9 months (since 31 Dec 2020) (the UK list's transfer date; the listing may be older).");
+  assert.equal(ageOf(E.tassos, tassosList("us").id, AT.today), "The United States list gives no listing date for TASSOS.");
+  assert.equal(ageOf(E.dji, djiLtd().id, AT.today), "The United States list gives no listing date for SZ DJI Technology Co., Ltd."); // one full stop
+  // an age is only of a list or research listing: an OpenSanctions entry, a search or a doc gives no sentence
+  for (const e of [star(), searchFor(E.tassos, "TASSOS"), freezeDoc()]) assert.deepEqual(checkAnswer(answer(claim("age", e.id)), E.tassos, AT), FALLBACK_ANSWER, e.kind);
+});
+
+test("age edge cases: listed today, a future or partial date, leap days, month ends and spans under a month", () => {
+  assert.equal(ageOf(E.dji, dji().id, "2020-12-18"), "DJI was added to the United States list under Entity List (EL) today.");
+  assert.equal(ageOf(E.dji, dji().id, "2020-12-01"), "DJI appears on the United States list under Entity List (EL) since 18 Dec 2020."); // bad data: no age
+  assert.equal(ageOf(E.dji, dji().id, "2025-12-18"), "DJI has been on the United States list under Entity List (EL) for 5 years (since 18 Dec 2020).");
+  // whole months by the calendar: a month that has no such day ends on its last day
+  const at = (date, today) => ageOf(leap(date), "S1", today).replace(/^LEAP has been on the United Kingdom list under Russia for (.+) \(since [^)]+\)\.$/, "$1");
+  assert.equal(at("2024-02-29", "2025-02-28"), "1 year");
+  assert.equal(at("2024-02-29", "2025-02-27"), "11 months");
+  assert.equal(at("2024-02-29", "2028-02-29"), "4 years");
+  assert.equal(at("2026-01-31", "2026-02-28"), "1 month");
+  assert.equal(at("2026-01-30", "2026-02-27"), "28 days");
+  assert.equal(at("2026-09-25", "2026-10-22"), "27 days");
+  assert.equal(at("2026-10-21", "2026-10-22"), "1 day");
+  assert.equal(at("2023-08-22", "2026-10-22"), "3 years 2 months");
+  assert.equal(ageOf(leap("2020-12"), "S1", AT.today), "LEAP appears on the United Kingdom list under Russia since Dec 2020."); // a month alone gives no exact age
+});
+
+// a search that found 12 names and shows 5, as check_lists writes it
+const zinnia = () => [
+  { id: "S1", kind: "search", query: "ZINNIA", found: true, near: [], shown: 5, total: 12, quotes: [], label: "Search of the lists, research and OpenSanctions", url: "/" },
+  ...Array.from({ length: 5 }, (_, i) => ({ id: `S${i + 2}`, kind: "list", entity: { id: `us:Z${i}`, name: `ZINNIA ${i}` }, gov: "us", program: "Russia", result: "S1", quotes: [], label: `United States list · ZINNIA ${i}`, url: `https://example.org/z${i}` })),
+];
+
+test("a capped search adds Showing N of M after its sentences", () => {
+  const ev = zinnia();
+  const out = checkAnswer(answer(claim("listed", "S2", "S3", "S4", "S5", "S6")), ev, { question: "Is ZINNIA listed?" });
+  assert.equal(out.sentences.length, 6);
+  assert.deepEqual(out.sentences.at(-1), { text: "Showing 5 of 12.", sources: [] });
+  // once per search, after the last sentence citing it and before the closing lines, whatever the claims
+  const two = checkAnswer(answer(claim("listed", "S2"), claim("age", "S3")), ev, { question: "Should I buy from ZINNIA?", ...AT });
+  assert.deepEqual(texts(two), ["ZINNIA 0 appears on the United States list under Russia.", "The United States list gives no listing date for ZINNIA 1.", "Showing 5 of 12.", NOT_ADVICE]);
+  // a search that holds nothing back adds no line
+  const all = ev.map((e) => (e.kind === "search" ? { ...e, total: 5 } : e));
+  assert.deepEqual(texts(checkAnswer(answer(claim("listed", "S2")), all, {})), ["ZINNIA 0 appears on the United States list under Russia."]);
+  // the line follows the examples, not the search itself: "not on the lists" never carries one
+  const none = [{ ...ev[0], found: false, shown: 3, total: 7 }];
+  assert.deepEqual(texts(checkAnswer(answer(claim("not_found", "S1")), none, { question: "Is ZINNIA listed?" })), [NOT_FOUND("ZINNIA")]);
+});
+
+test("groundingProblems accepts the age and Showing lines", () => {
+  const ok = (ev, raw, ctx) => {
+    const out = checkAnswer(raw, ev, ctx);
+    assert.notEqual(out.kind, "fallback");
+    assert.deepEqual(groundingProblems(ctx.question ?? "", ev, out, ctx.today), [], texts(out).join(" | "));
+    return out;
+  };
+  ok(E.dji, answer(claim("age", dji().id, djiLtd().id)), { question: "How old are the sanctions on DJI?", ...AT });
+  ok(E.navumau, answer(claim("age", navumau().id)), { question: "How long has Navumau been listed?", ...AT });
+  ok(E.tassos, answer(claim("age", tassosResearch().id, tassosList("us").id, tassosList("uk").id)), { question: "How long has TASSOS been sanctioned?", ...AT });
+  ok(E.dji, answer(claim("age", dji().id)), { question: "How old?", today: "2020-12-18" });
+  const out = ok(zinnia(), answer(claim("listed", "S2"), claim("age", "S3")), { question: "Is ZINNIA listed?", ...AT });
+  // a line the server did not write is caught: another count, a source on the line, or another age
+  const tamper = (i, s) => groundingProblems("", zinnia(), { ...out, sentences: out.sentences.map((x, j) => (j === i ? { ...x, ...s } : x)) }, AT.today);
+  assert.equal(tamper(2, { text: "Showing 5 of 13." }).length, 1);
+  assert.equal(tamper(2, { sources: [{ n: 1, label: "United States list · ZINNIA 0", url: "https://example.org/z0" }] }).length, 1);
+  const age = checkAnswer(answer(claim("age", dji().id)), E.dji, AT);
+  assert.equal(groundingProblems("", E.dji, age, "2026-11-22").length, 1); // a month later, the age reads otherwise
 });

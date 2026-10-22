@@ -368,6 +368,9 @@ function govOf(by) {
   return m && !/\band\b/.test(by) ? m[1].toLowerCase() : undefined;
 }
 const delisted = (l) => /delist|removed|lifted|revoked/i.test(l.date || ""); // "2018-04-06 (delisted 2019-01)"
+// The list a research listing is a current listing on, the only kind the listed claim says: none for a date that is no plain date (a
+// removed listing's: "2018-04-06 (delisted 2019-01)"; an empty date is still a listing), or a listing by two governments
+const currentGov = (l) => (!l.date || PLAIN_DATE.test(l.date) ? govOf(l.by) : undefined);
 // What a listing date stands for: the list's own date; on a UK record, 31 Dec 2020 is the day the UK list took over the listings made
 // under EU law, so an older listing shows it; a research listing that cites an OFAC list entry (which gives no date) holds the day
 // OpenSanctions first saw the entry on the OFAC list
@@ -407,7 +410,7 @@ function researchItems(e, note) {
   return (e.listings.length ? e.listings : [null]).map((l) => {
     const gone = l && delisted(l);
     const plain = l && (!l.date || PLAIN_DATE.test(l.date)); // an empty date is still a listing; "2018-04-06 (delisted 2019-01)" is not a current one
-    const gov = l && plain ? govOf(l.by) : undefined;
+    const gov = l ? currentGov(l) : undefined;
     const named = l && !PROGRAM_BUCKETS.has(l.program) ? l.program : "";
     const program = l && ([GOV_OF.has(l.by) ? "" : l.by, named].filter(Boolean).join(" · ") || undefined);
     const the = l && GOV_OF.has(l.by) ? "the " : "";
@@ -526,12 +529,15 @@ async function checkNames(args, ev, ctx = {}) {
   const taken = [...allResearch.map((x) => x.hit.name), ...strong.lists.flatMap((m) => [...m.values()].map((x) => x.hit.name)), ...[...strong.os.values()].map((x) => x.hit.r.name)];
   const contained = attempt("Undercurrent research", () => containedIn(variants[0].q, entries(), LIST_IDS.map(doc), entities));
   const hits = research.length + lists.flat().length + os.length;
-  // How many strong matches there are in all: the M of "Showing N of M". A source with fewer strong matches than its cap gives the
-  // count it found. One that reached its cap may hold more (its cap and the site search's LIMIT names a source stop the search short),
-  // so it is counted over all its rows: a list's records by ref, research and OpenSanctions entries by id.
-  const counted = (map, cap, rows, keys, imo, id) => (map.size < cap ? map.size
-    : new Set(rows().filter((x) => variants.some(({ q }) => strength(q, keys(x), imo(x)))).map(id)).size);
-  const total = counted(strong.research, CAP.research, entries, (e) => e.keys, (e) => e.imo, (e) => e.id)
+  // How many strong matches there are in all that can be shown as a listing: the M of "Showing N of M". That is every list record and
+  // OpenSanctions entry (only governmental ones are kept), and a research entry with a current listing: one no government lists now (a
+  // lobbying client, a removed listing) is context, and counted it would promise listings that don't exist. A source with fewer strong
+  // matches than its cap gives the count it found. One that reached its cap may hold more (its cap and the site search's LIMIT names a
+  // source stop the search short), so it is counted over all its rows: a list's records by ref, research and OpenSanctions entries by id.
+  const listsNow = (e) => e.listings.some(currentGov);
+  const counted = (map, cap, rows, keys, imo, id, can = () => true) => (map.size < cap ? [...map.values()].filter((x) => can(x.hit)).length
+    : new Set(rows().filter((x) => can(x) && variants.some(({ q }) => strength(q, keys(x), imo(x)))).map(id)).size);
+  const total = counted(strong.research, CAP.research, entries, (e) => e.keys, (e) => e.imo, (e) => e.id, listsNow)
     + LIST_IDS.reduce((sum, id, i) => sum + counted(strong.lists[i], CAP.list, () => doc(id).records, (r) => [r[1]], (r) => r[5], (r) => r[4] || r[1]), 0)
     + counted(strong.os, CAP.opensanctions, () => entities.filter(governmental), (e) => e.keys, (e) => e.imo, (e) => e.id);
   // Found means a current government listing: a research entry that no government lists (a lobbying client), or one whose listing was
@@ -557,7 +563,8 @@ async function checkNames(args, ev, ctx = {}) {
   // The reader's words are in the `query` field only: an echo in `text` would let a sentence repeating them pass for sourced.
   const items = [
     {
-      kind: "search", query, found, near, shown: hits, total,
+      // (shown: the matches that can be listed among those it gives, as total counts them)
+      kind: "search", query, found, near, shown: research.filter((x) => listsNow(x.hit)).length + lists.flat().length + os.length, total,
       text: sentence(
         "Searched the US, UK, EU and UN official lists, Undercurrent research and OpenSanctions for the name or IMO number asked about.", `${hits ? `Found: ${counts}` : counts}.`,
         hits && !found && "None of them is a current government listing.", freshness(), down.size && `${joinAnd([...down])} could not be checked just now.`,
@@ -570,7 +577,8 @@ async function checkNames(args, ev, ctx = {}) {
     ...os.map(({ hit, s, v }) => osItem(hit.r, hit.e, s, v.q, v.how)),
   ];
   const added = addAll(ev, items);
-  for (const e of added.slice(1)) e.result = added[0].id; // each match is one of the search's: "Showing N of M" counts them
+  // each match that can be listed is one of the search's, which "Showing N of M" counts (a research item has `gov` only for a current listing)
+  for (const e of added.slice(1)) if (e.kind === "opensanctions" || e.gov) e.result = added[0].id;
   return { query, found, items: added.map(view) };
 }
 
@@ -623,7 +631,7 @@ function countItems(list, topic, rows, k) {
     listItem({ list, name, program, date, ref, imo, url }, `An example of the ${num(n)} records under ${under}, in the list's order.`));
   const label = LIST_LABELS[list];
   return [{
-    kind: "count", unit: "records", scope: "list", list, topic: topicItem(topic), n, examples_shown: examples.length, shown: examples.length, total: n,
+    kind: "count", unit: "records", list, topic: topicItem(topic), n, shown: examples.length, total: n,
     text: sentence(n ? `${label} list: ${num(n)} ${n === 1 ? "record" : "records"} under ${under}, each counted once whatever its other names.` : `${label} list: no programme on it is named ${topic.label}.`,
       examples.length && (examples.length === 1 ? "The first follows as an example." : `The first ${examples.length} follow as examples.`), list === "us" && US_NOTE),
     label: `${label} list · records under ${under}`, url: LIST_PAGES[list],
@@ -632,7 +640,7 @@ function countItems(list, topic, rows, k) {
 
 // a topic no list's programmes name, with no list asked for: one count of none for all four
 const noneOnAny = (topic) => ({
-  kind: "count", unit: "records", scope: "list", topic: topicItem(topic), n: 0, examples_shown: 0, shown: 0, total: 0,
+  kind: "count", unit: "records", topic: topicItem(topic), n: 0, shown: 0, total: 0,
   text: `No programme on the US, UK, EU or UN lists is named ${topic.label}.`, label: `The US, UK, EU and UN lists · programmes named ${topic.label}`, url: "/",
 });
 
@@ -796,7 +804,7 @@ function researchTool(args, ev) {
   }
   const what = shipCriteria(filters);
   const count = add(ev, {
-    kind: "count", unit: "ships", scope: "research", filters, n, total_ships: ships.length, shown: examples.length, total: n,
+    kind: "count", unit: "ships", filters, n, total_ships: ships.length, shown: examples.length, total: n,
     text: sentence(
       `Undercurrent's research map: ${num(n)} of its ${num(ships.length)} ships match all of: ${what}. Each ship is counted once.`,
       filters.flag && "A ship's flags are every flag a source records for it, so a ship whose sources disagree counts under each.",

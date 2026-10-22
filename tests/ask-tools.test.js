@@ -675,7 +675,7 @@ test("programme counts each list's records under it by ref, with up to 5 example
   assert.equal(n, 9);
   const [count, ...examples] = ev;
   assert.deepEqual({ ...count, text: undefined }, {
-    id: "S1", kind: "count", unit: "records", scope: "list", list: "us", topic: { label: "Iran", region: "IR" }, n, examples_shown: 5, shown: 5, total: n,
+    id: "S1", kind: "count", unit: "records", list: "us", topic: { label: "Iran", region: "IR" }, n, shown: 5, total: n,
     text: undefined, label: "United States list · records under Iran programmes", url: "https://www.trade.gov/consolidated-screening-list", quotes: [],
   });
   assert.match(count.text, /^United States list: 9 records under Iran programmes/);
@@ -699,7 +699,7 @@ test("programme counts each list's records under it by ref, with up to 5 example
   // no list given: five examples in all, the first record of each list with some, then the next ones from the US list on
   ev = [];
   await run("check_lists", { programme: "Russia" }); // three lists hold Russia records, the UN fixture none
-  assert.deepEqual(ofKind("count").map((e) => [e.list, e.n, e.examples_shown, e.shown]), [["us", 23, 3, 3], ["uk", 10, 1, 1], ["eu", 1, 1, 1]]);
+  assert.deepEqual(ofKind("count").map((e) => [e.list, e.n, e.shown]), [["us", 23, 3], ["uk", 10, 1], ["eu", 1, 1]]);
   assert.deepEqual(ofKind("count").map((c) => ev.filter((e) => e.result === c.id).map((e) => e.entity.name)), [
     ["SOVCOMFLOT", "Shipping Ltd", "Ship Management Ltd"], ["TASSOS"], ["Zulu Ships Management"],
   ]);
@@ -793,7 +793,7 @@ test("research: programme is the map's programme groups (an array is an AND), na
   // the whole count item, once: the filters in the vocabulary's words, the totals, and one example, its EU listing, linked to it
   const { out, count, examples } = await research({ programme: ["Russia", "Iranian"], ship_type: "tanker", listed_by: "eu" });
   assert.deepEqual({ ...count, text: undefined, label: undefined }, {
-    id: "S1", kind: "count", unit: "ships", scope: "research",
+    id: "S1", kind: "count", unit: "ships",
     filters: { ship_type: "tanker", programme: [{ key: "russia", label: "Russia" }, { key: "iran", label: "Iran" }], listed_by: "eu" },
     n: 1, total_ships: 4, shown: 1, total: 1, text: undefined, label: undefined, url: "/stories/shadow-fleet/network/shadow_fleet_map.html", quotes: [],
   });

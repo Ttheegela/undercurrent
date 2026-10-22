@@ -136,6 +136,9 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   // that write its sentence. So N may be any count from the entities the sources surely name to all those they may name.
   // A capped list of updates is a search too: its first change holds the total, and its changes are matches, each counted by its identity
   // in the record (two can be of one ship; one change in two changes calls is one), when an answer gives its line.
+  // M counts only matches that can be shown as one: a listing (a research entry no government lists now is context) or an update. A name
+  // search whose counts put no source at its cap ("at least" in none of them) returned every match it has, so then M is the listings
+  // among them, and a line for any other M is caught.
   const labelled = (items, src) => [...items].some((e) => e.label === src.label && e.url === src.url);
   const key = (e) => (e.kind === "change" ? e.key : e.entity.id);
   const shows = new Set(ev.flatMap((e) => [listing(e), counted(e), e.kind === "change" && e.entity && `${e.summary} · ${day(e.date)}`]).filter(Boolean));
@@ -145,7 +148,8 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   const surely = new Set(named.filter((x) => x.size === 1).flatMap((x) => [...x]));
   const showing = new Set();
   for (const r of ev.filter((x) => Number.isInteger(x.total))) {
-    const matches = [...new Set(ev.filter((e) => e.result === r.id && e.entity).map(key))];
+    const matches = [...new Set(ev.filter((e) => e.result === r.id && e.entity && (listing(e) || e.kind === "change")).map(key))];
+    if (r.kind === "search" && /Found: /.test(r.text) && !/at least /.test(r.text) && r.total !== matches.length) continue;
     const among = (set) => matches.filter((x) => set.has(x)).length;
     for (let n = Math.max(1, among(surely)); n <= Math.min(among(maybe), r.total - 1); n++) showing.add(SHOWING(n, r.total));
   }

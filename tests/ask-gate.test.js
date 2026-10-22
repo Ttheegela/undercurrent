@@ -110,6 +110,18 @@ test("the gate renumbers sources and rebuilds Showing lines", async () => {
   for (const out of [one, none, await without(PARAK), await without(FREEZE)]) assert.deepEqual(groundingProblems(QUESTION, EV, out, TODAY), []);
 });
 
+test("final review minor 1: a See also link goes when every sentence citing its item is dropped", async () => {
+  // links to the doc, to two records the answer cites, and to one it never cites (the model's own choice, which the gate does not judge)
+  const linked = checkAnswer({ kind: "answer", sentences: [listed("S2"), quote, listed("S4")], next: ["S5", "S2", "S4", "S3"].map((source) => ({ source })) }, EV, { question: QUESTION, today: TODAY });
+  const link = (e) => ({ label: e.label, href: e.url });
+  assert.deepEqual(linked.next, [link(doc), link(EV[1]), link(EV[3]), link(EV[2])]);
+  const without = async (...drop) => gate(QUESTION, linked, { fetch: typesafe((t) => (drop.includes(t) ? 0.1 : 0.9)).fetch, apiKey: KEY });
+  assert.deepEqual((await without(FREEZE, PARAK)).next, [link(EV[1]), link(EV[2])]);
+  assert.deepEqual((await without(SHALAK)).next, [link(doc), link(EV[3]), link(EV[2])]);
+  assert.deepEqual((await without()).next, linked.next); // nothing dropped: the links as they were
+  for (const drop of [[FREEZE, PARAK], [SHALAK]]) assert.deepEqual(groundingProblems(QUESTION, EV, await without(...drop), TODAY), []);
+});
+
 test("the gate never sends or drops fixed copy", async () => {
   // the part-answer line (a name typed but not found, beside a found one) and the notice (the question asks for advice)
   const question = "Should I trade with IRAN SHALAK or Zephyr Marine Services?";

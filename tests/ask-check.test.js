@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { checkAnswer, adviceIntent } from "../api/_ask_check.js";
 import { runTool, resetAskCache, LISTING, SHIP_TYPES, TOOLS } from "../api/_ask_tools.js";
 import { INDEX_URL } from "../api/search.js";
+import { prepareQuery } from "../app/search.js";
 import { VOCAB } from "../api/_ask_vocab.js";
 import { formatDate } from "../app/render.js";
 import { groundingProblems, NOTHING_ANSWERS } from "../scripts/ask-oracle.mjs";
@@ -72,6 +73,9 @@ before(async () => {
   E.maintainer = await ask(["What is in this folder", "Reproduce", "Rebuilding", "What's on the shelf (Materials)", "How we organise the work (orchestration)", "Updates (newest last)", "Credits and full notes"].map((query) => ["site_docs", { query }]));
   E.round3 = await ask(["How sanctions work", "Key findings", "6. Open leads for someone to pick up", "4. The managers: young companies, one ship each", "Part 1. Who lobbies, and through whom", "Our research: sources, data and where to dig next", "3. State the programme filter, every time"].map((query) => ["site_docs", { query }]));
   E.sovcomflot = await ask([["check_lists", { query: "Sovcomflot Group" }]]);
+  // final review C1: searches that also match research entries no government lists now (lobbying clients, a removed listing)
+  E.nordStream = await ask([["check_lists", { query: "Nord Stream 2" }]]);
+  E.sovcomflotOne = await ask([["check_lists", { query: "Sovcomflot" }]]);
   E.rusal = await ask([["check_lists", { query: "United Company RUSAL" }]]);
   E.lukoil = await ask([["check_lists", { query: "PAO LUKOIL" }]]);
   E.ansan = await ask([["check_lists", { query: "AN SAN 1" }]]);
@@ -1358,7 +1362,7 @@ test("Showing N of M counts the search's matches the answer lists, after its sen
   const mixed = checkAnswer(answer(claim("listed", tassosList("uk").id), quote(tassosResearch().id, manager)), E.tassos, TASSOS_Q);
   assert.deepEqual(texts(mixed), ["TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", shows(1), "Manager of TASSOS: THE ZULU SHIPS MANAGEMENT AND OPERATION - SOLE PROPRIETORSHIP L.L.C."]);
   assert.deepEqual(groundingProblems(TASSOS_Q.question, E.tassos, mixed), []);
-  // the real PAO LUKOIL search shows 14 of its 18 matches; an answer citing one of them says 1
+  // the real PAO LUKOIL search shows some of its matches, not all; an answer citing one of them says 1
   const lukoil = searchFor(E.lukoil, "PAO LUKOIL");
   assert.ok(lukoil.shown > 1 && lukoil.total > lukoil.shown, `${lukoil.shown} of ${lukoil.total}`);
   const us = find(E.lukoil, (e) => e.kind === "research" && e.gov === "us");
@@ -1469,6 +1473,72 @@ test("review (Task 1): records sharing a label and url; the oracle accepts the s
   }
 });
 
+// Final review C1: a search's M counts only the matches that can be shown as a listing. A research entry no government lists now (a
+// lobbying client, a removed listing) is context: counted, "Showing 1 of 3" would promise two hidden listings that don't exist.
+const canList = (e) => e.kind === "opensanctions" || ((e.kind === "list" || e.kind === "research") && Boolean(e.gov) && !e.delisted);
+/**
+ * A name search's M counted again from the committed data, apart from the tools: the research entries with a current listing by one
+ * government (dated or undated, not removed), and each list's records by ref, whose names hold every word of the query (the
+ * OpenSanctions stub holds none of the names asked here).
+ */
+function listableMatches(query) {
+  const q = prepareQuery(query);
+  const strong = (keys) => keys.some((k) => k === q.norm || q.tokens.every((t) => k.split(" ").includes(t)));
+  const current = (l) => (!l.date || /^\d{4}(-\d{2}(-\d{2})?)?$/.test(l.date)) && /^(?:United States|United Kingdom|European Union|United Nations|(?:US|UK|EU|UN)\b)/.test(l.by) && !/\band\b/.test(l.by);
+  const research = JSON.parse(readFileSync("data/research-index.json", "utf8")).entries.filter((e) => strong(e.keys) && e.listings.some(current)).length;
+  return research + ["us", "uk", "eu", "un"].reduce((n, id) => n + new Set(committed(id).filter((r) => strong([r[1]])).map((r) => r[4])).size, 0);
+}
+
+test("final review C1: M counts only the matches that can be listed, so citing every one shown gives a line only for listings beyond a cap (Nord Stream 2, DJI, Sovcomflot)", () => {
+  // DJI's three research entries shown are lobbying entries; a fourth, its Entity List listing, is beyond the research cap of 3
+  for (const [ev, query, line] of [[E.nordStream, "Nord Stream 2", null], [E.dji, "DJI", "Showing 2 of 3."], [E.sovcomflotOne, "Sovcomflot", null]]) {
+    const s = searchFor(ev, query);
+    assert.ok(ev.some((e) => e.kind === "research" && !canList(e)), `${query}: the shape needs a research entry that is no listing`);
+    const listable = ev.filter(canList);
+    assert.ok(listable.length, query);
+    // only those are the search's matches, and only those are counted
+    assert.deepEqual(ev.filter((e) => e.result === s.id).map((e) => e.id), listable.map((e) => e.id), query);
+    assert.equal(s.total, listableMatches(query), query);
+    assert.equal(s.shown, new Set(listable.map((e) => e.entity.id)).size, query); // (and of those, how many it shows)
+    const question = `Is ${query} sanctioned?`;
+    const out = checkAnswer(answer(claim("listed", ...listable.map((e) => e.id))), ev, { question });
+    assert.deepEqual(texts(out).filter((t) => t.startsWith("Showing ")), line ? [line] : [], query);
+    assert.deepEqual(groundingProblems(question, ev, out), [], query);
+  }
+});
+
+test("final review C1: a capped search still gives Showing N of M, with M every match that can be listed, beyond the caps too (PAO LUKOIL)", () => {
+  const s = searchFor(E.lukoil, "PAO LUKOIL");
+  assert.ok(E.lukoil.some((e) => e.kind === "research" && !canList(e)), "the search also shows research entries that are no listing");
+  assert.equal(s.total, listableMatches("PAO LUKOIL"));
+  const cited = E.lukoil.filter(canList);
+  const n = new Set(cited.map((e) => e.entity.id)).size;
+  assert.ok(n < s.total, "capped: some listings are not shown");
+  assert.equal(s.shown, n);
+  const out = checkAnswer(answer(claim("listed", ...cited.map((e) => e.id))), E.lukoil, {});
+  assert.equal(texts(out).at(-1), `Showing ${n} of ${s.total}.`);
+  assert.deepEqual(groundingProblems("", E.lukoil, out), []);
+});
+
+test("final review C1: the oracle flags a wrong M: the old count of every match, and a line where nothing is withheld", () => {
+  const ev = E.nordStream;
+  const s = searchFor(ev, "Nord Stream 2");
+  const question = "Is Nord Stream 2 sanctioned?";
+  const out = checkAnswer(answer(claim("listed", ...ev.filter(canList).map((e) => e.id))), ev, { question });
+  assert.deepEqual(groundingProblems(question, ev, out), []);
+  const said = (text) => ({ ...out, sentences: [...out.sentences, { text, sources: [] }] });
+  // every strong match counted, as before the fix: two of the three are research entries no government lists
+  const all = ev.filter((e) => e.entity).length;
+  assert.equal(all, 3);
+  assert.equal(groundingProblems(question, ev, said(`Showing 1 of ${all}.`)).length, 1);
+  // the evidence as the old tool wrote it (the context entries linked to the search, M counting them): its counts show no source at its
+  // cap, so it returned every match it has, and a line that says some are withheld is caught
+  const old = ev.map((e) => (e === s ? { ...e, total: all } : e.kind === "research" ? { ...e, result: s.id } : e));
+  assert.match(s.text, /Found: /);
+  assert.doesNotMatch(s.text, /at least/);
+  assert.equal(groundingProblems(question, old, said(`Showing 1 of ${all}.`)).length, 1);
+});
+
 // ---- programme counts on the official lists ------------------------------------------------------------------------------
 
 const LIST_NAME = { us: "United States", uk: "United Kingdom", eu: "European Union", un: "United Nations" };
@@ -1495,7 +1565,7 @@ test("programme count counts distinct refs, not alias rows", () => {
   const refs = new Set(rows.map((r) => r[4]));
   assert.ok(refs.size < rows.length, `${refs.size} records in ${rows.length} rows`); // a record's other names are rows of their own
   const c = countOf(E.iranUs, "us");
-  assert.deepEqual([c.n, c.total, c.shown, c.examples_shown], [refs.size, refs.size, 5, 5]);
+  assert.deepEqual([c.n, c.total, c.shown], [refs.size, refs.size, 5]);
   assert.deepEqual(examplesOf(E.iranUs, c).map((e) => e.entity.id), [...refs].slice(0, 5).map((ref) => `us:${ref}`));
   // "CAATSA - IRAN" is under Iran: a part holding the programme's name as a whole word
   const caatsa = committed("us").filter((r) => r[2].split(", ").includes("CAATSA - IRAN")).map((r) => r[4]);
@@ -1546,7 +1616,7 @@ test("with no list given, five examples in all: the first record of each list wi
     assert.deepEqual(counts.map((c) => c.list), has, programme);
     for (const c of counts) {
       const k = picks.filter((id) => id === c.list).length;
-      assert.deepEqual([c.shown, c.examples_shown], [k, k], `${programme} ${c.list}`);
+      assert.equal(c.shown, k, `${programme} ${c.list}`);
       assert.deepEqual(examplesOf(ev, c).map((e) => e.entity.id), refsUnder(c.list, programme).slice(0, k).map((ref) => `${c.list}:${ref}`));
     }
     assert.equal(ev.filter((e) => e.kind === "list").length, 5, programme);
@@ -1686,7 +1756,7 @@ const shipLine = (ev, c, ...examples) => {
 test("research: names_changed counts the map's ships with more than one name, out of all its ships", async () => {
   const renamed = mapShips().filter((s) => s.name_count > 1).length;
   const { ev, c } = await shipCount({ names_changed: true });
-  assert.deepEqual([c.unit, c.scope, c.n, c.total, c.total_ships], ["ships", "research", renamed, renamed, mapShips().length]);
+  assert.deepEqual([c.unit, c.n, c.total, c.total_ships], ["ships", renamed, renamed, mapShips().length]);
   assert.deepEqual(shipLine(ev, c), [`${num(renamed)} of the ${num(mapShips().length)} ${MAP} have had more than one name.`]);
 });
 
@@ -1762,7 +1832,7 @@ test("research: examples are ships only, at most five, each a current listing li
 });
 
 test("research copy: one ship is singular; every filter at once reads as one list; the oracle catches a changed count, '0 ships' or a flag without its source", async () => {
-  const item = (id, filters, n) => ({ id, kind: "count", unit: "ships", scope: "research", filters, n, total_ships: 1745, shown: 0, total: n, quotes: [], label: `Map · ${id}`, url: "/map" });
+  const item = (id, filters, n) => ({ id, kind: "count", unit: "ships", filters, n, total_ships: 1745, shown: 0, total: n, quotes: [], label: `Map · ${id}`, url: "/map" });
   const ev = [
     item("S1", { ship_type: "tanker", listed_by: "uk" }, 1),
     item("S2", { names_changed: true }, 1),

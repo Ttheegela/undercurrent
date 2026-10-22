@@ -398,15 +398,16 @@ export function checkAnswer(raw, ev, ctx) {
   }
   if (state.partial && pieces.length) pieces.push({ text: PARTIAL, items: [] }); // never a lone "part of the question": with nothing else to say it is the fallback
   if (pieces.length) pieces.push(...notice(ctx)); // last, after the part-answer line; an answer with nothing to say is the fallback and carries no notice
-  // a next step is the cited item's own label and link (or url)
-  const next = unique(linked.filter((e) => e.link || e.url).map((e) => ({ label: e.label, href: e.link || e.url })), "href");
-  const out = finish("answer", pieces, next, byId);
-  madeFrom.set(out, { pieces, byId, toolFailed: Boolean(ctx?.toolFailed) });
+  const out = finish("answer", pieces, nextOf(linked), byId);
+  madeFrom.set(out, { pieces, byId, linked, toolFailed: Boolean(ctx?.toolFailed) });
   return out;
 }
 
+/** The next steps: each linked item's own label and link (or url), one per link. */
+const nextOf = (linked) => unique(linked.filter((e) => e.link || e.url).map((e) => ({ label: e.label, href: e.link || e.url })), "href");
+
 // What each answer was written from, so the relevance gate can drop sentences and finish can number and count the rest again
-const madeFrom = new WeakMap(); // answer -> {pieces, byId, toolFailed}
+const madeFrom = new WeakMap(); // answer -> {pieces, byId, linked, toolFailed}
 
 /**
  * The sentences of an answer checkAnswer wrote that the relevance gate judges: those a claim states. A caveat that follows one (the
@@ -421,15 +422,19 @@ export function judgedSentences(answer) {
 
 /**
  * The answer checkAnswer wrote, keeping of the sentences written from evidence only those whose text `keep` accepts, each with the
- * caveats that follow it. Fixed copy stays; finish numbers the sources again and rebuilds the "Showing N of M" lines from what is left.
- * With none of them left it is NOTHING_ANSWERS, or the fallback when a tool call of the question failed (as for an answer of no
- * sentences). An answer not written here comes back as it is.
+ * caveats that follow it. Fixed copy stays; finish numbers the sources again and rebuilds the "Showing N of M" lines from what is left,
+ * and a next step whose entity (or item) only dropped sentences cited goes with them. With none of them left it is NOTHING_ANSWERS, or
+ * the fallback when a tool call of the question failed (as for an answer of no sentences). An answer not written here comes back as it is.
  */
 export function keepSentences(answer, keep) {
   const made = madeFrom.get(answer);
   if (!made) return answer;
   let kept = false; // the last claim's verdict: the caveats after it (always right after it) go with it
   const pieces = made.pieces.filter((p) => !p.items.length || (p.follows ? kept : (kept = keep(p.text))));
-  if (pieces.some((p) => p.items.length)) return finish(answer.kind, pieces, answer.next, made.byId);
-  return made.toolFailed ? fallback() : only("answer", NOTHING_ANSWERS);
+  if (!pieces.some((p) => p.items.length)) return made.toolFailed ? fallback() : only("answer", NOTHING_ANSWERS);
+  // (a link to something no sentence cited is the model's own choice, not judged here, and stays)
+  const key = (e) => e.entity?.id ?? e.id;
+  const cited = (list) => new Set(list.flatMap((p) => p.items.map(key)));
+  const [before, after] = [cited(made.pieces), cited(pieces)];
+  return finish(answer.kind, pieces, nextOf(made.linked.filter((e) => !before.has(key(e)) || after.has(key(e)))), made.byId);
 }

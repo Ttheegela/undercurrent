@@ -1,7 +1,10 @@
 // The relevance judge: TypeSafe's Jev reads a question and the sentences Ask answered it with, and returns typed judgments, not text:
-// how directly the answer responds (a score over four levels, low to high) and whether any sentence is beside the point (a noul). It
-// sits beside the LangSmith runner's deterministic `pass` and never changes it. It measures what `pass` can't see: true records that
-// don't answer the question, a part given as if it were the whole, or a different aspect answered.
+// how directly the answer responds (a score over four levels, low to high) and whether any sentence that cites a record is beside the
+// point (a noul). It sits beside the LangSmith runner's deterministic `pass` and never changes it. It measures what `pass` can't see:
+// true records that don't answer the question, a part given as if it were the whole, or a different aspect answered. `unrelated` reads
+// only the record sentences (`records` in the state): the fixed lines that cite nothing ("Showing N of M.", the part-answer line, the
+// notice) are scope statements, which Ask's live gate never judges either. `addresses` reads the whole answer, so a "Showing" line still tells it the
+// answer is partial. An answer with no record sentence is not asked `unrelated` at all.
 //
 // The API, as https://docs.typesafe.ai/api/system-one.md, /primitives/score.md and /primitives/noul.md give it: POST /v1/systemone
 // with a bearer key and {model, state, questions}. A score question's criteria are its levels, numbered from 0; its answer is {score
@@ -24,8 +27,8 @@ export const QUESTIONS = {
   },
   unrelated: {
     type: "noul",
-    instructions: "Does the answer include any record or sentence that does not bear on the question?",
-    criteria: { true: "At least one sentence is about something the question does not ask about.", false: "Every sentence bears on what the question asks." },
+    instructions: "Does any sentence in `records` present a record or fact that does not bear on the question, as though it answered it?",
+    criteria: { true: "At least one sentence in `records` is about something the question does not ask about.", false: "Every sentence in `records` bears on what the question asks." },
   },
 };
 const TOP = QUESTIONS.addresses.criteria.length - 1; // the highest level's number
@@ -37,11 +40,12 @@ const unavailable = () => {
 };
 
 /**
- * Judges one answer. `sentences` are its sentences' text and `sources` the labels of what it cites. Resolves to {relevance (the
- * score over 0..1), relevance_probabilities, relevance_confidence, unrelated (the noul), judge_model (the model that answered),
- * input_tokens}, or to null when there is no key, the call fails or times out, or the body is not what the docs describe.
+ * Judges one answer. `sentences` are its sentences' text, `records` the text of those that cite a record, and `sources` the labels of
+ * what it cites. Resolves to {relevance (the score over 0..1), relevance_probabilities, relevance_confidence, unrelated (the noul, or
+ * null when there are no records and it was not asked), judge_model (the model that answered), input_tokens}, or to null when there is
+ * no key, the call fails or times out, or the body is not what the docs describe.
  */
-export async function judgeRelevance({ question, sentences, sources }, { fetch, apiKey, model = JUDGE_MODEL, timeoutMs = 15000 }) {
+export async function judgeRelevance({ question, sentences, records, sources }, { fetch, apiKey, model = JUDGE_MODEL, timeoutMs = 15000 }) {
   if (!apiKey) return unavailable();
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), timeoutMs); // (covers reading the body too)
@@ -49,13 +53,13 @@ export async function judgeRelevance({ question, sentences, sources }, { fetch, 
     const res = await fetch(ENDPOINT, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model, state: { question, answer: sentences, sources }, questions: QUESTIONS }),
+      body: JSON.stringify({ model, state: { question, answer: sentences, records, sources }, questions: records.length ? QUESTIONS : { addresses: QUESTIONS.addresses } }),
       signal: abort.signal,
     });
     if (!res.ok) return unavailable();
     const { model: judge_model, answers, usage } = await res.json();
-    const [score, noul] = [answers?.addresses?.score, answers?.unrelated?.noul];
-    if (typeof judge_model !== "string" || !within(score, 0, TOP) || !within(noul, 0, 1) || !Number.isInteger(usage?.input_tokens)) return unavailable();
+    const [score, noul] = [answers?.addresses?.score, records.length ? answers?.unrelated?.noul : null];
+    if (typeof judge_model !== "string" || !within(score, 0, TOP) || (noul !== null && !within(noul, 0, 1)) || !Number.isInteger(usage?.input_tokens)) return unavailable();
     const { probabilities, confidence } = answers.addresses;
     return { relevance: score / TOP, relevance_probabilities: probabilities, relevance_confidence: confidence, unrelated: noul, judge_model, input_tokens: usage.input_tokens };
   } catch {
@@ -82,7 +86,8 @@ export const agrees = (label, r) => RULES[label](r, THRESHOLDS[label]);
 
 /**
  * Runs the judge on each hand-labelled answer, {id, question, sentences, sources?, label, why}, one at a time, sending its sources as
- * a run sends an answer's (none when it has none, as the owner's live answers have). Resolves to {rows: [{id, label, relevance, unrelated, verdict: agree|disagree|unavailable}],
+ * a run sends an answer's (none when it has none, as the owner's live answers have). A label's sentences carry no sources of their own,
+ * and each is a listing, quote or claim, so every one is sent as a record: the check measures `unrelated` as it did before. Resolves to {rows: [{id, label, relevance, unrelated, verdict: agree|disagree|unavailable}],
  * agreed, unavailable, total, input_tokens, judge_models}.
  */
 export async function judgeCheck(labels, { fetch, apiKey }) {
@@ -90,7 +95,7 @@ export async function judgeCheck(labels, { fetch, apiKey }) {
   const models = new Set();
   let tokens = 0;
   for (const l of labels) {
-    const r = await judgeRelevance({ question: l.question, sentences: l.sentences, sources: l.sources ?? [] }, { fetch, apiKey });
+    const r = await judgeRelevance({ question: l.question, sentences: l.sentences, records: l.sentences, sources: l.sources ?? [] }, { fetch, apiKey });
     if (r) {
       tokens += r.input_tokens;
       models.add(r.judge_model);

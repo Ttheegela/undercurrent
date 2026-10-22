@@ -5,7 +5,8 @@
 // its real note is written.
 // The relevance judge (scripts/ask-relevance.mjs, TypeSafe's Jev) adds `relevance` and `unrelated` to each answered case whose answer
 // is an answer and no decline (a clarify is counted apart); it never changes `pass`. A decline is the fallback, or an answer that only
-// says nothing recorded answers (declined in scripts/ask-judge.mjs).
+// says nothing recorded answers (declined in scripts/ask-judge.mjs). `unrelated` is judged on the sentences that cite a record only;
+// an answer with none gets `relevance` alone, is left out of mean_unrelated, and is counted in relevance.unrelated_skipped.
 //
 //   node scripts/ask-langsmith.mjs run --trigger weekly|manual|pr [--pr N] [--sync] [--commit SHA] [--model ID] [--repetitions N] [--out FILE]
 //   node scripts/ask-langsmith.mjs notes
@@ -191,7 +192,7 @@ const scorer = (relevanceOf) => async ({ inputs, outputs, referenceOutputs }) =>
   if (v.includesOk !== null) results.push({ key: "includes_ok", score: Number(v.includesOk) });
   if (relevanceOf && JUDGED.includes(result.answer.kind) && !v.fallback) {
     const r = await relevanceOf(inputs.question, result.answer); // (null when the judge is unavailable: the case is left unjudged)
-    if (r) results.push({ key: "relevance", score: r.relevance }, { key: "unrelated", score: r.unrelated });
+    if (r) results.push({ key: "relevance", score: r.relevance }, ...(r.unrelated === null ? [] : [{ key: "unrelated", score: r.unrelated }])); // (no record sentence: not asked)
   }
   return { results };
 };
@@ -244,7 +245,8 @@ export async function runEvals(opts, deps) {
   if (!apiKey) console.log("ask-langsmith: TYPESAFE_API_KEY is not set, so the relevance judge was skipped");
   const judge = { tokens: 0, models: new Set(), unavailable: 0 };
   const relevanceOf = apiKey && (async (question, answer) => {
-    const r = await judgeRelevance({ question, sentences: answer.sentences.map((s) => String(s.text)), sources: labelsOf(answer) }, { fetch: deps.fetch, apiKey });
+    const records = answer.sentences.filter((s) => s.sources?.length > 0).map((s) => String(s.text)); // (the sentences that cite a record)
+    const r = await judgeRelevance({ question, sentences: answer.sentences.map((s) => String(s.text)), records, sources: labelsOf(answer) }, { fetch: deps.fetch, apiKey });
     if (!r) judge.unavailable++;
     else {
       judge.tokens += r.input_tokens;
@@ -276,7 +278,7 @@ export async function runEvals(opts, deps) {
   let gateTokens = 0;
   // each run of the set: an example's k-th result is its run k (the SDK orders the results by repetition). By example, not case: a case
   // held by two examples (a copy the next sync removes) has twice n results
-  const runs = Array.from({ length: n }, () => ({ quality: 0, pass: 0, answered: 0, should_answer: 0, judged: 0, relevance: 0, unrelated: 0 }));
+  const runs = Array.from({ length: n }, () => ({ quality: 0, pass: 0, answered: 0, should_answer: 0, judged: 0, relevance: 0, unrelated: 0, unrelated_skipped: 0 }));
   const seen = new Map(); // example id -> its results so far
   const note = `Under review · ${deps.now().toISOString().slice(0, 10)} · ${opts.commit.slice(0, 7)}`;
   for (const { run, example, evaluationResults } of results.results) {
@@ -301,7 +303,8 @@ export async function runEvals(opts, deps) {
     if (got.relevance) {
       r.judged++;
       r.relevance += got.relevance.score;
-      r.unrelated += got.unrelated.score;
+      if (got.unrelated) r.unrelated += got.unrelated.score;
+      else r.unrelated_skipped++; // (no sentence cited a record)
     }
     if (!got.pass) continue;
     if (got.pass.score) {
@@ -317,7 +320,8 @@ export async function runEvals(opts, deps) {
   const rate = (part, whole) => (whole ? round3(part / whole) : null);
   Object.assign(counts, { pass: total("pass"), answered: total("answered"), should_answer: total("should_answer") });
   const relevance = {
-    judged: total("judged"), mean_relevance: rate(total("relevance"), total("judged")), mean_unrelated: rate(total("unrelated"), total("judged")),
+    judged: total("judged"), mean_relevance: rate(total("relevance"), total("judged")),
+    mean_unrelated: rate(total("unrelated"), total("judged") - total("unrelated_skipped")), unrelated_skipped: total("unrelated_skipped"),
     judge_tokens: judge.tokens, judge_models: [...judge.models], unavailable: judge.unavailable, clarified, gate_tokens: gateTokens,
   };
   // with repetitions, each metric's mean over the runs and its worst run: the lowest, or for unrelated the highest (a target is met on
@@ -330,7 +334,7 @@ export async function runEvals(opts, deps) {
     n,
     pass_rate: across(runs.map((r) => share(r.pass, r.quality)), Math.min),
     mean_relevance: across(runs.map((r) => share(r.relevance, r.judged)), Math.min),
-    mean_unrelated: across(runs.map((r) => share(r.unrelated, r.judged)), Math.max),
+    mean_unrelated: across(runs.map((r) => share(r.unrelated, r.judged - r.unrelated_skipped)), Math.max),
     answer_rate: across(runs.map((r) => share(r.answered, r.should_answer)), Math.min),
   };
   const failures = n > 1 ? [...failed].map(([caseId, k]) => ({ id: caseId, failed: k })) : [...failed.keys()];
@@ -376,7 +380,7 @@ async function noteIds(client, { experiment, case: caseId }) {
 function relevanceLine(r) {
   const parts = [
     // (pooled: over every judged answer of every run, apart from the repetitions line's mean of the runs' own means)
-    ...(r.judged ? [`${r.judged} judged, pooled mean relevance ${r.mean_relevance}, pooled mean unrelated ${r.mean_unrelated}, ${r.judge_tokens} judge input tokens (${r.judge_models.join(", ")})`] : []),
+    ...(r.judged ? [`${r.judged} judged, pooled mean relevance ${r.mean_relevance}, pooled mean unrelated ${r.mean_unrelated}${r.unrelated_skipped ? ` (${r.unrelated_skipped} ${r.unrelated_skipped === 1 ? "answer" : "answers"} with no record sentence left out)` : ""}, ${r.judge_tokens} judge input tokens (${r.judge_models.join(", ")})`] : []),
     ...(r.unavailable ? [`judge unavailable for ${r.unavailable} ${r.unavailable === 1 ? "case" : "cases"}`] : []),
   ];
   return [...(parts.length ? parts : ["no case judged"]), `asked to clarify: ${r.clarified}`].join("; ");

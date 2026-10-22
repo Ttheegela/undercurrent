@@ -12,7 +12,7 @@ import { LIST_LABELS, LIST_PAGES, recordLink, formatDate, safeUrl, joinAnd } fro
 import { isDate, addDays, changesSince, sourceGaps, SOURCES } from "../app/changes.js";
 import { loadIndex, searchIndex } from "./search.js";
 import { sanctionsFor, lobbyingFor, resolve, loadGraph, loadLobby } from "./connections.js";
-import { topicOf } from "./_ask_vocab.js";
+import { VOCAB, topicOf } from "./_ask_vocab.js";
 
 const MAX_QUERY = 200;
 const CAP = { research: 3, list: 5, opensanctions: 3, changes: 30, links: 10, hop: 6, lobbyists: 10 };
@@ -576,19 +576,35 @@ async function checkNames(args, ev, ctx = {}) {
 // ---- check_lists by programme -----------------------------------------------------------------------------------
 // A programme is a topic of the closed vocabulary (api/_ask_vocab.js), so the words printed are the lists' own: a word that names no
 // programme is a search that found nothing, and is never repeated. A record is under a programme when a comma part of its programme holds
-// that programme's name as a whole word, in any case: "Terrorism, Iran" and "CAATSA - IRAN" are under Iran, "Iranian …" is not (and so
-// "South Sudan" is under Sudan). Names are never read, so "Iran Air" on the Entity List is no Iran record. Records are counted by ref: a
-// record's other names are rows of their own.
+// that programme's name as a whole word, in any case: "Terrorism, Iran" and "CAATSA - IRAN" are under Iran, "Iranian …" is not, and
+// "Counter-Terrorism" is under Terrorism. A country's name is kept apart from its neighbours': joined by a hyphen it is another name
+// ("Guinea-Bissau" is not Guinea), and inside a longer country name it is another country ("South Sudan" is not Sudan). Names are never
+// read, so "Iran Air" on the Entity List is no Iran record. Records are counted by ref: a record's other names are rows of their own.
 const escaped = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+let countryNames = null;
+/** The vocabulary's country names, lower-cased: its countries, and any other topic the region table names as a country ("South Sudan" is a programme only). */
+function countries() {
+  if (!countryNames) {
+    const regions = new Set(Array.from({ length: 26 * 26 }, (_, i) => country(String.fromCharCode(65 + Math.floor(i / 26), 65 + (i % 26))).toLowerCase()));
+    countryNames = new Set(VOCAB.topics.filter((t) => t.kind === "country" || regions.has(t.label.toLowerCase())).map((t) => t.label.toLowerCase()));
+  }
+  return countryNames;
+}
 
 /** The records of one list under a programme topic, one per ref (its first row), in the list's order. */
 function programmeCount(list, topic) {
-  // (the whole string is read: a programme's name holds no ", ", so a whole word of it is a whole word of one part)
-  const whole = new RegExp(`(?<![\\p{L}\\p{N}])${escaped(topic.key)}(?![\\p{L}\\p{N}])`, "iu");
+  const key = topic.key.toLowerCase();
+  // (a whole word: for a country, a hyphen joins words. The whole string is read: no topic holds ", ", so a word of it is a word of one part)
+  const edge = countries().has(key) ? "\\p{L}\\p{N}-" : "\\p{L}\\p{N}";
+  const words = (alternatives, flags) => new RegExp(`(?<![${edge}])(?:${alternatives.map(escaped).join("|")})(?![${edge}])`, flags);
+  const whole = words([key], "iu");
+  const longer = [...countries()].filter((name) => name !== key && whole.test(name)); // "south sudan" for Sudan: dropped before the test
+  const others = longer.length ? words(longer, "giu") : null;
   const first = new Map(); // ref -> the record's first row
   for (const r of data(`data/lists/${list}.json`).records) {
     const ref = r[4] || r[1];
-    if (!first.has(ref) && whole.test(r[2] || "")) first.set(ref, r);
+    if (!first.has(ref) && whole.test(others ? (r[2] || "").replace(others, " ") : r[2] || "")) first.set(ref, r);
   }
   return [...first.values()];
 }

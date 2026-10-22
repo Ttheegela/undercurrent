@@ -1394,7 +1394,8 @@ test("review (Task 1): records sharing a label and url; the oracle accepts the s
 const LIST_NAME = { us: "United States", uk: "United Kingdom", eu: "European Union", un: "United Nations" };
 const lists = {};
 const committed = (id) => (lists[id] ??= JSON.parse(readFileSync(`data/lists/${id}.json`, "utf8")).records);
-// the records whose programme holds the programme's name as a whole word, in any case (the names tested hold no regex characters)
+// the records whose programme holds the programme's name as a whole word, in any case (the names tested hold no regex characters, and
+// no neighbouring country's name holds them: see the test of Sudan and Guinea)
 const under = (records, programme) => records.filter((r) => new RegExp(`(?<![\\p{L}\\p{N}])${programme}(?![\\p{L}\\p{N}])`, "iu").test(r[2]));
 const refsUnder = (id, programme) => [...new Set(under(committed(id), programme).map((r) => r[4]))];
 const num = (n) => n.toLocaleString("en-GB");
@@ -1414,6 +1415,26 @@ test("programme count counts distinct refs, not alias rows", () => {
   assert.ok(caatsa.length && caatsa.every((ref) => refs.has(ref)));
   // with no list given, each list is counted the same way
   for (const id of ["us", "uk", "eu", "un"]) assert.equal(countOf(E.iran, id).n, refsUnder(id, "Iran").length, id);
+});
+
+test("programme matching keeps neighbouring countries apart: South Sudan is not Sudan, Guinea-Bissau is not Guinea; CAATSA - IRAN, Russia/Ukraine and Counter-Terrorism still count", async () => {
+  // per list, the records with a programme part the test names (the parts written out by hand, from the committed lists)
+  const refs = (...parts) => ["us", "uk", "eu", "un"].map((id) => new Set(committed(id).filter((r) => r[2].split(", ").some((p) => parts.includes(p.toLowerCase()))).map((r) => r[4])).size);
+  const counts = async (programme) => {
+    const ev = await ask([["check_lists", { programme }]]);
+    return ["us", "uk", "eu", "un"].map((id) => ev.find((e) => e.kind === "count" && e.list === id)?.n ?? 0); // (a list with none has no count)
+  };
+  // the neighbours are on the lists, so a looser match would count them
+  assert.ok(refs("south sudan").some(Boolean) && refs("guinea-bissau", "republic of guinea-bissau").some(Boolean));
+  assert.deepEqual(await counts("Sudan"), refs("sudan"));
+  assert.deepEqual(await counts("South Sudan"), refs("south sudan"));
+  assert.deepEqual(await counts("Guinea"), refs("guinea"));
+  assert.deepEqual(await counts("Guinea-Bissau"), refs("guinea-bissau", "republic of guinea-bissau"));
+  // other words around a name still count
+  assert.deepEqual(await counts("Iran"), refs("iran", "caatsa - iran"));
+  assert.deepEqual(await counts("Russia"), refs("russia", "russia/ukraine", "caatsa - russia"));
+  assert.deepEqual(await counts("Terrorism"), refs("terrorism", "counter-terrorism", "counter-terrorism (international"));
+  assert.deepEqual(await counts("Belarus"), refs("belarus", "republic of belarus"));
 });
 
 test("with no list given, five examples in all: the first record of each list with some, then the next ones from the US list on", () => {

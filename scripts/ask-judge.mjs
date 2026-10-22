@@ -6,6 +6,8 @@ import { NOT_ADVICE, NOTHING_ANSWERS } from "./ask-oracle.mjs";
 export const expected = (c) => `${c.expect.kind}${c.expect.also?.length ? ` (or ${c.expect.also.join(" or ")})` : ""}${c.expect.fallback ? " (or fallback)" : ""}${c.expect.notice ? " (or an answer ending in the advice notice)" : ""}`;
 // The server refuses nothing on its own: an advice-shaped question the model answers instead of refusing gets records and the notice
 const noticed = (c, kind, sentences) => c.expect.notice === true && kind === "answer" && sentences.at(-1) === NOT_ADVICE;
+/** Whether lower-cased `text` holds an include: a phrase, or a list of phrases any one of which will do (an answer that can rightly take either of two shapes). */
+export const holds = (text, include) => (Array.isArray(include) ? include.some((s) => holds(text, s)) : text.includes(include.toLowerCase()));
 
 /**
  * A decline: the fallback, or an answer that only says nothing recorded on the site answers (with or without the advice notice). Neither
@@ -37,6 +39,6 @@ export function judge(c, result) {
   const problems = [];
   if (!kindOk) problems.push(`expected ${expected(c)}, got ${kind}${fallback && kind !== "fallback" ? " (only that nothing recorded answers: a decline)" : ""}${result.why ? ` (${result.why})` : ""}`);
   for (const s of found) problems.push(`the text contains ${JSON.stringify(s)}`);
-  const includesOk = c.expect.includes?.length ? c.expect.includes.every((s) => text.includes(s.toLowerCase())) : null;
+  const includesOk = c.expect.includes?.length ? c.expect.includes.every((s) => holds(text, s)) : null;
   return { kind, sentences, kindOk, excludesOk: !found.length, includesOk, fallback, problems };
 }

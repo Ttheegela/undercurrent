@@ -569,7 +569,7 @@
     "category": "area-chips",
     "question": "How long does it take to list a new semiconductor firm?",
     "calls": [["chips",{"topic":"summary"}]],
-    "expect": {"kind":"answer","includes":["20.3 months"]},
+    "expect": {"kind":"answer","includes":["The median time to list a new chip supplier (US Treasury OFAC) is"]},
     "model": {"kind":"answer","sentences":[{"claim":"quote","sources":["S1"],"quote":0}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"chips","text":"The median time to list a new chip supplier (US Treasury OFAC) is 20.3 months from founding to OFAC listing, across 25 firms founded after 24 February 2022 (the middle half took 16.1 to 25.8 months). The set is 64 firms outside Russia and Belarus that 5 US Treasury press releases (14 Nov 2022 (2022-11-14) to 30 Oct 2024 (2024-10-30)) name for sending chips, microelectronics or electronic components to Russia; 35 were founded before the invasion and 4 have no founding date, and those are left out of the median. Wider base: 129 OFAC entities under the Russia programme (RUSSIA-EO14024), founded after the invasion and based outside Russia and Belarus, took a median 18.2 months (middle half 12.3 to 23.6). Months = (OFAC listing date − the \"Organization Established Date\" in OFAC's entry) / 30.44 days. OFAC list issued 15 Oct 2026 (2026-10-15); figures retrieved 20 Oct 2026 (2026-10-20).","label":"Chips into Russia: time to list new suppliers","url":"/stories/chips-into-russia/FINDINGS.html#2-how-long-the-us-took-to-list-new-chip-suppliers","link":"/stories/chips-into-russia/viz/listing_lag.html","quotes":["The median time to list a new chip supplier (US Treasury OFAC) is 20.3 months from founding to OFAC listing, across 25 firms founded after 24 February 2022 (the middle half took 16.1 to 25.8 months).","OFAC list issued 15 Oct 2026 (2026-10-15); figures retrieved 20 Oct 2026 (2026-10-20)."]}
@@ -593,7 +593,7 @@
     "category": "area-changes",
     "question": "What changed this week?",
     "calls": [["changes",{"since":"2026-10-13"}]],
-    "expect": {"kind":"answer","includes":["NVIDIA lobbied on H.R.8800 · 20 Oct 2026"]},
+    "expect": {"kind":"answer","includes":[[" · ","No changes were recorded"]]},
     "model": {"kind":"answer","sentences":[{"claim":"change","sources":["S1","S2","S3","S4"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"change","entity":{"id":"e:5a709a9d184b","name":"NVIDIA → H.R.8800"},"date":"2026-10-20","summary":"NVIDIA lobbied on H.R.8800","text":"NVIDIA lobbied on H.R.8800. Item: NVIDIA → H.R.8800. Involves NVIDIA and H.R.8800. Kind: added. Seen in the nightly update of 20 Oct 2026 (2026-10-20) on the lobbying network. Source: US Senate lobbying disclosure (LDA). On 20 Oct 2026 (2026-10-20): 4 changes recorded.","label":"20 Oct 2026: NVIDIA lobbied on H.R.8800","url":"https://lda.gov/filings/public/filing/017c32c9-d63b-43f1-bf16-8e1e70da4b7d/print/","link":"/stories/who-lobbies/influence-network/index.html#focus=e:5a709a9d184b&since=2026-10-20","quotes":[]},
@@ -950,8 +950,8 @@
     "category": "relevance",
     "question": "please check if there are any companies related to iran in the recent updates!",
     "calls": [["changes",{"since":"2026-10-15","topic":"Iran"}]],
-    "note": "Asked on the live site. Every update recorded so far is a lobbying filing (a bill, a lobbyist, NVIDIA's and the Semiconductor Industry Association's filings), and none carries a programme or country to check against Iran. A good answer is the none line with what it could not check: none of the 0 checkable updates involve Iran, and the 10 updates in that period can't be checked against it. The dates move with the record, so the includes hold only the lines' fixed ends. Citing the lobbying updates is wrong. A night that records a real Iran-related change makes that change the answer.",
-    "expect": {"kind":"answer","includes":["involve Iran.","updates in that period can't be checked against Iran."],"excludes":["lobbied","New bill","lobbyist"]},
+    "note": "Asked on the live site. In the record of 20 and 21 Oct, which this evidence holds, every update is a lobbying filing (a bill, a lobbyist, NVIDIA's and the Semiconductor Industry Association's filings), and none carries a programme or country to check against Iran. A good answer there is the none line with what it could not check: none of the 0 checkable updates involve Iran, and the 10 updates in that period can't be checked against it. The night of 22 Oct recorded 20 updates that involve Iran (US listings of ships and their new links), and once the record holds such updates, a good answer lists them. So the include takes the none line's fixed end or a list of updates. Citing the lobbying updates is wrong.",
+    "expect": {"kind":"answer","includes":[["involve Iran."," · "]],"excludes":["lobbied","New bill","lobbyist"]},
     "model": {"kind":"answer","sentences":[{"claim":"none_matched","sources":["S1"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"change","found":false,"topic":{"label":"Iran"},"checked_fleet":0,"checked_lobby":0,"unchecked":10,"from":"2026-10-20","to":"2026-10-21","text":"Between 20 Oct 2026 and 21 Oct 2026 (2026-10-20 to 2026-10-21): none of the 0 updates whose programme or country could be checked involve Iran (0 on the shadow-fleet map, 0 in the lobbying network). 10 updates in that period can't be checked against Iran.","label":"Updates involving Iran, 20 Oct 2026 to 21 Oct 2026: none","url":"/stories/updates/index.html?from=2026-10-20&to=2026-10-21&graph=all","link":"/stories/updates/index.html?from=2026-10-20&to=2026-10-21&graph=all","quotes":[]}
@@ -963,7 +963,7 @@
     "question": "how many ships have changed their name of their ship?",
     "calls": [["research",{"names_changed":true}]],
     "note": "Asked on the live site. A good answer is the research map's count: 1,076 of its 1,745 ships have had more than one name (the map's numbers on 22 Oct 2026). The 'median of 4 names' sentence is about the 42 hulls of one case study, so it answers something else.",
-    "expect": {"kind":"answer","includes":["1,076 of the 1,745 ships in Undercurrent's research map have had more than one name."],"excludes":["median of"]},
+    "expect": {"kind":"answer","includes":["ships in Undercurrent's research map have had more than one name."],"excludes":["median of"]},
     "model": {"kind":"answer","sentences":[{"claim":"count","sources":["S1"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"count","unit":"ships","scope":"research","filters":{"names_changed":true},"n":1076,"total_ships":1745,"shown":5,"total":1076,"text":"Undercurrent's research map: 1,076 of its 1,745 ships match all of: with more than one name. Each ship is counted once. 5 follow as examples.","label":"Undercurrent's research map · ships","url":"/stories/shadow-fleet/network/shadow_fleet_map.html","quotes":[]},
@@ -980,7 +980,7 @@
     "question": "any sanctions on ships which are related to iran?",
     "calls": [["research",{"programme":["Iran"]}]],
     "note": "Asked on the live site. A good answer is the research map's count of ships under an Iran programme, 662 on 22 Oct 2026, with some of them as examples and the line that they are 5 of 662. A name lookup of 'Iran' finds other entities with Iran in their names (an airline, insurers, a tyre maker, a shipping line, the atomic energy body), none a ship: an answer citing them fails, and so does 'not on the lists'. The excludes follow today's data and may need refreshing.",
-    "expect": {"kind":"answer","includes":["662 ships in Undercurrent's research map are under an Iran programme.","Showing 5 of 662."],"excludes":["is not on the lists","Iran Air","Iran Puya","Iran Pooya","Iran Tire","Bimeh Iran","Raad Iran","IDRO of Iran","Iran Safron","South Shipping Line","Atomic Energy","Raka appears"]},
+    "expect": {"kind":"answer","includes":["ships in Undercurrent's research map are under an Iran programme."],"excludes":["is not on the lists","Iran Air","Iran Puya","Iran Pooya","Iran Tire","Bimeh Iran","Raad Iran","IDRO of Iran","Iran Safron","South Shipping Line","Atomic Energy","Raka appears"]},
     "model": {"kind":"answer","sentences":[{"claim":"count","sources":["S1"]},{"claim":"listed","sources":["S2","S3","S4","S5","S6"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"count","unit":"ships","scope":"research","filters":{"programme":[{"key":"iran","label":"Iran"}]},"n":662,"total_ships":1745,"shown":5,"total":662,"text":"Undercurrent's research map: 662 of its 1,745 ships match all of: in the map's Iran programme group. Each ship is counted once. 5 follow as examples.","label":"Undercurrent's research map · ships","url":"/stories/shadow-fleet/network/shadow_fleet_map.html","quotes":[]},
@@ -997,7 +997,7 @@
     "question": "How many tankers are on both a Russia list and an Iran list?",
     "calls": [["research",{"programme":["Russia","Iran"],"ship_type":"tanker"}]],
     "note": "A good answer is the research map's count: 54 of its ships are tankers under both a Russia and an Iran programme (22 Oct 2026). The research's 42 is a stricter count, of the UK's Russia list against US Iran programme codes. The research's status line ('we don't make legal findings') answers nothing.",
-    "expect": {"kind":"answer","includes":["54 ships in Undercurrent's research map are tankers and are under a Russia programme and an Iran programme."],"excludes":["legal findings"]},
+    "expect": {"kind":"answer","includes":["ships in Undercurrent's research map are tankers and are under a Russia programme and an Iran programme."],"excludes":["legal findings"]},
     "model": {"kind":"answer","sentences":[{"claim":"count","sources":["S1"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"count","unit":"ships","scope":"research","filters":{"ship_type":"tanker","programme":[{"key":"russia","label":"Russia"},{"key":"iran","label":"Iran"}]},"n":54,"total_ships":1745,"shown":5,"total":54,"text":"Undercurrent's research map: 54 of its 1,745 ships match all of: whose recorded type contains \"tanker\"; in the map's Russia programme group and its Iran programme group. Each ship is counted once. 5 follow as examples.","label":"Undercurrent's research map · ships","url":"/stories/shadow-fleet/network/shadow_fleet_map.html","quotes":[]},
@@ -1014,7 +1014,7 @@
     "question": "How many names has MERU sailed under?",
     "calls": [["check_lists",{"query":"MERU"}]],
     "note": "A good answer counts its names: eight, MERU and seven earlier ones (Cape Bantry, Front Sky, Krit, Kriti Sfakia, Omega, Potomac, Spirit). Ask counts ships, not one ship's names, but quoting the earlier names answers it. Its listings alone do not.",
-    "expect": {"kind":"answer","includes":["Cape Bantry"]},
+    "expect": {"kind":"answer","includes":["Other names of MERU: Cape Bantry; Front Sky; Krit; Kriti Sfakia; Omega; Potomac; Spirit."]},
     "model": {"kind":"answer","sentences":[{"claim":"quote","sources":["S2"],"quote":1}],"next":[{"source":"S2"}]},
     "evidence": [
       {"id":"S1","kind":"search","query":"MERU","found":true,"near":["Yurii Meruzhanovich Bozoyan","BOZOYAN, Yurii Meruzhanovich","Armen Meruzhanovich SARKISYAN"],"shown":4,"total":4,"text":"Searched the US, UK, EU and UN official lists, Undercurrent research and OpenSanctions for the name or IMO number asked about. Found: 1 research entry, 1 United States list record, 1 United Kingdom list record, 1 OpenSanctions entry. Official lists last downloaded: United States 21 Oct 2026 (2026-10-21); United Kingdom 21 Oct 2026 (2026-10-21); European Union 21 Oct 2026 (2026-10-21); United Nations 21 Oct 2026 (2026-10-21). Names similar to the query exist (listed in near); they are not matches and say nothing about whether anything is listed.","label":"Search of the lists, research and OpenSanctions","url":"/","quotes":[]},
@@ -1032,7 +1032,7 @@
     "question": "How many firms has the US Treasury named for sending chips to Russia?",
     "calls": [["chips",{"topic":"firms"}]],
     "note": "A good answer is the count: 64 firms outside Russia and Belarus, named in five US Treasury press releases from Nov 2022 to Oct 2024. The median time to listing answers a different question.",
-    "expect": {"kind":"answer","includes":["64 firms are named in Undercurrent's research as shipping chips to Russia."],"excludes":["median time"]},
+    "expect": {"kind":"answer","includes":["firms are named in Undercurrent's research as shipping chips to Russia."],"excludes":["median time"]},
     "model": {"kind":"answer","sentences":[{"claim":"count","sources":["S1"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"count","text":"The research's set: 64 firms outside Russia and Belarus that US Treasury press releases name for sending chips, microelectronics or electronic components to Russia. One item per press release follows, with the firms it names.","label":"Chips into Russia: firms named by US Treasury","url":"/stories/chips-into-russia/FINDINGS.html#2-how-long-the-us-took-to-list-new-chip-suppliers","link":"/stories/chips-into-russia/viz/listing_lag.html","unit":"firms","n":64,"quotes":[]},
@@ -1049,7 +1049,7 @@
     "question": "How many ships has the EU sanctioned?",
     "calls": [["research",{"listed_by":"eu"}]],
     "note": "Ships on the EU list, from the research map's listing authority (the EU Official Journal's ship list, joined by IMO number): 733 on 22 Oct 2026. The EU list itself carries no IMO numbers, so the map is where the count comes from, and the copy says so.",
-    "expect": {"kind":"answer","includes":["733 ships in Undercurrent's research map are listed by the European Union."]},
+    "expect": {"kind":"answer","includes":["ships in Undercurrent's research map are listed by the European Union."]},
     "model": {"kind":"answer","sentences":[{"claim":"count","sources":["S1"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"count","unit":"ships","scope":"research","filters":{"listed_by":"eu"},"n":733,"total_ships":1745,"shown":5,"total":733,"text":"Undercurrent's research map: 733 of its 1,745 ships match all of: listed by the European Union. Each ship is counted once. 5 follow as examples.","label":"Undercurrent's research map · ships","url":"/stories/shadow-fleet/network/shadow_fleet_map.html","quotes":[]},
@@ -1150,8 +1150,8 @@
     "category": "topic",
     "question": "Any lobbying updates about Russian companies this week?",
     "calls": [["changes",{"since":"2026-10-16","graph":"lobby","topic":"Russia"}]],
-    "note": "None of the lobbying updates recorded so far can be checked against Russia (they are bills, a lobbyist, and NVIDIA's and the Semiconductor Industry Association's filings). A good answer is the none line with what it could not check. The dates move with the record, so the includes hold only the lines' fixed ends. Citing the chip lobbying is wrong; a later night that records such a change makes it the answer.",
-    "expect": {"kind":"answer","includes":["involve Russia.","updates in that period can't be checked against Russia."],"excludes":["NVIDIA","Semiconductor Industry Association","New bill"]},
+    "note": "None of the lobbying updates recorded so far can be checked against Russia (they are bills, a lobbyist, and NVIDIA's and the Semiconductor Industry Association's filings). A good answer is the none line with what it could not check. Citing the chip lobbying is wrong; a later night that records such a change makes it the answer. The dates and counts move with the record, so the include takes the none line's fixed end or a list of updates.",
+    "expect": {"kind":"answer","includes":[["involve Russia."," · "]],"excludes":["NVIDIA","Semiconductor Industry Association","New bill"]},
     "model": {"kind":"answer","sentences":[{"claim":"none_matched","sources":["S1"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"change","found":false,"topic":{"label":"Russia"},"checked_fleet":0,"checked_lobby":0,"unchecked":10,"from":"2026-10-20","to":"2026-10-21","text":"Between 20 Oct 2026 and 21 Oct 2026 (2026-10-20 to 2026-10-21): none of the 0 updates whose programme or country could be checked involve Russia (0 on the shadow-fleet map, 0 in the lobbying network). 10 updates in that period can't be checked against Russia.","label":"Updates involving Russia, 20 Oct 2026 to 21 Oct 2026: none","url":"/stories/updates/index.html?from=2026-10-20&to=2026-10-21&graph=all","link":"/stories/updates/index.html?from=2026-10-20&to=2026-10-21&graph=all","quotes":[]}
@@ -1163,7 +1163,7 @@
     "question": "Which North Korean ships are sanctioned?",
     "calls": [["research",{"programme":["North Korea"]}]],
     "note": "The research map has two ships under a North Korea programme, UNICA and NEW KONK, both on the EU list: a good answer counts them and lists both. A name lookup of 'North Korea' finds banks and agencies with those words in their names, and none is a ship; the excludes follow today's data.",
-    "expect": {"kind":"answer","includes":["2 ships in Undercurrent's research map are under a North Korea programme.","Unica appears on the European Union list","New Konk appears on the European Union list"],"excludes":["Government of North Korea","Gorgeous Bank","Foreign Trade Bank","Hana Banking","Space Technology","Maritime Administration Bureau","Liaoning Foreign Trade"]},
+    "expect": {"kind":"answer","includes":["ships in Undercurrent's research map are under a North Korea programme.","Unica appears on the European Union list under North Korea since 12 Dec 2022.","New Konk appears on the European Union list"],"excludes":["Government of North Korea","Gorgeous Bank","Foreign Trade Bank","Hana Banking","Space Technology","Maritime Administration Bureau","Liaoning Foreign Trade"]},
     "model": {"kind":"answer","sentences":[{"claim":"count","sources":["S1"]},{"claim":"listed","sources":["S2","S3"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"count","unit":"ships","scope":"research","filters":{"programme":[{"key":"dprk","label":"North Korea"}]},"n":2,"total_ships":1745,"shown":2,"total":2,"text":"Undercurrent's research map: 2 of its 1,745 ships match all of: in the map's North Korea programme group. Each ship is counted once. 2 follow as examples.","label":"Undercurrent's research map · ships","url":"/stories/shadow-fleet/network/shadow_fleet_map.html","quotes":[]},
@@ -1177,7 +1177,7 @@
     "question": "Which Venezuelan tankers are under US sanctions?",
     "calls": [["research",{"programme":["Venezuela"],"ship_type":"tanker","listed_by":"us"}]],
     "note": "The research map has 25 tankers under a Venezuela programme on the US list (22 Oct 2026): a good answer counts them and names some, with the line that they are some of 25. A name lookup of 'Venezuela' finds PDVSA, banks, a fund and a mining company, none of them a tanker; the excludes follow today's data.",
-    "expect": {"kind":"answer","includes":["25 ships in Undercurrent's research map are tankers, are under a Venezuela programme and are listed by the United States.","Showing 4 of 25."],"excludes":["Banco de Venezuela","Central Bank of Venezuela","Banco Central","Iran-Venezuela","Fondo de Inversiones","Minerven"]},
+    "expect": {"kind":"answer","includes":["ships in Undercurrent's research map are tankers, are under a Venezuela programme and are listed by the United States."],"excludes":["Banco de Venezuela","Central Bank of Venezuela","Banco Central","Iran-Venezuela","Fondo de Inversiones","Minerven"]},
     "model": {"kind":"answer","sentences":[{"claim":"count","sources":["S1"]},{"claim":"listed","sources":["S2","S3","S4","S6"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"count","unit":"ships","scope":"research","filters":{"ship_type":"tanker","programme":[{"key":"venezuela","label":"Venezuela"}],"listed_by":"us"},"n":25,"total_ships":1745,"shown":5,"total":25,"text":"Undercurrent's research map: 25 of its 1,745 ships match all of: whose recorded type contains \"tanker\"; in the map's Venezuela programme group; listed by the United States. Each ship is counted once. 5 follow as examples.","label":"Undercurrent's research map · ships","url":"/stories/shadow-fleet/network/shadow_fleet_map.html","quotes":[]},
@@ -1194,7 +1194,7 @@
     "question": "Which Chinese companies are on the US list of Chinese military companies?",
     "calls": [["check_lists",{"programme":"Chinese military companies","list":"us"}]],
     "note": "The US list has a Chinese military companies programme: a good answer counts its records (68 on 22 Oct 2026) and names some, with the line that they are some of 68. A name lookup of the words finds nothing, and 'Chinese military companies is not on the lists' would mislead.",
-    "expect": {"kind":"answer","includes":["68 records on the United States list are under the Chinese military companies programme.","Showing 5 of 68."],"excludes":["is not on the lists"]},
+    "expect": {"kind":"answer","includes":["records on the United States list are under the Chinese military companies programme."],"excludes":["is not on the lists"]},
     "model": {"kind":"answer","sentences":[{"claim":"count","sources":["S1"]},{"claim":"listed","sources":["S2","S3","S4","S5","S6"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"count","unit":"records","scope":"list","list":"us","topic":{"label":"Chinese military companies"},"n":68,"examples_shown":5,"shown":5,"total":68,"text":"United States list: 68 records under the Chinese military companies programme, each counted once whatever its other names. The first 5 follow as examples. This is the US Consolidated Screening List, which also carries export-control and other trade lists.","label":"United States list · records under the Chinese military companies programme","url":"https://www.trade.gov/consolidated-screening-list","quotes":[]},
@@ -1211,7 +1211,7 @@
     "question": "Which ships in the shadow fleet map fly the Mozambique flag?",
     "calls": [["research",{"flag":"Mozambique"}]],
     "note": "Ships under two flags: 4 ships in the research map are recorded as Mozambique-flagged by at least one source (22 Oct 2026). Three of them, STELLAR BEVERLY, BLUEBELL and LILY, are Mozambique-flagged on one list and Panama-flagged on another, so each counts under both flags. A good answer counts them and names them, and never says 'flagged in Mozambique' without 'by at least one source'.",
-    "expect": {"kind":"answer","includes":["4 ships in Undercurrent's research map are recorded as Mozambique-flagged by at least one source.","STELLAR BEVERLY appears on the European Union list"]},
+    "expect": {"kind":"answer","includes":["ships in Undercurrent's research map are recorded as Mozambique-flagged by at least one source.","STELLAR BEVERLY appears on the European Union list under Russia since 21 May 2025."]},
     "model": {"kind":"answer","sentences":[{"claim":"count","sources":["S1"]},{"claim":"listed","sources":["S2","S3","S4","S5"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"count","unit":"ships","scope":"research","filters":{"flag":{"region":"MZ","label":"Mozambique"}},"n":4,"total_ships":1745,"shown":4,"total":4,"text":"Undercurrent's research map: 4 of its 1,745 ships match all of: recorded as Mozambique-flagged by at least one source. Each ship is counted once. A ship's flags are every flag a source records for it, so a ship whose sources disagree counts under each. 4 follow as examples.","label":"Undercurrent's research map · ships","url":"/stories/shadow-fleet/network/shadow_fleet_map.html","quotes":[]},

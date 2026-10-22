@@ -55,6 +55,14 @@ test("judge allows a fallback where the case does, and reports includes only whe
   assert.equal(judge(CASES.find((x) => !x.expect.includes), reply("answer", "x")).includesOk, null);
 });
 
+test("final review I1: an include that is a list of phrases is met by any one of them, case-insensitively", () => {
+  const c = { question: "q", expect: { kind: "answer", includes: ["fixed head", ["involve Iran.", " · "]] } };
+  assert.equal(judge(c, reply("answer", "FIXED HEAD", "None of the 3 updates recorded … INVOLVE IRAN.")).includesOk, true);
+  assert.equal(judge(c, reply("answer", "fixed head", "US listed ANEMOS (IMO 9205952) · 22 Oct 2026")).includesOk, true);
+  assert.equal(judge(c, reply("answer", "fixed head", "Neither shape.")).includesOk, false);
+  assert.equal(judge(c, reply("answer", "involve Iran.")).includesOk, false); // (every include is still needed)
+});
+
 test("an answer of only the line that nothing recorded answers (with or without the advice notice) is a decline, as the fallback is", () => {
   const listed = "TASSOS appears on the United Kingdom list under Russia.";
   for (const result of [reply("fallback", FALLBACK), reply("answer", NOTHING_ANSWERS), reply("answer", NOTHING_ANSWERS, NOT_ADVICE)]) assert.equal(declined(result.answer), true, JSON.stringify(result));

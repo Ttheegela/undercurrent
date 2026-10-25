@@ -73,8 +73,8 @@ The idea came from a peer session, inspired by the elstongun/leviathan FTS5 tool
 
 **How it matches:**
 - A record matches when any of its rows (its name or one of its other names) has a whole name word equal to the word, once a trailing S is folded.
-  - The fold: drop one trailing S from words of 4 letters or more, on both sides.
-  - ELECTRONIC matches ELECTRONICS and the reverse; BANK doesn't match BANKING; ARMS matches ARM.
+  - The fold: drop one trailing S from words of 5 letters or more, on both sides, but never after A, I, U or S (changed after the code review, see the end).
+  - ELECTRONIC matches ELECTRONICS and the reverse; BANK matches BANKS but not BANKING; HAMAS, ISIS, NEWS and ARMS are never folded.
 - Records are counted once by `ref`. The example shown is the first matching row, so an alias that holds the word is shown by that alias.
 - `forms`: the distinct name words, across all four lists, that matched (for example ELECTRONIC and ELECTRONICS). There are at most 2 by the fold rule. These are the only spellings of the word that the copy may print.
 
@@ -98,8 +98,8 @@ Each line below is new fixed copy, filled only with a list label, a number and t
 - **None**, with a list given and n 0 (the word exists on another list, so it has forms):
   - "No record on the United Nations list has the word SEMICONDUCTOR or SEMICONDUCTORS in its name."
 - **Caveat**, which follows every count or none line above:
-  - "This matches the word in names only: Undercurrent's copy of the lists records no country or line of business."
-  - It cites its count item and is a `follows` line, like the line after a topic's none. When several count lines are cited, finish() merges the identical caveats into one sentence, which stays after the first count line. The relevance gate keeps it exactly when it keeps the line before it, and never judges it on its own.
+  - "This matches the word as spelled, in names only: Undercurrent's copy of the lists records no country or line of business."
+  - It is said once, after the last sentence that cites a word count or one of its examples, and it cites those counts (changed after the code review, see the end). The relevance gate never judges it, and it stays exactly while a sentence of the word does.
   - It is there for the anti-goal: an answer to "Chinese electronic companies" must not read as if the country had been checked. The owner reviews the wording in the PR.
 - **Examples and "Showing N of M."** need no new copy. They are the `listed` claim's existing sentences, and finish() adds "Showing 5 of 453." from `shown` and `total`.
 
@@ -180,3 +180,22 @@ The oracle mirrors the new copy by hand, as it does for every claim:
 - Code layout: a small `wordRows` helper beside `programmeCount`, and the example spread shared by both modes.
 - The model-facing wording of the count item's text and the error messages.
 - The exact function-word list. The existing `FUNCTION_WORDS` is the base.
+
+## Changes after the code review (24 Oct 2026, after #41 merged)
+
+A code review of #41 found three gaps. Ask was public by then, so they were fixed in a follow-up.
+
+1. **The caveat follows the examples too.**
+   - Before: an answer that cited only the word's examples (as `listed` or `age`) was a list of firms with no caveat, which is the anti-goal.
+   - Now: the caveat is said once, after the last sentence citing a word count or one of its examples.
+2. **The fold no longer merges two names.**
+   - Before: HAMAS also counted people named HAMA, and ISIS counted ISI.
+   - Now: an S folds only from five letters up, and never after A, I, U or S.
+3. **`word` is not a name check.**
+   - A one-list none such as "No record on the United Nations list has the word GAZPROM in its name" could pass for a name check, and the lists spell names inconsistently: on the UN list, QAEDA matches 1 record and QAIDA matches 5.
+   - The prompt and the `word` parameter now say "Never use word to check one name: that is query". The caveat now says "as spelled".
+
+Smaller fixes:
+- A word no list holds is the one none item, whether or not a list was asked for.
+- word-3's include no longer depends on the plural being on the lists.
+

@@ -103,8 +103,9 @@ function COUNT(e) {
     default: return null;
   }
 }
-// A word count's caveat: a word in a name says nothing of what a firm does or where it is, and the lists as kept carry neither
-const NAME_ONLY = "This matches the word in names only: Undercurrent's copy of the lists records no country or line of business.";
+// A word count's caveat: a word in a name says nothing of what a firm does or where it is, the lists as kept carry neither, and another
+// spelling of it is not matched. finish says it once, after the last sentence citing a word count or one of its examples.
+const NAME_ONLY = "This matches the word as spelled, in names only: Undercurrent's copy of the lists records no country or line of business.";
 const onLabel = (list) => typeof list === "string" && Object.hasOwn(LIST_LABELS, list);
 // The word of a name count is printed only as the lists spell it (the tools' `forms`: one or two plain capital words, the word and its
 // plural) and never as a listing, authority or clean-bill word: "the word SAFE" would read as a verdict, so that line is dropped.
@@ -266,11 +267,10 @@ const RENDER = {
       return span ? [{ text: NOT_FOUND(span), items: [e] }] : [];
     });
   },
-  // one sentence per cited count item (none matched when it is 0), its sources the item and the examples it gave that are cited with it;
-  // a word count's line is followed by its caveat (`follows`: the relevance gate keeps it exactly when it keeps that line)
+  // one sentence per cited count item (none matched when it is 0), its sources the item and the examples it gave that are cited with it
   count: (items) => items.filter((e) => e.kind === "count").flatMap((c) => {
     const text = c.n ? COUNT(c) : NONE_MATCHED(c);
-    return text ? [{ text, items: [c, ...items.filter((e) => e.result === c.id)] }, ...(c.unit === "name_word" ? [{ text: NAME_ONLY, items: [c], follows: true }] : [])] : [];
+    return text ? [{ text, items: [c, ...items.filter((e) => e.result === c.id)] }] : [];
   }),
   // "No changes" only from the change record's own item, followed by every gap of its range; never from an empty list. A range the
   // record cannot speak for is never "no changes": before its first night, trimmed from it, or today before tonight's run. The lines
@@ -325,6 +325,13 @@ const matchKey = (e) => (e.kind === "change" ? e.key : e.entity.id);
  * count a record listed from either search's copy; the same line twice after one sentence is said once. The model never chooses it.
  */
 function finish(kind, pieces, next, byId = new Map()) {
+  // a word count's caveat, once, after the last sentence citing a word count or one of its examples (a listing found by a word in its name
+  // is never read as the firm's trade or country), citing those counts; written here, so that the gate never judges it and it stays
+  // exactly while a sentence of the word does
+  const word = (e) => (e?.kind === "count" && e.unit === "name_word" ? e : undefined);
+  const counts = (p) => p.items.flatMap((e) => word(e) ?? word(byId.get(e.result)) ?? []);
+  const last = pieces.findLastIndex((p) => counts(p).length);
+  if (last >= 0) pieces = [...pieces.slice(0, last + 1), { text: NAME_ONLY, items: unique(pieces.flatMap(counts), "id") }, ...pieces.slice(last + 1)];
   const n = new Map();
   const byText = new Map();
   for (const { text, items, claim } of pieces) {

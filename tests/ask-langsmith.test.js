@@ -701,7 +701,7 @@ test("sync creates the dataset once and upserts by case_id; an edited case updat
   const stored = () => [...client.datasets.get("undercurrent-ask").examples.values()];
   const exampleOf = (c) => ({ inputs: { question: c.question }, outputs: { expect: c.expect }, metadata: { case_id: c.id, category: c.category, dataset_split: ["base"] } });
   // the first sync creates the dataset and one example per live case, in the shape the runner reads
-  assert.deepEqual(await syncDataset(CASES, { client }), { created: 48, updated: 0, removed: 0 });
+  assert.deepEqual(await syncDataset(CASES, { client }), { created: 51, updated: 0, removed: 0 });
   assert.deepEqual(stored().map(({ id, ...ex }) => ex), LIVE.map(exampleOf));
   // nothing changed, nothing to do (the server's dataset_split is not a change)
   const second = calls.length;
@@ -730,7 +730,7 @@ test("run without --sync on a missing dataset exits 1 with the message", async (
   assert.deepEqual(calls, [["hasDataset", { datasetName: "undercurrent-ask" }]]);
   // with --sync, a run on main creates it from tests/ask-eval.json before it evaluates
   const result = await runEvals({ ...WEEKLY, sync: true }, deps);
-  assert.deepEqual(result.sync, { created: 48, updated: 0, removed: 0 });
+  assert.deepEqual(result.sync, { created: 51, updated: 0, removed: 0 });
   assert.deepEqual(calls.slice(1).map(([name]) => name), ["hasDataset", "createDataset", "listExamples", "createExamples", "evaluate", "readProject", "getDatasetUrl"]);
 });
 

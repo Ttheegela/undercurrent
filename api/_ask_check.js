@@ -97,14 +97,25 @@ function COUNT(e) {
       : `${e.n === 1 ? "1 ship" : `${num(e.n)} ships`} in Undercurrent's research map ${shipsThat(e.filters, e.n === 1)}.`;
     // the chips research's set of firms, from the Treasury releases it reads, or those of it based in one country
     case "firms": return `${e.n === 1 ? "1 firm" : `${num(e.n)} firms`}${e.country ? ` in ${e.country.label}` : ""} ${e.n === 1 ? "is" : "are"} named in Undercurrent's research as shipping chips to Russia.`;
+    // records on an official list with a word in their names, the word only as the lists spell it
+    case "name_word": return onLabel(e.list) && spelled(e.forms)
+      ? `${e.n === 1 ? "1 record" : `${num(e.n)} records`} on the ${LIST_LABELS[e.list]} list ${e.n === 1 ? "has" : "have"} the word ${e.forms.join(" or ")} in ${e.n === 1 ? "its name" : "their names"}.` : null;
     default: return null;
   }
 }
+// A word count's caveat: a word in a name says nothing of what a firm does or where it is, and the lists as kept carry neither
+const NAME_ONLY = "This matches the word in names only: Undercurrent's copy of the lists records no country or line of business.";
+const onLabel = (list) => typeof list === "string" && Object.hasOwn(LIST_LABELS, list);
+// The word of a name count is printed only as the lists spell it (the tools' `forms`: one or two plain capital words, the word and its
+// plural) and never as a listing, authority or clean-bill word: "the word SAFE" would read as a verdict, so that line is dropped.
+const spelled = (forms) => Array.isArray(forms) && forms.length >= 1 && forms.length <= 2 && forms.every((f) => typeof f === "string" && /^[A-Z]{3,30}$/.test(f) && !verdict(f));
 function NONE_MATCHED(e) {
   switch (e.unit) {
     case "records": return `No programme on ${e.list ? `the ${LIST_LABELS[e.list]} list` : ALL_LISTS} is named ${e.topic.label}.`;
     case "ships": return `None of the ${MAP_SHIPS} ${shipsThat(e.filters, false)}.`;
     case "firms": return e.country ? `None of the firms named in Undercurrent's research as shipping chips to Russia are in ${e.country.label}.` : null;
+    // (only on a list asked for: a word no list holds has no spelling to print)
+    case "name_word": return onLabel(e.list) && spelled(e.forms) ? `No record on the ${LIST_LABELS[e.list]} list has the word ${e.forms.join(" or ")} in its name.` : null;
     default: return null;
   }
 }
@@ -255,10 +266,11 @@ const RENDER = {
       return span ? [{ text: NOT_FOUND(span), items: [e] }] : [];
     });
   },
-  // one sentence per cited count item (none matched when it is 0), its sources the item and the examples it gave that are cited with it
+  // one sentence per cited count item (none matched when it is 0), its sources the item and the examples it gave that are cited with it;
+  // a word count's line is followed by its caveat (`follows`: the relevance gate keeps it exactly when it keeps that line)
   count: (items) => items.filter((e) => e.kind === "count").flatMap((c) => {
     const text = c.n ? COUNT(c) : NONE_MATCHED(c);
-    return text ? [{ text, items: [c, ...items.filter((e) => e.result === c.id)] }] : [];
+    return text ? [{ text, items: [c, ...items.filter((e) => e.result === c.id)] }, ...(c.unit === "name_word" ? [{ text: NAME_ONLY, items: [c], follows: true }] : [])] : [];
   }),
   // "No changes" only from the change record's own item, followed by every gap of its range; never from an empty list. A range the
   // record cannot speak for is never "no changes": before its first night, trimmed from it, or today before tonight's run. The lines

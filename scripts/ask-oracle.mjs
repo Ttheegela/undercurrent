@@ -11,6 +11,8 @@ export const PARTIAL = "I could only answer part of the question. Ask about each
 export const NOT_ADVICE = "Ask can't give legal or compliance advice. These are records from the site, each with its source.";
 export const NOTHING_ANSWERS = "Nothing recorded on this site answers that.";
 const FIXED = new Set([REFUSAL, FALLBACK, CLARIFY, PARTIAL, NOT_ADVICE, NOTHING_ANSWERS]); // fixed copy: written by the server, so it has no source
+// a word count's caveat, which follows its line
+const NAME_ONLY = "This matches the word in names only: Undercurrent's copy of the lists records no country or line of business.";
 const NOT_FOUND = /^(.+) is not on the lists we check \(US, UK, EU, UN, OpenSanctions\)\. Not being found isn't proof\.$/;
 
 const day = (iso) => formatDate(iso) || iso;
@@ -78,6 +80,13 @@ function counted(e) {
     if (e.n) return `${e.n === 1 ? `1 firm${where} is` : `${e.n.toLocaleString("en-GB")} firms${where} are`} named in Undercurrent's research as shipping chips to Russia.`;
     return e.country ? `None of the firms named in Undercurrent's research as shipping chips to Russia are in ${e.country.label}.` : null;
   }
+  if (e.kind === "count" && e.unit === "name_word") {
+    // the word only as the lists spell it, on a list (a word no list holds says nothing)
+    if (!LIST_LABELS[e.list] || !Array.isArray(e.forms) || !e.forms.length || e.forms.length > 2 || !e.forms.every((f) => /^[A-Z]{3,30}$/.test(f))) return null;
+    const word = `the word ${e.forms.join(" or ")}`;
+    if (e.n === 0) return `No record on the ${LIST_LABELS[e.list]} list has ${word} in its name.`;
+    return e.n === 1 ? `1 record on the ${LIST_LABELS[e.list]} list has ${word} in its name.` : `${e.n.toLocaleString("en-GB")} records on the ${LIST_LABELS[e.list]} list have ${word} in their names.`;
+  }
   if (e.kind !== "count" || e.unit !== "records") return null;
   if (e.n === 0) return `No programme on ${e.list ? `the ${LIST_LABELS[e.list]} list` : "the United States, United Kingdom, European Union or United Nations lists"} is named ${e.topic.label}.`;
   const on = `on the ${LIST_LABELS[e.list]} list`;
@@ -114,6 +123,7 @@ function producers(ev, today) {
     if (listing(e)) add(listing(e), e);
     if (firmLine(e)) add(firmLine(e), e);
     if (counted(e)) for (const x of [e, ...ev.filter((x) => x.result === e.id)]) add(counted(e), x); // the count, and the examples it gave
+    if (counted(e) && e.unit === "name_word") add(NAME_ONLY, e);
     if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted && age(e, today)) add(age(e, today), e);
     if (e.kind === "change" && e.before_start) add(`Daily updates started on ${day(e.first_run)}, so there is no record before then.`, e);
     else if (e.kind === "change" && e.trimmed) add(`Days before ${day(e.started)} are no longer kept.`, e);
@@ -198,6 +208,9 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   for (const e of unchecked.filter((x) => said.has(uncheckedLine(x)))) {
     ok(unchecked.some((x) => uncheckedLine(x) === uncheckedLine(e) && said.has(headLine(x))), `${JSON.stringify(uncheckedLine(e)).slice(0, 80)} without its none`);
   }
+  // a word count's line and its caveat are said together: the caveat never alone, the line never without it
+  const wordLines = ev.filter((e) => e.kind === "count" && e.unit === "name_word").map(counted).filter(Boolean);
+  if (said.has(NAME_ONLY) || wordLines.some((t) => said.has(t))) ok(said.has(NAME_ONLY) && wordLines.some((t) => said.has(t)), "a word count's line and its caveat are not said together");
   // the updates record answered the question itself (before its first night, days no longer kept, not yet, no changes, a topic's none):
   // the checker says that item's line, never that nothing recorded answers
   ok(!said.has(NOTHING_ANSWERS) || !changes.some((e) => e.found === false), "nothing answers, though the updates record in evidence did");

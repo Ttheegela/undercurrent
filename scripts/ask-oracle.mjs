@@ -11,8 +11,8 @@ export const PARTIAL = "I could only answer part of the question. Ask about each
 export const NOT_ADVICE = "Ask can't give legal or compliance advice. These are records from the site, each with its source.";
 export const NOTHING_ANSWERS = "Nothing recorded on this site answers that.";
 const FIXED = new Set([REFUSAL, FALLBACK, CLARIFY, PARTIAL, NOT_ADVICE, NOTHING_ANSWERS]); // fixed copy: written by the server, so it has no source
-// a word count's caveat, which follows its line
-const NAME_ONLY = "This matches the word in names only: Undercurrent's copy of the lists records no country or line of business.";
+// a word count's caveat, said once after the sentences citing a word count or its examples
+const NAME_ONLY = "This matches the word as spelled, in names only: Undercurrent's copy of the lists records no country or line of business.";
 const NOT_FOUND = /^(.+) is not on the lists we check \(US, UK, EU, UN, OpenSanctions\)\. Not being found isn't proof\.$/;
 
 const day = (iso) => formatDate(iso) || iso;
@@ -123,7 +123,7 @@ function producers(ev, today) {
     if (listing(e)) add(listing(e), e);
     if (firmLine(e)) add(firmLine(e), e);
     if (counted(e)) for (const x of [e, ...ev.filter((x) => x.result === e.id)]) add(counted(e), x); // the count, and the examples it gave
-    if (counted(e) && e.unit === "name_word") add(NAME_ONLY, e);
+    if (e.kind === "count" && e.unit === "name_word") add(NAME_ONLY, e); // it cites the count, also when only its examples are said
     if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted && age(e, today)) add(age(e, today), e);
     if (e.kind === "change" && e.before_start) add(`Daily updates started on ${day(e.first_run)}, so there is no record before then.`, e);
     else if (e.kind === "change" && e.trimmed) add(`Days before ${day(e.started)} are no longer kept.`, e);
@@ -208,9 +208,11 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   for (const e of unchecked.filter((x) => said.has(uncheckedLine(x)))) {
     ok(unchecked.some((x) => uncheckedLine(x) === uncheckedLine(e) && said.has(headLine(x))), `${JSON.stringify(uncheckedLine(e)).slice(0, 80)} without its none`);
   }
-  // a word count's line and its caveat are said together: the caveat never alone, the line never without it
-  const wordLines = ev.filter((e) => e.kind === "count" && e.unit === "name_word").map(counted).filter(Boolean);
-  if (said.has(NAME_ONLY) || wordLines.some((t) => said.has(t))) ok(said.has(NAME_ONLY) && wordLines.some((t) => said.has(t)), "a word count's line and its caveat are not said together");
+  // a word count's caveat is never said alone (some other sentence cites the count or one of its examples), and its line never without it
+  const wordCounts = ev.filter((e) => e.kind === "count" && e.unit === "name_word");
+  const ofWord = ev.filter((e) => wordCounts.includes(e) || wordCounts.some((c) => c.id === e.result));
+  if (said.has(NAME_ONLY)) ok(answer.sentences.some((s) => s.text !== NAME_ONLY && s.sources.some((src) => labelled(ofWord, src))), "a word count's caveat without a sentence of its word");
+  if (wordCounts.map(counted).some((t) => t && said.has(t))) ok(said.has(NAME_ONLY), "a word count's line without its caveat");
   // the updates record answered the question itself (before its first night, days no longer kept, not yet, no changes, a topic's none):
   // the checker says that item's line, never that nothing recorded answers
   ok(!said.has(NOTHING_ANSWERS) || !changes.some((e) => e.found === false), "nothing answers, though the updates record in evidence did");

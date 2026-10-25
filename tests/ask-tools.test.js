@@ -41,6 +41,10 @@ const LISTS = {
     rec("Brightway Holdings", "Military End User (MEU) List", "", "BW1"), rec("Brightway Electronics", "Military End User (MEU) List", "", "BW1"), // the word in an alias row only
     rec("Kestrel Electronic Trading Co.", "Entity List (EL)", "2024-03-01", "EL2"), // a second row of one record
     rec("Electronica Supply", "Entity List (EL)", "2025-01-01", "EA1"), rec("Nova Microelectronics", "Entity List (EL)", "2025-02-01", "NM1"),
+    // the fold's edges: a name and its word plus S that are two names (HAMA, HAMAS; NEW, NEWS), a plural (BANKS) and a longer word (BANKING)
+    rec("Hama Al Rashid", "Entity List (EL)", "2020-01-01", "HM1"), rec("Hamas Relief Front", "Entity List (EL)", "2021-01-01", "HS1"),
+    rec("New Star Trading", "Entity List (EL)", "", "NS1"), rec("Daily News Agency", "Entity List (EL)", "", "DN1"),
+    rec("Lion Banks Group", "Entity List (EL)", "", "BK1"), rec("Banking Partners", "Entity List (EL)", "", "BK2"),
   ],
   uk: [
     rec("TASSOS", "Russia", "2026-02-24", "RUS3483", "9408695"), rec("Orion Ship Management", "Russia", "2025-03-03", "RUS777"), ...Array.from({ length: 8 }, (_, i) => rec(`QUARTZ UK ${i}`, "Russia", "2024-02-0" + (i + 1), `QU${i}`)),
@@ -801,12 +805,27 @@ test("word with a list: that list's count alone, even of none, and the forms are
   assert.deepEqual(ev.map((e) => [e.kind, e.list, e.n, e.shown, e.total, e.forms]), [["count", "eu", 0, 0, 0, ["ELECTRONIC", "ELECTRONICS"]]]);
 });
 
-test("word on no list: one count of none with no forms, and the word is never repeated", async () => {
-  for (const word of ["Zorbex", "zorbexes"]) {
+test("the fold: one trailing S, from five letters up and never after A, I, U or S: BANKS is BANK, HAMAS is not HAMA, NEWS is not NEW", async () => {
+  const counted = async (word) => {
     ev = [];
-    await run("check_lists", { word });
+    await run("check_lists", { word, list: "us" });
+    return [ev[0].n, ev[0].forms];
+  };
+  assert.deepEqual(await counted("bank"), [1, ["BANKS"]]); // never BANKING
+  assert.deepEqual(await counted("banks"), [1, ["BANKS"]]);
+  assert.deepEqual(await counted("hamas"), [1, ["HAMAS"]]);
+  assert.deepEqual(await counted("hama"), [1, ["HAMA"]]);
+  assert.deepEqual(await counted("news"), [1, ["NEWS"]]);
+  assert.deepEqual(await counted("new"), [1, ["NEW"]]);
+});
+
+test("word on no list: one count of none with no forms, and the word is never repeated", async () => {
+  for (const [word, list] of [["Zorbex"], ["zorbexes"], ["Zorbex", "uk"]]) {
+    ev = [];
+    await run("check_lists", { word, list });
     assert.deepEqual(ev.map((e) => [e.kind, e.unit, e.list, e.n, e.forms]), [["count", "name_word", undefined, 0, []]], word);
     assert.ok(!/zorbex/i.test(ev[0].text + ev[0].label), word);
+    assert.match(ev[0].text, /give query to check one name/);
   }
 });
 

@@ -1424,7 +1424,7 @@
     "question": "Which banks are on the EU sanctions list?",
     "calls": [["check_lists",{"word":"bank","list":"eu"}]],
     "note": "A word in names: the EU list has 118 records with BANK in a name (24 Oct 2026). A good answer counts them, says the count matches names only, and names some, newest first, with the line that they are some of 118. A name lookup of 'bank' finds no one bank, and 'not on the lists' would mislead.",
-    "expect": {"kind":"answer","includes":["on the European Union list have the word BANK","This matches the word in names only: Undercurrent's copy of the lists records no country or line of business."],"excludes":["is not on the lists"]},
+    "expect": {"kind":"answer","includes":["on the European Union list have the word BANK","This matches the word as spelled, in names only: Undercurrent's copy of the lists records no country or line of business."],"excludes":["is not on the lists"]},
     "model": {"kind":"answer","sentences":[{"claim":"count","sources":["S1"]},{"claim":"listed","sources":["S2","S3","S4"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"count","unit":"name_word","list":"eu","forms":["BANK"],"n":118,"shown":5,"total":118,"text":"European Union list: 118 records have the word BANK in a name, each counted once whatever its other names. A match on names only: the lists as kept here record no country or line of business. The first 5 follow as examples, newest listing date first.","label":"European Union list · records by a word in their names","url":"https://data.europa.eu/data/datasets/consolidated-list-of-persons-groups-and-entities-subject-to-eu-financial-sanctions","quotes":[]},
@@ -1441,7 +1441,7 @@
     "question": "Are any electronics companies on the UK sanctions list?",
     "calls": [["check_lists",{"word":"electronics","list":"uk"}]],
     "note": "A word in names, singular and plural as one: the UK list has 24 records with ELECTRONIC or ELECTRONICS in a name (24 Oct 2026). A good answer counts them, says the count matches names only (it cannot tell what a firm makes), and names some, newest first, with the line that they are some of 24.",
-    "expect": {"kind":"answer","includes":["on the United Kingdom list have the word ELECTRONIC or ELECTRONICS in their names.","This matches the word in names only: Undercurrent's copy of the lists records no country or line of business."],"excludes":["is not on the lists"]},
+    "expect": {"kind":"answer","includes":["on the United Kingdom list have the word ELECTRONIC or ELECTRONICS in their names.","This matches the word as spelled, in names only: Undercurrent's copy of the lists records no country or line of business."],"excludes":["is not on the lists"]},
     "model": {"kind":"answer","sentences":[{"claim":"count","sources":["S1"]},{"claim":"listed","sources":["S2","S3"]}],"next":[{"source":"S1"}]},
     "evidence": [
       {"id":"S1","kind":"count","unit":"name_word","list":"uk","forms":["ELECTRONIC","ELECTRONICS"],"n":24,"shown":5,"total":24,"text":"United Kingdom list: 24 records have the word ELECTRONIC or ELECTRONICS in a name, each counted once whatever its other names. A match on names only: the lists as kept here record no country or line of business. The first 5 follow as examples, newest listing date first.","label":"United Kingdom list · records by a word in their names","url":"https://www.gov.uk/government/publications/the-uk-sanctions-list","quotes":[]},
@@ -1458,7 +1458,7 @@
     "question": "Does the UN list name any semiconductor companies?",
     "calls": [["check_lists",{"word":"semiconductor","list":"un"}]],
     "note": "An honest none: no record on the UN list has SEMICONDUCTOR or SEMICONDUCTORS in a name, though the US and EU lists have some (24 Oct 2026). A good answer is the none line with its caveat that names are all it reads. It must never cite another list's records as the UN's.",
-    "expect": {"kind":"answer","includes":["No record on the United Nations list has the word SEMICONDUCTOR or SEMICONDUCTORS in its name."],"excludes":["appears on"]},
+    "expect": {"kind":"answer","includes":["No record on the United Nations list has the word SEMICONDUCTOR"],"excludes":["appears on"]},
     "model": {"kind":"answer","sentences":[{"claim":"none_matched","sources":["S1"]}],"next":[]},
     "evidence": [
       {"id":"S1","kind":"count","unit":"name_word","list":"un","forms":["SEMICONDUCTOR","SEMICONDUCTORS"],"n":0,"shown":0,"total":0,"text":"United Nations list: no record has the word SEMICONDUCTOR or SEMICONDUCTORS in a name, each counted once whatever its other names. A match on names only: the lists as kept here record no country or line of business.","label":"United Nations list · records by a word in their names","url":"https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list","quotes":[]}

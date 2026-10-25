@@ -1,6 +1,6 @@
 # Ask finds list records by a word in their names: design
 
-Status: draft for the owner's approval, 24 Oct 2026.
+Status: approved by the owner, 24 Oct 2026: no "reader typed it" check on the echo guard; the 3-run eval waits for the eval key's 1 Nov reset.
 
 ## Why
 

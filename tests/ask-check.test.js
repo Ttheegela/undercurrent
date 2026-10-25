@@ -8,7 +8,7 @@ import { gzipSync } from "node:zlib";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { checkAnswer, adviceIntent } from "../api/_ask_check.js";
+import { checkAnswer, adviceIntent, judgedSentences, keepSentences } from "../api/_ask_check.js";
 import { runTool, resetAskCache, LISTING, SHIP_TYPES, TOOLS } from "../api/_ask_tools.js";
 import { INDEX_URL } from "../api/search.js";
 import { prepareQuery } from "../app/search.js";
@@ -2050,4 +2050,84 @@ test("chips firms: named writes one sentence per firm from its item, a capped li
   const said = checkAnswer(answer(claim("none_matched", none[0].id)), none, { question: "Which Iranian firms sent chips to Russia?" });
   assert.deepEqual(texts(said), ["None of the firms named in Undercurrent's research as shipping chips to Russia are in Iran."]);
   assert.deepEqual(groundingProblems("Which Iranian firms sent chips to Russia?", none, said), []);
+});
+
+// ---- a word in names (24 Oct): records on the lists with a word in their names, printed only as the lists spell it ----------------------
+
+const NAME_ONLY = "This matches the word in names only: Undercurrent's copy of the lists records no country or line of business.";
+// per list, the records with one of the spellings as a whole word of a name, any row (written out by hand, from the committed lists)
+const refsWith = (id, ...spellings) => new Set(committed(id).filter((r) => r[1].split(" ").some((w) => spellings.includes(w))).map((r) => r[4] || r[1])).size;
+
+test("word count: one line per list from fixed copy and the lists' own spellings, its caveat after it, and Showing N of M after its examples", async () => {
+  const question = "Are any electronics companies on the UK sanctions list?";
+  const ev = await ask([["check_lists", { word: "electronics", list: "uk" }]]);
+  const c = countOf(ev, "uk");
+  const n = refsWith("uk", "ELECTRONIC", "ELECTRONICS");
+  assert.ok(n > 2, `${n} UK records`);
+  assert.deepEqual([c.unit, c.n, c.total, c.shown, c.forms], ["name_word", n, n, 5, ["ELECTRONIC", "ELECTRONICS"]]);
+  const [a, b] = examplesOf(ev, c);
+  const out = checkAnswer(answer(claim("count", c.id), claim("listed", a.id, b.id)), ev, { question });
+  const listed = (e) => `${e.entity.name} appears on the United Kingdom list under ${e.program}${e.date ? ` since ${formatDate(e.date)}` : ""}.`;
+  assert.deepEqual(texts(out), [`${num(n)} records on the United Kingdom list have the word ELECTRONIC or ELECTRONICS in their names.`, NAME_ONLY, listed(a), listed(b), `Showing 2 of ${num(n)}.`]);
+  assert.deepEqual(out.sentences[1].sources, [{ n: 1, label: c.label, url: c.url }]); // the caveat cites its count
+  assert.deepEqual(groundingProblems(question, ev, out), []);
+  // one record: the singular
+  const one = [{ ...c, n: 1, total: 1, shown: 0 }];
+  assert.deepEqual(texts(checkAnswer(answer(claim("count", c.id)), one, { question })), ["1 record on the United Kingdom list has the word ELECTRONIC or ELECTRONICS in its name.", NAME_ONLY]);
+  // with no list given, a line per list and one caveat (the same sentence, said once)
+  const all = await ask([["check_lists", { word: "electronic" }]]);
+  const counts = all.filter((e) => e.kind === "count");
+  assert.deepEqual(counts.map((x) => [x.list, x.n]), ["us", "uk", "eu", "un"].map((id) => [id, refsWith(id, "ELECTRONIC", "ELECTRONICS")]).filter(([, k]) => k));
+  const many = checkAnswer(answer(claim("count", ...counts.map((x) => x.id))), all, { question });
+  assert.deepEqual(texts(many).filter((t) => t === NAME_ONLY).length, 1);
+  assert.equal(texts(many)[1], NAME_ONLY);
+  assert.deepEqual(groundingProblems(question, all, many), []);
+});
+
+test("word none: a list with none of a word other lists hold says so, with its caveat; a word no list holds says nothing", async () => {
+  assert.equal(refsWith("un", "SEMICONDUCTOR", "SEMICONDUCTORS"), 0);
+  const question = "Does the UN list name any semiconductor companies?";
+  const ev = await ask([["check_lists", { word: "semiconductor", list: "un" }]]);
+  assert.deepEqual(ev.map((e) => [e.kind, e.list, e.n, e.forms]), [["count", "un", 0, ["SEMICONDUCTOR", "SEMICONDUCTORS"]]]);
+  const none = ["No record on the United Nations list has the word SEMICONDUCTOR or SEMICONDUCTORS in its name.", NAME_ONLY];
+  for (const kind of ["none_matched", "count"]) {
+    const out = checkAnswer(answer(claim(kind, "S1")), ev, { question });
+    assert.deepEqual(texts(out), none, kind);
+    assert.deepEqual(groundingProblems(question, ev, out), [], kind);
+  }
+  // nowhere on the lists: nothing of the word to print, so a claim on it is dropped (the fallback, alone)
+  const nowhere = await ask([["check_lists", { word: "zorbex" }]]);
+  assert.deepEqual(nowhere.map((e) => [e.kind, e.n, e.forms]), [["count", 0, []]]);
+  for (const kind of ["none_matched", "count"]) assert.deepEqual(checkAnswer(answer(claim(kind, "S1")), nowhere, { question: "Any firms called Zorbex?" }), FALLBACK_ANSWER, kind);
+});
+
+test("word guard: a spelling that is a listing, authority or clean-bill word, or is no plain capital word, is never printed: the line is dropped", async () => {
+  const question = "Are there any safe companies on the lists?";
+  const safe = await ask([["check_lists", { word: "safe" }]]);
+  const c = safe.find((e) => e.kind === "count" && e.n > 0);
+  assert.deepEqual(c.forms, ["SAFE", "SAFES"]); // on the lists, and still never said: "the word SAFE" reads as a verdict
+  assert.deepEqual(checkAnswer(answer(claim("count", c.id)), safe, { question }), FALLBACK_ANSWER);
+  // beside a sentence that stands, the part-answer line follows it
+  const [ex] = examplesOf(safe, c);
+  assert.equal(texts(checkAnswer(answer(claim("count", c.id), claim("listed", ex.id)), safe, { question })).at(-1), PARTIAL);
+  const uk = countOf(await ask([["check_lists", { word: "electronics", list: "uk" }]]), "uk");
+  for (const forms of [["SANCTIONED"], ["OFAC"], ["CLEARED"], ["LEGAL"], ["Electronics"], ["ELECTRONICS LTD"], ["E1ECTRONICS"], ["A", "B", "C"].map((x) => x.repeat(3)), [], undefined, "ELECTRONICS"]) {
+    assert.deepEqual(checkAnswer(answer(claim("count", uk.id)), [{ ...uk, forms }], { question }), FALLBACK_ANSWER, JSON.stringify(forms));
+  }
+});
+
+test("word caveat goes with its line: the gate keeps it exactly when it keeps the count line, never judges it alone, and the oracle wants both or neither", async () => {
+  const question = "Which banks are on the EU sanctions list?";
+  const ev = await ask([["check_lists", { word: "bank", list: "eu" }]]);
+  const c = countOf(ev, "eu");
+  const [a] = examplesOf(ev, c);
+  const out = checkAnswer(answer(claim("count", c.id), claim("listed", a.id)), ev, { question });
+  const [line, caveat, listed] = texts(out);
+  assert.equal(caveat, NAME_ONLY);
+  assert.deepEqual(judgedSentences(out).map((s) => s.text), [line, listed]);
+  assert.deepEqual(texts(keepSentences(out, (t) => t !== line)), [listed, `Showing 1 of ${num(c.n)}.`]);
+  assert.deepEqual(texts(keepSentences(out, (t) => t !== listed)), [line, NAME_ONLY]);
+  // a caveat said alone, or a count line said without it
+  const drop = (text) => ({ ...out, sentences: out.sentences.filter((s) => s.text !== text) });
+  for (const text of [line, NAME_ONLY]) assert.ok(groundingProblems(question, ev, drop(text)).some((x) => x.includes("caveat")), text);
 });

@@ -35,11 +35,18 @@ const LISTS = {
     rec("IRAN AIR", "Entity List (EL)", "2008-01-01", "IA1"), // a name holding a programme word, under another programme
     rec("CAATSA EXAMPLE TRADING", "CAATSA - IRAN", "", "CA1"), // a programme holding Iran as a whole word
     rec("PERSIA LINE TRADING", "Iranian Transactions Regulations", "", "IT1"), // and one holding it inside a word only
+    // a word in names: ELECTRONIC and ELECTRONICS are one word; ELECTRONICA and MICROELECTRONICS are other words
+    rec("Kestrel Electronic Trading", "Entity List (EL)", "2024-03-01", "EL2"),
+    rec("Volta Electronics Co., Ltd.", "Entity List (EL)", "2025-10-09", "EL1"),
+    rec("Brightway Holdings", "Military End User (MEU) List", "", "BW1"), rec("Brightway Electronics", "Military End User (MEU) List", "", "BW1"), // the word in an alias row only
+    rec("Kestrel Electronic Trading Co.", "Entity List (EL)", "2024-03-01", "EL2"), // a second row of one record
+    rec("Electronica Supply", "Entity List (EL)", "2025-01-01", "EA1"), rec("Nova Microelectronics", "Entity List (EL)", "2025-02-01", "NM1"),
   ],
   uk: [
     rec("TASSOS", "Russia", "2026-02-24", "RUS3483", "9408695"), rec("Orion Ship Management", "Russia", "2025-03-03", "RUS777"), ...Array.from({ length: 8 }, (_, i) => rec(`QUARTZ UK ${i}`, "Russia", "2024-02-0" + (i + 1), `QU${i}`)),
     rec("Navumau", "Republic of Belarus", "2020-12-31", "BEL0001"), // the UK list's post-Brexit transfer date
     rec("Marlowe Holdings", "European Union", "", "EUP1"), // a programme named for a grouping the region table also names
+    rec("Orbit Electronics Ltd", "Cyber", "2023-05-19", "CYB0001"),
   ],
   eu: [rec("Zulu Ships Management", "Russia", "2025-10-24", "EU-9", "", "https://eur-lex.europa.eu/example")],
   un: [rec("Unrelated Group", "Somalia", "2010-01-01", "SOe.001")],
@@ -754,6 +761,78 @@ test("an unknown programme word returns a search item found:false, never a count
     assert.ok(!ev[0].text.includes(programme) && !ev[0].label.includes(programme), programme);
     assert.deepEqual(out.items.map((i) => [i.kind, i.found]), [["search", false]]);
   }
+});
+
+// ---- check_lists by a word in names ------------------------------------------------------------------------------
+
+test("word counts each list's records with the word in a name, by ref, folding a trailing S; whole words only; examples newest first, linked to the count", async () => {
+  const out = await run("check_lists", { word: "electronics" });
+  // US: Volta, Kestrel (two rows) and Brightway (by its alias); never Electronica or Microelectronics. UK: Orbit. EU and UN: none, so no count
+  assert.deepEqual(ofKind("count").map((e) => [e.list, e.n, e.shown, e.total]), [["us", 3, 3, 3], ["uk", 1, 1, 1]]);
+  const [us] = ev;
+  assert.deepEqual({ ...us, text: undefined }, {
+    id: "S1", kind: "count", unit: "name_word", list: "us", forms: ["ELECTRONIC", "ELECTRONICS"], n: 3, shown: 3, total: 3,
+    text: undefined, label: "United States list · records by a word in their names", url: "https://www.trade.gov/consolidated-screening-list", quotes: [],
+  });
+  assert.match(us.text, /^United States list: 3 records have the word ELECTRONIC or ELECTRONICS in a name/);
+  // newest listing date first, undated last; the example is the row that holds the word
+  assert.deepEqual(ev.filter((e) => e.result === "S1").map((e) => [e.kind, e.entity.name, e.date]), [
+    ["list", "Volta Electronics Co., Ltd.", "2025-10-09"], ["list", "Kestrel Electronic Trading", "2024-03-01"], ["list", "Brightway Electronics", undefined],
+  ]);
+  assert.deepEqual(ev.filter((e) => e.result === ev[4].id).map((e) => e.entity.name), ["Orbit Electronics Ltd"]);
+  assert.deepEqual(out.items.map((i) => i.id), ev.map((e) => e.id));
+  // the singular, any case, is the same search
+  for (const word of ["electronic", "ELECTRONIC", " Electronics "]) {
+    ev = [];
+    await run("check_lists", { word });
+    assert.deepEqual(ofKind("count").map((e) => [e.list, e.n, e.forms]), [["us", 3, ["ELECTRONIC", "ELECTRONICS"]], ["uk", 1, ["ELECTRONIC", "ELECTRONICS"]]], word);
+  }
+  // a whole word: ELECTRONICA is its own word
+  ev = [];
+  await run("check_lists", { word: "electronica" });
+  assert.deepEqual(ofKind("count").map((e) => [e.list, e.n, e.forms]), [["us", 1, ["ELECTRONICA"]]]);
+});
+
+test("word with a list: that list's count alone, even of none, and the forms are the words found on any list", async () => {
+  await run("check_lists", { word: "electronics", list: "uk" });
+  assert.deepEqual(ev.map((e) => [e.kind, e.list ?? e.gov, e.n]), [["count", "uk", 1], ["list", "uk", undefined]]);
+  ev = [];
+  await run("check_lists", { word: "electronics", list: "eu" });
+  assert.deepEqual(ev.map((e) => [e.kind, e.list, e.n, e.shown, e.total, e.forms]), [["count", "eu", 0, 0, 0, ["ELECTRONIC", "ELECTRONICS"]]]);
+});
+
+test("word on no list: one count of none with no forms, and the word is never repeated", async () => {
+  for (const word of ["Zorbex", "zorbexes"]) {
+    ev = [];
+    await run("check_lists", { word });
+    assert.deepEqual(ev.map((e) => [e.kind, e.unit, e.list, e.n, e.forms]), [["count", "name_word", undefined, 0, []]], word);
+    assert.ok(!/zorbex/i.test(ev[0].text + ev[0].label), word);
+  }
+});
+
+test("word must be one word of 3 to 30 letters, not a legal form or a function word, and never with programme; a failed call adds no evidence", async () => {
+  for (const word of ["china electronics", "Ltd", "the", "AND", "ab", "12345", "7654321", "x".repeat(31), "", 42]) {
+    ev = [];
+    const out = await run("check_lists", { word });
+    assert.equal(typeof out.error, "string", JSON.stringify(word));
+    assert.deepEqual(ev, [], JSON.stringify(word));
+  }
+  ev = [];
+  assert.match((await run("check_lists", { word: "bank", programme: "Iran" })).error, /programme or word/);
+  assert.match((await run("check_lists", { word: "bank", list: "xx" })).error, /list must be/);
+  assert.deepEqual(ev, []);
+});
+
+test("word with query: the name search exactly as on its own, then the word count exactly as on its own", async () => {
+  await run("check_lists", { word: "electronics", list: "us" });
+  const alone = unnumbered(ev);
+  ev = [];
+  await run("check_lists", { query: "TASSOS" });
+  const named = unnumbered(ev);
+  ev = [];
+  const out = await run("check_lists", { query: "TASSOS", word: "electronics", list: "us" });
+  assert.deepEqual(unnumbered(ev), [...named, ...alone]);
+  assert.equal(out.query, "TASSOS");
 });
 
 // ---- research: the research map's ships --------------------------------------------------------------------------
@@ -1778,9 +1857,9 @@ test("TOOLS are OpenAI function definitions for the seven tools", () => {
   assert.deepEqual(by.chips.properties.topic.enum, ["summary", "routes", "coverage", "listing_lag", "firms"]);
   assert.deepEqual(by.changes.required, ["since"]);
   assert.match(TOOLS[0].function.description, /bare name|bare IMO/);
-  assert.deepEqual(Object.keys(by.check_lists.properties), ["query", "programme", "list"]);
+  assert.deepEqual(Object.keys(by.check_lists.properties), ["query", "programme", "word", "list"]);
   assert.deepEqual(by.check_lists.properties.list.enum, ["us", "uk", "eu", "un"]);
-  assert.deepEqual(by.check_lists.required, []); // a query, a programme, or both
+  assert.deepEqual(by.check_lists.required, []); // a query, a programme or a word, or a query with one of them
   assert.deepEqual(by.changes.properties.graph.enum, ["fleet", "lobby"]);
   assert.deepEqual(Object.keys(by.research.properties), ["programme", "listed_by", "flag", "ship_type", "names_changed"]);
   assert.deepEqual([by.research.properties.programme.type, by.research.properties.names_changed.type, by.research.required], ["array", "boolean", []]);

@@ -17,7 +17,10 @@ const NOT_FOUND = /^(.+) is not on the lists we check \(US, UK, EU, UN, OpenSanc
 
 const day = (iso) => formatDate(iso) || iso;
 const clean = (s) => s.normalize("NFKC").replace(/[\p{Cf}\p{M}\uFEFF]/gu, "").replace(/\s+/g, " ").toLowerCase();
-const SHOWING = (n, total) => `Showing ${n.toLocaleString("en-GB")} of ${total.toLocaleString("en-GB")}.`; // written by the server, no source
+// written by the server, no source; what it counts by the result holding M: a name search's records, a count's units, a list's updates
+const SHOWN_AS = { ships: "ships", records: "records", name_word: "records", firms: "firms" };
+const SHOWING = (n, total, r) => `Showing ${n.toLocaleString("en-GB")} of ${total.toLocaleString("en-GB")}${r.kind === "search" ? " matching records from the lists, the research and OpenSanctions"
+  : r.kind === "change" ? " updates" : r.kind === "count" && Object.hasOwn(SHOWN_AS, r.unit) ? ` ${SHOWN_AS[r.unit]}` : ""}.`;
 const NOTE = { first_seen_opensanctions: " (first seen on the list via OpenSanctions)", uk_transfer: " (the UK list's transfer date; the listing may be older)" };
 const plural = (n, word) => (n ? [`${n} ${word}${n === 1 ? "" : "s"}`] : []);
 
@@ -148,8 +151,9 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   const ok = (cond, message) => { if (!cond) problems.push(message); };
   const made = producers(ev, today);
   // "Showing N of M." for a search of M matches when N of the entities among them are named by the answer's listing and count sentences,
-  // fewer than all. A quote, an age or any other sentence never counts; entities are counted, so a record listed from either of two
-  // searches of one ship (its name and its IMO number) counts for both. A source is only a label and a url, which records can share (UN
+  // fewer than all. An age may count (the checker says a listing and its age once, as the age), never surely; a quote or any other
+  // sentence never counts; entities are counted, so a record listed from either of two searches of one ship (its name and its IMO
+  // number) counts for both. A source is only a label and a url, which records can share (UN
   // records of one name, EU records under one act, US records whose url is the list's home page): it names one of the items with them
   // that write its sentence. So N may be any count from the entities the sources surely name to all those they may name.
   // A capped list of updates is a search too: its first change holds the total, and its changes are matches, each counted by its identity
@@ -160,16 +164,17 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   const labelled = (items, src) => [...items].some((e) => e.label === src.label && e.url === src.url);
   const key = (e) => (e.kind === "change" ? e.key : e.entity.id);
   const shows = new Set(ev.flatMap((e) => [listing(e), firmLine(e), counted(e), e.kind === "change" && e.entity && `${e.summary} · ${day(e.date)}`]).filter(Boolean));
-  const named = answer.sentences.filter((s) => shows.has(s.text)).flatMap((s) => s.sources.map((src) =>
-    new Set([...made.get(s.text)].filter((e) => e.entity && labelled([e], src)).map(key))));
-  const maybe = new Set(named.flatMap((x) => [...x]));
+  const aged = new Set(ev.flatMap((e) => ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted && e.date && age(e, today)) || []));
+  const keysOf = (s) => s.sources.map((src) => new Set([...made.get(s.text)].filter((e) => e.entity && labelled([e], src)).map(key)));
+  const named = answer.sentences.filter((s) => shows.has(s.text)).flatMap(keysOf);
+  const maybe = new Set([...named, ...answer.sentences.filter((s) => aged.has(s.text)).flatMap(keysOf)].flatMap((x) => [...x]));
   const surely = new Set(named.filter((x) => x.size === 1).flatMap((x) => [...x]));
   const showing = new Set();
   for (const r of ev.filter((x) => Number.isInteger(x.total))) {
     const matches = [...new Set(ev.filter((e) => e.result === r.id && e.entity && (listing(e) || firmLine(e) || e.kind === "change")).map(key))];
     if (r.kind === "search" && /Found: /.test(r.text) && !/at least /.test(r.text) && r.total !== matches.length) continue;
     const among = (set) => matches.filter((x) => set.has(x)).length;
-    for (let n = Math.max(1, among(surely)); n <= Math.min(among(maybe), r.total - 1); n++) showing.add(SHOWING(n, r.total));
+    for (let n = Math.max(1, among(surely)); n <= Math.min(among(maybe), r.total - 1); n++) showing.add(SHOWING(n, r.total, r));
   }
   for (const s of answer.sentences) {
     if (FIXED.has(s.text) || showing.has(s.text)) {

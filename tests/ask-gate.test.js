@@ -58,12 +58,12 @@ afterEach(() => mock.restoreAll());
 test("the gate keeps sentences that bear on the question and drops the rest", async () => {
   capture();
   const answer = built();
-  assert.deepEqual(texts(answer), [SHALAK, YOUSHAT, FREEZE, PARAK, "Showing 3 of 5."]);
+  assert.deepEqual(texts(answer), [SHALAK, YOUSHAT, FREEZE, PARAK, "Showing 3 of 5 matching records from the lists, the research and OpenSanctions."]);
   // 0.5 is kept: the threshold is p(yes) ≥ 0.5
   const ts = typesafe((t) => ({ [FREEZE]: 0.2, [YOUSHAT]: 0.5 })[t] ?? 0.9);
   const out = await gate(QUESTION, answer, { fetch: ts.fetch, apiKey: KEY });
   assert.equal(GATE_THRESHOLD, 0.5);
-  assert.deepEqual(texts(out), [SHALAK, YOUSHAT, PARAK, "Showing 3 of 5."]);
+  assert.deepEqual(texts(out), [SHALAK, YOUSHAT, PARAK, "Showing 3 of 5 matching records from the lists, the research and OpenSanctions."]);
   assert.deepEqual(groundingProblems(QUESTION, EV, out, TODAY), []);
   // one request, as the docs give it: the question and each sentence with its sources' labels, one noul a sentence
   assert.equal(ts.requests.length, 1);
@@ -100,10 +100,10 @@ test("the gate renumbers sources and rebuilds Showing lines", async () => {
   const one = await without(YOUSHAT);
   assert.deepEqual(one.sentences, [
     { text: SHALAK, sources: [src(1, shalak)] }, { text: FREEZE, sources: [src(2, freeze)] }, { text: PARAK, sources: [src(3, parak)] },
-    { text: "Showing 2 of 5.", sources: [] },
+    { text: "Showing 2 of 5 matching records from the lists, the research and OpenSanctions.", sources: [] },
   ]);
   // the last listing dropped: the line follows the last listing that is left
-  assert.deepEqual(texts(await without(PARAK)), [SHALAK, YOUSHAT, "Showing 2 of 5.", FREEZE]);
+  assert.deepEqual(texts(await without(PARAK)), [SHALAK, YOUSHAT, "Showing 2 of 5 matching records from the lists, the research and OpenSanctions.", FREEZE]);
   // every listing dropped: no line, since nothing of the search is shown
   const none = await without(SHALAK, YOUSHAT, PARAK);
   assert.deepEqual(none.sentences, [{ text: FREEZE, sources: [src(1, freeze)] }]);
@@ -126,12 +126,12 @@ test("the gate never sends or drops fixed copy", async () => {
   // the part-answer line (a name typed but not found, beside a found one) and the notice (the question asks for advice)
   const question = "Should I trade with IRAN SHALAK or Zephyr Marine Services?";
   const answer = built([listed("S2"), quote, { claim: "not_found", sources: ["S6"] }], question);
-  assert.deepEqual(texts(answer), [SHALAK, "Showing 1 of 5.", FREEZE, PARTIAL, NOT_ADVICE]);
+  assert.deepEqual(texts(answer), [SHALAK, "Showing 1 of 5 matching records from the lists, the research and OpenSanctions.", FREEZE, PARTIAL, NOT_ADVICE]);
   // judged all unrelated but one: only the two written from evidence are sent, and the fixed lines stay, in order
   const ts = typesafe((t) => (t === SHALAK ? 0.9 : 0));
   const out = await gate(question, answer, { fetch: ts.fetch, apiKey: KEY });
   assert.deepEqual(sent(ts), [SHALAK, FREEZE]);
-  assert.deepEqual(texts(out), [SHALAK, "Showing 1 of 5.", PARTIAL, NOT_ADVICE]);
+  assert.deepEqual(texts(out), [SHALAK, "Showing 1 of 5 matching records from the lists, the research and OpenSanctions.", PARTIAL, NOT_ADVICE]);
   assert.deepEqual(groundingProblems(question, EV, out, TODAY), []);
   // all kept: the same answer
   assert.deepEqual(await gate(question, answer, { fetch: typesafe().fetch, apiKey: KEY }), answer);

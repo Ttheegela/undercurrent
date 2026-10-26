@@ -330,7 +330,7 @@ test("check_lists then answer gives a rendered listed sentence", async () => {
   assert.deepEqual(out.answer.sentences.map((s) => s.text), [
     "TASSOS appears on the United States list under Iran.",
     "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.",
-    "Showing 2 of 4.", // two of the fixture search's four matches
+    "Showing 2 of 4 matching records from the lists, the research and OpenSanctions.", // two of the fixture search's four matches
   ]);
   assert.deepEqual(out.answer.sentences[2].sources, []);
   assert.match(out.answer.sentences[0].sources[0].url, /Details\.aspx\?id=54815/);
@@ -383,7 +383,7 @@ test("forces answer after 4 tool rounds", async () => {
   assert.deepEqual(sent.slice(0, 4).map((s) => s.body.tool_choice), ["auto", "auto", "auto", "auto"]);
   assert.deepEqual(sent[4].body.tool_choice, FORCE_ANSWER);
   assert.equal(out.answer.kind, "answer");
-  assert.equal(out.answer.sentences.length, 3); // two listings and "Showing 2 of 4."
+  assert.equal(out.answer.sentences.length, 3); // two listings and their "Showing 2 of 4" line
   // a forced call that still is not an answer is the fallback, and there is never a sixth call
   openrouter(round, round, round, round, { choices: [{ message: { role: "assistant", content: "TASSOS is fine." } }] });
   const none = (await run(ask("Is TASSOS sanctioned?"))).json.answer;
@@ -936,7 +936,7 @@ test("runAsk wraps the gate as \"gate\" and POST still passes no model", async (
   const out = await runAsk(history("Is TASSOS on the US list?"), new Date(Date.now()), { wrap });
   assert.deepEqual(out.answer.sentences, [
     { text: US, sources: [{ n: 1, label: "United States list · TASSOS", url: "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=54815" }] },
-    { text: "Showing 1 of 4.", sources: [] }, // (it was 2 of 4 with the UK record)
+    { text: "Showing 1 of 4 matching records from the lists, the research and OpenSanctions.", sources: [] }, // (it was 2 of 4 with the UK record)
   ]);
   // the gate was handed the question and the checker's answer, and no key: it reads TYPESAFE_API_KEY itself
   assert.equal(gated.length, 1);
@@ -961,7 +961,7 @@ test("runAsk wraps the gate as \"gate\" and POST still passes no model", async (
 
 test("final review I2: a follow-up skips the gate: no TypeSafe call, the answer as the checker wrote it, and the gate step marked skipped", async () => {
   process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
-  const CHECKED = ["TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4."];
+  const CHECKED = ["TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4 matching records from the lists, the research and OpenSanctions."];
   // "And the other one?" can't be judged without the turns before it, and only the latest question is ever sent
   const followUp = [
     { role: "user", content: "Is TASSOS sanctioned?" }, { role: "assistant", content: "TASSOS appears on the United States list under Iran." },
@@ -1020,7 +1020,7 @@ test("the gate gives up before the request's 26 s are out, so a slow answer is s
   const out = await runAsk(history("Is TASSOS sanctioned?"), new Date(now));
   assert.equal(out.ok, true);
   assert.deepEqual(out.answer.sentences.map((s) => s.text), [ // as the checker wrote it
-    "TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4.",
+    "TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4 matching records from the lists, the research and OpenSanctions.",
   ]);
   assert.equal(budgets.at(-1), 950); // the gate's: what was left of the 26 s, less 50 ms, not its usual 3 s
   assert.deepEqual(logged.filter((line) => line.startsWith("ask")), ["ask: relevance gate unavailable"]); // (Node's own warnings aside)

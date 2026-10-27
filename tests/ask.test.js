@@ -1117,6 +1117,40 @@ test("an answer of no sentences after a failed tool call is the fallback, not th
   assert.deepEqual(checked.answer.sentences, [{ text: "Nothing recorded on this site answers that.", sources: [] }]);
 });
 
+test("each fallback logs the way it fell back, and never the question or the model's words", async () => {
+  const fellBack = () => {
+    assert.ok(logged.every((line) => !line.includes("TASSOS") && !line.includes("fine")), logged.join("\n"));
+    return logged.filter((line) => line.startsWith("ask: fallback"));
+  };
+  const why = async (...steps) => {
+    openrouter(...steps);
+    logged = [];
+    await runAsk(history("Is TASSOS sanctioned?"), new Date(Date.now()));
+    return fellBack();
+  };
+  const lookup = reply(call("check_lists", { query: "TASSOS" }));
+  assert.deepEqual(await why({ choices: [{ message: { role: "assistant", content: "TASSOS is fine." } }] }), ["ask: fallback no_call"]);
+  assert.deepEqual(await why(lookup, lookup, lookup, lookup, lookup), ["ask: fallback forced_not_answer"]);
+  assert.deepEqual(await why(reply(call("check_lists", { query: "TASSOS" }), call("answer", { kind: "answer", sentences: [] }))), ["ask: fallback answer_beside_calls"]);
+  assert.deepEqual(await why(reply(call("answer", "{not json"))), ["ask: fallback bad_arguments"]);
+  assert.deepEqual(await why(answer({ kind: "fine", sentences: [] })), ["ask: fallback wrong_kind"]);
+  assert.deepEqual(await why(lookup, answer({ kind: "answer", sentences: [{ claim: "listed", sources: ["S99"] }] })), ["ask: fallback nothing_checked"]);
+  // the research call fails (no such group): an answer of no sentences, and a gate that drops every sentence, fall back for that
+  const failing = reply(call("check_lists", { query: "TASSOS" }), call("research", { programme: ["Atlantis"] }));
+  assert.deepEqual(await why(failing, answer({ kind: "answer", sentences: [] })), ["ask: fallback tool_failed"]);
+  process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
+  openrouter(failing, listedAnswer);
+  withTypesafe(() => true);
+  logged = [];
+  await runAsk(history("How many Atlantis ships is TASSOS grouped with?"), new Date(Date.now()));
+  assert.deepEqual(fellBack(), ["ask: fallback gate_dropped_all"]);
+  // an answer, a refusal and that nothing answers are not fallbacks: none is logged
+  delete process.env.TYPESAFE_API_KEY;
+  assert.deepEqual(await why(lookup, listedAnswer), []);
+  assert.deepEqual(await why(answer({ kind: "refusal", sentences: [] })), []);
+  assert.deepEqual(await why(lookup, answer({ kind: "answer", sentences: [] })), []);
+});
+
 test("nothing under api/ imports langsmith, and package.json has it only in devDependencies", () => {
   const api = new URL("../api/", import.meta.url);
   const files = readdirSync(api, { recursive: true }).filter((f) => /\.[cm]?js$/.test(f));

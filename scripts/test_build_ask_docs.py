@@ -32,6 +32,13 @@ def test_blocks_do_not_glue_words_together():
     assert sections(html)[0]["text"] == "one two three four five"
 
 
+def test_a_bold_only_paragraph_with_no_stop_leads_into_the_next_sentence():
+    # how-sanctions-work's <p><strong>What the data can't see</strong></p>: flattened, it ran into the next sentence
+    html = ("<h2>Methods</h2><p>Checked.</p><p><strong>What the data can't see</strong></p><ul><li>Cash deals.</li></ul>"
+            "<p><b>Fact (act text).</b></p><p><strong>Sources:</strong></p><p>More.</p>")
+    assert sections(html)[0]["text"] == "Checked. What the data can't see: Cash deals. Fact (act text). Sources: More."
+
+
 def test_neighbouring_elements_do_not_glue_words_together():
     html = ('<h2>T</h2><div class="stats"><div class="stat"><b data-stat="kg.ships">1,573</b><span>sanctioned ships</span></div>'
             '<div class="stat"><b>14</b><span>records</span></div></div>'   # methods.html stat tiles

@@ -173,12 +173,13 @@ const DOCS = {
     section("abbrev", "Abbreviations", "Rep. Jane Doe of St. Petersburg met Acme Co. Ltd. staff on No. 5 street. Mr. Lee, Ms. Kim and Dr. Park met Boribo PTE. LTD. and Hapuka Inc. staff, e.g. at lunch, i.e. at noon, with Sen. Roe and the U.K. and U.S. delegations. (A bracketed aside follows.) then a lower-case fragment follows."),
     section("tools", "The main tools", "Asset freeze (also called blocking). Nobody may pay, hold or move the target's money or property. \"An asset freeze means nobody may pay a blocked person.\" Names are compared after removing endings such as LLC or OOO. Companies owned by a listed party can be blocked without being named (section 2). Secondary sanctions (pressure on outsiders). Hollow shapes run listed ships but are on no list themselves. In the US, any company owned 50% or more in total by listed parties is blocked automatically, even through a chain of other companies.", "stories/how-sanctions-work/index.html"),
     // round 4: the final check's pointing sentences (real wording), beside self-contained ones
-    section("pointing", "Pointing sentences", "The other lists still update. Every figure here comes from free official sources and is rebuilt nightly by a script. The ships, companies, lobbying reports and counts above are rebuilt every night from the official lists. It was carrying about 800,000 barrels of Russian crude with no recognised Western insurance. These tankers move oil through ship-to-ship transfers to non-US buyers. Treasury says these ships carried more than 20 cargoes of Russian petroleum products in 2025. Its parent En+ paid Mercury Public Affairs $108,500 a month. There are 1,724 ships in the research. Such firms rarely sign a form under a name of their own. The former paid the fees and the latter signed the forms. Both were founded in May 2022. He paid the fees from 2019 to 2022. The manager of the hull is a one-ship company. The shipowner is a one-ship company in Dubai. The parent paid the fees for both. Owners of the two were named in May. Banks, exporters, shippers and insurers do the actual stopping. A seven-digit number is treated as an IMO number by the search. Nobody may pay, hold or move money for a blocked person. Official example: the US Treasury's own entry for RM Design and Development (Kyrgyzstan) says the firm was established on 17 March 2022. Among the 64 firms, 4 have no founding date in the OFAC entry (Abhar Technologies, Innovio Ventures). The act that froze the shipping firms is cited as Implementing Regulation 2026/1843 on the EUR-Lex page we read and as 2026/1845 in the OpenSanctions EU export. The UK entry still shows the old names. Until then, trading is easy. The registered owners of a hull pay the fees. The other hull was renamed in 2024. Fees were paid through the Nickles Group in 2019."),
+    section("pointing", "Pointing sentences", "The other lists still update. Every figure here comes from free official sources and is rebuilt nightly by a script. The ships, companies, lobbying reports and counts above are rebuilt every night from the official lists. It was carrying about 800,000 barrels of Russian crude with no recognised Western insurance. These tankers move oil through ship-to-ship transfers to non-US buyers. Treasury says these ships carried more than 20 cargoes of Russian petroleum products in 2025. Its parent En+ paid Mercury Public Affairs $108,500 a month. There are 1,724 ships in the research. Such firms rarely sign a form under a name of their own. The former paid the fees and the latter signed the forms. Both were founded in May 2022. He paid the fees from 2019 to 2022. The manager of the hull is a one-ship company. The shipowner is a one-ship company in Dubai. The parent paid the fees for both. Owners of the two were named in May. Banks, exporters, shippers and insurers do the actual stopping. A seven-digit number is treated as an IMO number by the search. Nobody may pay, hold or move money for a blocked person. Official example: the US Treasury's own entry for RM Design and Development (Kyrgyzstan) says the firm was established on 17 March 2022. Among the 64 firms, 4 have no founding date in the OFAC entry (Abhar Technologies, Innovio Ventures). The act that froze the shipping firms is cited as Implementing Regulation 2026/1843 on the EUR-Lex page we read and as 2026/1845 in the OpenSanctions EU export. The UK entry still shows the old names. Until then, trading is easy. The registered owners of a hull pay the fees. The other hull was renamed in 2024. Fees were paid through the Nickles Group in 2019. We have not resolved which is right. The median gap is 209 days. The spread runs from BODHI (UK first by 477 days) to BLUEBELL (US first by 501 days). A gap of a year between two dates is common."),
     // final wave: a heading glued to the sentence after it (the page's "1 · The machine", one- or two-word terms before their
     // definition), beside sentences that only look like it
     section("glued", "Glued headings", "1 · The machine A sanction is a rule that says do not trade. Companies The shipper, the buyer and any middlemen. Routes Which countries the paperwork says the goods left. Reported From an official filing we saw summarised. Ownership Who owns whom, and by how much. Rating: works · works with care · weak. Ships and companies share names in the records. A buyer can be a company or a person on paper."),
     section("examples", "Examples and places", "Shell firms often register in hubs such as Dubai and Hong Kong. Such firms rarely sign a lobbying form in person. There are 1,724 ships in the research. In 2025, there were 12 renamings in the fleet. Ships flagged there are often old. The hull was renamed there in 2024. Is there a record for every hull in our research?"),
-    section("fragments", "Fragments", "12 ships of the fleet were renamed in 2025. Anglo Premier Shipping Pte. Ltd. owns the hull and nothing else. Ltd. is the ending of most names in the data. S.A. is the ending of Spanish names in the data. LIMITED, CONCEPTO SCREEN SAL and TALAQI GROUP FOR TRADE LLC share a director. FIORA, UK-flagged 9 May 2025, appears under a newer name. Four words do not. Five words make a sentence. 2025/933, 20 May 2025). /../tools/fleet/ run steps 1 to 4 on public files. # Method How (tools / recipe) is a heading glued to a line. \"Quoted sentences start with a mark and are not offered.\" Yes, a sentence may open with a short word and a comma."),
+    section("limits", "Known limits", "Undercurrent's copy of the lists records no country, so Ask cannot say where a firm is based."),
+    section("fragments", "Fragments","12 ships of the fleet were renamed in 2025. Anglo Premier Shipping Pte. Ltd. owns the hull and nothing else. Ltd. is the ending of most names in the data. S.A. is the ending of Spanish names in the data. LIMITED, CONCEPTO SCREEN SAL and TALAQI GROUP FOR TRADE LLC share a director. FIORA, UK-flagged 9 May 2025, appears under a newer name. Four words do not. Five words make a sentence. 2025/933, 20 May 2025). /../tools/fleet/ run steps 1 to 4 on public files. # Method How (tools / recipe) is a heading glued to a line. \"Quoted sentences start with a mark and are not offered.\" Yes, a sentence may open with a short word and a comma."),
   ],
 };
 const CHIPS = {
@@ -1215,9 +1216,9 @@ test("fix round 1 (4): a change is one change in every changes call: a plain cap
     return out.sentences.map((s) => s.text);
   };
   // TASSOS STAR from the plain call, SI HE from the topic call: two of the plain call's 35, one line
-  assert.deepEqual(say(plain[0].id, topical[1].id), [line(plain[0]), line(plain[1]), "Showing 2 of 35."]);
+  assert.deepEqual(say(plain[0].id, topical[1].id), [line(plain[0]), line(plain[1]), "Showing 2 of 35 updates."]);
   // one change from both calls is one sentence, counted once
-  assert.deepEqual(say(plain[1].id, topical[1].id), [line(plain[1]), "Showing 1 of 35."]);
+  assert.deepEqual(say(plain[1].id, topical[1].id), [line(plain[1]), "Showing 1 of 35 updates."]);
 }, {
   started: "2026-10-12", first_run: "2026-10-12",
   days: [{
@@ -1441,6 +1442,27 @@ test("site_docs ranks explainer sections above maintainer notes", async () => {
   ev = [];
   const out = await run("site_docs", { query: "zebra giraffe" });
   assert.deepEqual([ev.length, out.items.length], [0, 0]);
+});
+
+test("site_docs reads can't as cannot, with either apostrophe, and finds the section that says what cannot be done", async () => {
+  for (const query of ["What can't it do?", "What can’t it do?"]) {
+    ev = [];
+    await run("site_docs", { query });
+    assert.equal(ev[0]?.label, "Known limits", query);
+  }
+});
+
+test("a ship in the research with no manager says so, as a quote; a ship with one and a company do not", async () => {
+  await run("check_lists", { query: "TASSOS STAR" });
+  const star = ev.find((e) => e.kind === "research" && e.entity.name === "TASSOS STAR");
+  assert.ok(star.quotes.includes("Undercurrent's research records no manager for TASSOS STAR."), star.quotes.join(" | "));
+  const none = (e) => e.quotes.some((q) => q.includes("records no manager"));
+  ev = [];
+  await run("check_lists", { query: "TASSOS" });
+  assert.ok(!none(ev.find((e) => e.kind === "research" && e.entity.name === "TASSOS")));
+  ev = [];
+  await run("check_lists", { query: "ZED HOLDING" });
+  assert.ok(!none(ev.find((e) => e.kind === "research")));
 });
 
 // ---- fix round 1: the review's findings --------------------------------------------------------------------------
@@ -1901,6 +1923,8 @@ test("TOOLS are OpenAI function definitions for the seven tools", () => {
 test("the answer tool's claim enum includes count, age and none_matched", () => {
   const answerTool = TOOLS.find((t) => t.function.name === "answer").function;
   const claim = answerTool.parameters.properties.sentences.items.properties.claim;
+  // a model once wrote its own sentences here, and with "One name from the list" the entity's name ("TASSOS"): no word "name" in it
+  assert.match(claim.description, /^The claim type: one of these words exactly, never your own words\. /);
   for (const name of ["count", "age", "none_matched"]) {
     assert.ok(claim.enum.includes(name), name);
     assert.match(answerTool.description, new RegExp(`\\b${name}: `), name);
@@ -2080,10 +2104,13 @@ test("round 4 (b): no quote, in any item, carries a pointing word", async () => 
     "A seven-digit number is treated as an IMO number by the search.",
     "Nobody may pay, hold or move money for a blocked person.",
     "Fees were paid through the Nickles Group in 2019.", // "the Nickles Group" is a name: a capitalised noun is not the generic one
+    "A gap of a year between two dates is common.", // a gap that is not "the" gap of the sentence before
   ]);
   for (const s of ["The other lists still update.", "Every figure here comes", "counts above are rebuilt", "It was carrying about 800,000 barrels", "These tankers move oil", "Treasury says these ships carried", "Its parent En+ paid", "Such firms rarely sign", "The former paid", "Both were founded", "He paid the fees", "The manager of the hull", "The shipowner is a one-ship", "The parent paid", "Owners of the two", "Official example: the US Treasury's own entry for RM Design", "4 have no founding date in the OFAC entry",
     // round 5: "froze" is listing language and "the shipping firms" points (NC1); "The UK entry … the old names", "Until then" and "The registered owners" point
-    "The act that froze the shipping firms", "The UK entry still shows the old names.", "Until then, trading is easy.", "The registered owners of a hull pay the fees.", "The other hull was renamed in 2024."]) {
+    "The act that froze the shipping firms", "The UK entry still shows the old names.", "Until then, trading is easy.", "The registered owners of a hull pay the fees.", "The other hull was renamed in 2024.",
+    // the journalist test (Oct 2026): which two are in question, and the gap and spread of what, are in the sentence before
+    "We have not resolved which is right.", "The median gap is 209 days.", "The spread runs from BODHI"]) {
     assert.ok(doc.text.includes(s), `in the text: ${s}`);
     assert.ok(!doc.quotes.some((q) => q.includes(s)), `quotable: ${s}`);
   }
@@ -2188,6 +2215,7 @@ test("round 4 (b): a research fact that points elsewhere is not quoted; a name o
   const r = ev.find((e) => e.kind === "research" && e.entity.name === "SI HE");
   assert.match(r.text, /It was carrying about 800,000 barrels of Russian crude in June 2026\./);
   assert.deepEqual(r.quotes, [
+    "Undercurrent's research records no manager for SI HE.",
     "Other names of SI HE: FEI YUN HE.",
     "Flags flown by SI HE: Panama, IT.",
     "SI HE has also sailed as FEI YUN HE.",

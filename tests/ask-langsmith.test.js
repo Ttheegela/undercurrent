@@ -542,7 +542,7 @@ test("final review minor 8: a case held by two examples (a copy the next sync re
 });
 
 test("relaunch: unrelated is judged on the sentences that cite a record; an answer with none is judged for relevance only and left out of mean_unrelated", async () => {
-  const FIXED = { kind: "answer", sentences: [{ text: "Showing 4 of 25.", sources: [] }], next: [] }; // fixed copy only: no record
+  const FIXED = { kind: "answer", sentences: [{ text: "Showing 4 of 25 ships.", sources: [] }], next: [] }; // fixed copy only: no record
   const script = { "programme-2": {}, "area-lists-1": [{ answer: FIXED }, {}] };
   const judge = fakeJudge({ [byId("programme-2").question]: { score: 3, noul: 0.3 }, [byId("area-lists-1").question]: [{ score: 1.5, noul: 0.9 }, { score: 3, noul: 0.1 }] });
   const { rows, deps } = setup(Object.keys(script).map(byId), fakeAsk(script), ENV, judge);
@@ -552,7 +552,7 @@ test("relaunch: unrelated is judged on the sentences that cite a record; an answ
   const shown = checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question });
   const [first, fixed] = judge.requests.map((r) => r.body);
   assert.deepEqual([first.state.answer, first.state.records], [shown.sentences.map((x) => x.text), shown.sentences.filter((x) => x.sources.length).map((x) => x.text)]);
-  assert.ok(first.state.answer.length > first.state.records.length && first.state.answer.includes("Showing 4 of 25."));
+  assert.ok(first.state.answer.length > first.state.records.length && first.state.answer.includes("Showing 4 of 25 ships."));
   assert.deepEqual(Object.keys(first.questions), ["addresses", "unrelated"]);
   // the fixed-copy answer: addresses only, so relevance and no unrelated score
   assert.deepEqual([fixed.state.records, Object.keys(fixed.questions)], [[], ["addresses"]]);
@@ -701,7 +701,7 @@ test("sync creates the dataset once and upserts by case_id; an edited case updat
   const stored = () => [...client.datasets.get("undercurrent-ask").examples.values()];
   const exampleOf = (c) => ({ inputs: { question: c.question }, outputs: { expect: c.expect }, metadata: { case_id: c.id, category: c.category, dataset_split: ["base"] } });
   // the first sync creates the dataset and one example per live case, in the shape the runner reads
-  assert.deepEqual(await syncDataset(CASES, { client }), { created: 51, updated: 0, removed: 0 });
+  assert.deepEqual(await syncDataset(CASES, { client }), { created: 59, updated: 0, removed: 0 });
   assert.deepEqual(stored().map(({ id, ...ex }) => ex), LIVE.map(exampleOf));
   // nothing changed, nothing to do (the server's dataset_split is not a change)
   const second = calls.length;
@@ -730,7 +730,7 @@ test("run without --sync on a missing dataset exits 1 with the message", async (
   assert.deepEqual(calls, [["hasDataset", { datasetName: "undercurrent-ask" }]]);
   // with --sync, a run on main creates it from tests/ask-eval.json before it evaluates
   const result = await runEvals({ ...WEEKLY, sync: true }, deps);
-  assert.deepEqual(result.sync, { created: 51, updated: 0, removed: 0 });
+  assert.deepEqual(result.sync, { created: 59, updated: 0, removed: 0 });
   assert.deepEqual(calls.slice(1).map(([name]) => name), ["hasDataset", "createDataset", "listExamples", "createExamples", "evaluate", "readProject", "getDatasetUrl"]);
 });
 

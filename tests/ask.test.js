@@ -330,7 +330,7 @@ test("check_lists then answer gives a rendered listed sentence", async () => {
   assert.deepEqual(out.answer.sentences.map((s) => s.text), [
     "TASSOS appears on the United States list under Iran.",
     "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.",
-    "Showing 2 of 4.", // two of the fixture search's four matches
+    "Showing 2 of 4 matching records from the lists, the research and OpenSanctions.", // two of the fixture search's four matches
   ]);
   assert.deepEqual(out.answer.sentences[2].sources, []);
   assert.match(out.answer.sentences[0].sources[0].url, /Details\.aspx\?id=54815/);
@@ -383,7 +383,7 @@ test("forces answer after 4 tool rounds", async () => {
   assert.deepEqual(sent.slice(0, 4).map((s) => s.body.tool_choice), ["auto", "auto", "auto", "auto"]);
   assert.deepEqual(sent[4].body.tool_choice, FORCE_ANSWER);
   assert.equal(out.answer.kind, "answer");
-  assert.equal(out.answer.sentences.length, 3); // two listings and "Showing 2 of 4."
+  assert.equal(out.answer.sentences.length, 3); // two listings and their "Showing 2 of 4" line
   // a forced call that still is not an answer is the fallback, and there is never a sixth call
   openrouter(round, round, round, round, { choices: [{ message: { role: "assistant", content: "TASSOS is fine." } }] });
   const none = (await run(ask("Is TASSOS sanctioned?"))).json.answer;
@@ -936,7 +936,7 @@ test("runAsk wraps the gate as \"gate\" and POST still passes no model", async (
   const out = await runAsk(history("Is TASSOS on the US list?"), new Date(Date.now()), { wrap });
   assert.deepEqual(out.answer.sentences, [
     { text: US, sources: [{ n: 1, label: "United States list · TASSOS", url: "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=54815" }] },
-    { text: "Showing 1 of 4.", sources: [] }, // (it was 2 of 4 with the UK record)
+    { text: "Showing 1 of 4 matching records from the lists, the research and OpenSanctions.", sources: [] }, // (it was 2 of 4 with the UK record)
   ]);
   // the gate was handed the question and the checker's answer, and no key: it reads TYPESAFE_API_KEY itself
   assert.equal(gated.length, 1);
@@ -961,7 +961,7 @@ test("runAsk wraps the gate as \"gate\" and POST still passes no model", async (
 
 test("final review I2: a follow-up skips the gate: no TypeSafe call, the answer as the checker wrote it, and the gate step marked skipped", async () => {
   process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
-  const CHECKED = ["TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4."];
+  const CHECKED = ["TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4 matching records from the lists, the research and OpenSanctions."];
   // "And the other one?" can't be judged without the turns before it, and only the latest question is ever sent
   const followUp = [
     { role: "user", content: "Is TASSOS sanctioned?" }, { role: "assistant", content: "TASSOS appears on the United States list under Iran." },
@@ -1020,7 +1020,7 @@ test("the gate gives up before the request's 26 s are out, so a slow answer is s
   const out = await runAsk(history("Is TASSOS sanctioned?"), new Date(now));
   assert.equal(out.ok, true);
   assert.deepEqual(out.answer.sentences.map((s) => s.text), [ // as the checker wrote it
-    "TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4.",
+    "TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4 matching records from the lists, the research and OpenSanctions.",
   ]);
   assert.equal(budgets.at(-1), 950); // the gate's: what was left of the 26 s, less 50 ms, not its usual 3 s
   assert.deepEqual(logged.filter((line) => line.startsWith("ask")), ["ask: relevance gate unavailable"]); // (Node's own warnings aside)
@@ -1115,6 +1115,40 @@ test("an answer of no sentences after a failed tool call is the fallback, not th
   openrouter(reply(call("check_lists", { query: "TASSOS" })), empty);
   const checked = await runAsk(history("How many Atlantis ships is TASSOS grouped with?"), new Date(Date.now()));
   assert.deepEqual(checked.answer.sentences, [{ text: "Nothing recorded on this site answers that.", sources: [] }]);
+});
+
+test("each fallback logs the way it fell back, and never the question or the model's words", async () => {
+  const fellBack = () => {
+    assert.ok(logged.every((line) => !line.includes("TASSOS") && !line.includes("fine")), logged.join("\n"));
+    return logged.filter((line) => line.startsWith("ask: fallback"));
+  };
+  const why = async (...steps) => {
+    openrouter(...steps);
+    logged = [];
+    await runAsk(history("Is TASSOS sanctioned?"), new Date(Date.now()));
+    return fellBack();
+  };
+  const lookup = reply(call("check_lists", { query: "TASSOS" }));
+  assert.deepEqual(await why({ choices: [{ message: { role: "assistant", content: "TASSOS is fine." } }] }), ["ask: fallback no_call"]);
+  assert.deepEqual(await why(lookup, lookup, lookup, lookup, lookup), ["ask: fallback forced_not_answer"]);
+  assert.deepEqual(await why(reply(call("check_lists", { query: "TASSOS" }), call("answer", { kind: "answer", sentences: [] }))), ["ask: fallback answer_beside_calls"]);
+  assert.deepEqual(await why(reply(call("answer", "{not json"))), ["ask: fallback bad_arguments"]);
+  assert.deepEqual(await why(answer({ kind: "fine", sentences: [] })), ["ask: fallback wrong_kind"]);
+  assert.deepEqual(await why(lookup, answer({ kind: "answer", sentences: [{ claim: "listed", sources: ["S99"] }] })), ["ask: fallback nothing_checked"]);
+  // the research call fails (no such group): an answer of no sentences, and a gate that drops every sentence, fall back for that
+  const failing = reply(call("check_lists", { query: "TASSOS" }), call("research", { programme: ["Atlantis"] }));
+  assert.deepEqual(await why(failing, answer({ kind: "answer", sentences: [] })), ["ask: fallback tool_failed"]);
+  process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
+  openrouter(failing, listedAnswer);
+  withTypesafe(() => true);
+  logged = [];
+  await runAsk(history("How many Atlantis ships is TASSOS grouped with?"), new Date(Date.now()));
+  assert.deepEqual(fellBack(), ["ask: fallback gate_dropped_all"]);
+  // an answer, a refusal and that nothing answers are not fallbacks: none is logged
+  delete process.env.TYPESAFE_API_KEY;
+  assert.deepEqual(await why(lookup, listedAnswer), []);
+  assert.deepEqual(await why(answer({ kind: "refusal", sentences: [] })), []);
+  assert.deepEqual(await why(lookup, answer({ kind: "answer", sentences: [] })), []);
 });
 
 test("nothing under api/ imports langsmith, and package.json has it only in devDependencies", () => {

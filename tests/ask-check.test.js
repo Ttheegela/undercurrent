@@ -165,7 +165,7 @@ const searchFor = (ev, query) => find(ev, (e) => e.kind === "search" && e.query 
 const shows = (n, ev = E.tassos, query = "TASSOS") => {
   const { total } = searchFor(ev, query);
   assert.ok(n < total, `${query}: ${n} of ${total}`);
-  return `Showing ${n} of ${total}.`;
+  return `Showing ${n} of ${total} matching records from the lists, the research and OpenSanctions.`;
 };
 const TASSOS_Q = { question: "Is TASSOS sanctioned?" };
 
@@ -179,7 +179,10 @@ function serverOnly(out, ev, ctx) {
   for (const e of ev) {
     for (const q of e.quotes) ok.add(q);
     for (const c of ["listed", "age", "not_found", "change"]) for (const x of checkAnswer(answer(claim(c, e.id)), ev, ctx).sentences) ok.add(x.text);
-    for (let k = 1; k < e.total; k++) ok.add(`Showing ${k.toLocaleString("en-GB")} of ${e.total.toLocaleString("en-GB")}.`); // a search's line
+    // a result's line, by what it counts
+    const unit = e.kind === "search" ? " matching records from the lists, the research and OpenSanctions" : e.kind === "change" ? " updates"
+      : e.kind === "count" ? ({ ships: " ships", firms: " firms" }[e.unit] ?? " records") : "";
+    for (let k = 1; k < e.total; k++) ok.add(`Showing ${k.toLocaleString("en-GB")} of ${e.total.toLocaleString("en-GB")}${unit}.`);
   }
   const near = ev.flatMap((e) => e.near ?? []);
   const labels = new Set(["Search", ...near, ...ev.map((e) => e.label), ...ev.map((e) => e.entity?.name).filter(Boolean)]);
@@ -287,6 +290,17 @@ test("fact with listing language is dropped", () => {
   assert.deepEqual(texts(out), [tassosResearch().quotes[0], PARTIAL]);
   // a listed claim on that hit names the evidence entity, never the model's (or the reader's) name
   assert.deepEqual(texts(checkAnswer(answer({ ...claim("listed", star().id), text: "TASSOS is listed by the UK." }), E.tassos)), ["TASSOS STAR appears in OpenSanctions as listed by US.", shows(1)]);
+});
+
+test("a sentence written where the claim's name goes, beside a quote number and one source, is that quote", () => {
+  // the Haiku eval run of 26 Oct 2026 (journalist-8): its own words in claim, with the right quote number and source each time
+  const r = tassosResearch();
+  const out = checkAnswer(answer({ claim: "TASSOS is a ship the site has researched.", sources: [r.id], quote: 0 }), E.tassos);
+  assert.deepEqual(texts(out), [r.quotes[0]]); // the quote, never the model's words
+  assert.doesNotMatch(JSON.stringify(out), /has researched/);
+  // with no quote number, or with two sources, it is no claim: dropped, as ever
+  assert.deepEqual(texts(checkAnswer(answer({ claim: "TASSOS appears on lists.", sources: [r.id] }, quote(r.id, 0)), E.tassos)), [r.quotes[0], PARTIAL]);
+  assert.deepEqual(checkAnswer(answer({ claim: "TASSOS is listed.", sources: [r.id, tassosList("uk").id], quote: 0 }), E.tassos), FALLBACK_ANSWER);
 });
 
 test("ITAR program renders as appears on the United States list", () => {
@@ -957,14 +971,14 @@ test("a capped list of updates: the change lines cited count toward 'Showing N o
     assert.deepEqual(groundingProblems("What changed on 20 Oct?", E.capped, out), [], texts(out).join(" | "));
     return texts(out);
   };
-  assert.deepEqual(say(answer(claim("change", changes[0].id, changes[1].id))), [line(changes[0]), line(changes[1]), "Showing 2 of 35."]);
-  assert.deepEqual(say(answer(claim("change", ...changes.map((c) => c.id)))), [...changes.map(line), "Showing 30 of 35."]);
+  assert.deepEqual(say(answer(claim("change", changes[0].id, changes[1].id))), [line(changes[0]), line(changes[1]), "Showing 2 of 35 updates."]);
+  assert.deepEqual(say(answer(claim("change", ...changes.map((c) => c.id)))), [...changes.map(line), "Showing 30 of 35 updates."]);
   // a quote of a change is its change claim, the line included; one change cited twice is one sentence, counted once
-  assert.deepEqual(say(answer(quote(changes[4].id, 0))), [line(changes[4]), "Showing 1 of 35."]);
-  assert.deepEqual(say(answer(claim("change", changes[4].id), quote(changes[4].id, 0))), [line(changes[4]), "Showing 1 of 35."]);
+  assert.deepEqual(say(answer(quote(changes[4].id, 0))), [line(changes[4]), "Showing 1 of 35 updates."]);
+  assert.deepEqual(say(answer(claim("change", changes[4].id), quote(changes[4].id, 0))), [line(changes[4]), "Showing 1 of 35 updates."]);
   // the oracle catches a wrong N
   const out = checkAnswer(answer(claim("change", changes[0].id, changes[1].id)), E.capped, {});
-  assert.equal(groundingProblems("", E.capped, { ...out, sentences: out.sentences.map((x) => (x.text === "Showing 2 of 35." ? { ...x, text: "Showing 3 of 35." } : x)) }).length, 1);
+  assert.equal(groundingProblems("", E.capped, { ...out, sentences: out.sentences.map((x) => (x.text === "Showing 2 of 35 updates." ? { ...x, text: "Showing 3 of 35 updates." } : x)) }).length, 1);
   // not capped (the committed record's 20 Oct): the change lines and nothing more
   const week = E.week.filter((e) => e.kind === "change");
   assert.deepEqual(texts(checkAnswer(answer(claim("change", ...week.map((c) => c.id))), E.week)), week.map(line));
@@ -1344,15 +1358,46 @@ const orchid = () => [
   ...[0, 1].map((i) => ({ id: `S${i + 8}`, kind: "list", entity: { id: `uk:O${i}`, name: `ORCHID ${i}` }, gov: "uk", program: "Russia", result: "S7", quotes: [], label: `United Kingdom list · ORCHID ${i}`, url: `https://example.org/o${i}` })),
 ];
 
+test("a listing and its age are said once: the age, in the listing's place, still counted towards Showing", () => {
+  const ev = [
+    { id: "S1", kind: "search", query: "LEAP", found: true, near: [], shown: 2, total: 4, quotes: [], label: "Search of the lists, research and OpenSanctions", url: "/" },
+    ...leap("2024-02-29").map((e) => ({ ...e, id: "S2", result: "S1" })),
+    { ...leap("2025-01-10")[0], id: "S3", entity: { id: "uk:L2", name: "LEAP TWO" }, result: "S1", label: "United Kingdom list · LEAP TWO", url: "/two" },
+  ];
+  const out = checkAnswer(answer(claim("listed", "S2"), claim("listed", "S3"), claim("age", "S2")), ev, AT);
+  assert.deepEqual(texts(out), [
+    "LEAP has been on the United Kingdom list under Russia for 2 years 7 months (since 29 Feb 2024).",
+    "LEAP TWO appears on the United Kingdom list under Russia since 10 Jan 2025.",
+    "Showing 2 of 4 matching records from the lists, the research and OpenSanctions.",
+  ]);
+  assert.deepEqual(groundingProblems("How long has LEAP been listed?", ev, out, AT.today), []);
+  // an age alone still never counts, and a record with no date keeps its listing beside the line that the list gives none
+  assert.deepEqual(texts(checkAnswer(answer(claim("age", "S2")), ev, AT)), ["LEAP has been on the United Kingdom list under Russia for 2 years 7 months (since 29 Feb 2024)."]);
+  const undated = zinnia();
+  assert.deepEqual(texts(checkAnswer(answer(claim("listed", "S2"), claim("age", "S2")), undated, AT)),
+    ["ZINNIA 0 appears on the United States list under Russia.", "Showing 1 of 12 matching records from the lists, the research and OpenSanctions.", "The United States list gives no listing date for ZINNIA 0."]);
+});
+
+test("Showing N of M names what it counts: matching records for a name search, ships, records, firms or updates for a count", () => {
+  const ships = [
+    { id: "S1", kind: "count", unit: "ships", filters: { ship_type: "tanker" }, n: 147, total_ships: 1722, shown: 2, total: 147, quotes: [], label: "Undercurrent's research map · ships", url: "/" },
+    ...[0, 1].map((i) => ({ id: `S${i + 2}`, kind: "research", entity: { id: `IMO900000${i}`, name: `KESTREL ${i}` }, gov: "us", program: "Iran", result: "S1", quotes: [], label: `Undercurrent research: KESTREL ${i} · United States`, url: `/k${i}` })),
+  ];
+  const out = checkAnswer(answer(claim("count", "S1", "S2")), ships, {});
+  assert.equal(texts(out).at(-1), "Showing 1 of 147 ships.");
+  assert.deepEqual(groundingProblems("How many tankers?", ships, out), []);
+  assert.equal(texts(checkAnswer(answer(claim("listed", "S2")), zinnia(), {})).at(-1), "Showing 1 of 12 matching records from the lists, the research and OpenSanctions.");
+});
+
 test("Showing N of M counts the search's matches the answer lists, after its sentences", () => {
   const ev = zinnia();
   const five = checkAnswer(answer(claim("listed", "S2", "S3", "S4", "S5", "S6")), ev, { question: "Is ZINNIA listed?" });
   assert.equal(five.sentences.length, 6);
-  assert.deepEqual(five.sentences.at(-1), { text: "Showing 5 of 12.", sources: [] });
+  assert.deepEqual(five.sentences.at(-1), { text: "Showing 5 of 12 matching records from the lists, the research and OpenSanctions.", sources: [] });
   // 1 of the 5 shown: N is what the answer lists, after the last sentence listing them and before the closing lines; an age never counts
-  assert.deepEqual(texts(checkAnswer(answer(claim("listed", "S2")), ev, {})), ["ZINNIA 0 appears on the United States list under Russia.", "Showing 1 of 12."]);
+  assert.deepEqual(texts(checkAnswer(answer(claim("listed", "S2")), ev, {})), ["ZINNIA 0 appears on the United States list under Russia.", "Showing 1 of 12 matching records from the lists, the research and OpenSanctions."]);
   const two = checkAnswer(answer(claim("listed", "S2"), claim("age", "S3")), ev, { question: "Should I buy from ZINNIA?", ...AT });
-  assert.deepEqual(texts(two), ["ZINNIA 0 appears on the United States list under Russia.", "Showing 1 of 12.", "The United States list gives no listing date for ZINNIA 1.", NOT_ADVICE]);
+  assert.deepEqual(texts(two), ["ZINNIA 0 appears on the United States list under Russia.", "Showing 1 of 12 matching records from the lists, the research and OpenSanctions.", "The United States list gives no listing date for ZINNIA 1.", NOT_ADVICE]);
   assert.deepEqual(texts(checkAnswer(answer(claim("age", "S2", "S3")), ev, AT)), ["The United States list gives no listing date for ZINNIA 0.", "The United States list gives no listing date for ZINNIA 1."]);
   // only listings count: a quote about a found ship has no line; two listings of TASSOS's matches do; a listing beside a quote about
   // the same ship counts the listing alone, its line straight after it
@@ -1366,7 +1411,7 @@ test("Showing N of M counts the search's matches the answer lists, after its sen
   const lukoil = searchFor(E.lukoil, "PAO LUKOIL");
   assert.ok(lukoil.shown > 1 && lukoil.total > lukoil.shown, `${lukoil.shown} of ${lukoil.total}`);
   const us = find(E.lukoil, (e) => e.kind === "research" && e.gov === "us");
-  assert.equal(texts(checkAnswer(answer(claim("listed", us.id)), E.lukoil)).at(-1), `Showing 1 of ${lukoil.total}.`);
+  assert.equal(texts(checkAnswer(answer(claim("listed", us.id)), E.lukoil)).at(-1), `Showing 1 of ${lukoil.total} matching records from the lists, the research and OpenSanctions.`);
   // an answer citing every match gets no line: hand-built, and the real TASSOS search (each of its matches is a listing)
   const all = ev.map((e) => (e.kind === "search" ? { ...e, total: 5 } : e));
   assert.equal(texts(checkAnswer(answer(claim("listed", "S2", "S3", "S4", "S5", "S6")), all, {})).length, 5);
@@ -1376,13 +1421,13 @@ test("Showing N of M counts the search's matches the answer lists, after its sen
   // several searches in one answer: each its own line, after its own last sentence
   const both = [...ev, ...orchid()];
   const out = checkAnswer(answer(claim("listed", "S2"), claim("listed", "S8"), claim("listed", "S3")), both, {});
-  assert.deepEqual(texts(out), ["ZINNIA 0 appears on the United States list under Russia.", "ORCHID 0 appears on the United Kingdom list under Russia.", "Showing 1 of 4.", "ZINNIA 1 appears on the United States list under Russia.", "Showing 2 of 12."]);
+  assert.deepEqual(texts(out), ["ZINNIA 0 appears on the United States list under Russia.", "ORCHID 0 appears on the United Kingdom list under Russia.", "Showing 1 of 4 matching records from the lists, the research and OpenSanctions.", "ZINNIA 1 appears on the United States list under Russia.", "Showing 2 of 12 matching records from the lists, the research and OpenSanctions."]);
   assert.deepEqual(groundingProblems("", both, out), []);
   // the same search run twice, or with the query in other case, is one line, counting its matches listed from either copy
   for (const query of ["ZINNIA", "zinnia"]) {
     const again = [...ev, ...zinniaAgain(query)];
     const twice = checkAnswer(answer(claim("listed", "S2"), claim("listed", "S9")), again, {}); // ZINNIA 0 from the first, ZINNIA 1 from the second
-    assert.deepEqual(texts(twice), ["ZINNIA 0 appears on the United States list under Russia.", "ZINNIA 1 appears on the United States list under Russia.", "Showing 2 of 12."], query);
+    assert.deepEqual(texts(twice), ["ZINNIA 0 appears on the United States list under Russia.", "ZINNIA 1 appears on the United States list under Russia.", "Showing 2 of 12 matching records from the lists, the research and OpenSanctions."], query);
     assert.deepEqual(groundingProblems("", again, twice), [], query);
   }
   // the line follows the matches, not the search itself: "not on the lists" never carries one
@@ -1410,7 +1455,7 @@ test("review (2): an age that falls back to the listed sentence counts as a list
   for (const date of ["2020-12", "2030-01-01"]) { // a month alone, and a date after today
     const ev = zinnia().map((e) => (e.id === "S3" ? { ...e, date, undated: undefined } : e));
     const out = checkAnswer(answer(claim("listed", "S2"), claim("age", "S3")), ev, AT);
-    assert.deepEqual(texts(out), ["ZINNIA 0 appears on the United States list under Russia.", `ZINNIA 1 appears on the United States list under Russia since ${formatDate(date)}.`, "Showing 2 of 12."], date);
+    assert.deepEqual(texts(out), ["ZINNIA 0 appears on the United States list under Russia.", `ZINNIA 1 appears on the United States list under Russia since ${formatDate(date)}.`, "Showing 2 of 12 matching records from the lists, the research and OpenSanctions."], date);
     assert.deepEqual(groundingProblems("", ev, out, AT.today), [], date);
   }
 });
@@ -1436,12 +1481,12 @@ test("groundingProblems accepts the age and Showing lines", () => {
   ok(E.tassos, answer(claim("age", tassosResearch().id, tassosList("us").id, tassosList("uk").id)), { question: "How long has TASSOS been sanctioned?", ...AT });
   ok(E.dji, answer(claim("age", dji().id)), { question: "How old?", today: "2020-12-18" });
   const out = ok(zinnia(), answer(claim("listed", "S2"), claim("age", "S3")), { question: "Is ZINNIA listed?", ...AT });
-  assert.equal(out.sentences[1].text, "Showing 1 of 12.");
+  assert.equal(out.sentences[1].text, "Showing 1 of 12 matching records from the lists, the research and OpenSanctions.");
   // a line the server did not write is caught: another count (the search's 5 shown, or the age counted too), a source on the line, or another age
   const tamper = (i, s) => groundingProblems("", zinnia(), { ...out, sentences: out.sentences.map((x, j) => (j === i ? { ...x, ...s } : x)) }, AT.today);
-  assert.equal(tamper(1, { text: "Showing 5 of 12." }).length, 1);
-  assert.equal(tamper(1, { text: "Showing 2 of 12." }).length, 1);
-  assert.equal(tamper(1, { text: "Showing 1 of 13." }).length, 1);
+  assert.equal(tamper(1, { text: "Showing 5 of 12 matching records from the lists, the research and OpenSanctions." }).length, 1);
+  assert.equal(tamper(1, { text: "Showing 2 of 12 matching records from the lists, the research and OpenSanctions." }).length, 1);
+  assert.equal(tamper(1, { text: "Showing 1 of 13 matching records from the lists, the research and OpenSanctions." }).length, 1);
   assert.equal(tamper(1, { sources: [{ n: 1, label: "United States list · ZINNIA 0", url: "https://example.org/z0" }] }).length, 1);
   const age = checkAnswer(answer(claim("age", dji().id)), E.dji, AT);
   assert.equal(groundingProblems("", E.dji, age, "2026-11-22").length, 1); // a month later, the age reads otherwise
@@ -1461,13 +1506,13 @@ test("review (Task 1): records sharing a label and url; the oracle accepts the s
   for (const dates of [["2004-10-18", "2008-06-04"], null]) { // told apart by their dates, and not at all
     const ev = aqi(dates);
     const out = checkAnswer(answer(claim("listed", "S2")), ev, {});
-    assert.equal(texts(out).at(-1), "Showing 1 of 2.");
+    assert.equal(texts(out).at(-1), "Showing 1 of 2 matching records from the lists, the research and OpenSanctions.");
     assert.deepEqual(groundingProblems("Is AQI listed?", ev, out), [], String(dates));
     const both = checkAnswer(answer(claim("listed", "S2", "S3")), ev, {});
     assert.ok(!texts(both).some((t) => t.startsWith("Showing ")));
     assert.deepEqual(groundingProblems("Is AQI listed?", ev, both), []);
     // a line no answer citing them could carry is still caught
-    for (const text of ["Showing 2 of 2.", "Showing 1 of 3."]) {
+    for (const text of ["Showing 2 of 2 matching records from the lists, the research and OpenSanctions.", "Showing 1 of 3 matching records from the lists, the research and OpenSanctions."]) {
       assert.equal(groundingProblems("", ev, { ...out, sentences: out.sentences.map((x, j) => (j === 1 ? { ...x, text } : x)) }).length, 1, text);
     }
   }
@@ -1491,7 +1536,7 @@ function listableMatches(query) {
 
 test("final review C1: M counts only the matches that can be listed, so citing every one shown gives a line only for listings beyond a cap (Nord Stream 2, DJI, Sovcomflot)", () => {
   // DJI's three research entries shown are lobbying entries; a fourth, its Entity List listing, is beyond the research cap of 3
-  for (const [ev, query, line] of [[E.nordStream, "Nord Stream 2", null], [E.dji, "DJI", "Showing 2 of 3."], [E.sovcomflotOne, "Sovcomflot", null]]) {
+  for (const [ev, query, line] of [[E.nordStream, "Nord Stream 2", null], [E.dji, "DJI", "Showing 2 of 3 matching records from the lists, the research and OpenSanctions."], [E.sovcomflotOne, "Sovcomflot", null]]) {
     const s = searchFor(ev, query);
     assert.ok(ev.some((e) => e.kind === "research" && !canList(e)), `${query}: the shape needs a research entry that is no listing`);
     const listable = ev.filter(canList);
@@ -1516,7 +1561,7 @@ test("final review C1: a capped search still gives Showing N of M, with M every 
   assert.ok(n < s.total, "capped: some listings are not shown");
   assert.equal(s.shown, n);
   const out = checkAnswer(answer(claim("listed", ...cited.map((e) => e.id))), E.lukoil, {});
-  assert.equal(texts(out).at(-1), `Showing ${n} of ${s.total}.`);
+  assert.equal(texts(out).at(-1), `Showing ${n} of ${s.total} matching records from the lists, the research and OpenSanctions.`);
   assert.deepEqual(groundingProblems("", E.lukoil, out), []);
 });
 
@@ -1530,13 +1575,13 @@ test("final review C1: the oracle flags a wrong M: the old count of every match,
   // every strong match counted, as before the fix: two of the three are research entries no government lists
   const all = ev.filter((e) => e.entity).length;
   assert.equal(all, 3);
-  assert.equal(groundingProblems(question, ev, said(`Showing 1 of ${all}.`)).length, 1);
+  assert.equal(groundingProblems(question, ev, said(`Showing 1 of ${all} matching records from the lists, the research and OpenSanctions.`)).length, 1);
   // the evidence as the old tool wrote it (the context entries linked to the search, M counting them): its counts show no source at its
   // cap, so it returned every match it has, and a line that says some are withheld is caught
   const old = ev.map((e) => (e === s ? { ...e, total: all } : e.kind === "research" ? { ...e, result: s.id } : e));
   assert.match(s.text, /Found: /);
   assert.doesNotMatch(s.text, /at least/);
-  assert.equal(groundingProblems(question, old, said(`Showing 1 of ${all}.`)).length, 1);
+  assert.equal(groundingProblems(question, old, said(`Showing 1 of ${all} matching records from the lists, the research and OpenSanctions.`)).length, 1);
 });
 
 // ---- programme counts on the official lists ------------------------------------------------------------------------------
@@ -1642,10 +1687,10 @@ test("count renders with its list and topic, and n=0 renders none_matched", () =
   assert.deepEqual(checkAnswer(answer(claim("count", c.id)), E.iranUs, {}).sentences, [{ text: iranLine(c), sources: [{ n: 1, ...source }] }]);
   // examples cited with their count are its sources, and count towards "Showing N of M"; so do examples listed on their own
   const shown = checkAnswer(answer(claim("count", c.id, a.id, b.id)), E.iranUs, {});
-  assert.deepEqual(texts(shown), [iranLine(c), `Showing 2 of ${num(c.n)}.`]);
+  assert.deepEqual(texts(shown), [iranLine(c), `Showing 2 of ${num(c.n)} records.`]);
   assert.deepEqual(shown.sentences[0].sources.map((s) => s.label), [source.label, a.label, b.label]);
   const listed = texts(checkAnswer(answer(claim("count", c.id), claim("listed", a.id)), E.iranUs, {}));
-  assert.deepEqual([listed.length, listed[0], listed[2]], [3, iranLine(c), `Showing 1 of ${num(c.n)}.`]);
+  assert.deepEqual([listed.length, listed[0], listed[2]], [3, iranLine(c), `Showing 1 of ${num(c.n)} records.`]);
   // no list given: one sentence per list (each with records under the programme), and an example belongs to its own list's count only
   const all = ["us", "uk", "eu", "un"].map((id) => countOf(E.iran, id));
   assert.deepEqual(texts(checkAnswer(answer(claim("count", ...all.map((x) => x.id))), E.iran, {})), all.map(iranLine));
@@ -1681,7 +1726,7 @@ test("groundingProblems accepts count and none_matched copy", () => {
   assert.equal(tamper(0, { text: `${num(c.n)} records on the United Kingdom list are under Iran programmes.` }).length, 1);
   assert.equal(tamper(0, { text: "No programme on the United States list is named Iran." }).length, 1);
   assert.equal(tamper(0, { text: `${num(c.n)} records on the United States list are under the Iran programme.` }).length, 1); // (a country's are "programmes")
-  assert.equal(tamper(1, { text: `Showing 3 of ${num(c.n)}.` }, E.iranUs, out).length, 1);
+  assert.equal(tamper(1, { text: `Showing 3 of ${num(c.n)} records.` }, E.iranUs, out).length, 1);
   assert.equal(tamper(0, { text: `${num(c.n + 1)} records on the United States list are under Iran programmes.` }, E.iranUs, out).length, 2); // (its line goes with it)
   const us = countOf(E.iran, "us");
   const ukExample = examplesOf(E.iran, countOf(E.iran, "uk"))[0];
@@ -1823,11 +1868,11 @@ test("research: examples are ships only, at most five, each a current listing li
     }
   }
   const { ev, c, examples: [a, b] } = await shipCount({ listed_by: "eu" });
-  assert.deepEqual(shipLine(ev, c, a.id, b.id), [`${num(c.n)} ${MAP} are listed by the European Union.`, `Showing 2 of ${num(c.n)}.`]);
+  assert.deepEqual(shipLine(ev, c, a.id, b.id), [`${num(c.n)} ${MAP} are listed by the European Union.`, `Showing 2 of ${num(c.n)} ships.`]);
   // an example listed on its own names the ship on the EU list, and counts towards the line too
   const out = checkAnswer(answer(claim("count", c.id), claim("listed", a.id)), ev, {});
   assert.match(texts(out)[1], new RegExp(`^${a.entity.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} appears on the European Union list`));
-  assert.deepEqual(texts(out).slice(2), [`Showing 1 of ${num(c.n)}.`]);
+  assert.deepEqual(texts(out).slice(2), [`Showing 1 of ${num(c.n)} ships.`]);
   assert.deepEqual(groundingProblems("Which ships does the EU list?", ev, out), []);
 });
 
@@ -2031,7 +2076,7 @@ test("chips firms: named writes one sentence per firm from its item, a capped li
     "41 firms in China are named in Undercurrent's research as shipping chips to Russia.",
     `US Treasury named ${firms[0].entity.name} (China) on 30 Oct 2024.`,
     `US Treasury named ${firms[1].entity.name} (China) on 30 Oct 2024.`,
-    "Showing 2 of 41.",
+    "Showing 2 of 41 firms.",
   ]);
   assert.deepEqual(out.sentences[1].sources, [{ n: 2, label: firms[0].label, url: firms[0].url }]);
   assert.deepEqual(groundingProblems(question, ev, out), []);
@@ -2068,7 +2113,7 @@ test("word count: one line per list from fixed copy and the lists' own spellings
   const [a, b] = examplesOf(ev, c);
   const out = checkAnswer(answer(claim("count", c.id), claim("listed", a.id, b.id)), ev, { question });
   const listed = (e) => `${e.entity.name} appears on the United Kingdom list under ${e.program}${e.date ? ` since ${formatDate(e.date)}` : ""}.`;
-  assert.deepEqual(texts(out), [`${num(n)} records on the United Kingdom list have the word ELECTRONIC or ELECTRONICS in their names.`, listed(a), listed(b), `Showing 2 of ${num(n)}.`, NAME_ONLY]);
+  assert.deepEqual(texts(out), [`${num(n)} records on the United Kingdom list have the word ELECTRONIC or ELECTRONICS in their names.`, listed(a), listed(b), `Showing 2 of ${num(n)} records.`, NAME_ONLY]);
   assert.deepEqual(out.sentences.at(-1).sources, [{ n: 1, label: c.label, url: c.url }]); // the caveat cites its count
   assert.deepEqual(groundingProblems(question, ev, out), []);
   // one record: the singular
@@ -2093,7 +2138,7 @@ test("word examples cited alone still carry the caveat: a list of firms found by
     const out = checkAnswer(answer(claim(kind, ...examples.map((e) => e.id))), ev, { question, today: "2026-10-24" });
     const said = texts(out);
     // (an age never counts towards Showing N of M)
-    assert.deepEqual(said.slice(-2), kind === "listed" ? [`Showing ${examples.length} of ${num(c.n)}.`, NAME_ONLY] : [said.at(-2), NAME_ONLY], kind);
+    assert.deepEqual(said.slice(-2), kind === "listed" ? [`Showing ${examples.length} of ${num(c.n)} records.`, NAME_ONLY] : [said.at(-2), NAME_ONLY], kind);
     assert.ok(kind === "listed" || !said.some((t) => t.startsWith("Showing")), kind);
     assert.equal(said.filter((t) => t === NAME_ONLY).length, 1, kind);
     assert.deepEqual(out.sentences.at(-1).sources.map((x) => x.label), [c.label], kind);
@@ -2144,7 +2189,7 @@ test("word caveat follows what is left: the gate never judges it, keeps it while
   const [a] = examplesOf(ev, c);
   const out = checkAnswer(answer(claim("count", c.id), claim("listed", a.id)), ev, { question });
   const [line, listed, showing, caveat] = texts(out);
-  assert.deepEqual([showing, caveat], [`Showing 1 of ${num(c.n)}.`, NAME_ONLY]);
+  assert.deepEqual([showing, caveat], [`Showing 1 of ${num(c.n)} records.`, NAME_ONLY]);
   assert.deepEqual(judgedSentences(out).map((s) => s.text), [line, listed]);
   assert.deepEqual(texts(keepSentences(out, (t) => t !== line)), [listed, showing, NAME_ONLY]);
   assert.deepEqual(texts(keepSentences(out, (t) => t !== listed)), [line, NAME_ONLY]);

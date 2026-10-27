@@ -121,12 +121,13 @@ const STARTERS = new Set(("A An The Nobody No Anyone Any Every Most Many Some Co
 const CAPITALISED = /(?<![\p{L}\p{N}])\p{Lu}[\p{L}\p{N}'’-]*/gu;
 const generic = (s) => (s.replace(ALLOWED, ",").match(CAPITALISED) ?? []).every((w) => STARTERS.has(w.replace(/['’]s$/, "")));
 // Pointing words take their meaning from the sentence before: pronouns, place and discourse pointers (then included), "the other",
-// "all <n>", "the <n>", and "the" followed within three words by a generic noun ("the target's money", "the shipping firms", "the ISM
-// manager", "the old names"). No sentence holding one is quotable. A noun with a capital is part of a name ("the Zulu Ships
-// Management", "the Nickles Group"), so the window takes lower-case nouns only.
+// "all <n>", "the <n>", "which is right" (or "which one": of the ones named before), and "the" followed within three words by a
+// generic noun ("the target's money", "the shipping firms", "the ISM manager", "the old names", "the median gap"). No sentence holding
+// one is quotable. A noun with a capital is part of a name ("the Zulu Ships Management", "the Nickles Group"), so the window takes
+// lower-case nouns only.
 const NUMBER_WORDS = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty thirty forty fifty sixty seventy eighty ninety hundred";
-const GENERIC_NOUNS = "target targets shipowner shipowners parent parents tanker tankers firm firms company companies ship ships vessel vessels owner owners manager managers operator operators name names entry entries list lists bank banks group groups entity entities person persons people";
-const POINTS_AT = new RegExp(String.raw`\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both|above|below|here|there|such|former|latter|then)\b|\bthe\s+other\b|\b(?:all|the)\s+(?:\d+|${NUMBER_WORDS.split(" ").join("|")})\b`, "i");
+const GENERIC_NOUNS = "target targets shipowner shipowners parent parents tanker tankers firm firms company companies ship ships vessel vessels owner owners manager managers operator operators name names entry entries list lists bank banks group groups entity entities person persons people gap gaps spread difference differences";
+const POINTS_AT = new RegExp(String.raw`\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both|above|below|here|there|such|former|latter|then)\b|\bthe\s+other\b|\b(?:all|the)\s+(?:\d+|${NUMBER_WORDS.split(" ").join("|")})\b|\bwhich\s+(?:one|(?:is|are|was|were)\s+(?:right|correct|wrong|true|accurate))\b`, "i");
 const NOUN_WINDOW = new RegExp(String.raw`\b[Tt]he(?:\s+[\p{L}\p{N}'’-]+){0,2}\s+(?:${GENERIC_NOUNS.split(" ").join("|")})\b`, "u");
 // Never quotable: "team" wording, present-tense currency wording (the 25 Sep 2026 research would read as current), "no sanctions"
 const NEVER = /\bteam(?:s|mates?)?\b|\bright now\b|\bcurrently\b|\bat present\b|\bat the moment\b|\bon these now\b|\bno sanctions\b/i;
@@ -398,7 +399,9 @@ function researchItems(e, note) {
   // without one, "Has also sailed as …", so they are given it)
   const profile = [
     `${e.name}${ident ? ` (${ident})` : ""} in Undercurrent's research.`,
-    e.manager && `Manager of ${e.name}: ${e.manager}.`, e.country && `Country of ${e.name}: ${e.country}.`, e.role && `Role of ${e.name}: ${e.role}.`,
+    // (a ship with no manager says so, so "who manages it?" has an answer; no ship without one has a "Managed by" fact either)
+    e.manager ? `Manager of ${e.name}: ${e.manager}.` : e.imo && `Undercurrent's research records no manager for ${e.name.replace(/\.$/, "")}.`,
+    e.country && `Country of ${e.name}: ${e.country}.`, e.role && `Role of ${e.name}: ${e.role}.`,
     former.length && `Other names of ${e.name}: ${former.join("; ")}.`,
     e.flags.length > 1 && `Flags flown by ${e.name}: ${e.flags.join(", ")}.`,
     ...e.facts.filter((f) => !removed.some((d) => f.text.includes(d))).map((f) => withSubject(e.name, f.text)),
@@ -1354,7 +1357,8 @@ function chipsTool(args, ev) {
 
 const STOP = new Set("a about an and are as at be by can do does for from get give has have how i in is it its me my of on or please show tell that the there this to was what when where which who why will with you your".split(" "));
 const stem = (w) => (w.length > 3 ? w.replace(/(ing|ed|es|s)$/, "").replace(/e$/, "") : w); // change, changes and changed all become "chang"
-const tokens = (s) => (s.toLowerCase().match(/[a-z0-9]+/g) || []).filter((w) => !STOP.has(w)).map(stem);
+// "can't" is "cannot", as the explainers write it, and any other "n't" is "not": never a stray "t" that matches nothing
+const tokens = (s) => (s.toLowerCase().replace(/\bcan['’]t\b/g, "cannot").replace(/n['’]t\b/g, " not").match(/[a-z0-9]+/g) || []).filter((w) => !STOP.has(w)).map(stem);
 // Maintainer notes (file lists, build and run steps, how the work was organised, logs, credits): last in line behind an explainer,
 // and never quoted
 const MAINTAINER = /^(?:files?|reproduce|rebuilding|what is in this folder|credits)\b|\((?:materials|orchestration)\)$|^updates \(newest last\)$/i;
@@ -1447,7 +1451,7 @@ export const TOOLS = [
         items: {
           type: "object",
           properties: {
-            claim: str("listed, age, count, none_matched, not_found, change or named: the server writes the sentence from the cited items (listed only from list, research or OpenSanctions items; age from list or research items; count and none_matched from a count item, none_matched also from a changes item of none; named from chips_firm items). quote: one sentence from one item's quotes, including connections and lobbying.", { enum: ["listed", "age", "count", "none_matched", "not_found", "change", "named", "quote"] }),
+            claim: str("The claim type: one of these words exactly, never your own words. listed, age, count, none_matched, not_found, change or named: the server writes the sentence from the cited items (listed only from list, research or OpenSanctions items; age from list or research items; count and none_matched from a count item, none_matched also from a changes item of none; named from chips_firm items). quote: one sentence from one item's quotes, including connections and lobbying.", { enum: ["listed", "age", "count", "none_matched", "not_found", "change", "named", "quote"] }),
             sources: { type: "array", items: { type: "string" }, description: "Evidence ids such as S1; exactly one for a quote." },
             quote: { type: "integer", minimum: 0, description: "For a quote: the quote's number in the cited item, from 0." },
           },

@@ -111,11 +111,12 @@ function counted(e) {
 
 // a range's lines: a topic's none and what it could not check, a plain "no changes", and a source gap
 const when = (e) => (e.from === e.to ? `on ${day(e.from)}` : `between ${day(e.from)} and ${day(e.to)}`);
+const toGraph = (e) => (e.graph_name ? ` to the ${e.graph_name}` : ""); // a none of one graph's updates
 function noneLine(e) {
   const n = e.checked_fleet + e.checked_lobby;
-  return n === 1 ? `The 1 update recorded ${when(e)} does not involve ${e.topic.label}.` : `None of the ${n.toLocaleString("en-GB")} updates recorded ${when(e)} involve ${e.topic.label}.`;
+  return n === 1 ? `The 1 update${toGraph(e)} recorded ${when(e)} does not involve ${e.topic.label}.` : `None of the ${n.toLocaleString("en-GB")} updates${toGraph(e)} recorded ${when(e)} involve ${e.topic.label}.`;
 }
-const uncheckedLine = (e) => `${e.unchecked === 1 ? "1 update" : `${e.unchecked.toLocaleString("en-GB")} updates`} in that period can't be checked against ${e.topic.label}.`;
+const uncheckedLine = (e) => `${e.unchecked === 1 ? "1 update" : `${e.unchecked.toLocaleString("en-GB")} updates`}${toGraph(e)} in that period can't be checked against ${e.topic.label}.`;
 const noChangesLine = (e) => (e.from === e.to ? `No changes were recorded on ${day(e.from)}.` : `No changes were recorded between ${day(e.from)} and ${day(e.to)}.`);
 const gapLine = (g) => (g.date || g.from === g.to
   ? `${g.source} was unavailable on ${day(g.date ?? g.from)}, so changes from it that day aren't recorded.`

@@ -1221,7 +1221,7 @@
     "category": "topic",
     "question": "Any lobbying updates about Russian companies this week?",
     "calls": [["changes",{"since":"2026-10-16","graph":"lobby","topic":"Russia"}]],
-    "note": "None of the lobbying updates recorded so far can be checked against Russia (they are bills, a lobbyist, and NVIDIA's and the Semiconductor Industry Association's filings). A good answer is the none line with what it could not check. Citing the chip lobbying is wrong; a later night that records such a change makes it the answer. The dates and counts move with the record, so the include takes the none line's fixed end or a list of updates.",
+    "note": "None of the lobbying updates recorded so far can be checked against Russia (they are bills, a lobbyist, and NVIDIA's and the Semiconductor Industry Association's filings). A good answer is the none line with what it could not check, of the lobbying network's updates once the shadow-fleet map records one involving Russia (as on 27 Oct 2026). Citing the chip lobbying is wrong; a later night that records such a change makes it the answer. The dates and counts move with the record, so the include takes the none line's fixed end or a list of updates.",
     "expect": {"kind":"answer","includes":[["involve Russia."," · "]],"excludes":["NVIDIA","Semiconductor Industry Association","New bill","appears on","appears in OpenSanctions"]},
     "model": {"kind":"answer","sentences":[{"claim":"none_matched","sources":["S1"]}],"next":[{"source":"S1"}]},
     "evidence": [

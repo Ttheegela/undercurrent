@@ -977,6 +977,11 @@ test("the none copy: one day reads 'on', one update is singular, no second line 
   assert.deepEqual(say([item({ checked_fleet: 1200, checked_lobby: 34, unchecked: 2000, to: "2026-10-21" })]), [
     "None of the 1,234 updates recorded between 19 Oct 2026 and 21 Oct 2026 involve Iran.", "2,000 updates in that period can't be checked against Iran.",
   ]);
+  // a none of one graph's updates names the graph in both lines
+  assert.deepEqual(say([item({ checked_lobby: 1, unchecked: 2, graph_name: "lobbying network" })]), [
+    "The 1 update to the lobbying network recorded on 19 Oct 2026 does not involve Iran.", "2 updates to the lobbying network in that period can't be checked against Iran.",
+  ]);
+  assert.deepEqual(say([item({ checked_fleet: 3, graph_name: "shadow-fleet map" })]), ["None of the 3 updates to the shadow-fleet map recorded on 19 Oct 2026 involve Iran."]);
   const gap = { id: "S2", kind: "gap", source: "The UK list", from: "2026-10-19", to: "2026-10-19", date: "2026-10-19", text: "(the tool's text)", label: "The UK list unavailable on 19 Oct 2026", url: "/g", quotes: [] };
   assert.deepEqual(say([item({ checked_fleet: 2 }), gap]), ["None of the 2 updates recorded on 19 Oct 2026 involve Iran.", "The UK list was unavailable on 19 Oct 2026, so changes from it that day aren't recorded."]);
   const ev = [item({ checked_fleet: 2, unchecked: 3 })];

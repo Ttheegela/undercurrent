@@ -1025,6 +1025,7 @@ function changesTool(args, ev, ctx) {
   const hay = (c) => normalizeName([c.name, c.summary, ...(c.endpoints || [])].join(" "));
   const inRange = changesSince(rec, ["fleet", "lobby"], from, to);
   const bears = want && new Map(inRange.map((c) => [c, bearing(c, want)])); // every update of the range, whatever the graph or words asked
+  const scoped = graph ? inRange.filter((c) => c.graph === graph) : inRange; // what a topic's none is of: the graph asked, or both
   const all = changesSince(rec, graphs, from, to).filter((c) => words.every((w) => hay(c).includes(w)) && (!bears || bears.get(c) === "match"));
   // every source's outages whatever the graph: the network's listing statuses come from the lists too
   const sourceDays = sourceGaps(rec, ["fleet", "lobby"], from, to);
@@ -1057,19 +1058,21 @@ function changesTool(args, ev, ctx) {
       text: from === to ? `No changes were recorded on ${formatDate(to)} (${to}).` : `No changes were recorded between ${formatDate(from)} and ${formatDate(to)} (${from} to ${to}).`,
       label: from === to ? `No changes on ${formatDate(to)}` : `No changes ${formatDate(from)} to ${formatDate(to)}`, url: updates(from, to, "all"), link: updates(from, to, "all"),
     });
-  } else if (want && !notYet && inRange.length && ![...bears.values()].includes("match")) {
-    // no update of the range involves the topic: how many could be checked, by graph, and how many could not. (One that does, left out by
-    // the graph or the words asked, is no none: only the gaps are reported then.)
-    const tally = (b, g) => inRange.filter((c) => bears.get(c) === b && (!g || c.graph === g)).length;
+  } else if (want && !notYet && scoped.length && !scoped.some((c) => bears.get(c) === "match")) {
+    // no update of the range involves the topic (of the graph asked, when one is): how many could be checked, by graph, and how many could
+    // not. A none of one graph names it, as one that does involve the topic may be on the other. (One that does, left out by the words
+    // asked, is no none: only the gaps are reported then.)
+    const tally = (b, g) => scoped.filter((c) => bears.get(c) === b && (!g || c.graph === g)).length;
     const [fleet, lobby, unchecked] = [tally("checked", "fleet"), tally("checked", "lobby"), tally("unchecked")];
     const many = (k) => `${k} ${k === 1 ? "update" : "updates"}`;
     items.push({
-      kind: "change", found: false, topic: { label: want.label }, checked_fleet: fleet, checked_lobby: lobby, unchecked, from, to,
+      kind: "change", found: false, topic: { label: want.label }, checked_fleet: fleet, checked_lobby: lobby, unchecked, from, to, ...(graph && { graph_name: GRAPH_NAME[graph] }),
       text: sentence(
-        `${within}: none of the ${many(fleet + lobby)} whose programme or country could be checked ${fleet + lobby === 1 ? "involves" : "involve"} ${want.label} (${fleet} on the ${GRAPH_NAME.fleet}, ${lobby} in the ${GRAPH_NAME.lobby}).`,
+        `${within}${graph ? ` for the ${GRAPH_NAME[graph]}` : ""}: none of the ${many(fleet + lobby)} whose programme or country could be checked ${fleet + lobby === 1 ? "involves" : "involve"} ${want.label}${graph ? "" : ` (${fleet} on the ${GRAPH_NAME.fleet}, ${lobby} in the ${GRAPH_NAME.lobby})`}.`,
         unchecked && `${many(unchecked)} in that period can't be checked against ${want.label}.`,
       ),
-      label: `Updates involving ${want.label}${from === to ? ` on ${formatDate(to)}` : `, ${formatDate(from)} to ${formatDate(to)}`}: none`, url: updates(from, to, "all"), link: updates(from, to, "all"),
+      label: `Updates involving ${want.label}${graph ? ` in the ${GRAPH_NAME[graph]}` : ""}${from === to ? ` on ${formatDate(to)}` : `, ${formatDate(from)} to ${formatDate(to)}`}: none`,
+      url: updates(from, to, graph ?? "all"), link: updates(from, to, graph ?? "all"),
     });
   }
   for (const c of shown) {

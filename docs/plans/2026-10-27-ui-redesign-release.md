@@ -32,17 +32,27 @@ Open the Vercel preview link on PR #48, then:
 
 **Rollback (about 2 minutes):** Vercel Instant Rollback to the previous production deployment, then `git revert -m 1 <merge commit>` on a branch and a PR. No data or Ask changes ride on this PR, so a rollback touches only the look.
 
-### 3. Make Ask agree with the page (Ask work, about 1–2 hours)
+### 3. Make Ask agree with the page: PR #49 (open)
 
-1. Ask cites research listings as listings, so TASSOS gets the EU listing too.
-2. Ask's count line and the page's verdict use the same unit ("3 of 4 governments", not "2 of 4 matching records").
-3. Add TASSOS's full verdict as an eval case.
+1. When an answer's listings all belong to one entity in the research, Ask opens with the page's verdict: "TASSOS is listed by 3 of the 4 governments whose lists Undercurrent checks: the United States, the European Union and the United Kingdom."
+2. It then gives each government's listing once, EU included.
+3. Eval cases: offline `area-lists-4` replays the preview's citations; live `area-lists-1` expects the verdict's governments.
+4. Known difference: Ask counts governments from the research plus live list records, the page from research listings only. They differ only when a list has a listing the research lacks.
 
-### 4. Show the work in Ask (Ask work plus UI, about half a day)
+### 4. Show the work in Ask: PR #50 (open)
 
-1. The API returns which checks ran: the lists, the research, OpenSanctions, the docs.
-2. The panel shows them as one line in the page's style: `4/4 checks · lists ✓ research ✓ wider ✓ docs ✓`.
-3. Example lists come back as a list type and render as a `├─ └─` list, not ten sentences.
+1. The API reply carries `checks: [{name, found}]` (lists, research, wider, docs, updates, chips) for answers and clarifies.
+2. The panel shows one line: "3 checks · lists ✓ research ✓ wider ✓", with 0 for a check that ran and found nothing.
+3. Count examples and named chips firms render as one `├─ └─` list.
+
+### Merge order (one at a time, each on Tarun's yes)
+
+1. **#48** (the redesign). Then check production as in step 2.
+2. **#49** (Ask agrees with the page). Then ask "Is TASSOS sanctioned?" on production: the verdict names the US, EU and UK.
+3. **#50** (Ask shows its checks). It shares lines with #49 in `api/ask.js`, `api/_ask_check.js`, `README.md` and `tests/ask.test.js`, so expect a small merge conflict after #49 lands. Fix it on #50's branch, rerun its tests, then merge.
+4. After #50: look at the checks line and the `├─` list in the dark design on production (it uses `--font-mono` and `--color-neutral`).
+
+#48 shares no files with #49 or #50, so it can go first without waiting.
 
 ### 5. Decisions that need Tarun
 

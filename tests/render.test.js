@@ -91,6 +91,13 @@ test("dossier has the hooks the walkthrough and copy button use", () => {
   assert.equal((html.match(/class="chip"/g) || []).length, 3);
 });
 
+test("dossier opens with a one-line verdict", () => {
+  assert.match(renderDossier(TASSOS), /<p class="d-verdict">Listed by 3 of 4: the United States, the European Union and the United Kingdom\.<\/p>/);
+  const twice = { ...TASSOS, listings: [TASSOS.listings[0], { ...TASSOS.listings[0], program: "Russia" }] };
+  assert.match(renderDossier(twice), /Listed by 1 of 4: the United States\./);
+  assert.doesNotMatch(renderDossier({ ...TASSOS, listings: [] }), /d-verdict/);
+});
+
 test("research: first in full, others collapsed", () => {
   const html = renderResearch([TASSOS, { ...TASSOS, id: "IMO1", name: "TASSOS STAR" }]);
   assert.match(html, /In our research · 2 matches/);

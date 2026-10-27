@@ -7,7 +7,7 @@
 <meta name="description" content="Interactive map of the ships, companies, people and flag countries behind Russia's and Iran's sanctioned oil trade, joined by each ship's permanent hull number.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../../../app/style.css">
 <style>
 /* Hallmark · redesign: full-viewport map app on the main site's system (app/style.css tokens only)
@@ -30,7 +30,7 @@ button, input, select { font: inherit; color: inherit; }
 
 /* Site header, compact so the map keeps the screen */
 .top { max-width: none; margin: 0; padding: var(--space-xs) var(--space-md); flex: none; }
-.brand { font-size: var(--text-base); }
+.brand { font-size: var(--text-sm); }
 
 .app { flex: 1; min-height: 0; display: grid; grid-template-columns: 292px minmax(0, 1fr) 400px; grid-template-rows: minmax(0, 1fr) auto; }
 .app.panel-closed { grid-template-columns: 292px minmax(0, 1fr) 0; }
@@ -87,7 +87,7 @@ button, input, select { font: inherit; color: inherit; }
 .play { width: 34px; height: 30px; display: grid; place-items: center; padding: 0; }
 .key { display: grid; grid-template-columns: 20px 1fr; gap: 5px var(--space-xs); align-items: center; font-size: var(--text-xs); color: var(--color-muted); }
 .key svg { display: block; }
-#legend { left: var(--space-sm); bottom: var(--space-sm); width: 16rem; }
+#legend { left: var(--space-sm); bottom: var(--space-sm); width: 21rem; font-size: var(--text-xs); }
 .counts { font: var(--text-xs) var(--font-mono); color: var(--color-muted); display: grid; grid-template-columns: 1fr auto; gap: 2px var(--space-sm); }
 .counts b { color: var(--color-ink); font-weight: 500; text-align: right; }
 details.fold { border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-sm); background: var(--color-paper-2); }
@@ -640,7 +640,7 @@ function buildStyle(z){
   return [
     {selector:'node', style:{
       'width':'data(size)','height':'data(size)','background-color':'data(col)','border-color':'data(col)','border-width':1.5,
-      'label':'','color':C('ink'),'font-family':'Schibsted Grotesk, sans-serif','font-size':fs,'text-valign':'bottom','text-margin-y':my,
+      'label':'','color':C('ink'),'font-family':'JetBrains Mono, monospace','font-size':fs,'text-valign':'bottom','text-margin-y':my,
       'text-background-color':C('paper'),'text-background-opacity':0.78,'text-background-padding':pad,'text-background-shape':'roundrectangle',
       'text-max-width':(190/z)+'px','text-wrap':'ellipsis','overlay-opacity':0}},
     {selector:'node.ship', style:{'shape':'diamond'}},

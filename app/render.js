@@ -93,6 +93,9 @@ export function renderDossier(e) {
   const verdict = chips
     ? `<div class="verdicts" data-walk="chips" aria-label="Listed by">${chips}</div>`
     : `<p class="d-unlisted">Not listed by a government in our research.</p>`;
+  // The answer in one line, ahead of the detail: the four are the US, UK, EU and UN lists the site checks.
+  const by = [...new Set(e.listings.map((l) => l.by))];
+  const verdictLine = by.length ? `<p class="d-verdict">Listed by ${by.length} of 4: ${escapeHtml(joinAnd(by.map((b) => `the ${b}`)))}.</p>` : "";
 
   const tl = timelinePositions(e.events);
   const timeline = tl.length > 1 ? `
@@ -124,7 +127,7 @@ export function renderDossier(e) {
   return `
   <article class="dossier-entry" id="entry-${sid}">
     <div class="d-head">
-      <div><h2>${escapeHtml(e.name)}</h2><p class="d-sub">${escapeHtml(sub.toUpperCase())}</p></div>
+      <div><h2>${escapeHtml(e.name)}</h2>${verdictLine}<p class="d-sub">${escapeHtml(sub.toUpperCase())}</p></div>
       ${verdict}
     </div>
     ${timeline}

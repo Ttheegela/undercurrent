@@ -12,8 +12,8 @@
   --viz-stage: var(--color-paper-2);
 }
 
-.hero h1 { max-width: 18ch; }
-.take { font-weight: 700; font-size: var(--text-xl); line-height: 1.3; letter-spacing: -0.01em; max-width: 46ch; margin: 0; }
+.hero h1 { max-width: 32ch; }
+.take { font-weight: 700; font-size: var(--text-lg); line-height: 1.3; letter-spacing: -0.01em; max-width: 46ch; margin: 0; }
 
 /* story tabs: the four chips pages */
 .storynav { border-bottom: var(--rule-hair) solid var(--color-rule); }
@@ -23,7 +23,7 @@
 .storynav a[aria-current="page"] { color: var(--color-ink); border-bottom-color: var(--color-accent); }
 
 .story-body { padding-bottom: var(--space-3xl); display: grid; gap: var(--space-2xl); grid-template-columns: minmax(0, 1fr); }
-.note { border-top: 2px solid var(--color-accent); padding-top: var(--space-sm); max-width: 62ch; font-family: var(--font-serif); font-size: var(--text-base); color: var(--color-muted); margin: 0; }
+.note { border-top: var(--rule-hair) dashed var(--color-accent); padding-top: var(--space-sm); max-width: 62ch; font-family: var(--font-serif); font-size: var(--text-base); color: var(--color-muted); margin: 0; }
 .note b { color: var(--color-ink); font-family: var(--font-display); }
 .err { display: none; }
 .err.on { display: block; }

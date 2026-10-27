@@ -284,7 +284,7 @@ PAGE = Template("""<!DOCTYPE html>
 <title>$plain_title · Undercurrent</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="${root}app/style.css">$stats
 <style>
   /* Research notes rendered from Markdown · main site tokens only (app/style.css) */
@@ -293,11 +293,12 @@ PAGE = Template("""<!DOCTYPE html>
   .doc { padding-bottom: var(--space-3xl); }
   .doc > * { max-width: 46rem; }
   .doc > .tablebox { max-width: none; }
-  .doc h2 { font-weight: 700; font-size: var(--text-lg); margin: var(--space-2xl) 0 var(--space-sm); padding-top: var(--space-sm); border-top: 2px solid var(--color-ink); }
+  .doc h2 { font-weight: 700; font-size: var(--text-lg); margin: var(--space-2xl) 0 var(--space-sm); padding-top: var(--space-sm); border-top: var(--rule-hair) dashed var(--color-rule); }
+  .doc h2::before { content: "## "; color: var(--color-faint); }
   .doc h3 { font-weight: 700; font-size: var(--text-lg); margin: var(--space-xl) 0 var(--space-sm); }
   .doc h4, .doc h5, .doc h6 { font-weight: 700; font-size: var(--text-base); margin: var(--space-lg) 0 var(--space-xs); }
   .doc > :first-child { margin-top: 0; }
-  .doc p, .doc li { font-family: var(--font-serif); font-size: var(--text-lg); line-height: 1.6; color: var(--color-ink); }
+  .doc p, .doc li { font-family: var(--font-mono); font-size: var(--text-base); line-height: 1.7; color: var(--color-ink); }
   .doc p { margin: 0 0 var(--space-md); }
   .doc ul, .doc ol { margin: 0 0 var(--space-md); padding-left: 1.2em; }
   .doc li { margin-bottom: var(--space-xs); }
@@ -349,7 +350,7 @@ $body
 
 <footer class="wrap foot">
   <span>Undercurrent</span>
-  <span>Research by the VeilTrace team, Trace the Unseen, 25 Sep 2026</span>
+  <span>Research snapshot: VeilTrace, Trace the Unseen, 25 Sep 2026</span>
   <a href="${root}stories/about-the-data.html">About the data</a>
   <a href="${root}stories/sources/METHODS_LOG.html">Methods</a>
   <a href="https://github.com/Ttheegela/veil-trace">Original research repo</a>

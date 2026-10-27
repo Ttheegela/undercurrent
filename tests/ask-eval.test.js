@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { checkAnswer } from "../api/_ask_check.js";
+import { checkAnswer, withVerdict } from "../api/_ask_check.js";
 import { groundingProblems, REFUSAL, FALLBACK, CLARIFY, NOT_ADVICE, NOTHING_ANSWERS } from "../scripts/ask-oracle.mjs";
 import { holds, judge } from "../scripts/ask-judge.mjs";
 
@@ -83,7 +83,7 @@ test("every case is well formed, and its evidence is the tools' own S1, S2, … 
 
 const assertNoLeak = (c, out) => assert.deepEqual(groundingProblems(c.question, c.evidence, out), [], c.id);
 
-const endpoint = (c) => checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question });
+const endpoint = (c) => withVerdict(checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question }));
 
 for (const c of CASES) {
   test(`${c.id}: ${c.question}`, () => {
@@ -143,6 +143,7 @@ const STABLE = [
   [/^Daily updates started on 20 Oct 2026, so /g, "the record's first night, which never moves"],
   [/\bIMO 1234567\b/g, "the reader's own number, from the question"],
   [/\b50% or more\b/g, "the 50% rule's wording on its explainer page"],
+  [/\bof the 4 governments whose lists Undercurrent checks\b/g, "a verdict's four lists, which the site never changes (how many of them list a ship can move)"],
 ];
 
 test("final review I1: a live include holds no number the nightly data or the run date can move", () => {

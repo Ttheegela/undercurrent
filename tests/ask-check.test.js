@@ -8,7 +8,7 @@ import { gzipSync } from "node:zlib";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { checkAnswer, adviceIntent, judgedSentences, keepSentences } from "../api/_ask_check.js";
+import { checkAnswer, adviceIntent, judgedSentences, keepSentences, withVerdict } from "../api/_ask_check.js";
 import { runTool, resetAskCache, LISTING, SHIP_TYPES, TOOLS } from "../api/_ask_tools.js";
 import { INDEX_URL } from "../api/search.js";
 import { prepareQuery } from "../app/search.js";
@@ -178,7 +178,10 @@ function serverOnly(out, ev, ctx) {
   const ok = new Set([REFUSAL, FALLBACK, CLARIFY, NOTHING_ANSWERS, PARTIAL]);
   for (const e of ev) {
     for (const q of e.quotes) ok.add(q);
-    for (const c of ["listed", "age", "not_found", "change"]) for (const x of checkAnswer(answer(claim(c, e.id)), ev, ctx).sentences) ok.add(x.text);
+    for (const c of ["listed", "age", "not_found", "change"]) {
+      const one = checkAnswer(answer(claim(c, e.id)), ev, ctx);
+      for (const x of [...one.sentences, ...withVerdict(one).sentences]) ok.add(x.text); // (as checked, and with the verdict the endpoint adds)
+    }
     // a result's line, by what it counts
     const unit = e.kind === "search" ? " matching records from the lists, the research and OpenSanctions" : e.kind === "change" ? " updates"
       : e.kind === "count" ? ({ ships: " ships", firms: " firms" }[e.unit] ?? " records") : "";
@@ -301,6 +304,30 @@ test("a sentence written where the claim's name goes, beside a quote number and 
   // with no quote number, or with two sources, it is no claim: dropped, as ever
   assert.deepEqual(texts(checkAnswer(answer({ claim: "TASSOS appears on lists.", sources: [r.id] }, quote(r.id, 0)), E.tassos)), [r.quotes[0], PARTIAL]);
   assert.deepEqual(checkAnswer(answer({ claim: "TASSOS is listed.", sources: [r.id, tassosList("uk").id], quote: 0 }), E.tassos), FALLBACK_ANSWER);
+});
+
+test("an answer about one ship opens with the result page's verdict and says each government's listing once", () => {
+  // the PR #48 preview, 27 Oct 2026: Ask said the UK and US listings, not the EU one the research holds, and "Showing 2 of 4" of what
+  // are four records of one ship (IMO 9408695); the result page said "Listed by 3 of 4: the United States, the European Union and the
+  // United Kingdom."
+  const ctx = { ...TASSOS_Q, today: "2026-10-27" };
+  const research = (gov) => find(E.tassos, (e) => e.kind === "research" && e.gov === gov);
+  const verdict = (...sentences) => withVerdict(checkAnswer(answer(...sentences), E.tassos, ctx));
+  const out = verdict(claim("listed", tassosList("uk").id), claim("listed", tassosList("us").id), claim("age", research("us").id));
+  assert.deepEqual(texts(out), [
+    "TASSOS is listed by 3 of the 4 governments whose lists Undercurrent checks: the United States, the European Union and the United Kingdom.",
+    "TASSOS has been on the United States list under Iran for 1 year 2 months (since 30 Jul 2025) (first seen on the list via OpenSanctions).",
+    "TASSOS appears on the European Union list under Russia since 24 Oct 2025.",
+    "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.",
+    "TASSOS appears in OpenSanctions as listed by Canada, EU, UK, Switzerland, US.",
+    shows(4), // the fifth record is TASSOS STAR, another ship; on the site the four are all there is, and no line follows
+  ]); // each government once (the dated sentence), the EU listing the model did not cite, and the four records of the ship counted
+  serverOnly(out, E.tassos, ctx);
+  // one listing cited is enough for the whole verdict
+  assert.deepEqual(texts(verdict(claim("listed", star().id))), ["TASSOS STAR appears in OpenSanctions as listed by US.", shows(1)]); // another ship, no government's list: no verdict
+  // (with no age said, the United States' sentence is its dated listing)
+  assert.deepEqual(texts(verdict(claim("listed", research("eu").id))),
+    [texts(out)[0], "TASSOS appears on the United States list under Iran since 30 Jul 2025.", ...texts(out).slice(2)]);
 });
 
 test("ITAR program renders as appears on the United States list", () => {

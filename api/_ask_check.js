@@ -66,7 +66,14 @@ function calendarSpan(from, to) {
 const num = (n) => n.toLocaleString("en-GB");
 // a firm of the chips research, by the release that named it: its name and countries are the research's own
 const NAMED = (e) => `US Treasury named ${e.entity.name} (${e.countries.join(", ")}) on ${day(e.date)}.`;
-const SHOWING = (n, total) => `Showing ${num(n)} of ${num(total)}.`;
+// "Showing N of M" says what it counts, by the result that holds M: a name search's records (one ship or firm can have a record in each
+// source), a count's ships, records or firms, or a capped list's updates
+const SHOWN_AS = { ships: "ships", records: "records", name_word: "records", firms: "firms" };
+function SHOWING(n, total, r) {
+  const what = r.kind === "search" ? " matching records from the lists, the research and OpenSanctions"
+    : r.kind === "change" ? " updates" : r.kind === "count" && Object.hasOwn(SHOWN_AS, r.unit) ? ` ${SHOWN_AS[r.unit]}` : "";
+  return `Showing ${num(n)} of ${num(total)}${what}.`;
+}
 // A count's sentence, by what it counts (null for a unit it does not know): records on an official list, by ref. A country's records are
 // under its programmes ("Iran programmes"), any other topic's under one ("the Terrorism programme"); a none says what it rests on: no
 // programme of that name, on the list or on any of the four
@@ -320,9 +327,10 @@ const matchKey = (e) => (e.kind === "change" ? e.key : e.entity.id);
 /**
  * Numbers the sources in order of first citation; one sentence written twice becomes one sentence with both sources. Then, for each
  * search (an item with a `total`), the entities among its matches (the items whose `result` is its id) that SHOWS_MATCHES sentences name:
- * when they are fewer than its total, SHOWING follows the last sentence naming one. A quote, an age or any other sentence never
- * counts. Entities, not items, are counted, so two searches of one ship (its name and its IMO number, or one query run twice) each
- * count a record listed from either search's copy; the same line twice after one sentence is said once. The model never chooses it.
+ * when they are fewer than its total, SHOWING follows the last sentence naming one. A quote, an age said alone or any other sentence
+ * never counts (an age said in its listing's place counts as the listing). Entities, not items, are counted, so two searches of one
+ * ship (its name and its IMO number, or one query run twice) each count a record listed from either search's copy; the same line twice
+ * after one sentence is said once. The model never chooses it.
  */
 function finish(kind, pieces, next, byId = new Map()) {
   // a word count's caveat, once, after the last sentence citing a word count or one of its examples (a listing found by a word in its name
@@ -353,7 +361,7 @@ function finish(kind, pieces, next, byId = new Map()) {
   const lines = said.map(() => new Set()); // after each sentence
   for (const [r, entities] of matches) {
     const shown = [...entities].filter((x) => named.has(x)).length;
-    if (shown && shown < r.total) lines[said.findLastIndex((x) => [...x.listed].some((y) => entities.has(y)))].add(SHOWING(shown, r.total));
+    if (shown && shown < r.total) lines[said.findLastIndex((x) => [...x.listed].some((y) => entities.has(y)))].add(SHOWING(shown, r.total, r));
   }
   const sentences = said.flatMap(({ text, sources }, i) => [{ text, sources }, ...[...lines[i]].map((t) => ({ text: t, sources: [] }))]);
   return sentences.length ? { kind, sentences, next } : fallback();
@@ -429,6 +437,10 @@ export function checkAnswer(raw, ev, ctx) {
     if (!shown?.length && (shown === null || s.claim !== "not_found")) state.partial = true;
     pieces.push(...(shown ?? []).map((p) => ({ ...p, claim: p.claim ?? s.claim })));
   }
+  // a listing and its age say one thing: the age, which names the list and the date too, is said in the listing's place and counts
+  // as the listing did. A record with no date keeps both: "gives no listing date" does not say it is listed
+  const ages = new Map(pieces.filter((p) => p.claim === "age" && p.items[0].date).map((p) => [p.items[0], p.text]));
+  for (const p of pieces) if (p.claim === "listed" && ages.has(p.items[0])) p.text = ages.get(p.items[0]);
   if (state.partial && pieces.length) pieces.push({ text: PARTIAL, items: [] }); // never a lone "part of the question": with nothing else to say it is the fallback
   if (pieces.length) pieces.push(...notice(ctx)); // last, after the part-answer line; an answer with nothing to say is the fallback and carries no notice
   const out = finish("answer", pieces, nextOf(linked), byId);

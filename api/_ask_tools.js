@@ -398,7 +398,9 @@ function researchItems(e, note) {
   // without one, "Has also sailed as …", so they are given it)
   const profile = [
     `${e.name}${ident ? ` (${ident})` : ""} in Undercurrent's research.`,
-    e.manager && `Manager of ${e.name}: ${e.manager}.`, e.country && `Country of ${e.name}: ${e.country}.`, e.role && `Role of ${e.name}: ${e.role}.`,
+    // (a ship with no manager says so, so "who manages it?" has an answer; no ship without one has a "Managed by" fact either)
+    e.manager ? `Manager of ${e.name}: ${e.manager}.` : e.imo && `Undercurrent's research records no manager for ${e.name.replace(/\.$/, "")}.`,
+    e.country && `Country of ${e.name}: ${e.country}.`, e.role && `Role of ${e.name}: ${e.role}.`,
     former.length && `Other names of ${e.name}: ${former.join("; ")}.`,
     e.flags.length > 1 && `Flags flown by ${e.name}: ${e.flags.join(", ")}.`,
     ...e.facts.filter((f) => !removed.some((d) => f.text.includes(d))).map((f) => withSubject(e.name, f.text)),
@@ -1354,7 +1356,8 @@ function chipsTool(args, ev) {
 
 const STOP = new Set("a about an and are as at be by can do does for from get give has have how i in is it its me my of on or please show tell that the there this to was what when where which who why will with you your".split(" "));
 const stem = (w) => (w.length > 3 ? w.replace(/(ing|ed|es|s)$/, "").replace(/e$/, "") : w); // change, changes and changed all become "chang"
-const tokens = (s) => (s.toLowerCase().match(/[a-z0-9]+/g) || []).filter((w) => !STOP.has(w)).map(stem);
+// "can't" is "cannot", as the explainers write it, and any other "n't" is "not": never a stray "t" that matches nothing
+const tokens = (s) => (s.toLowerCase().replace(/\bcan['’]t\b/g, "cannot").replace(/n['’]t\b/g, " not").match(/[a-z0-9]+/g) || []).filter((w) => !STOP.has(w)).map(stem);
 // Maintainer notes (file lists, build and run steps, how the work was organised, logs, credits): last in line behind an explainer,
 // and never quoted
 const MAINTAINER = /^(?:files?|reproduce|rebuilding|what is in this folder|credits)\b|\((?:materials|orchestration)\)$|^updates \(newest last\)$/i;

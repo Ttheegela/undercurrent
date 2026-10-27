@@ -380,6 +380,22 @@ test("changes are rendered from the change record", async () => {
   assert.ok(out.sentences.some((s) => s.text.startsWith("New on the map: SHIP 1 · 19 Oct 2026")), JSON.stringify(out.sentences));
 });
 
+test("the reply says which checks the question ran and whether each found anything; a refusal and a fallback say none", async () => {
+  // check_lists looks in the lists, the research and OpenSanctions at once; site_docs in the explainers
+  openrouter(reply(call("check_lists", { query: "TASSOS" }), call("site_docs", { query: "matching" })), listedAnswer);
+  const { json: out } = await run(ask("Is TASSOS sanctioned?"));
+  assert.deepEqual(out.checks, [{ name: "lists", found: true }, { name: "research", found: true }, { name: "wider", found: true }, { name: "docs", found: true }]);
+  // a check that found nothing still ran
+  openrouter(reply(call("check_lists", { query: "Zephyr Marine Services" })), fromEvidence((items) => answer({ kind: "answer", sentences: [{ claim: "not_found", sources: [items[0].id] }] })));
+  const { json: none } = await run(ask("Is Zephyr Marine Services sanctioned?"));
+  assert.deepEqual(none.checks, [{ name: "lists", found: false }, { name: "research", found: false }, { name: "wider", found: false }]);
+  // nothing looked up, or nothing checked: no checks
+  openrouter(answer({ kind: "refusal", sentences: [] }));
+  assert.equal("checks" in (await run(ask("Write me a poem."))).json, false);
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), { choices: [{ message: { role: "assistant", content: "TASSOS is fine." } }] });
+  assert.equal("checks" in (await run(ask("Is TASSOS sanctioned?"))).json, false);
+});
+
 test("forces answer after 4 tool rounds", async () => {
   const round = reply(call("check_lists", { query: "TASSOS" }));
   openrouter(round, round, round, round, listedAnswer);

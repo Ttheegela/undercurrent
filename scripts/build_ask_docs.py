@@ -1,7 +1,8 @@
 """Build data/ask-docs.json: the explainer and methods pages, split into sections for Ask's site_docs tool.
 
 A section runs from an h1, h2 or h3 to the next one (an h2 with h3s under it keeps only the text before the first h3).
-The text under a page's h1 is its lead: the updates page has no other static text, since the rest renders from
+A paragraph that is only bold text with no stop at its end (<p><strong>What the data can't see</strong></p>) is a heading
+in all but its tag: it gets a colon, so it leads into the sentence after it instead of running into it. The text under a page's h1 is its lead: the updates page has no other static text, since the rest renders from
 data/changes/changes.json at runtime. A section's url is site-absolute: /<page>#<id> where the heading has an id on
 the page (its own, else that of the <section> it opens, as in how-sanctions-work/index.html), else just /<page>, so a
 link never carries a fragment the page lacks. Its id is page#<anchor> and is always unique: a slug of the heading text
@@ -15,6 +16,7 @@ page fills at runtime. A count the nightly build changes (<span data-stat="kg.no
 from __future__ import annotations
 
 import json
+import re
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
@@ -39,6 +41,7 @@ INLINE = {"a", "abbr", "b", "cite", "code", "em", "i", "mark", "q", "small", "sp
 # unless punctuation is touching it: (<b>x</b>), is "(x),".
 OPENERS = "([{$£€#/-\"'“‘"
 CLOSERS = ".,;:!?)]}%\"'”’…"
+BOLD_HEADING = re.compile(r"(<p\b[^>]*>\s*<(strong|b)>[^<]*[^<\s.!?:])(\s*</\2>\s*</p>)")
 
 
 class Parser(HTMLParser):
@@ -117,7 +120,7 @@ class Parser(HTMLParser):
 
 def sections_of(html: str, page: str) -> list[dict]:
     parser = Parser()
-    parser.feed(html)
+    parser.feed(BOLD_HEADING.sub(r"\1:\3", html))
     parser.close()
     out, used = [], set()
     for heading_id, title, text in parser.found:

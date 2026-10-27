@@ -121,12 +121,13 @@ const STARTERS = new Set(("A An The Nobody No Anyone Any Every Most Many Some Co
 const CAPITALISED = /(?<![\p{L}\p{N}])\p{Lu}[\p{L}\p{N}'’-]*/gu;
 const generic = (s) => (s.replace(ALLOWED, ",").match(CAPITALISED) ?? []).every((w) => STARTERS.has(w.replace(/['’]s$/, "")));
 // Pointing words take their meaning from the sentence before: pronouns, place and discourse pointers (then included), "the other",
-// "all <n>", "the <n>", and "the" followed within three words by a generic noun ("the target's money", "the shipping firms", "the ISM
-// manager", "the old names"). No sentence holding one is quotable. A noun with a capital is part of a name ("the Zulu Ships
-// Management", "the Nickles Group"), so the window takes lower-case nouns only.
+// "all <n>", "the <n>", "which is right" (or "which one": of the ones named before), and "the" followed within three words by a
+// generic noun ("the target's money", "the shipping firms", "the ISM manager", "the old names", "the median gap"). No sentence holding
+// one is quotable. A noun with a capital is part of a name ("the Zulu Ships Management", "the Nickles Group"), so the window takes
+// lower-case nouns only.
 const NUMBER_WORDS = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty thirty forty fifty sixty seventy eighty ninety hundred";
-const GENERIC_NOUNS = "target targets shipowner shipowners parent parents tanker tankers firm firms company companies ship ships vessel vessels owner owners manager managers operator operators name names entry entries list lists bank banks group groups entity entities person persons people";
-const POINTS_AT = new RegExp(String.raw`\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both|above|below|here|there|such|former|latter|then)\b|\bthe\s+other\b|\b(?:all|the)\s+(?:\d+|${NUMBER_WORDS.split(" ").join("|")})\b`, "i");
+const GENERIC_NOUNS = "target targets shipowner shipowners parent parents tanker tankers firm firms company companies ship ships vessel vessels owner owners manager managers operator operators name names entry entries list lists bank banks group groups entity entities person persons people gap gaps spread difference differences";
+const POINTS_AT = new RegExp(String.raw`\b(?:it|its|they|them|their|this|these|those|he|she|his|her|both|above|below|here|there|such|former|latter|then)\b|\bthe\s+other\b|\b(?:all|the)\s+(?:\d+|${NUMBER_WORDS.split(" ").join("|")})\b|\bwhich\s+(?:one|(?:is|are|was|were)\s+(?:right|correct|wrong|true|accurate))\b`, "i");
 const NOUN_WINDOW = new RegExp(String.raw`\b[Tt]he(?:\s+[\p{L}\p{N}'’-]+){0,2}\s+(?:${GENERIC_NOUNS.split(" ").join("|")})\b`, "u");
 // Never quotable: "team" wording, present-tense currency wording (the 25 Sep 2026 research would read as current), "no sanctions"
 const NEVER = /\bteam(?:s|mates?)?\b|\bright now\b|\bcurrently\b|\bat present\b|\bat the moment\b|\bon these now\b|\bno sanctions\b/i;

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Undercurrent · ASCII mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* Hallmark · genre: modern-minimal (text-mode) · macrostructure: Index-First · nav: N1a one-line status · footer: Ft1 one line
+ * theme: custom · vibe: "ship's log printout, 80 columns, one signal red"
+ * paper oklch(15% 0.008 250) · ink oklch(93% 0.008 95) · signal oklch(70% 0.18 32) · JetBrains Mono only (single-font is the design)
+ * axes: dark / mono / warm-red · differs from Console+Cobalt mockup on paper band, display style (grotesk to mono) and accent hue
+ * enrichment: Tier A live ASCII field (ship above the waterline, the current below it) · motion: field drift only, static under reduced motion */
+
+:root {
+  --color-paper:  oklch(15% 0.008 250);
+  --color-paper-2: oklch(19% 0.010 250);
+  --color-ink:    oklch(93% 0.008 95);
+  --color-muted:  oklch(70% 0.010 250);
+  --color-faint:  oklch(46% 0.010 250);
+  --color-rule:   oklch(30% 0.010 250);
+  --color-signal: oklch(70% 0.18 32);
+  --color-ok:     oklch(76% 0.14 150);
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --text-sm: 0.8125rem; --text-base: 0.9375rem; --text-lg: 1.25rem; --text-xl: clamp(1.375rem, 4.2vw, 2rem);
+  --space-xs: 0.5rem; --space-sm: 0.75rem; --space-md: 1rem; --space-lg: 1.5rem; --space-xl: 2.5rem; --space-2xl: 4rem;
+  --measure: 80ch;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+body { margin: 0; background: var(--color-paper); color: var(--color-ink); font: 400 var(--text-base)/1.6 var(--font-mono); -webkit-font-smoothing: antialiased; }
+@media (max-width: 30rem) { body { font-size: var(--text-sm); } }
+a { color: inherit; text-underline-offset: 0.25em; text-decoration-color: var(--color-faint); }
+a:hover { text-decoration-color: var(--color-ink); }
+:focus-visible { outline: 2px solid var(--color-signal); outline-offset: 2px; }
+.page { max-width: var(--measure); margin: 0 auto; padding: 0 var(--space-md); }
+.muted { color: var(--color-muted); }
+.signal { color: var(--color-signal); }
+h1, h2, p, ul, ol { margin: 0; }
+h1 { font-size: var(--text-xl); font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+h2 { font-size: var(--text-base); font-weight: 700; }
+hr { border: 0; border-top: 1px solid var(--color-rule); margin: 0; }
+
+/* status line: wordmark, list freshness, tour */
+.status { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-xs) var(--space-lg); padding: var(--space-md) 0; }
+.status b { letter-spacing: 0.04em; }
+.status nav { display: flex; gap: var(--space-lg); }
+.status nav a { white-space: nowrap; }
+.dot::before { content: "●"; color: var(--color-ok); margin-right: 0.5ch; }
+
+/* the live field */
+.sea { margin: var(--space-xl) 0 var(--space-lg); font-size: 0.75rem; line-height: 1.15; white-space: pre; overflow: hidden; user-select: none; color: var(--color-faint); }
+.sea b { color: var(--color-ink); font-weight: 700; }
+.sea i { font-style: normal; color: var(--color-muted); }
+
+/* search */
+.ask { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-sm); }
+.box { display: flex; align-items: center; gap: 1ch; border: 1px solid var(--color-ink); padding: var(--space-sm) var(--space-md); background: var(--color-paper-2); }
+.box:focus-within { outline: 2px solid var(--color-signal); outline-offset: 2px; }
+.box span { color: var(--color-signal); font-weight: 700; }
+.box input { flex: 1; min-width: 0; width: 100%; border: 0; background: transparent; font: inherit; font-size: var(--text-lg); color: var(--color-ink); padding: 0; }
+.box input::placeholder { color: var(--color-muted); opacity: 1; }
+.box input:focus { outline: none; }
+.box kbd { font: inherit; color: var(--color-muted); white-space: nowrap; }
+.try { color: var(--color-muted); }
+.try a { color: var(--color-ink); margin-right: 1.5ch; }
+
+/* blocks */
+.block { margin-top: var(--space-xl); display: grid; gap: var(--space-xs); }
+.rows { list-style: none; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.15rem; }
+.row { display: grid; grid-template-columns: 3ch minmax(0, 1fr) auto; gap: 1ch; }
+.leader { display: flex; gap: 1ch; }
+.leader span:first-child { white-space: nowrap; }
+.leader .fill { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; color: var(--color-faint); }
+.leader .fill::before { content: "................................................................................................................................"; }
+.leader span:last-child { white-space: nowrap; color: var(--color-muted); }
+.g { color: var(--color-faint); }
+.foot { margin-top: var(--space-2xl); padding: var(--space-md) 0 var(--space-xl); display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-lg); color: var(--color-muted); }
+
+/* result */
+.divider { margin: var(--space-2xl) 0 0; padding: var(--space-xs) 0; text-align: center; color: var(--color-muted); background: repeating-linear-gradient(90deg, var(--color-rule) 0 1ch, transparent 1ch 2ch) bottom / 100% 1px no-repeat; }
+.query { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-xs) var(--space-lg); padding: var(--space-md) 0; }
+.verdict { display: grid; gap: var(--space-sm); margin-top: var(--space-lg); }
+.lists { list-style: none; padding: 0; display: grid; gap: 0.15rem; }
+.lists li { display: grid; grid-template-columns: 3ch 2ch minmax(0, 1fr) auto; gap: 1ch; }
+.lists .on { color: var(--color-signal); }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-sm) var(--space-lg); margin-top: var(--space-xs); }
+.btn { font: inherit; color: var(--color-ink); background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap; }
+.btn::before { content: "[ "; color: var(--color-muted); }
+.btn::after { content: " ]"; color: var(--color-muted); }
+.btn:hover { color: var(--color-signal); }
+.btn:active { transform: translateY(1px); }
+.tl { list-style: none; padding: 0; display: grid; gap: 0.15rem; }
+.tl li { display: grid; grid-template-columns: 8ch 3ch minmax(0, 1fr) auto; gap: 1ch; }
+.tl .on { color: var(--color-signal); }
+.next { margin-top: var(--space-xl); border: 1px solid var(--color-ink); padding: var(--space-md); display: grid; gap: 0.25rem; }
+.next p:first-child { color: var(--color-signal); font-weight: 700; }
+@media (max-width: 30rem) {
+  .box kbd { display: none; }
+  .box input { font-size: var(--text-base); }
+  .leader span:first-child { white-space: normal; }
+  .tl li { grid-template-columns: 8ch 2ch minmax(0, 1fr); }
+  .tl li > :last-child { display: none; }
+  .lists li { grid-template-columns: 3ch 2ch minmax(0, 1fr); }
+  .lists li > :last-child { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ═════════════ HOME ═════════════ -->
+<header class="status">
+  <b>UNDERCURRENT</b>
+  <nav aria-label="Primary"><a href="#">Research</a><a href="#">Updates</a><a href="#">About the data</a></nav>
+  <span class="dot muted">lists updated 26 Oct 05:25 ET</span>
+</header>
+<hr>
+
+<pre class="sea" id="sea" aria-hidden="true"></pre>
+
+<main>
+<section class="ask" aria-labelledby="h-ask">
+  <h1 id="h-ask">Check a ship, company or person.</h1>
+  <label class="box"><span>&gt;</span><input type="search" placeholder="ship, IMO or company" aria-label="Search a ship, IMO number, company or person"><kbd>[enter]</kbd></label>
+  <p class="try">try <a href="#">TASSOS</a><a href="#">Sovcomflot</a><a href="#">9408695</a></p>
+</section>
+
+<section class="block" aria-labelledby="h-get">
+  <h2 id="h-get">One search returns</h2>
+  <ol class="rows">
+    <li class="row"><span class="signal">[1]</span><span>Verdict: who lists it, since when, which program</span><span></span></li>
+    <li class="row"><span class="signal">[2]</span><span>History: every name, flag and owner of the hull</span><span></span></li>
+    <li class="row"><span class="signal">[3]</span><span>Links: owners, managers, lobbying</span><span></span></li>
+    <li class="row"><span class="signal">[4]</span><span>Sources: one number per line</span><span></span></li>
+  </ol>
+  <p class="muted">New here? <a href="#">Follow one tanker</a>, 5 steps.</p>
+</section>
+
+<section class="block" aria-labelledby="h-res">
+  <h2 id="h-res">The research</h2>
+  <ul class="rows">
+    <li class="leader"><span><span class="g">├─</span> <a href="#">How sanctions work</a></span><span class="fill"></span><span>start here</span></li>
+    <li class="leader"><span><span class="g">├─</span> <a href="#">The shadow fleet</a></span><span class="fill"></span><span>1,756 ships</span></li>
+    <li class="leader"><span><span class="g">├─</span> <a href="#">Chips into Russia</a></span><span class="fill"></span><span>20 months</span></li>
+    <li class="leader"><span><span class="g">└─</span> <a href="#">Who lobbies</a></span><span class="fill"></span><span>1,509 reports</span></li>
+  </ul>
+</section>
+
+<section class="block" aria-labelledby="h-src">
+  <h2 id="h-src">Every answer checks</h2>
+  <p class="muted">our research (snapshot 25 Sep 2026) <span class="g">──▸</span> US, UK, EU, UN lists (nightly 04:00 UTC) <span class="g">──▸</span> OpenSanctions (95 sources) <span class="g">──▸</span> owners, managers, lda.gov filings</p>
+</section>
+</main>
+
+<footer class="foot"><span>Undercurrent · an independent project</span><a href="#">Methods</a><a href="#">Not legal advice</a></footer>
+
+<!-- ═════════════ RESULT ═════════════ -->
+<p class="divider">result page · search: TASSOS</p>
+
+<header class="query">
+  <span><span class="signal">&gt;</span> TASSOS</span>
+  <span class="muted">4/4 checks done <span class="g">·</span> research ✓ lists ✓ wider ✓ links ✓</span>
+</header>
+<hr>
+
+<section class="verdict" aria-labelledby="h-v">
+  <h1 id="h-v">TASSOS is listed by 3 of 4 governments.</h1>
+  <p class="muted">Oil tanker · IMO 9408695 · flag Liberia</p>
+  <ul class="lists">
+    <li><span>US</span><span class="on">■</span><span>30 Jul 2025 · Iran</span><a href="#">[1]</a></li>
+    <li><span>EU</span><span class="on">■</span><span>24 Oct 2025 · Russia</span><a href="#">[2]</a></li>
+    <li><span>UK</span><span class="on">■</span><span>24 Feb 2026 · Russia</span><a href="#">[3]</a></li>
+    <li class="muted"><span>UN</span><span>□</span><span>not listed</span><span></span></li>
+  </ul>
+  <div class="actions"><button class="btn" type="button">copy citation</button><button class="btn" type="button">open on the map</button></div>
+</section>
+
+<section class="block" aria-labelledby="h-tl">
+  <h2 id="h-tl">What changed</h2>
+  <ol class="tl">
+    <li><span class="muted">Feb 2023</span><span class="g">┬─</span><span>sold by Frontline</span><a href="#">[4]</a></li>
+    <li><span class="muted">Sep 2024</span><span class="g">├─</span><span>managed by Zulu Ships</span><a href="#">[4]</a></li>
+    <li><span class="muted">Oct 2024</span><span class="g">├─</span><span>owner moves to the UAE</span><a href="#">[4]</a></li>
+    <li><span class="muted">Jul 2025</span><span class="on">├■</span><span>US lists it</span><a href="#">[1]</a></li>
+    <li><span class="muted">Oct 2025</span><span class="on">├■</span><span>EU lists it</span><a href="#">[2]</a></li>
+    <li><span class="muted">Feb 2026</span><span class="on">└■</span><span>UK lists it</span><a href="#">[3]</a></li>
+  </ol>
+</section>
+
+<section class="block" aria-labelledby="h-nm">
+  <h2 id="h-nm">5 names, one hull</h2>
+  <p>TASSOS <span class="muted">(now)</span> <span class="g">·</span> Bay Global <span class="g">·</span> Front Balder <span class="g">·</span> Roxen Star <span class="g">·</span> Seasalvia</p>
+  <p class="muted">flags: Liberia, Marshall Islands, Panama</p>
+</section>
+
+<section class="block" aria-labelledby="h-ln">
+  <h2 id="h-ln">Linked on the lists</h2>
+  <ul class="rows">
+    <li class="leader"><span><span class="g">└─</span> Zulu Ships Management</span><span class="fill"></span><span>UK, US</span></li>
+    <li class="leader"><span><span class="g">&nbsp;&nbsp; ├─</span> TAGOR, NEMRUT, MANASLU, BRIONT, ETHERA</span><span class="fill"></span><span>5 of 10</span></li>
+    <li class="leader"><span><span class="g">&nbsp;&nbsp; ├─</span> <a href="#">5 more ships</a></span><span class="fill"></span><span>show</span></li>
+    <li class="leader"><span><span class="g">&nbsp;&nbsp; └─</span> Hossein SHAMKHANI</span><span class="fill"></span><span>person</span></li>
+  </ul>
+</section>
+
+<section class="next" aria-label="Next step">
+  <p>next ──▸</p>
+  <p><a href="#">Search Zulu Ships Management</a></p>
+  <p class="muted">10 ships and 1 person on the same lists.</p>
+</section>
+
+<footer class="foot"><span>[1] OFAC · [2] EUR-Lex · [3] UK Sanctions List · [4] Ukraine GUR (a party to the war; not a sanctions list)</span><span>A name match is a possible match, not proof.</span></footer>
+</div>
+
+<script>
+// Live ASCII field: tanker above the waterline, the current below it.
+// Ramp idea (brightness to glyph density) taken from ascii-magic.com's "Characters" style.
+const sea = document.getElementById("sea");
+const RAMP = " .,:;-~=+";
+const ROWS = 11, WATER = 7;
+const probe = Object.assign(document.createElement("span"), { textContent: "M" });
+sea.append(probe);
+const cw = probe.getBoundingClientRect().width;
+probe.remove();
+
+function shipAt(u, y) {
+  if (y === 1 && u > 0.755 && u < 0.775) return "#";               // funnel
+  if (y === 2 && u > 0.70 && u < 0.80) return u > 0.755 && u < 0.775 ? "#" : "=";
+  if (y === 3 && u > 0.70 && u < 0.80) return Math.round(u * 400) % 2 ? "|" : "o"; // bridge windows
+  if (y === 3 && u > 0.235 && u < 0.25) return "|";                 // fore mast
+  if (y === 4 && u > 0.20 && u < 0.81) return u > 0.70 ? "|" : "_"; // deck
+  if (y === 5 && u > 0.19 && u < 0.82) return "#";                  // hull
+  if (y === 6 && u > 0.20 && u < 0.815) return "#";
+  if (y === WATER && u > 0.22 && u < 0.81) return "%";              // hull at the waterline
+  return null;
+}
+
+function draw(t) {
+  const cols = Math.max(24, Math.floor(sea.clientWidth / cw));
+  let html = "";
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < cols; x++) {
+      const u = x / cols, s = shipAt(u, y);
+      if (s) { html += y >= WATER ? `<i>${s}</i>` : `<b>${s}</b>`; continue; }
+      if (y < WATER) { html += " "; continue; }
+      if (y === WATER) { html += Math.sin(x * 0.9 + t * 0.6) > 0.2 ? "~" : " "; continue; }
+      if (y === WATER + 1 && u > 0.24 && u < 0.79) { html += "<i>:</i>"; continue; } // keel under the surface
+      const depth = (y - WATER) / (ROWS - WATER);
+      const v = Math.sin(x * 0.35 - t * (1 + depth * 2.5) + y * 1.7) * 0.5 + 0.5;
+      html += RAMP[Math.min(RAMP.length - 1, Math.floor(v * depth * RAMP.length))];
+    }
+    html += "\n";
+  }
+  sea.innerHTML = html;
+}
+
+if (matchMedia("(prefers-reduced-motion: reduce)").matches) draw(0);
+else {
+  let last = 0;
+  (function tick(now) { if (now - last > 90) { draw(now / 1000); last = now; } requestAnimationFrame(tick); })(0);
+}
+addEventListener("resize", () => draw(performance.now() / 1000));
+</script>
+</body>
+</html>

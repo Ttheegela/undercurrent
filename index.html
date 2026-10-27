@@ -7,10 +7,11 @@
 <meta name="description" content="Check any ship, company or person against sanctions-evasion research and the US, UK, EU and UN sanctions lists. Every answer comes with its source.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app/style.css">
 <script type="module" src="app/main.js"></script>
 <script type="module" src="app/stats.js"></script>
+<script type="module" src="app/sea.js"></script>
 <link rel="stylesheet" href="/app/ask.css">
 <script type="module" src="/app/ask.js"></script>
 </head>
@@ -32,10 +33,10 @@
 
 <main>
 <section class="wrap hero" id="search">
-  <h1>Names change. <span>The hull doesn't.</span></h1>
-  <p class="hero-sub">Check any ship, company or person against our sanctions-evasion research and the US, UK, EU and UN sanctions lists. Every answer comes with its source.</p>
+  <pre class="sea" id="sea" aria-hidden="true"></pre>
+  <h1>Check a ship, company or person.</h1>
   <form class="search" role="search" id="search-form">
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.5" cy="8.5" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M13 13l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <span class="prompt" aria-hidden="true">&gt;</span>
     <label for="q" class="visually-hidden">Search a ship, IMO number, company or person</label>
     <input id="q" name="q" type="search" placeholder="Ship name, IMO number, company or person" autocomplete="off" spellcheck="false" maxlength="200">
     <span class="kbd" aria-hidden="true">/</span>
@@ -44,6 +45,16 @@
     <span id="lists-date"><span class="live-dot" aria-hidden="true"></span>Checking when the official lists were last updated…</span>
     <span>Try <a href="#" data-example="TASSOS">TASSOS</a> · <a href="#" data-example="Sovcomflot">Sovcomflot</a> · <a href="#" data-example="9408695">9408695</a></span>
     <button class="btn btn-accent" type="button" id="start-walk">Follow one tanker, 5 steps</button>
+  </div>
+  <div class="returns">
+    <h2 class="label">One search returns</h2>
+    <ol>
+      <li><b>Verdict</b> who lists it, since when, under which program</li>
+      <li><b>History</b> every name, flag and owner of the hull</li>
+      <li><b>Links</b> owners, managers and US lobbying</li>
+      <li><b>Sources</b> a number on every line</li>
+    </ol>
+    <p class="hero-sub">Names change. The hull doesn't. Each search checks our research, the US, UK, EU and UN lists, and OpenSanctions.</p>
   </div>
 </section>
 
@@ -63,7 +74,7 @@
 
 <footer class="wrap foot">
   <span>Undercurrent</span>
-  <span>Research by the VeilTrace team, Trace the Unseen, 25 Sep 2026</span>
+  <span>Research snapshot: VeilTrace, Trace the Unseen, 25 Sep 2026</span>
   <a href="stories/about-the-data.html">About the data</a>
   <a href="stories/sources/METHODS_LOG.html">Methods</a>
   <a href="https://github.com/Ttheegela/veil-trace">Original research repo</a>

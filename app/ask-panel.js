@@ -56,7 +56,7 @@ export function renderAnswer(rendered, checks) {
   }).join("");
   const line = (s) => `${escapeHtml(s.text)}${refs(s.sources)}`;
   const body = sentences.map((s, i) => (s.item !== true ? `<p>${line(s)}</p>`
-    : `${sentences[i - 1]?.item === true ? "" : '<ul class="ask-list">'}<li>${line(s)}</li>${sentences[i + 1]?.item === true ? "" : "</ul>"}`)).join("");
+    : `${sentences[i - 1]?.item === true ? "" : '<ul class="ask-list">'}<li><span>${line(s)}</span></li>${sentences[i + 1]?.item === true ? "" : "</ul>"}`)).join(""); // (the span keeps an item's links beside its words)
   const sources = [...cited.values()].sort((a, b) => a.n - b.n)
     .map((s) => `<li value="${s.n}">${link(s.url, escapeHtml(s.label || `Source ${s.n}`), NEW_TAB)}</li>`).join("");
   const next = (Array.isArray(rendered.next) ? rendered.next : []).filter((n) => typeof n?.label === "string" && n.label)

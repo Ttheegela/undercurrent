@@ -2,7 +2,7 @@
 // fixed copy, a claim the server writes from an evidence item, or a verbatim quote of one, and has its source. The fixed copy below is
 // written out here by hand, not imported from api/, so a change to the server's wording is caught rather than followed.
 import { isDeepStrictEqual } from "node:util";
-import { LIST_LABELS, formatDate } from "../app/render.js";
+import { LIST_LABELS, formatDate, joinAnd } from "../app/render.js";
 
 export const REFUSAL = "I can only answer questions about what's on Undercurrent: sanctions lists, ship and company connections, lobbying, the semiconductor data, the research and the daily updates. I can't give legal or compliance advice.";
 export const FALLBACK = "I couldn't check an answer to that against the site's data, so I won't guess. Try the search on the home page.";
@@ -48,6 +48,18 @@ function listing(e) {
   if (e.kind === "opensanctions") return `${e.entity.name} appears in OpenSanctions${e.program ? ` as listed by ${e.program}` : ""}${since}.`;
   if ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted) return `${e.entity.name} appears on the ${LIST_LABELS[e.gov]} list${e.program ? ` under ${e.program}` : ""}${since}.`;
   return null;
+}
+
+// The line an answer about one entity of Undercurrent's research opens with, as the entity's result page has it: how many of the four
+// governments list it, counted over all its records in the evidence (a ship's records share its IMO number) -> [text, those records].
+const who = (e) => (e.entity?.imo ? `IMO${e.entity.imo}` : e.entity?.id);
+function verdicts(ev) {
+  return [...new Set(ev.filter((e) => e.kind === "research" && listing(e)).map(who))].map((id) => {
+    const records = ev.filter((e) => (e.kind === "list" || e.kind === "research") && listing(e) && who(e) === id);
+    const govs = [...new Set(records.map((e) => e.gov))];
+    const name = records.find((e) => e.kind === "research").entity.name;
+    return [`${name} is listed by ${govs.length} of the 4 governments whose lists Undercurrent checks: ${joinAnd(govs.map((g) => `the ${LIST_LABELS[g]}`))}.`, records];
+  });
 }
 
 // a ship count's filters as the sentence states them, singular for one ship: "are tankers and are under a Russia programme and an Iran programme"
@@ -139,6 +151,7 @@ function producers(ev, today) {
     else if (e.kind === "change") add(`${e.summary} · ${day(e.date)}`, e);
     if (e.kind === "gap") add(gapLine(e), e);
   }
+  for (const [text, records] of verdicts(ev)) for (const e of records) add(text, e);
   return made;
 }
 
@@ -163,7 +176,7 @@ export function groundingProblems(question, ev, answer, today = new Date().toISO
   // among them, and a line for any other M is caught.
   const labelled = (items, src) => [...items].some((e) => e.label === src.label && e.url === src.url);
   const key = (e) => (e.kind === "change" ? e.key : e.entity.id);
-  const shows = new Set(ev.flatMap((e) => [listing(e), firmLine(e), counted(e), e.kind === "change" && e.entity && `${e.summary} · ${day(e.date)}`]).filter(Boolean));
+  const shows = new Set([...ev.flatMap((e) => [listing(e), firmLine(e), counted(e), e.kind === "change" && e.entity && `${e.summary} · ${day(e.date)}`]), ...verdicts(ev).map(([text]) => text)].filter(Boolean));
   const aged = new Set(ev.flatMap((e) => ((e.kind === "list" || e.kind === "research") && e.gov && !e.delisted && e.date && age(e, today)) || []));
   const keysOf = (s) => s.sources.map((src) => new Set([...made.get(s.text)].filter((e) => e.entity && labelled([e], src)).map(key)));
   const named = answer.sentences.filter((s) => shows.has(s.text)).flatMap(keysOf);

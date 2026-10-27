@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { backfillNotes, runEvals, runOptions, summary, syncDataset } from "../scripts/ask-langsmith.mjs";
 import { MODEL, runAsk } from "../api/ask.js";
-import { checkAnswer } from "../api/_ask_check.js";
+import { checkAnswer, withVerdict } from "../api/_ask_check.js";
 import { gate } from "../api/_ask_gate.js";
 import { SYSTEM_PROMPT } from "../api/_ask_prompt.js";
 import { TOOLS } from "../api/_ask_tools.js";
@@ -172,7 +172,7 @@ const fakeAsk = (script) => {
     if (first.stop) return first.stop;
     await tool("check_lists", { query: "x" }, ev, ctx);
     await model([{ role: "user", content: c.question }], "auto", Date.now() + 26_000, now);
-    return { ok: true, answer: await check(structuredClone(c.model), ev, { question: c.question, today: now.toISOString().slice(0, 10) }) };
+    return { ok: true, answer: withVerdict(await check(structuredClone(c.model), ev, { question: c.question, today: now.toISOString().slice(0, 10) })) }; // (as runAsk does)
   };
 };
 
@@ -335,7 +335,7 @@ test("the relevance judge scores answered cases whose answer is an answer, on wh
   // one request per judged case: the question, the sentences and the labels the reader saw, with the key as a bearer token
   assert.deepEqual(judge.requests.map((r) => [r.url, r.headers.Authorization, r.body.model, r.body.state.question]), judged.map((id) => ["https://api.typesafe.ai/v1/systemone", "Bearer ts-test", "jev-latest", byId(id).question]));
   const c = byId("area-lists-1");
-  const shown = checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question });
+  const shown = withVerdict(checkAnswer(structuredClone(c.model), structuredClone(c.evidence), { question: c.question })); // (with the verdict, as runAsk)
   assert.deepEqual(judge.requests[0].body.state, { question: c.question, answer: shown.sentences.map((x) => x.text), records: shown.sentences.map((x) => x.text), sources: labelsOf(shown) });
   assert.ok(judge.requests[0].body.state.answer.length >= 2 && judge.requests[0].body.state.sources.length >= 2);
   // the run's totals: the experiment names the judge asked for; the result and the summary carry the means, the judge's tokens and

@@ -5,7 +5,7 @@
 // else, and no log line or error carries more than a fixed phrase and a status.
 import { createHash, randomBytes } from "node:crypto";
 import { TOOLS, runTool } from "./_ask_tools.js";
-import { checkAnswer } from "./_ask_check.js";
+import { checkAnswer, withVerdict } from "./_ask_check.js";
 import { gate, GATE_MS } from "./_ask_gate.js";
 import { SYSTEM_PROMPT } from "./_ask_prompt.js";
 
@@ -228,7 +228,7 @@ async function converse(history, now, wrap, modelId) {
     // (ages count to the request's own date, the one the tools and the prompt use)
     if (final || forced || !calls.length) {
       const raw = final && calls.length === 1 ? parse(final.function.arguments) : undefined;
-      const answer = await check(raw, ev, { question, today, toolFailed });
+      const answer = withVerdict(await check(raw, ev, { question, today, toolFailed }));
       if (answer.kind === "fallback") console.error("ask: fallback", fallbackReason(calls, final, raw, toolFailed));
       if (answer.kind !== "answer") return done(answer);
       // ("And the other one?" can't be judged on its own: shown unchecked, the step still traced)

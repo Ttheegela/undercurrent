@@ -349,8 +349,10 @@ function finish(kind, pieces, next, byId = new Map()) {
   if (last >= 0) pieces = [...pieces.slice(0, last + 1), { text: NAME_ONLY, items: unique(pieces.flatMap(counts), "id") }, ...pieces.slice(last + 1)];
   const n = new Map();
   const byText = new Map();
+  // a count's examples, and the firms the chips research names, are items of one list (the panel draws them one a line)
+  const counted = pieces.some((p) => p.claim === "count");
   for (const { text, items, claim } of pieces) {
-    if (!byText.has(text)) byText.set(text, { text, sources: [], listed: new Set() });
+    if (!byText.has(text)) byText.set(text, { text, sources: [], listed: new Set(), item: claim === "named" || (counted && claim === "listed") });
     const { sources, listed } = byText.get(text);
     for (const e of items) {
       if (!n.has(e.id)) n.set(e.id, n.size + 1);
@@ -370,7 +372,7 @@ function finish(kind, pieces, next, byId = new Map()) {
     const shown = [...entities].filter((x) => named.has(x)).length;
     if (shown && shown < r.total) lines[said.findLastIndex((x) => [...x.listed].some((y) => entities.has(y)))].add(SHOWING(shown, r.total, r));
   }
-  const sentences = said.flatMap(({ text, sources }, i) => [{ text, sources }, ...[...lines[i]].map((t) => ({ text: t, sources: [] }))]);
+  const sentences = said.flatMap(({ text, sources, item }, i) => [{ text, sources, ...(item && { item: true }) }, ...[...lines[i]].map((t) => ({ text: t, sources: [] }))]);
   return sentences.length ? { kind, sentences, next } : fallback();
 }
 

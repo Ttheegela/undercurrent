@@ -92,6 +92,36 @@ test("renderAnswer heads the next steps See also, and a clarify answer's choices
   assert.deepEqual(tags(clarify).filter((t) => t.name === "a" && !t.close).map((t) => t.attrs.href), ["/?q=Tassos", "/?q=Tasso"]);
 });
 
+test("renderAnswer shows the checks Ask ran on one line: a check that found nothing still shows as run, and nothing else is shown", () => {
+  const done = { kind: "answer", sentences: [{ text: "Done.", sources: [] }], next: [] };
+  const checks = [{ name: "lists", found: true }, { name: "research", found: true }, { name: "wider", found: false }, { name: "docs", found: true },
+    { name: "lists", found: true }, { name: "<b>x</b>", found: true }, { found: true }, { name: "chips", found: "yes" }, null]; // a repeat, and four malformed
+  const html = renderAnswer(done, checks);
+  assertPlain(html, "checks");
+  assert.ok(text(html).includes("4 checks · lists ✓ research ✓ wider 0 docs ✓"), text(html));
+  assert.ok(html.includes('aria-label="Checked the lists (found records), the research (found records), OpenSanctions and connections (found nothing), the site&#39;s explainers (found records)"'), html);
+  for (const none of [undefined, [], "lists", [{ name: "nope", found: true }]]) assert.ok(!text(renderAnswer(done, none)).includes("checks"), JSON.stringify(none));
+});
+
+test("renderAnswer draws a count's examples as one list, an item a line, on the real checker's answers", () => {
+  // the journalist test's chips question gave ten near-identical sentences in a row; its Panama tankers a count and five listings
+  for (const [id, lead] of [["journalist-7", "41 firms in China are named"], ["journalist-4", "ships in Undercurrent's research map are tankers"]]) {
+    const answer = served(caseOf(id));
+    const items = answer.sentences.filter((s) => s.item === true);
+    assert.ok(items.length >= 2 && !answer.sentences[0].item && answer.sentences[0].text.includes(lead), id); // the count leads, its examples follow
+    assert.ok(!answer.sentences.at(-1).item && answer.sentences.at(-1).text.startsWith("Showing "), id); // and "Showing N of M" closes them
+    const html = renderAnswer(answer);
+    assertPlain(html, id);
+    const list = html.match(/<ul class="ask-list">(.*?)<\/ul>/s);
+    assert.ok(list, id);
+    assert.equal((list[1].match(/<li>/g) || []).length, items.length, `${id}: one item a line, in one list`);
+    assert.equal((html.match(/<ul class="ask-list">/g) || []).length, 1, id);
+  }
+  // the tree is drawn by the stylesheet, in the page's style: ├─ for an item, └─ for the last
+  const css = readFileSync(new URL("../app/ask-panel.css", import.meta.url), "utf8");
+  assert.ok(css.includes('.ask-list li::before { content: "├─ "') && css.includes('.ask-list li:last-child::before { content: "└─ "'), "tree glyphs");
+});
+
 test("renderAnswer shows a protocol-relative or backslash url as text, for a source and a next step alike", () => {
   const forms = ["//evil.example/x", "/\\evil.example/x", "\\\\evil.example/x", " /stories/x.html", "stories/x.html", "x.html"];
   const html = renderAnswer({ kind: "answer", sentences: [{ text: "A.", sources: forms.map((url, i) => ({ n: i + 1, label: `L${i + 1}`, url })) }], next: forms.map((href, i) => ({ label: `N${i + 1}`, href })) });

@@ -20,6 +20,8 @@ const SITE_OR_WEB = /^(https?:\/\/|\/(?![\/\\]))/i; // an http(s) address or a p
 const safe = (url) => (typeof url === "string" && safeUrl(url) !== "#" && SITE_OR_WEB.test(url) ? url : null);
 const isDay = (s) => { const t = /^\d{4}-\d\d-\d\d$/.test(s) ? Date.parse(`${s}T00:00:00Z`) : NaN; return !Number.isNaN(t) && new Date(t).toISOString().startsWith(s); }; // (not 2026-02-30)
 const link = (url, inner, attrs = "") => (safe(url) ? `<a href="${escapeHtml(url)}"${attrs}>${inner}</a>` : inner);
+// the checks /api/ask may say it ran, in order: the short name the line shows, and what a screen reader hears
+const CHECKS = { lists: "the lists", research: "the research", wider: "OpenSanctions and connections", docs: "the site's explainers", updates: "the nightly updates", chips: "the chips research" };
 
 /** A status note: resting (until its date, for today when `daily`, else this month; without a date that is one, only that it rests), unavailable, busy or disabled. Anything else says unavailable. */
 export function renderStatus(reason, resets, daily) {
@@ -29,8 +31,19 @@ export function renderStatus(reason, resets, daily) {
   return `<div class="ask-msg ask-status" data-reason="${key}"><p>${escapeHtml(text)}</p></div>`;
 }
 
-/** An answer from /api/ask: its sentences, each with numbered links to its sources, then the sources and the next steps. */
-export function renderAnswer(rendered) {
+/** The checks line: "4 checks · lists ✓ research ✓ wider 0 docs ✓", ✓ where a check found records and 0 where it found none. "" for none. */
+function renderChecks(checks) {
+  const ran = (Array.isArray(checks) ? checks : []).filter((c, i, all) => Object.hasOwn(CHECKS, c?.name) && typeof c.found === "boolean" && all.findIndex((x) => x?.name === c.name) === i);
+  if (!ran.length) return "";
+  const heard = ran.map((c) => `${CHECKS[c.name]} (${c.found ? "found records" : "found nothing"})`).join(", ");
+  return `<p class="ask-checks" aria-label="${escapeHtml(`Checked ${heard}`)}">${ran.length} check${ran.length === 1 ? "" : "s"} · ${ran.map((c) => `${c.name} ${c.found ? "✓" : "0"}`).join(" ")}</p>`;
+}
+
+/**
+ * An answer from /api/ask: its sentences, each with numbered links to its sources (a run of list items, a count's examples, as one list),
+ * the checks it ran, then the sources and the next steps.
+ */
+export function renderAnswer(rendered, checks) {
   const sentences = Array.isArray(rendered?.sentences) ? rendered.sentences.filter(isText) : [];
   if (!sentences.length) return renderStatus("unavailable");
   const cited = new Map(); // n -> source, in order of number
@@ -41,13 +54,15 @@ export function renderAnswer(rendered) {
       ? `<a class="ask-ref" href="${escapeHtml(s.url)}"${NEW_TAB} aria-label="${escapeHtml(`Source ${s.n}${label ? `: ${label}` : ""}`)}">${s.n}</a>`
       : `<span class="ask-ref">${s.n}</span>`;
   }).join("");
-  const body = sentences.map((s) => `<p>${escapeHtml(s.text)}${refs(s.sources)}</p>`).join("");
+  const line = (s) => `${escapeHtml(s.text)}${refs(s.sources)}`;
+  const body = sentences.map((s, i) => (s.item !== true ? `<p>${line(s)}</p>`
+    : `${sentences[i - 1]?.item === true ? "" : '<ul class="ask-list">'}<li>${line(s)}</li>${sentences[i + 1]?.item === true ? "" : "</ul>"}`)).join("");
   const sources = [...cited.values()].sort((a, b) => a.n - b.n)
     .map((s) => `<li value="${s.n}">${link(s.url, escapeHtml(s.label || `Source ${s.n}`), NEW_TAB)}</li>`).join("");
   const next = (Array.isArray(rendered.next) ? rendered.next : []).filter((n) => typeof n?.label === "string" && n.label)
     .map((n) => `<li>${link(n.href, escapeHtml(n.label))}</li>`).join("");
   const kind = ["answer", "refusal", "clarify", "fallback"].includes(rendered.kind) ? rendered.kind : "answer";
-  return `<div class="ask-msg ask-a" data-kind="${kind}">${body}`
+  return `<div class="ask-msg ask-a" data-kind="${kind}">${body}${renderChecks(checks)}`
     + (sources ? `<p class="label">Sources</p><ol class="ask-src">${sources}</ol>` : "")
     + (next ? `${rendered.kind === "clarify" ? "" : '<p class="label">See also</p>'}<ul class="ask-next">${next}</ul>` : "") + "</div>"; // (a clarify answer's choices follow its question)
 }
@@ -167,7 +182,7 @@ async function ask(raw) {
     const body = await res.json().catch(() => null); // (a 4xx with no body, or one that is not JSON)
     if (pending !== mine) return; // the panel was closed meanwhile
     if (res.ok && body?.ok === true && assistantText(body.answer)) {
-      html = renderAnswer(body.answer);
+      html = renderAnswer(body.answer, body.checks);
       convo.push({ role: "assistant", text: assistantText(body.answer) });
     } else {
       convo.pop(); // a question that failed is not sent again with the next

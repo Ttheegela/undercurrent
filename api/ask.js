@@ -165,6 +165,22 @@ const parse = (args) => {
   }
 };
 
+// The checks a question ran, for the panel's one line: where its tool calls looked, and whether each found anything there (a check
+// that found nothing still ran). check_lists looks in the lists, the research and OpenSanctions at once. Only an answer or a clarify
+// says them: a refusal looked nowhere, and a fallback checked nothing.
+const LOOKS_IN = { check_lists: ["lists", "research", "wider"], research: ["research"], connections: ["wider"], changes: ["updates"], chips: ["chips"], site_docs: ["docs"] };
+const FINDS = {
+  lists: (e) => e.kind === "list" || (e.kind === "count" && Boolean(e.list) && e.n > 0),
+  research: (e) => e.kind === "research" || (e.kind === "count" && !e.list && e.unit === "ships" && e.n > 0),
+  wider: (e) => e.kind === "opensanctions" || e.kind === "connection" || e.kind === "lobbying",
+  docs: (e) => e.kind === "doc",
+  updates: (e) => e.kind === "change" && e.found !== false,
+  chips: (e) => e.kind === "chips" || e.kind === "chips_firm",
+};
+function checksOf(looked, ev) {
+  return Object.keys(FINDS).filter((name) => [...looked].some((tool) => LOOKS_IN[tool]?.includes(name))).map((name) => ({ name, found: ev.some(FINDS[name]) }));
+}
+
 /** Which way an answer fell back, for the log: never the question or the model's words, only the code for its path. */
 function fallbackReason(calls, final, raw, toolFailed) {
   if (!calls.length) return "no_call";
@@ -196,6 +212,11 @@ async function converse(history, now, wrap, modelId) {
   const messages = [{ role: "system", content: SYSTEM_PROMPT.replace("{today}", today) }, ...history];
   let used = 0;
   let toolFailed = false; // a call that returned an error: then an answer of no sentences can't say that nothing answers
+  const looked = new Set(); // the tools whose calls ran without an error
+  const done = (answer) => {
+    const checks = answer.kind === "answer" || answer.kind === "clarify" ? checksOf(looked, ev) : [];
+    return checks.length ? { ok: true, answer, checks } : { ok: true, answer };
+  };
   for (let round = 0; round <= TOOL_ROUNDS; round++) {
     const forced = round === TOOL_ROUNDS || used >= MAX_TOOL_CALLS;
     const { message, stop } = await model(messages, forced ? FORCE_ANSWER : "auto", deadline, now, modelId);
@@ -209,14 +230,14 @@ async function converse(history, now, wrap, modelId) {
       const raw = final && calls.length === 1 ? parse(final.function.arguments) : undefined;
       const answer = await check(raw, ev, { question, today, toolFailed });
       if (answer.kind === "fallback") console.error("ask: fallback", fallbackReason(calls, final, raw, toolFailed));
-      if (answer.kind !== "answer") return { ok: true, answer };
+      if (answer.kind !== "answer") return done(answer);
       // ("And the other one?" can't be judged on its own: shown unchecked, the step still traced)
-      if (history.filter((m) => m.role === "user").length > 1) return { ok: true, answer: await relevant(question, answer, { skipped: "follow-up" }) };
+      if (history.filter((m) => m.role === "user").length > 1) return done(await relevant(question, answer, { skipped: "follow-up" }));
       // the gate gives up 50 ms before the request's time is out, so a slow answer is still shown, unchecked
       const timeoutMs = Math.max(0, Math.min(GATE_MS, deadline - Date.now() - 50));
       const gated = await relevant(question, answer, { fetch, timeoutMs });
       if (gated.kind === "fallback") console.error("ask: fallback", "gate_dropped_all");
-      return { ok: true, answer: gated };
+      return done(gated);
     }
     const asked = calls.slice(0, Math.min(CALLS_PER_ROUND, MAX_TOOL_CALLS - used)).map((c, i) => ({
       id: typeof c.id === "string" && c.id ? c.id : `call_${round}_${i}`,
@@ -229,6 +250,7 @@ async function converse(history, now, wrap, modelId) {
       if (deadline - Date.now() <= 0) return UNAVAILABLE;
       const result = await tool(c.function.name, parse(c.function.arguments), ev, ctx);
       if (result?.error) toolFailed = true;
+      else looked.add(c.function.name);
       messages.push({ role: "tool", tool_call_id: c.id, content: JSON.stringify(result) });
     }
   }

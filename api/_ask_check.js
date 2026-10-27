@@ -310,6 +310,13 @@ const RENDER = {
 const unique = (list, key) => list.filter((x, i) => list.findIndex((y) => y[key] === x[key]) === i);
 const choice = (name) => ({ label: name, href: `/?q=${encodeURIComponent(name)}` });
 
+/**
+ * A sentence's claim, or null. A model sometimes writes its own sentence where the claim's name goes, beside a quote number and one
+ * source (the Haiku eval run of 26 Oct 2026): that is a quote, and only the quote is said. The words in the claim are never read.
+ */
+const claimOf = (s) => (typeof s.claim === "string" && Object.hasOwn(RENDER, s.claim) ? s.claim
+  : Number.isInteger(s.quote) && Array.isArray(s.sources) && s.sources.length === 1 ? "quote" : null);
+
 /** The cited items, or null when a sentence cites nothing or an id that is not evidence. */
 function cite(ids, byId) {
   if (!Array.isArray(ids) || !ids.length) return null;
@@ -433,9 +440,10 @@ export function checkAnswer(raw, ev, ctx) {
   // and the verified ones stand, followed by the part-answer line
   const state = { partial: cited.length < said.length };
   for (const { s, items } of cited) {
-    const shown = typeof s.claim === "string" && Object.hasOwn(RENDER, s.claim) ? RENDER[s.claim](items, s, all, ctx ?? {}, state) : null;
-    if (!shown?.length && (shown === null || s.claim !== "not_found")) state.partial = true;
-    pieces.push(...(shown ?? []).map((p) => ({ ...p, claim: p.claim ?? s.claim })));
+    const claim = claimOf(s);
+    const shown = claim ? RENDER[claim](items, s, all, ctx ?? {}, state) : null;
+    if (!shown?.length && (shown === null || claim !== "not_found")) state.partial = true;
+    pieces.push(...(shown ?? []).map((p) => ({ ...p, claim: p.claim ?? claim })));
   }
   // a listing and its age say one thing: the age, which names the list and the date too, is said in the listing's place and counts
   // as the listing did. A record with no date keeps both: "gives no listing date" does not say it is listed

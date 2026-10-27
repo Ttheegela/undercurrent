@@ -1450,7 +1450,7 @@ export const TOOLS = [
         items: {
           type: "object",
           properties: {
-            claim: str("listed, age, count, none_matched, not_found, change or named: the server writes the sentence from the cited items (listed only from list, research or OpenSanctions items; age from list or research items; count and none_matched from a count item, none_matched also from a changes item of none; named from chips_firm items). quote: one sentence from one item's quotes, including connections and lobbying.", { enum: ["listed", "age", "count", "none_matched", "not_found", "change", "named", "quote"] }),
+            claim: str("One name from the list, never a sentence. listed, age, count, none_matched, not_found, change or named: the server writes the sentence from the cited items (listed only from list, research or OpenSanctions items; age from list or research items; count and none_matched from a count item, none_matched also from a changes item of none; named from chips_firm items). quote: one sentence from one item's quotes, including connections and lobbying.", { enum: ["listed", "age", "count", "none_matched", "not_found", "change", "named", "quote"] }),
             sources: { type: "array", items: { type: "string" }, description: "Evidence ids such as S1; exactly one for a quote." },
             quote: { type: "integer", minimum: 0, description: "For a quote: the quote's number in the cited item, from 0." },
           },

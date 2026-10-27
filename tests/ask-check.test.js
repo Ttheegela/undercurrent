@@ -292,6 +292,17 @@ test("fact with listing language is dropped", () => {
   assert.deepEqual(texts(checkAnswer(answer({ ...claim("listed", star().id), text: "TASSOS is listed by the UK." }), E.tassos)), ["TASSOS STAR appears in OpenSanctions as listed by US.", shows(1)]);
 });
 
+test("a sentence written where the claim's name goes, beside a quote number and one source, is that quote", () => {
+  // the Haiku eval run of 26 Oct 2026 (journalist-8): its own words in claim, with the right quote number and source each time
+  const r = tassosResearch();
+  const out = checkAnswer(answer({ claim: "TASSOS is a ship the site has researched.", sources: [r.id], quote: 0 }), E.tassos);
+  assert.deepEqual(texts(out), [r.quotes[0]]); // the quote, never the model's words
+  assert.doesNotMatch(JSON.stringify(out), /has researched/);
+  // with no quote number, or with two sources, it is no claim: dropped, as ever
+  assert.deepEqual(texts(checkAnswer(answer({ claim: "TASSOS appears on lists.", sources: [r.id] }, quote(r.id, 0)), E.tassos)), [r.quotes[0], PARTIAL]);
+  assert.deepEqual(checkAnswer(answer({ claim: "TASSOS is listed.", sources: [r.id, tassosList("uk").id], quote: 0 }), E.tassos), FALLBACK_ANSWER);
+});
+
 test("ITAR program renders as appears on the United States list", () => {
   const rec = find(E.itar, (e) => e.kind === "list");
   assert.equal(rec.program, "ITAR Debarred (DTC)");

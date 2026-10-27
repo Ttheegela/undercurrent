@@ -24,13 +24,14 @@ const BEFORE_START = (first) => `Daily updates started on ${day(first)}, so ther
 const TRIMMED = (started) => `Days before ${day(started)} are no longer kept.`;
 const NOT_YET = "Today's nightly update hasn't run yet.";
 // A topic none says what it rests on: the updates whose programme or country could be checked, and how many could not be checked against
-// the topic (some carry no programme or country, some carry ones that cannot settle it)
+// the topic (some carry no programme or country, some carry ones that cannot settle it), and the graph, when it is of one graph's updates
+const toGraph = (e) => (e.graph_name ? ` to the ${e.graph_name}` : "");
 function NONE_INVOLVE(e) {
   const n = e.checked_fleet + e.checked_lobby;
   const when = e.from === e.to ? `on ${day(e.from)}` : `between ${day(e.from)} and ${day(e.to)}`;
-  return n === 1 ? `The 1 update recorded ${when} does not involve ${e.topic.label}.` : `None of the ${num(n)} updates recorded ${when} involve ${e.topic.label}.`;
+  return n === 1 ? `The 1 update${toGraph(e)} recorded ${when} does not involve ${e.topic.label}.` : `None of the ${num(n)} updates${toGraph(e)} recorded ${when} involve ${e.topic.label}.`;
 }
-const UNCHECKED = (e) => `${e.unchecked === 1 ? "1 update" : `${num(e.unchecked)} updates`} in that period can't be checked against ${e.topic.label}.`;
+const UNCHECKED = (e) => `${e.unchecked === 1 ? "1 update" : `${num(e.unchecked)} updates`}${toGraph(e)} in that period can't be checked against ${e.topic.label}.`;
 const SOURCE_GAP = (g) => (g.date || g.from === g.to
   ? `${g.source} was unavailable on ${day(g.date ?? g.from)}, so changes from it that day aren't recorded.`
   : `${g.source} was unavailable from ${day(g.from)} to ${day(g.to)}, so changes from it on those days aren't recorded.`);

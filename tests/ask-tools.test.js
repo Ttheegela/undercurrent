@@ -1092,11 +1092,17 @@ test("nothing matching says none of the checked updates and counts the unchecked
   // a country is told only by a country: a flag, or a company's country. AMBER 0 has no flag and the lobbying graph gives none here
   await topicRun({ topic: "Comoros" });
   assert.deepEqual([ev[0].checked_fleet, ev[0].checked_lobby, ev[0].unchecked], [1, 0, 4]);
-  // a topic that matches in the range is no none, even when the graph or the words asked leave nothing
-  for (const args of [{ topic: "Iran", graph: "lobby" }, { topic: "Russia", query: "star" }]) {
-    const { out: o } = await topicRun(args);
-    assert.deepEqual([o.total, ev.length], [0, 0], JSON.stringify(args));
-  }
+  // a topic that matches in the range is no none, even when the words asked leave nothing
+  const { out: o } = await topicRun({ topic: "Russia", query: "star" });
+  assert.deepEqual([o.total, ev.length], [0, 0]);
+  // with a graph asked, the none is of that graph's updates: Iran is on the map (TASSOS STAR), and in none of the network's updates
+  const { out: inLobby } = await topicRun({ topic: "Iran", graph: "lobby" });
+  assert.equal(inLobby.total, 0);
+  assert.deepEqual(ev.map((e) => [e.kind, e.found, e.graph_name, e.checked_fleet, e.checked_lobby, e.unchecked]), [["change", false, "lobbying network", 0, 1, 2]]);
+  assert.match(ev[0].text, /^Between 18 Oct 2026 and 19 Oct 2026 \(2026-10-18 to 2026-10-19\) for the lobbying network: none of the 1 update whose programme or country could be checked involves Iran\. 2 updates in that period can't be checked against Iran\.$/);
+  // and one that matches in the graph asked is no none
+  await topicRun({ topic: "Iran", graph: "fleet" });
+  assert.ok(!ev.some((e) => e.found === false));
   // what the record says first still comes first: a range before the first run, or today before tonight's run
   ev = [];
   await run("changes", { since: "2025-01-01", until: "2025-02-01", topic: "Iran" });

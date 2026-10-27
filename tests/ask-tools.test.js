@@ -1923,6 +1923,8 @@ test("TOOLS are OpenAI function definitions for the seven tools", () => {
 test("the answer tool's claim enum includes count, age and none_matched", () => {
   const answerTool = TOOLS.find((t) => t.function.name === "answer").function;
   const claim = answerTool.parameters.properties.sentences.items.properties.claim;
+  // a model once wrote its own sentences here, and with "One name from the list" the entity's name ("TASSOS"): no word "name" in it
+  assert.match(claim.description, /^The claim type: one of these words exactly, never your own words\. /);
   for (const name of ["count", "age", "none_matched"]) {
     assert.ok(claim.enum.includes(name), name);
     assert.match(answerTool.description, new RegExp(`\\b${name}: `), name);

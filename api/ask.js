@@ -165,6 +165,16 @@ const parse = (args) => {
   }
 };
 
+/** Which way an answer fell back, for the log: never the question or the model's words, only the code for its path. */
+function fallbackReason(calls, final, raw, toolFailed) {
+  if (!calls.length) return "no_call";
+  if (!final) return "forced_not_answer";
+  if (calls.length > 1) return "answer_beside_calls";
+  if (raw === undefined) return "bad_arguments";
+  if (raw?.kind !== "answer" && raw?.kind !== "clarify") return "wrong_kind";
+  return toolFailed ? "tool_failed" : "nothing_checked";
+}
+
 /**
  * Up to four rounds of tool calls (ten calls in all), then one call forced to `answer`. The answer call's arguments go to the checker
  * with the evidence the tools returned in this request, which is the only evidence there is: earlier turns are plain context. An answer
@@ -196,13 +206,17 @@ async function converse(history, now, wrap, modelId) {
     // read as complete without them. A forced call that is not an answer, and a reply with no call, are the fallback.
     // (ages count to the request's own date, the one the tools and the prompt use)
     if (final || forced || !calls.length) {
-      const answer = await check(final && calls.length === 1 ? parse(final.function.arguments) : undefined, ev, { question, today, toolFailed });
+      const raw = final && calls.length === 1 ? parse(final.function.arguments) : undefined;
+      const answer = await check(raw, ev, { question, today, toolFailed });
+      if (answer.kind === "fallback") console.error("ask: fallback", fallbackReason(calls, final, raw, toolFailed));
       if (answer.kind !== "answer") return { ok: true, answer };
       // ("And the other one?" can't be judged on its own: shown unchecked, the step still traced)
       if (history.filter((m) => m.role === "user").length > 1) return { ok: true, answer: await relevant(question, answer, { skipped: "follow-up" }) };
       // the gate gives up 50 ms before the request's time is out, so a slow answer is still shown, unchecked
       const timeoutMs = Math.max(0, Math.min(GATE_MS, deadline - Date.now() - 50));
-      return { ok: true, answer: await relevant(question, answer, { fetch, timeoutMs }) };
+      const gated = await relevant(question, answer, { fetch, timeoutMs });
+      if (gated.kind === "fallback") console.error("ask: fallback", "gate_dropped_all");
+      return { ok: true, answer: gated };
     }
     const asked = calls.slice(0, Math.min(CALLS_PER_ROUND, MAX_TOOL_CALLS - used)).map((c, i) => ({
       id: typeof c.id === "string" && c.id ? c.id : `call_${round}_${i}`,

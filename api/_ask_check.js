@@ -349,8 +349,10 @@ function finish(kind, pieces, next, byId = new Map()) {
   if (last >= 0) pieces = [...pieces.slice(0, last + 1), { text: NAME_ONLY, items: unique(pieces.flatMap(counts), "id") }, ...pieces.slice(last + 1)];
   const n = new Map();
   const byText = new Map();
+  // a count's examples, and the firms the chips research names, are items of one list (the panel draws them one a line)
+  const counted = pieces.some((p) => p.claim === "count");
   for (const { text, items, claim } of pieces) {
-    if (!byText.has(text)) byText.set(text, { text, sources: [], listed: new Set() });
+    if (!byText.has(text)) byText.set(text, { text, sources: [], listed: new Set(), item: claim === "named" || (counted && claim === "listed") });
     const { sources, listed } = byText.get(text);
     for (const e of items) {
       if (!n.has(e.id)) n.set(e.id, n.size + 1);
@@ -370,7 +372,7 @@ function finish(kind, pieces, next, byId = new Map()) {
     const shown = [...entities].filter((x) => named.has(x)).length;
     if (shown && shown < r.total) lines[said.findLastIndex((x) => [...x.listed].some((y) => entities.has(y)))].add(SHOWING(shown, r.total, r));
   }
-  const sentences = said.flatMap(({ text, sources }, i) => [{ text, sources }, ...[...lines[i]].map((t) => ({ text: t, sources: [] }))]);
+  const sentences = said.flatMap(({ text, sources, item }, i) => [{ text, sources, ...(item && { item: true }) }, ...[...lines[i]].map((t) => ({ text: t, sources: [] }))]);
   return sentences.length ? { kind, sentences, next } : fallback();
 }
 
@@ -453,6 +455,59 @@ export function checkAnswer(raw, ev, ctx) {
   if (pieces.length) pieces.push(...notice(ctx)); // last, after the part-answer line; an answer with nothing to say is the fallback and carries no notice
   const out = finish("answer", pieces, nextOf(linked), byId);
   madeFrom.set(out, { pieces, byId, linked, toolFailed: Boolean(ctx?.toolFailed) });
+  return out;
+}
+
+// One ship or firm, one verdict, as its result page has it ("Listed by 3 of 4: …"). The records of a ship on the lists, in the research
+// and in OpenSanctions share its IMO number; a firm's are one research entry, or one list record.
+const who = (e) => (e.entity?.imo ? `IMO${e.entity.imo}` : e.entity?.id);
+const VERDICT = (name, govs) => `${name} is listed by ${govs.length} of the 4 governments whose lists Undercurrent checks: ${joinAnd(govs.map((g) => `the ${LIST_LABELS[g]}`))}.`;
+
+/**
+ * When every listing an answer says is of one entity (and it counts nothing), the answer opens with how many of the four governments
+ * list it (where the research has the entity, as its page does) and says each government's listing once, from every record of it in the evidence, then its OpenSanctions entry: a listing
+ * the model did not cite is never left out. A government's sentence is one the model's claims wrote with a date (an age if it said
+ * one), else the dated record's, citing the record it is written from; the verdict cites every government record, so "Showing N of M"
+ * counts them all. In place, where the first of those listings was.
+ */
+function oneVerdict(pieces, all) {
+  if (pieces.some((p) => p.claim === "count")) return false; // a count's examples are the count's, not one entity's verdict
+  const said = pieces.filter((p) => (p.claim === "listed" || p.claim === "age") && p.items.length);
+  const ids = new Set(said.flatMap((p) => p.items.map(who)));
+  if (ids.size !== 1) return false;
+  const records = all.filter((e) => listable(e) && who(e) === [...ids][0]);
+  const own = (of) => said.filter((p) => p.items.some((e) => of.includes(e)));
+  const block = [];
+  const govs = [...new Set(records.filter((e) => e.kind !== "opensanctions").map((e) => e.gov))];
+  for (const gov of govs) {
+    const of = records.filter((e) => e.kind !== "opensanctions" && e.gov === gov);
+    const dated = of.find((e) => e.date);
+    const theirs = own(of).find((p) => p.items.some((e) => e.date)) ?? (!dated && own(of)[0]);
+    // (an age said alone is still no listing for "Showing"; said in a listing's place, it counts as the listing did)
+    const claim = !theirs || own(of).some((p) => p.claim === "listed") ? "listed" : theirs.claim;
+    block.push(theirs ? { ...theirs, claim } : { text: LISTED(dated ?? of[0]), items: [dated ?? of[0]], claim });
+  }
+  for (const e of records.filter((x) => x.kind === "opensanctions")) block.push(own([e])[0] ?? { text: LISTED(e), items: [e], claim: "listed" });
+  // (a result page has its verdict line only where Undercurrent's research has the entity, and so does an answer)
+  const researched = records.find((e) => e.kind === "research");
+  if (govs.length && researched) block.unshift({ text: VERDICT(researched.entity.name, govs), items: records.filter((e) => e.kind !== "opensanctions"), claim: "listed" });
+  const at = pieces.indexOf(said[0]);
+  for (const p of said) pieces.splice(pieces.indexOf(p), 1);
+  pieces.splice(at, 0, ...block);
+  return true;
+}
+
+/**
+ * The answer checkAnswer wrote, with the verdict of the one entity it lists (oneVerdict), or as it is. Run on every answer before the
+ * relevance gate; the checker alone checks the model's claims, and this adds what the server says of its own.
+ */
+export function withVerdict(answer) {
+  const made = madeFrom.get(answer);
+  if (!made || answer.kind !== "answer") return answer;
+  const pieces = [...made.pieces];
+  if (!oneVerdict(pieces, [...made.byId.values()])) return answer;
+  const out = finish("answer", pieces, nextOf(made.linked), made.byId);
+  madeFrom.set(out, { ...made, pieces });
   return out;
 }
 

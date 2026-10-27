@@ -24,6 +24,12 @@
 .ask-a p:not(.label) { font: var(--text-base)/1.5 var(--font-serif); }
 .ask-wait, .ask-status { color: var(--color-muted); font-size: var(--text-sm); padding-left: var(--space-sm); border-left: 2px dashed var(--color-neutral); }
 .ask-a .label { margin: var(--space-sm) 0 var(--space-2xs); }
+.ask-list { list-style: none; margin: 0 0 var(--space-xs); padding: 0; font: var(--text-base)/1.5 var(--font-serif); }
+.ask-list li { display: flex; gap: 0.4em; }
+.ask-list li::before { content: "├─ "; flex: none; font-family: var(--font-mono); color: var(--color-neutral); white-space: pre; }
+.ask-list li:last-child::before { content: "└─ "; }
+.ask-list li > span { flex: 1; min-width: 0; }
+.ask-a p.ask-checks { margin: var(--space-sm) 0 0; font: var(--text-xs)/1.4 var(--font-mono); color: var(--color-neutral); } /* (over the answer's serif) */
 .ask-src, .ask-next { margin: 0; padding-left: 1.4em; font-size: var(--text-sm); color: var(--color-muted); }
 .ask-src li::marker { font-family: var(--font-mono); font-size: var(--text-xs); }
 .ask-next { list-style: none; padding-left: 0; }

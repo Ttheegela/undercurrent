@@ -77,6 +77,14 @@ const listedAnswer = fromEvidence((items) => answer({
   sentences: items.filter((i) => i.kind === "list").map((i) => ({ claim: "listed", sources: [i.id] })),
   next: items.filter((i) => i.kind === "research").map((i) => ({ source: i.id })),
 }));
+// What listedAnswer's two listings say on the fixture's TASSOS, as the endpoint writes them: the verdict its result page has, each
+// government once (the US from its dated research record), its OpenSanctions entry. The search's four matches are all the ship: no "Showing".
+const TASSOS_SAID = [
+  "TASSOS is listed by 2 of the 4 governments whose lists Undercurrent checks: the United States and the United Kingdom.",
+  "TASSOS appears on the United States list under Iran since 30 Jul 2025.",
+  "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.",
+  "TASSOS appears in OpenSanctions as listed by UK, US.",
+];
 /** Steps run in order, one per model call; a step is a body, a Response, an Error to throw, or a function of the request body. */
 function openrouter(...steps) {
   const queue = [...steps];
@@ -327,14 +335,11 @@ test("check_lists then answer gives a rendered listed sentence", async () => {
   assert.equal(res.headers.get("cache-control"), "no-store");
   assert.equal(out.ok, true);
   assert.equal(out.answer.kind, "answer");
-  assert.deepEqual(out.answer.sentences.map((s) => s.text), [
-    "TASSOS appears on the United States list under Iran.",
-    "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.",
-    "Showing 2 of 4 matching records from the lists, the research and OpenSanctions.", // two of the fixture search's four matches
-  ]);
-  assert.deepEqual(out.answer.sentences[2].sources, []);
-  assert.match(out.answer.sentences[0].sources[0].url, /Details\.aspx\?id=54815/);
-  assert.match(out.answer.sentences[1].sources[0].url, /RUS3483/);
+  assert.deepEqual(out.answer.sentences.map((s) => s.text), TASSOS_SAID);
+  const [verdict, us, uk, os] = out.answer.sentences;
+  // the verdict cites every government record; each listing its own record, and the US one is the dated research entry
+  assert.deepEqual(verdict.sources.map((s) => s.label), ["Undercurrent research: TASSOS · United States", "United States list · TASSOS", "United Kingdom list · TASSOS"]);
+  assert.deepEqual([us.sources.map((s) => s.n), uk.sources.map((s) => s.n), os.sources.map((s) => s.label)], [[1], [3], ["OpenSanctions · TASSOS"]]);
   assert.equal(out.answer.next.length, 1);
   assert.match(out.answer.next[0].href, /^\/stories\/shadow-fleet\/network\/shadow_fleet_map\.html#focus=/);
   // the tool result went back to the model as a tool message, with the id of the call it answers
@@ -375,6 +380,22 @@ test("changes are rendered from the change record", async () => {
   assert.ok(out.sentences.some((s) => s.text.startsWith("New on the map: SHIP 1 · 19 Oct 2026")), JSON.stringify(out.sentences));
 });
 
+test("the reply says which checks the question ran and whether each found anything; a refusal and a fallback say none", async () => {
+  // check_lists looks in the lists, the research and OpenSanctions at once; site_docs in the explainers
+  openrouter(reply(call("check_lists", { query: "TASSOS" }), call("site_docs", { query: "matching" })), listedAnswer);
+  const { json: out } = await run(ask("Is TASSOS sanctioned?"));
+  assert.deepEqual(out.checks, [{ name: "lists", found: true }, { name: "research", found: true }, { name: "wider", found: true }, { name: "docs", found: true }]);
+  // a check that found nothing still ran
+  openrouter(reply(call("check_lists", { query: "Zephyr Marine Services" })), fromEvidence((items) => answer({ kind: "answer", sentences: [{ claim: "not_found", sources: [items[0].id] }] })));
+  const { json: none } = await run(ask("Is Zephyr Marine Services sanctioned?"));
+  assert.deepEqual(none.checks, [{ name: "lists", found: false }, { name: "research", found: false }, { name: "wider", found: false }]);
+  // nothing looked up, or nothing checked: no checks
+  openrouter(answer({ kind: "refusal", sentences: [] }));
+  assert.equal("checks" in (await run(ask("Write me a poem."))).json, false);
+  openrouter(reply(call("check_lists", { query: "TASSOS" })), { choices: [{ message: { role: "assistant", content: "TASSOS is fine." } }] });
+  assert.equal("checks" in (await run(ask("Is TASSOS sanctioned?"))).json, false);
+});
+
 test("forces answer after 4 tool rounds", async () => {
   const round = reply(call("check_lists", { query: "TASSOS" }));
   openrouter(round, round, round, round, listedAnswer);
@@ -383,7 +404,7 @@ test("forces answer after 4 tool rounds", async () => {
   assert.deepEqual(sent.slice(0, 4).map((s) => s.body.tool_choice), ["auto", "auto", "auto", "auto"]);
   assert.deepEqual(sent[4].body.tool_choice, FORCE_ANSWER);
   assert.equal(out.answer.kind, "answer");
-  assert.equal(out.answer.sentences.length, 3); // two listings and their "Showing 2 of 4" line
+  assert.equal(out.answer.sentences.length, 4); // the verdict, the two governments' listings and the OpenSanctions entry (TASSOS_SAID)
   // a forced call that still is not an answer is the fallback, and there is never a sixth call
   openrouter(round, round, round, round, { choices: [{ message: { role: "assistant", content: "TASSOS is fine." } }] });
   const none = (await run(ask("Is TASSOS sanctioned?"))).json.answer;
@@ -927,21 +948,21 @@ function withTypesafe(drop) {
 
 test("runAsk wraps the gate as \"gate\" and POST still passes no model", async () => {
   process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
-  const US = "TASSOS appears on the United States list under Iran.";
+  const US = "TASSOS appears on the United States list under Iran since 30 Jul 2025.";
   const flow = () => [reply(call("check_lists", { query: "TASSOS" })), listedAnswer]; // a listed sentence for each of its two records
   const gated = [];
   const wrap = (name, fn) => (name === "gate" ? (...args) => (gated.push(args), fn(...args)) : fn);
   openrouter(...flow());
-  let judged = withTypesafe((text) => text !== US); // the UK record is judged unrelated to a question about the US list
+  let judged = withTypesafe((text) => text !== US); // all but the US listing judged unrelated to a question about the US list
   const out = await runAsk(history("Is TASSOS on the US list?"), new Date(Date.now()), { wrap });
   assert.deepEqual(out.answer.sentences, [
-    { text: US, sources: [{ n: 1, label: "United States list · TASSOS", url: "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=54815" }] },
-    { text: "Showing 1 of 4 matching records from the lists, the research and OpenSanctions.", sources: [] }, // (it was 2 of 4 with the UK record)
+    { text: US, sources: [{ n: 1, label: "Undercurrent research: TASSOS · United States", url: "https://sanctionssearch.ofac.treas.gov/Details.aspx?id=54815" }] },
+    { text: "Showing 1 of 4 matching records from the lists, the research and OpenSanctions.", sources: [] }, // (none with the verdict, which named all four)
   ]);
   // the gate was handed the question and the checker's answer, and no key: it reads TYPESAFE_API_KEY itself
   assert.equal(gated.length, 1);
   const [question, checked, options] = gated[0];
-  assert.deepEqual([question, checked.kind, checked.sentences.filter((s) => s.sources.length).length], ["Is TASSOS on the US list?", "answer", 2]);
+  assert.deepEqual([question, checked.kind, checked.sentences.filter((s) => s.sources.length).length], ["Is TASSOS on the US list?", "answer", 4]); // with the verdict
   assert.equal("apiKey" in options, false);
   assert.deepEqual(judged.map((j) => [j.authorization, j.body.state.question]), [["Bearer ts-fake-key-for-tests-only", "Is TASSOS on the US list?"]]);
   // only an answer is gated: a refusal never reaches it
@@ -961,7 +982,7 @@ test("runAsk wraps the gate as \"gate\" and POST still passes no model", async (
 
 test("final review I2: a follow-up skips the gate: no TypeSafe call, the answer as the checker wrote it, and the gate step marked skipped", async () => {
   process.env.TYPESAFE_API_KEY = "ts-fake-key-for-tests-only";
-  const CHECKED = ["TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4 matching records from the lists, the research and OpenSanctions."];
+  const CHECKED = TASSOS_SAID;
   // "And the other one?" can't be judged without the turns before it, and only the latest question is ever sent
   const followUp = [
     { role: "user", content: "Is TASSOS sanctioned?" }, { role: "assistant", content: "TASSOS appears on the United States list under Iran." },
@@ -1019,9 +1040,7 @@ test("the gate gives up before the request's 26 s are out, so a slow answer is s
   globalThis.fetch = (url, init = {}) => (url === TYPESAFE ? new Promise((_, reject) => init.signal.addEventListener("abort", () => reject(init.signal.reason))) : model(url, init));
   const out = await runAsk(history("Is TASSOS sanctioned?"), new Date(now));
   assert.equal(out.ok, true);
-  assert.deepEqual(out.answer.sentences.map((s) => s.text), [ // as the checker wrote it
-    "TASSOS appears on the United States list under Iran.", "TASSOS appears on the United Kingdom list under Russia since 24 Feb 2026.", "Showing 2 of 4 matching records from the lists, the research and OpenSanctions.",
-  ]);
+  assert.deepEqual(out.answer.sentences.map((s) => s.text), TASSOS_SAID); // as the checker wrote it, with its verdict
   assert.equal(budgets.at(-1), 950); // the gate's: what was left of the 26 s, less 50 ms, not its usual 3 s
   assert.deepEqual(logged.filter((line) => line.startsWith("ask")), ["ask: relevance gate unavailable"]); // (Node's own warnings aside)
 });

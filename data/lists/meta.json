@@ -3,33 +3,33 @@
     "us": {
       "label": "United States",
       "source_url": "https://www.trade.gov/consolidated-screening-list",
-      "checked_at": "2026-10-28T10:05:35Z",
+      "checked_at": "2026-10-29T10:29:35Z",
       "status": "fresh",
-      "updated_at": "2026-10-28T10:05:35Z",
-      "record_count": 55197
+      "updated_at": "2026-10-29T10:29:35Z",
+      "record_count": 55223
     },
     "uk": {
       "label": "United Kingdom",
       "source_url": "https://www.gov.uk/government/publications/the-uk-sanctions-list",
-      "checked_at": "2026-10-28T10:05:35Z",
+      "checked_at": "2026-10-29T10:29:35Z",
       "status": "fresh",
-      "updated_at": "2026-10-28T10:05:35Z",
+      "updated_at": "2026-10-29T10:29:35Z",
       "record_count": 12174
     },
     "eu": {
       "label": "European Union",
       "source_url": "https://data.europa.eu/data/datasets/consolidated-list-of-persons-groups-and-entities-subject-to-eu-financial-sanctions",
-      "checked_at": "2026-10-28T10:05:35Z",
+      "checked_at": "2026-10-29T10:29:35Z",
       "status": "fresh",
-      "updated_at": "2026-10-28T10:05:35Z",
+      "updated_at": "2026-10-29T10:29:35Z",
       "record_count": 24385
     },
     "un": {
       "label": "United Nations",
       "source_url": "https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list",
-      "checked_at": "2026-10-28T10:05:35Z",
+      "checked_at": "2026-10-29T10:29:35Z",
       "status": "fresh",
-      "updated_at": "2026-10-28T10:05:35Z",
+      "updated_at": "2026-10-29T10:29:35Z",
       "record_count": 3677
     }
   }

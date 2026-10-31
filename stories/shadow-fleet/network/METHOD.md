@@ -47,7 +47,7 @@ Every line carries its type, date where known, one or more sources (link and sav
    format with sources.
 5. **Independent verification.** Every angle was re-checked by a separate verifier that re-opened the saved sources,
    re-derived numbers, checked IMO check digits and people's names against the lists, and wrote a corrected file plus a
-   claim-by-claim table. The research and verification files stay with the team's working files and are not published, because they name unlisted firms. Only the corrected files feed the chart. Examples of what verifiers
+   claim-by-claim table. The research and verification files stay with the VeilTrace project's working files and are not published, because they name unlisted firms. Only the corrected files feed the chart. Examples of what verifiers
    caught: two wrong IMO numbers dropped; a strike date corrected from 9 to 8 September 2026; the EU act number question settled (2026/1843 regulation and 2026/1845 decision are one listing).
 6. **Merge** (`merge.py`) de-duplicates lines, keeps every source on a line, and applies the naming policy below.
 
@@ -64,7 +64,7 @@ Every line carries its type, date where known, one or more sources (link and sav
 ## Key numbers and their filters
 
 - **54** ships are on a Russia ship list (UK or EU) and on the US list under an Iran-related programme. UK list alone: 46.
-  The strict filter in the team's published analysis (US entry carries an Iran programme tag, UK Russia list only): 42.
+  The strict filter in the VeilTrace published analysis (US entry carries an Iran programme tag, UK Russia list only): 42.
 - For 39 of the 54, the US Iran listing came before the first UK or EU Russia listing.
 - US listing dates are the date a ship first appeared on the OFAC list in the OpenSanctions export. They match Treasury's
   releases on the dates we checked (30 Jul 2025, 15 Apr 2026).
@@ -86,7 +86,7 @@ Every line carries its type, date where known, one or more sources (link and sav
   Rosnefteflot Rosneft's "marine transportation arm", Gazpromneft Marine Bunker "a Gazprom Neft subsidiary" and Sovcomflot
   "Russia's state-owned shipping company"; the UK statement of reasons says the state leasing company GTLK is directly
   controlled by the Russian government. Gazprom Neft to Gazprom rests on non-official sources and is a Lead.
-- **Lobbying.** The team's verified lobbying graph (US lobbying and foreign-agent filings) is joined in. A ship card shows a
+- **Lobbying.** The VeilTrace verified lobbying graph (US lobbying and foreign-agent filings) is joined in. A ship card shows a
   lobbying line only when the ship's operator, its parent group, or a subsidiary of that parent appears in those filings;
   13 listed ships trace that far (Gazprom Neft and Lukoil tankers). For Sovcomflot, Zulu, Fleet Tanqo, Rosneft, Lukoil,
   Litasco and Nayara, no US lobbying filing was found under their own names in our search. State operators such as IRISL,

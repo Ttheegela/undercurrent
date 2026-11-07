@@ -721,7 +721,7 @@ function renderSide(n){
   if (n.s) h += `<span class="badge b-${n.s}">${statusText(n)}</span>`;
   if (n.nolobby) h += `<span class="badge b-nolobby">No US lobbying filings found</span>`;
   if (n.live) h += `<span class="badge b-live">Seen live on ship tracking (AIS): ${esc(n.live.area)}, ${esc(nyTime(n.live.at))}</span>`;
-  if (n.src) h += `<span class="badge b-unv">From the team's lobbying research</span>`;
+  if (n.src) h += `<span class="badge b-unv">From the VeilTrace lobbying research</span>`;
   if (!n.s && n.L !== "lobby" && (n.t === "company" || n.t === "person")) h += `<span class="badge b-unv">On no sanctions list we checked</span>`;
   if (n.unverified_person) h += `<span class="badge b-unv">Named in official text, not yet re-checked</span>`;
   if (n.t === "person" && n.L === "lobby") h += `<span class="badge b-nolobby">Named in US lobbying disclosures</span>`;

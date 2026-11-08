@@ -3,23 +3,23 @@
     "us": {
       "label": "United States",
       "source_url": "https://www.trade.gov/consolidated-screening-list",
-      "checked_at": "2026-11-07T10:44:58Z",
+      "checked_at": "2026-11-08T10:49:43Z",
       "status": "fresh",
-      "updated_at": "2026-11-07T10:44:58Z",
+      "updated_at": "2026-11-08T10:49:43Z",
       "record_count": 55339
     },
     "uk": {
       "label": "United Kingdom",
       "source_url": "https://www.gov.uk/government/publications/the-uk-sanctions-list",
-      "checked_at": "2026-11-07T10:44:58Z",
+      "checked_at": "2026-11-08T10:49:43Z",
       "status": "fresh",
-      "updated_at": "2026-11-07T10:44:58Z",
+      "updated_at": "2026-11-08T10:49:43Z",
       "record_count": 12174
     },
     "eu": {
       "label": "European Union",
       "source_url": "https://data.europa.eu/data/datasets/consolidated-list-of-persons-groups-and-entities-subject-to-eu-financial-sanctions",
-      "checked_at": "2026-11-07T10:44:58Z",
+      "checked_at": "2026-11-08T10:49:43Z",
       "status": "kept-previous",
       "error": "HTTPError: HTTP Error 500: Internal Server Error",
       "updated_at": "2026-11-06T11:39:47Z",
@@ -28,9 +28,9 @@
     "un": {
       "label": "United Nations",
       "source_url": "https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list",
-      "checked_at": "2026-11-07T10:44:58Z",
+      "checked_at": "2026-11-08T10:49:43Z",
       "status": "fresh",
-      "updated_at": "2026-11-07T10:44:58Z",
+      "updated_at": "2026-11-08T10:49:43Z",
       "record_count": 3677
     }
   }

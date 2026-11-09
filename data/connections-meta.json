@@ -1,8 +1,8 @@
 {
   "label": "OpenSanctions connections",
   "source_url": "https://www.opensanctions.org/datasets/sanctions/",
-  "checked_at": "2026-11-08T10:49:53Z",
+  "checked_at": "2026-11-09T12:15:35Z",
   "status": "fresh",
-  "updated_at": "2026-11-08T10:49:53Z",
+  "updated_at": "2026-11-09T12:15:35Z",
   "record_count": 12370
 }

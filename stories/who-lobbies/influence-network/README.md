@@ -61,7 +61,7 @@ join the lobbying side to the fleet. A pulsing green ring means the ship was see
 | US Lobbying Disclosure Act database ([lda.gov API](https://lda.gov/api/redoc/v1/)) | Clients, firms, fees, issues, bills, lobbyists and their past posts |
 | Foreign Agents Registration Act filings ([En+ Group exhibit](https://efile.fara.gov/docs/6170-Exhibit-AB-20200316-80.pdf), [Hikvision statement](https://efile.fara.gov/docs/3731-Supplemental-Statement-20250430-53.pdf)) | Two foreign-agent contracts (En+ Group, Hikvision) |
 | US Treasury press releases | Ownership statements (e.g. jl2629, jy2777) |
-| Team research | The shadow-fleet map (`research/shadow-fleet/`) and a lobbying study including EU register entries |
+| VeilTrace research | The shadow-fleet map (`research/shadow-fleet/`) and a lobbying study including EU register entries |
 | God's Eye View sanctions layer | Snapshot of listed ships seen on live AIS (20:11 UTC, 25 Sep 2026) |
 
 ## Method in brief
@@ -73,7 +73,7 @@ join the lobbying side to the fleet. A pulsing green ring means the ship was see
    but not added to client totals.
 4. Sanctions status is looked up by record number on the US and UK lists: **blocked** vs **restricted**.
 5. Links between the two sides are hand-checked against official sources in `scripts/curated.json`.
-6. The team's lobbying layer is merged by name, each match checked by hand; where both sources link the same pair,
+6. The VeilTrace lobbying layer is merged by name, each match checked by hand; where both sources link the same pair,
    the link carrying the filing number and amount is kept.
 
 Full detail, in plain language: [`methods.html`](methods.html).
@@ -89,7 +89,7 @@ Full detail, in plain language: [`methods.html`](methods.html).
 ## Limitations
 
 - "No path found" and "no lobbying found" are not proof of no relationship or no influence.
-- US lobbying only, plus a few EU register entries from team research; fees are self-reported and rounded to $10,000.
+- US lobbying only, plus a few EU register entries from the VeilTrace research; fees are self-reported and rounded to $10,000.
 - En+ Group cannot be searched by name on the lobbying API (the "+" is ignored); it comes from earlier targeted pulls.
 - Bills are limited to key bills and those named in three or more reports ({{stat:kg.bills}}).
 - Live AIS is a moment in time: sanctioned tankers often switch off or spoof their transponders.
@@ -121,6 +121,6 @@ force-graph from cdn.jsdelivr.net, so it needs an internet connection.
 
 ## Credits
 
-Built by our team with AI agents (Claude Code) doing research, cross-checking and building under human direction.
+Built in the VeilTrace hackathon project with AI agents (Claude Code) doing research, cross-checking and building under human direction.
 Graph rendering by [force-graph](https://github.com/vasturiano/force-graph) (MIT). Fonts: Inter and JetBrains Mono
 (SIL Open Font Licence). Sanctions lists and lobbying records are public government data.
